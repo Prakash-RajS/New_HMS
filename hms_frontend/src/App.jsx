@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/LeftSideBar.jsx";
 import Header from "./components/Header.jsx";
-import Home from "./pages/Home/Home.jsx";
-// import Appointments from "./Appointments";
-// import Patients from "./Patients";
-// import Schedule from "./Schedule";
-// ... add others
+
+// Pages
+import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
+import PatientRecord from "./pages/Home/PatientRecord.jsx";
+import SurgeryRecord from "./pages/Home/SurgeryRecord.jsx";
+import RevenueSummary from "./pages/Home/RevenueSummary.jsx";
+import Report from "./pages/Home/Reports.jsx";
 
 export default function App() {
   return (
@@ -19,11 +21,15 @@ export default function App() {
           <Header />
           <div className="mt-[60px] p-6">
             <Routes>
-              <Route path="/" element={<Home />} />
-              {/* <Route path="/appointments" element={<Appointments />} />
-              <Route path="/patients" element={<Patients />} />
-              <Route path="/schedule" element={<Schedule />} /> */}
-              {/* ... other routes */}
+              {/* Dashboard with nested routes */}
+              <Route path="/" element={<DashboardComponents />}>
+                <Route path="patient-record" element={<PatientRecord />} />
+                <Route path="surgery-record" element={<SurgeryRecord />} />
+                <Route path="revenue-summary" element={<RevenueSummary />} />
+              </Route>
+
+              {/* Other main routes */}
+              <Route path="/reports" element={<Report />} />
             </Routes>
           </div>
         </div>
