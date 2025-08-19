@@ -14,14 +14,16 @@ import Employee from "./pages/Home/Employee.jsx";
 export default function App() {
   return (
     <Router>
-      <div className="flex bg-black min-h-screen">
-        {/* Sidebar (always visible) */}
+      <div className="flex bg-black ">
+        {/* Sidebar (fixed) */}
         <Sidebar />
 
-        {/* Main Content */}
-        <div className="flex-1 ml-[341px]">
+        {/* Main Content shifted only by 230px */}
+        <div className="flex-1 flex flex-col">
           <Header />
-          <div className="mt-[60px] p-6">
+
+          {/* Scrollable content area */}
+          <div className="mt-[60px] p-3 overflow-y-hidden h-[calc(100vh-60px)]">
             <Routes>
               {/* Dashboard with nested routes */}
               <Route path="/" element={<DashboardComponents />}>

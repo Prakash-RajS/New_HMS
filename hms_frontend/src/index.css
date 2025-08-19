@@ -4,5 +4,7 @@
 
 html, body, #root {
   max-width: 1440px;
-  overflow-x: hidden; /* disable horizontal scroll */
+  overflow-x: hidden; 
+  /* disable horizontal scroll */
 }
+

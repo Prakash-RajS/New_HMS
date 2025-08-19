@@ -5,6 +5,7 @@ import RevenueSummary from "./RevenueSummary";
 import Reports from "./Reports";
 import Statistics from "./Statistics";
 import Employee from "./Employee";
+import { Outlet } from "react-router-dom";
 
 const DashboardComponents = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -14,11 +15,11 @@ const DashboardComponents = () => {
     <div className="relative">
       {/* Main Container with exact dimensions and overflow control */}
       <div 
-        className="bg-[#0D0D0D] ml-[-105px] mt-[5px] flex-1 pt-2 text-white"
+        className="flex-1 bg-[#0D0D0D] mt-[5px] pt-2 text-white rounded-[12px]"
         style={{
           width: '1089px',
           height: '905px',
-          overflow: 'hidden' // This prevents both horizontal and vertical scrolling
+           // This prevents both horizontal and vertical scrolling
         }}
       >
         {/* Top Navigation Bar */}
@@ -71,7 +72,9 @@ const DashboardComponents = () => {
 {activeTab === "Employee" && <Employee />}
         </div>
       </div>
+      <Outlet />
     </div>
+    
   );
 };
 
