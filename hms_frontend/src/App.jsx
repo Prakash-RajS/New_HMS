@@ -7,7 +7,9 @@ import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
 import PatientRecord from "./pages/Home/PatientRecord.jsx";
 import SurgeryRecord from "./pages/Home/SurgeryRecord.jsx";
 import RevenueSummary from "./pages/Home/RevenueSummary.jsx";
-import Report from "./pages/Home/Reports.jsx";
+import Reports from "./pages/Home/Reports.jsx";
+import Statistics from "./pages/Home/Statistics.jsx";
+import Employee from "./pages/Home/Employee.jsx";
 
 export default function App() {
   return (
@@ -29,7 +31,9 @@ export default function App() {
               </Route>
 
               {/* Other main routes */}
-              <Route path="/reports" element={<Report />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/statistics" element={<Statistics />} />
+              <Route path="/employee" element={<Employee />} />
             </Routes>
           </div>
         </div>

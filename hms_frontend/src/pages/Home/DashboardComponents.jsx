@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import PatientRecord from "./PatientRecord";
 import SurgeryRecord from "./SurgeryRecord";
 import RevenueSummary from "./RevenueSummary";
+import Reports from "./Reports";
+import Statistics from "./Statistics";
+import Employee from "./Employee";
 
 const DashboardComponents = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -63,9 +66,9 @@ const DashboardComponents = () => {
               {activeSubTab === "Revenue Summary" && <RevenueSummary />}
             </>
           )}
-          {activeTab === "Reports" && <div>Reports Content</div>}
-          {activeTab === "Statistics" && <div>Statistics Content</div>}
-          {activeTab === "Employee" && <div>Employee Content</div>}
+          {activeTab === "Reports" && <Reports />}
+{activeTab === "Statistics" && <Statistics />}
+{activeTab === "Employee" && <Employee />}
         </div>
       </div>
     </div>

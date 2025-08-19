@@ -1,12 +1,22 @@
-export default function Welcome() {
+import React from "react";
+
+const Reports = () => {
   return (
-    <div className="bg-black flex flex-col items-center justify-center min-h-screen bg-gray-100">
-      <h1 className="text-4xl font-bold text-blue-600 mb-6">
-        Welcome to HMS 🚀
-      </h1>
-      <button className="px-6 py-3 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600 transition">
-        Submit
-      </button>
+    <div className="p-6 text-white">
+      <h2 className="text-2xl font-bold mb-4">Reports</h2>
+      <p className="text-gray-400">
+        This section will display hospital reports such as monthly patient visits, revenue breakdowns, and other analytics.
+      </p>
+      <div className="mt-6 bg-[#1A1A1A] p-4 rounded-lg">
+        <h3 className="text-xl font-semibold mb-2">Sample Report</h3>
+        <ul className="list-disc pl-6 text-gray-300">
+          <li>Monthly Patient Admissions: 245</li>
+          <li>Total Surgeries: 67</li>
+          <li>Revenue Generated: ₹12,45,000</li>
+        </ul>
+      </div>
     </div>
   );
-}
+};
+
+export default Reports;
