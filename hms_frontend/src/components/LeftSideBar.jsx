@@ -59,6 +59,7 @@
 //   );
 // }
 
+// Sidebar.jsx
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -101,7 +102,7 @@ const menuItems = [
 
 export default function Sidebar() {
   return (
-    <div className="w-[260px] h-[calc(100vh-60px)] mt-[90px] ml-[41px] rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col justify-between p-4 fixed">
+    <div className="w-[260px] min-h-screen rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col justify-between p-4">
       <ul className="flex flex-col gap-2 mt-4 ml-2 text-[14px] text-left font-normal font-['Inter']">
         {menuItems.map((item, idx) => (
           <NavLink
