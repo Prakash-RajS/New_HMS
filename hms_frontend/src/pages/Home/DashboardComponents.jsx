@@ -15,7 +15,7 @@ const DashboardComponents = () => {
     <div className="relative">
       {/* Main Container with exact dimensions and overflow control */}
       <div 
-        className="flex-1 bg-[#0D0D0D] mt-[5px] pt-2 text-white rounded-[12px]"
+        className="flex-1 bg-[#0D0D0D] mt-[90px] mb-4 pt-2 text-white rounded-[12px]"
         style={{
           width: '1089px',
           height: '905px',

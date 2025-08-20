@@ -5,9 +5,8 @@
   margin: 0 auto;     /* center content when screen >1440px */
   padding: 0;
   text-align: center;
+  overflow-x: hidden; 
 }
-
-
 
 .logo {
   height: 6em;
@@ -44,4 +43,3 @@
 .read-the-docs {
   color: #888;
 }
-
