@@ -10,6 +10,7 @@ import RevenueSummary from "./pages/Home/RevenueSummary.jsx";
 import Reports from "./pages/Home/Reports.jsx";
 import Statistics from "./pages/Home/Statistics.jsx";
 import Employee from "./pages/Home/Employee.jsx";
+import AppointmentList from "./pages/Appointments/appointments_list";
 
 export default function App() {
   return (
@@ -33,6 +34,8 @@ export default function App() {
               </Route>
 
               {/* Other main routes */}
+
+              <Route path="/appointments" element={<AppointmentList />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />

@@ -76,12 +76,24 @@ import {
 
 const menuItems = [
   { name: "Dashboard", path: "/", icon: <LayoutDashboard size={18} /> },
-  { name: "Appointments", path: "/appointments", icon: <CalendarCheck size={18} /> },
+  {
+    name: "Appointments",
+    path: "/appointments",
+    icon: <CalendarCheck size={18} />,
+  },
   { name: "Patients", path: "/patients", icon: <Users size={18} /> },
   { name: "Schedule", path: "/schedule", icon: <CalendarDays size={18} /> },
-  { name: "Laboratory Reports", path: "/LaboratoryReports", icon: <FlaskConical size={18} /> },
+  {
+    name: "Laboratory Reports",
+    path: "/LaboratoryReports",
+    icon: <FlaskConical size={18} />,
+  },
   { name: "Pharmacy", path: "/Pharmacy", icon: <Pill size={18} /> },
-  { name: "New Registration", path: "/NewRegistration", icon: <UserPlus size={18} /> },
+  {
+    name: "New Registration",
+    path: "/NewRegistration",
+    icon: <UserPlus size={18} />,
+  },
   { name: "Billing Info", path: "/BillingInfo", icon: <FileText size={18} /> },
   { name: "Emergencies", path: "/Emergencies", icon: <Siren size={18} /> },
   { name: "Accounts", path: "/Accounts", icon: <UserCircle size={18} /> },
