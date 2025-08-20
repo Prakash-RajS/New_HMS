@@ -119,7 +119,7 @@ const AppointmentList = () => {
   };
 
   return (
-    <div className="mt-[90px] mb-4  bg-black text-white rounded-xl p-6 w-[1100px] mx-auto">
+    <div className="mt-[60px] mb-4  bg-black text-white rounded-xl p-6 w-full max-w-[1100px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Appointment List</h2>
@@ -191,7 +191,7 @@ const AppointmentList = () => {
       </div>
 
       {/* Filters */}
-      <div className="w-full mx-auto h-[57px] rounded-[40px] border border-[#0EFF7B1A] bg-[#0D0D0D] flex items-center justify-between px-10 mb-4">
+      <div className="w-full overflow-x-auto h-[57px] rounded-[40px] border border-[#0EFF7B1A] bg-[#0D0D0D] flex items-center justify-between px-10 mb-4">
         {filters.map((f) => (
           <button
             key={f}
