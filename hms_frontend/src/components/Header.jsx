@@ -3,22 +3,23 @@ import React from 'react';
 const Header = () => {
     return (
         <div className="w-full overflow-hidden">
-            <header 
-                className="flex items-center justify-between p-4 bg-black text-white gap-[20px] mx-auto"
+            <header
+                className="flex items-center justify-between p-4 bg-black text-white gap-[20px]"
                 style={{
-                    width: '1350px',
-                    height: '42px',
-                    opacity: 1,
-                    position: 'absolute',
-                    top: '15px',
-                    left: '7px'
+                    width: "1128px",      // fixed width for content
+                    maxWidth: "1180px",
+                    position: "fixed",    // keep it visible
+                    // a little space from top
+                    left: "239px",        // 👈 match your sidebar width
+                    zIndex: 40,
+                    // optional: rounded like cards
                 }}
             >
                 {/* Empty div to balance the flex justify-between */}
                 <div className="w-[394px]"></div>
-                
+
                 {/* Search Box - Centered */}
-                <div className="relative w-[394px] h-[42px] ml-[100px]">
+                <div className="relative w-[394px] h-[42px] mr-12">
                     {/* Search Icon */}
                     <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
                         <svg
@@ -55,7 +56,7 @@ const Header = () => {
                 </div>
 
                 {/* Icons Group */}
-                <div className="flex items-center gap-[20px]">
+                <div className="flex items-center gap-[30px]">
                     {/* Settings Icon */}
                     <button className="p-2 rounded-full hover:bg-gray-800 transition-colors">
                         <svg
@@ -100,7 +101,7 @@ const Header = () => {
                         </svg>
                         <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
                     </button>
-                    
+
                     {/* Mail Icon */}
                     <button className="p-2 rounded-full hover:bg-gray-800 transition-colors relative">
                         <svg
@@ -132,21 +133,29 @@ const Header = () => {
                     <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
                     {/* Profile */}
-                    <div className="flex items-center gap-3 cursor-pointer group">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-medium">
+                    {/* Profile */}
+                    <div className="flex items-center  gap-3 cursor-pointer group w-[163px] h-[32px]">
+                        {/* Avatar */}
+                        <div className="w-8 h-8 min-w-8 min-h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-medium shrink-0">
                             JD
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium group-hover:text-emerald-400 transition-colors">John Doe</span>
-                            <span className="text-xs text-gray-400">Admin</span>
+
+                        {/* Name & Role */}
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis group-hover:text-emerald-400 transition-colors">
+                                John Doe
+                            </span>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">Admin</span>
                         </div>
+
+                        {/* Dropdown Icon */}
                         <svg
                             width="16"
                             height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
-                            className="text-gray-400 group-hover:text-emerald-400 transition-colors"
+                            className="text-gray-400 group-hover:text-emerald-400 transition-colors shrink-0"
                         >
                             <path
                                 d="M6 9L12 15L18 9"
@@ -157,6 +166,7 @@ const Header = () => {
                             />
                         </svg>
                     </div>
+
                 </div>
             </header>
         </div>
