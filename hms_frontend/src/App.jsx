@@ -24,7 +24,11 @@ export default function App() {
           <Header />
 
           {/* Scrollable content area */}
+<<<<<<< HEAD
+          <div className="mt-[60px] p-3 overflow-y-hidden h-[auto]">
+=======
           <div className="ml-[250px] p-2 overflow-y-hidden overflow-x-hidden h-[auto]">
+>>>>>>> 0c33fa07c73e0e020934dffcd54a2b15c7fb8950
             <Routes>
               {/* Dashboard with nested routes */}
               <Route path="/" element={<DashboardComponents />}>
