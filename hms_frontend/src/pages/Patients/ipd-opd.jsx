@@ -4,14 +4,15 @@ import {
   Search,
   Filter,
   Plus,
+  Edit2,
   Trash2,
   X,
   ChevronDown,
   Calendar,
-  Edit2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import AddPatient from "./AddPatient";
 import EditPatient from "./EditPatient";
 import DeletePatient from "./DeletePatient"; // ✅ Import Listbox
 
@@ -26,6 +27,8 @@ const AppointmentList = () => {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const itemsPerPage = 1;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -36,7 +39,7 @@ const AppointmentList = () => {
     date: "",
   });
 
-  const tabs = ["In-Patients", "Oot-Patients"];
+  const tabs = ["In-Patients", "Out-Patients"];
   const filters = ["All", "New", "Severe", "Normal", "Completed", "Cancelled"];
 
   const appointments = [
@@ -159,6 +162,12 @@ const AppointmentList = () => {
     setFiltersData({ ...filtersData, [name]: value });
   };
 
+  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+  const currentAppointments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAppointments.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, filteredAppointments, itemsPerPage]);
+
   const handleClearFilters = () => {
     setFiltersData({
       patientName: "",
@@ -215,6 +224,46 @@ const AppointmentList = () => {
         >
           <Plus size={18} /> Add Patients
         </button>
+      </div>
+      <div className="mb-3 w-[800px]">
+        <div className="flex items-center gap-4 rounded-xl ">
+          {/* Today's Total */}
+          <div className="flex items-center gap-3">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Today's Total
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#0EFF7B66] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A]">
+              150
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Visited */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              In-Patients
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#2231FF] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#6E92FF] to-[#425899]">
+              47
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Waiting */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Out-Patients
+            </span>
+            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-[#000000] gap-1 opacity-100 rounded-[20px] border border-[#FF930E] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#FF930E] to-[#995808]">
+              12
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -366,8 +415,43 @@ const AppointmentList = () => {
           </tbody>
         </table>
       </div>
+      {/* Pagination */}
+      <div className="flex items-center mt-4 bg-black p-4 rounded gap-x-4">
+        <div className="text-sm text-white">
+          Page {currentPage} of {totalPages} (
+          {(currentPage - 1) * itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
+          from {filteredAppointments.length} Patients)
+        </div>
 
-      {/* === FILTER POPUP === */}
+        <div className="flex items-center gap-x-2">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border gap-[12px] ${
+              currentPage === 1
+                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
+                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+            }`}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <button
+            onClick={() =>
+              setCurrentPage(Math.min(totalPages, currentPage + 1))
+            }
+            disabled={currentPage === totalPages}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              currentPage === totalPages
+                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white  opacity-50"
+                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+            }`}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+
       {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">

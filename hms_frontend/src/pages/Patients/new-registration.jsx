@@ -115,13 +115,15 @@ export default function NewRegistration() {
   };
 
   return (
-    <div className="mt-[60px] mb-4  bg-black text-white rounded-xl p-6 w-full"
+    <div
+      className="mt-[60px] mb-4  bg-black text-white rounded-xl p-6 w-full"
       style={{
-        width: "1380px",          // ✅ make flexible
+        width: "1380px", // ✅ make flexible
         maxWidth: "1389px",
-        height: '1467px',
+        height: "1467px",
         // This prevents both horizontal and vertical scrolling
-      }}>
+      }}
+    >
       {/* Back Button */}
       <div className="mb-6">
         <button className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600">

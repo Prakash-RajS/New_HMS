@@ -3,13 +3,15 @@ import {
   Search,
   Filter,
   Plus,
-  Edit,
+  Edit2,
   Trash2,
   X,
   ChevronDown,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { Listbox } from "@headlessui/react"; // ✅ Import Listbox
+import { Listbox } from "@headlessui/react";
 import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
@@ -24,6 +26,8 @@ const AppointmentList = () => {
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 14;
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -35,25 +39,83 @@ const AppointmentList = () => {
   });
 
   const tabs = ["Today", "Upcoming", "Past"];
-  const filters = ["All", "New", "Severe", "Normal", "Completed", "Cancelled"];
+  const filters = [
+    "All",
+    "Normal",
+    "Severe",
+    "Critical",
+    "Completed",
+    "Cancelled",
+  ];
 
+  // Sample data - in a real app this would come from an API
   const appointments = [
     {
       patient: "Prakash",
       date: "2025-07-12",
       patientId: "SAH257384",
       department: "Orthopedics",
-      doctor: "Dr.Sravan",
+      doctor: "Dr.Stavan",
       room: "RM 305",
       type: "Follow-up",
       status: "Completed",
     },
     {
-      patient: "Sravan",
+      patient: "Prakash",
       date: "2025-07-12",
-      patientId: "SAH257385",
-      department: "Neurology",
-      doctor: "Dr.Naveen",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Cancelled",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "OP",
+      type: "Consultation",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "OP",
+      type: "Consultation",
+      status: "Severe",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Completed",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Completed",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
       room: "RM 405",
       type: "Follow-up",
       status: "Severe",
@@ -61,12 +123,92 @@ const AppointmentList = () => {
     {
       patient: "Prakash",
       date: "2025-07-12",
-      patientId: "SAH257386",
-      department: "Cardiology",
-      doctor: "Dr.Prakash",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "RM 309",
+      type: "Follow-up",
+      status: "Severe",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
       room: "N/A",
       type: "Check-up",
-      status: "Cancelled",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
+    },
+    {
+      patient: "Prakash",
+      date: "2025-07-12",
+      patientId: "SAH257384",
+      department: "Orthopedics",
+      doctor: "Dr.Stavan",
+      room: "N/A",
+      type: "Check-up",
+      status: "Normal",
     },
   ];
 
@@ -75,8 +217,25 @@ const AppointmentList = () => {
     Cancelled: "bg-gray-700 text-gray-300",
     Normal: "bg-blue-900 text-blue-300",
     Severe: "bg-red-900 text-red-300",
-    New: "bg-purple-900 text-purple-300",
+    Critical: "bg-purple-900 text-purple-300",
   };
+
+  // Count statuses for Today's Total section
+  const statusCounts = useMemo(() => {
+    const counts = {
+      Visited: 0,
+      Waiting: 0,
+      Cancelled: 0,
+    };
+
+    appointments.forEach((appt) => {
+      if (appt.status === "Completed") counts.Visited++;
+      else if (appt.status === "Cancelled") counts.Cancelled++;
+      else counts.Waiting++; // All other statuses are considered Waiting
+    });
+
+    return counts;
+  }, [appointments]);
 
   /** =================
    *   Filtering Logic
@@ -130,6 +289,13 @@ const AppointmentList = () => {
     });
   }, [appointments, searchTerm, activeFilter, filtersData]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+  const currentAppointments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAppointments.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, filteredAppointments, itemsPerPage]);
+
   /** =================
    *   Select checkboxes
    ================== */
@@ -142,10 +308,10 @@ const AppointmentList = () => {
   };
 
   const handleSelectAll = () => {
-    if (selectedAppointments.length === filteredAppointments.length) {
+    if (selectedAppointments.length === currentAppointments.length) {
       setSelectedAppointments([]);
     } else {
-      setSelectedAppointments(filteredAppointments.map((_, idx) => idx));
+      setSelectedAppointments(currentAppointments.map((_, idx) => idx));
     }
   };
 
@@ -198,9 +364,9 @@ const AppointmentList = () => {
   );
 
   return (
-    <div className="mt-[60px] h-[800px] mb-4  bg-black text-white rounded-xl p-6 w-full max-w-[1100px] mx-auto">
+    <div className="mt-[60px] h-100% mb-4 bg-black text-white rounded-xl p-6 w-full max-w-[1100px] mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-2">
         <h2 className="text-xl font-semibold">Appointment List</h2>
         <button
           onClick={() => setShowAddPopup(true)}
@@ -208,6 +374,58 @@ const AppointmentList = () => {
         >
           <Plus size={18} /> Add Appointments
         </button>
+      </div>
+
+      {/* Today's Total Section */}
+      <div className="mb-3 w-[800px]">
+        <div className="flex items-center gap-4 rounded-xl ">
+          {/* Today's Total */}
+          <div className="flex items-center gap-3">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Today's Total
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#0EFF7B66] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A]">
+              150
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Visited */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Visited
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#2231FF] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#6E92FF] to-[#425899]">
+              47
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Waiting */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Waiting
+            </span>
+            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-[#000000] gap-1 opacity-100 rounded-[20px] border border-[#FF930E] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#FF930E] to-[#995808]">
+              12
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Cancelled */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Cancelled
+            </span>
+            <span className="h-6 min-w-[24px] flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#A0A0A0] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#3C3C3C] to-[#A0A0A0]">
+              2
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -274,10 +492,19 @@ const AppointmentList = () => {
               <th className="py-3 px-2">
                 <input
                   type="checkbox"
-                  className="w-5 h-5"
+                  className="
+    w-5 h-5
+    rounded-md
+    border border-gray-600
+    accent-green-500
+    bg-transparent
+    focus:outline-none
+    cursor-pointer
+    transition-colors
+  "
                   checked={
-                    filteredAppointments.length > 0 &&
-                    selectedAppointments.length === filteredAppointments.length
+                    currentAppointments.length > 0 &&
+                    selectedAppointments.length === currentAppointments.length
                   }
                   onChange={handleSelectAll}
                 />
@@ -293,13 +520,22 @@ const AppointmentList = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredAppointments.length > 0 ? (
-              filteredAppointments.map((appt, idx) => (
+            {currentAppointments.length > 0 ? (
+              currentAppointments.map((appt, idx) => (
                 <tr key={idx} className="border-b border-gray-800">
                   <td className="px-2">
                     <input
                       type="checkbox"
-                      className="w-5 h-5"
+                      className="
+    w-5 h-5
+    rounded-md
+    border border-gray-600
+    accent-green-500
+    bg-transparent
+    focus:outline-none
+    cursor-pointer
+    transition-colors
+  "
                       checked={selectedAppointments.includes(idx)}
                       onChange={() => handleCheckboxChange(idx)}
                     />
@@ -324,7 +560,7 @@ const AppointmentList = () => {
                   </td>
                   <td className="text-center">
                     <div className="flex justify-center gap-2">
-                      <Edit
+                      <Edit2
                         size={16}
                         onClick={() => {
                           setSelectedAppointment(appt);
@@ -356,6 +592,43 @@ const AppointmentList = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center mt-4 bg-black p-4 rounded gap-x-4">
+        <div className="text-sm text-white">
+          Page {currentPage} of {totalPages} (
+          {(currentPage - 1) * itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
+          from {filteredAppointments.length} Patients)
+        </div>
+
+        <div className="flex items-center gap-x-2">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border gap-[12px] ${
+              currentPage === 1
+                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
+                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+            }`}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <button
+            onClick={() =>
+              setCurrentPage(Math.min(totalPages, currentPage + 1))
+            }
+            disabled={currentPage === totalPages}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              currentPage === totalPages
+                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white  opacity-50"
+                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+            }`}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
       </div>
 
       {/* === FILTER POPUP === */}
@@ -419,10 +692,10 @@ const AppointmentList = () => {
                 onChange={(val) =>
                   setFiltersData({ ...filtersData, doctor: val })
                 }
-                options={["Dr.Sravan", "Dr.Ramesh", "Dr.Naveen", "Dr.Prakash"]}
+                options={["Dr.Stavan", "Dr.Ramesh", "Dr.Naveen", "Dr.Prakash"]}
               />
 
-              {/* ✅ Date with Calendar Icon */}
+              {/* Date with Calendar Icon */}
               <div className="relative">
                 <label className="text-sm text-white">Date</label>
                 <input
