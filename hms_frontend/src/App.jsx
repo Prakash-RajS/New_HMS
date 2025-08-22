@@ -14,10 +14,11 @@ import Employee from "./pages/Home/Employee.jsx";
 // Pages - Appointments
 import AppointmentList from "./pages/Appointments/appointments_list.jsx";
 
-// Pages - Patients (PascalCase filenames)
+// Pages - Patients
 import NewRegistration from "./pages/Patients/new-registration";
 import IpdOpd from "./pages/Patients/ipd-opd.jsx";
-// import PatientProfile from "./pages/Patients/PatientProfile.jsx";
+import PatientProfile from "./pages/Patients/PatientProfile.jsx";
+import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
 
 export default function App() {
   return (
@@ -47,7 +48,8 @@ export default function App() {
               <Route path="/patients">
                 <Route path="new-registration" element={<NewRegistration />} />
                 <Route path="ipd-opd" element={<IpdOpd />} />
-                {/* <Route path="profile" element={<PatientProfile />} /> */}
+                <Route path="profile" element={<PatientProfile />} />
+                <Route path="profile/details" element={<ViewPatientProfile />} />
               </Route>
 
               <Route path="/reports" element={<Reports />} />

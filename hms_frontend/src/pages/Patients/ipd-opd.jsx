@@ -11,7 +11,7 @@ import {
   Edit2,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import AddPatient from "./AddPatient";
+// import AddPatient from "./AddPatient";
 import EditPatient from "./EditPatient";
 import DeletePatient from "./DeletePatient"; // ✅ Import Listbox
 
