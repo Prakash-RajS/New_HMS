@@ -1,18 +1,19 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   Filter,
   Plus,
-  Edit,
   Trash2,
   X,
   ChevronDown,
   Calendar,
+  Edit2,
 } from "lucide-react";
-import { Listbox } from "@headlessui/react"; // ✅ Import Listbox
-import AddAppointmentPopup from "./AddAppointmentPopup";
-import EditAppointmentPopup from "./EditAppointmentPopup";
-import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
+import { Listbox } from "@headlessui/react";
+import AddPatient from "./AddPatient";
+import EditPatient from "./EditPatient";
+import DeletePatient from "./DeletePatient"; // ✅ Import Listbox
 
 const AppointmentList = () => {
   const [activeMainTab, setActiveMainTab] = useState("Today");
@@ -24,6 +25,7 @@ const AppointmentList = () => {
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -34,7 +36,7 @@ const AppointmentList = () => {
     date: "",
   });
 
-  const tabs = ["Today", "Upcoming", "Past"];
+  const tabs = ["In-Patients", "Oot-Patients"];
   const filters = ["All", "New", "Severe", "Normal", "Completed", "Cancelled"];
 
   const appointments = [
@@ -45,7 +47,8 @@ const AppointmentList = () => {
       department: "Orthopedics",
       doctor: "Dr.Sravan",
       room: "RM 305",
-      type: "Follow-up",
+      treatment: "Physiotherapy",
+      discharge: "Pending",
       status: "Completed",
     },
     {
@@ -55,7 +58,8 @@ const AppointmentList = () => {
       department: "Neurology",
       doctor: "Dr.Naveen",
       room: "RM 405",
-      type: "Follow-up",
+      treatment: "Medication",
+      discharge: "In-progress",
       status: "Severe",
     },
     {
@@ -65,7 +69,8 @@ const AppointmentList = () => {
       department: "Cardiology",
       doctor: "Dr.Prakash",
       room: "N/A",
-      type: "Check-up",
+      treatment: "Surgery",
+      discharge: "Done",
       status: "Cancelled",
     },
   ];
@@ -160,6 +165,8 @@ const AppointmentList = () => {
       patientId: "",
       department: "",
       doctor: "",
+      treatment: "",
+      discharge: "",
       status: "",
       date: "",
     });
@@ -201,12 +208,12 @@ const AppointmentList = () => {
     <div className="mt-[60px] h-[800px] mb-4  bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Appointment List</h2>
+        <h2 className="text-xl font-semibold">IPD/OPD - Patient Lists</h2>
         <button
-          onClick={() => setShowAddPopup(true)}
+          onClick={() => navigate("/patients/new-registration")}
           className="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full text-black font-semibold"
         >
-          <Plus size={18} /> Add Appointments
+          <Plus size={18} /> Add Patients
         </button>
       </div>
 
@@ -287,7 +294,8 @@ const AppointmentList = () => {
               <th>Department</th>
               <th>Doctor</th>
               <th>Room no</th>
-              <th>Appointment type</th>
+              <th>Treatment Type</th>
+              <th>Discharge Status</th>
               <th>Status</th>
               <th className="text-center">Edit</th>
             </tr>
@@ -312,7 +320,8 @@ const AppointmentList = () => {
                   <td>{appt.department}</td>
                   <td>{appt.doctor}</td>
                   <td>{appt.room}</td>
-                  <td>{appt.type}</td>
+                  <td>{appt.treatment}</td>
+                  <td>{appt.discharge}</td>
                   <td>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -324,7 +333,7 @@ const AppointmentList = () => {
                   </td>
                   <td className="text-center">
                     <div className="flex justify-center gap-2">
-                      <Edit
+                      <Edit2
                         size={16}
                         onClick={() => {
                           setSelectedAppointment(appt);
@@ -359,9 +368,10 @@ const AppointmentList = () => {
       </div>
 
       {/* === FILTER POPUP === */}
+      {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-lg backdrop-blur-md relative">
+          <div className="w-[600px] rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-lg backdrop-blur-md relative">
             <div className="flex justify-between items-center pb-3 mb-4">
               <h3 className="text-white font-medium text-[16px]">
                 Filter Appointment
@@ -376,6 +386,7 @@ const AppointmentList = () => {
 
             {/* Filter Form */}
             <div className="grid grid-cols-2 gap-6">
+              {/* Patient Name */}
               <div>
                 <label className="text-sm text-white">Patient Name</label>
                 <input
@@ -383,9 +394,11 @@ const AppointmentList = () => {
                   value={filtersData.patientName}
                   onChange={handleFilterChange}
                   placeholder="enter patient name"
-                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
                 />
               </div>
+
+              {/* Patient ID */}
               <div>
                 <label className="text-sm text-white">Patient ID</label>
                 <input
@@ -393,10 +406,11 @@ const AppointmentList = () => {
                   value={filtersData.patientId}
                   onChange={handleFilterChange}
                   placeholder="enter patient ID"
-                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
                 />
               </div>
 
+              {/* Department */}
               <Dropdown
                 label="Department"
                 value={filtersData.department}
@@ -405,14 +419,8 @@ const AppointmentList = () => {
                 }
                 options={["Orthopedics", "Cardiology", "Neurology"]}
               />
-              <Dropdown
-                label="Status"
-                value={filtersData.status}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, status: val })
-                }
-                options={["Completed", "Severe", "Normal", "Cancelled"]}
-              />
+
+              {/* Doctor */}
               <Dropdown
                 label="Doctor"
                 value={filtersData.doctor}
@@ -422,7 +430,51 @@ const AppointmentList = () => {
                 options={["Dr.Sravan", "Dr.Ramesh", "Dr.Naveen", "Dr.Prakash"]}
               />
 
-              {/* ✅ Date with Calendar Icon */}
+              {/* Room No */}
+              <div>
+                <label className="text-sm text-white">Room No</label>
+                <input
+                  name="room"
+                  value={filtersData.room}
+                  onChange={handleFilterChange}
+                  placeholder="enter room number"
+                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                />
+              </div>
+
+              {/* Treatment Type */}
+              <div>
+                <label className="text-sm text-white">Treatment Type</label>
+                <input
+                  name="treatment"
+                  value={filtersData.treatment}
+                  onChange={handleFilterChange}
+                  placeholder="enter treatment type"
+                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                />
+              </div>
+
+              {/* Discharge Status */}
+              <Dropdown
+                label="Discharge Status"
+                value={filtersData.discharge}
+                onChange={(val) =>
+                  setFiltersData({ ...filtersData, discharge: val })
+                }
+                options={["Pending", "In-progress", "Done"]}
+              />
+
+              {/* Status */}
+              <Dropdown
+                label="Status"
+                value={filtersData.status}
+                onChange={(val) =>
+                  setFiltersData({ ...filtersData, status: val })
+                }
+                options={["Completed", "Severe", "Normal", "Cancelled"]}
+              />
+
+              {/* Date */}
               <div className="relative">
                 <label className="text-sm text-white">Date</label>
                 <input
@@ -430,7 +482,7 @@ const AppointmentList = () => {
                   name="date"
                   value={filtersData.date}
                   onChange={handleFilterChange}
-                  className="w-[228px] h-[33px] mt-1 pl-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] outline-none"
+                  className="w-[250px] h-[33px] mt-1 pl-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] outline-none"
                 />
                 <Calendar className="absolute right-3 bottom-2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
               </div>
@@ -441,15 +493,15 @@ const AppointmentList = () => {
               <button
                 onClick={handleClearFilters}
                 className="w-[104px] h-[33px] rounded-[20px] border border-[#3A3A3A] px-3 py-2 
-            text-white font-medium text-[14px] leading-[16px] shadow opacity-100"
+      text-white font-medium text-[14px] leading-[16px] shadow opacity-100"
               >
                 Clear
               </button>
               <button
                 onClick={() => setShowFilterPopup(false)}
                 className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] px-3 py-2 
-            bg-gradient-to-r from-[#14DC6F] to-[#09753A] shadow 
-            text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+      bg-gradient-to-r from-[#14DC6F] to-[#09753A] shadow 
+      text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
               >
                 Filter
               </button>
@@ -459,17 +511,15 @@ const AppointmentList = () => {
       )}
 
       {/* Popups */}
-      {showAddPopup && (
-        <AddAppointmentPopup onClose={() => setShowAddPopup(false)} />
-      )}
+      {showAddPopup && <AddPatient onClose={() => setShowAddPopup(false)} />}
       {showEditPopup && (
-        <EditAppointmentPopup
+        <EditPatient
           onClose={() => setShowEditPopup(false)}
           appointment={selectedAppointment}
         />
       )}
       {showDeletePopup && (
-        <DeleteAppointmentPopup
+        <DeletePatient
           onClose={() => setShowDeletePopup(false)}
           onConfirm={() => {
             console.log("Deleting", selectedAppointment);
