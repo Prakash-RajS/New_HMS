@@ -20,20 +20,26 @@ import IpdOpd from "./pages/Patients/ipd-opd.jsx";
 import PatientProfile from "./pages/Patients/PatientProfile.jsx";
 import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
 import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
+import { useState } from "react";
 
 export default function App() {
+  const [isCollapsed, setIsCollapsed] = useState(false); // lift collapse state
+
   return (
     <Router>
       <div className="flex bg-black">
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           <Header />
 
           {/* Scrollable Content Area */}
-          <div className="ml-[250px] p-2 overflow-y-hidden overflow-x-hidden h-[auto]">
+          <div
+            className={`p-2 overflow-y-hidden overflow-x-hidden h-[auto] transition-all duration-300`}
+            style={{ marginLeft: isCollapsed ? "120px" : "250px" }} // dynamic ml
+          >
             <Routes>
               {/* Dashboard with nested routes */}
               <Route path="/" element={<DashboardComponents />}>

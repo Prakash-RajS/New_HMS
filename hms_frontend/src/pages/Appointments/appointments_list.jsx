@@ -198,7 +198,7 @@ const AppointmentList = () => {
   );
 
   return (
-    <div className="mt-[60px] mb-4 h-[829px]  bg-black text-white rounded-xl p-6 w-full max-w-[1100px] mx-auto">
+    <div className="mt-[60px] mb-4 h-[829px]  bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold">Appointment List</h2>

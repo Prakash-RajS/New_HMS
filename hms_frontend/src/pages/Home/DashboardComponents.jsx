@@ -18,7 +18,7 @@ const DashboardComponents = () => {
         className="flex-1 bg-[#0D0D0D] mt-[90px] mb-4 pt-2 text-white rounded-[12px]"
         style={{
           width: "100%",          // ✅ make flexible
-    maxWidth: "1189px",
+    maxWidth: "1440px",
           height: '905px',
            // This prevents both horizontal and vertical scrolling
         }}

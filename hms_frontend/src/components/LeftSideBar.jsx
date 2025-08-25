@@ -191,23 +191,23 @@ const menuItems = [
   { name: "Accounts", path: "/Accounts", icon: UserCog },
 ];
 
-const MenuItem = ({ item, level = 0 }) => {
+const MenuItem = ({ item, level = 0, isCollapsed }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const hasDropdown = item.dropdown && item.dropdown.length > 0;
   const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
 
   const isParentActive = item.paths
-  ? item.paths.includes(location.pathname)
-  : location.pathname.startsWith(item.path + "/");
+    ? item.paths.includes(location.pathname)
+    : location.pathname.startsWith(item.path + "/");
 
-const isExactActive = item.paths
-  ? item.paths.includes(location.pathname)
-  : location.pathname === item.path;
+  const isExactActive = item.paths
+    ? item.paths.includes(location.pathname)
+    : location.pathname === item.path;
 
   const Icon = item.icon;
 
-  // 🔹 Sizes based on level
+  // Sizes based on level
   const iconSizeClass = level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
 
@@ -217,27 +217,25 @@ const isExactActive = item.paths
         <>
           <div
             onClick={() => setIsOpen(!isOpen)}
-            className={`w-full h-[40px] rounded-[16px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200 font-['Inter']
+            className={`w-full h-[40px] rounded-[16px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
               ${
                 isExactActive || isParentActive
                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
                   : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
               }`}
           >
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${isCollapsed ? "justify-center w-full" : ""}`}>
               <Icon
-                className={`${iconSizeClass} ${
-                  isExactActive || isParentActive ? "text-white" : "text-emerald-500"
-                }`}
+                className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-white" : "text-emerald-500"}`}
               />
-              <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>
+              {!isCollapsed && <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>}
             </div>
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-200 ${
-                isOpen ? "rotate-180 text-white" : "text-emerald-500"
-              }`}
-            />
+            {!isCollapsed && (
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-white" : "text-emerald-500"}`}
+              />
+            )}
           </div>
 
           {/* Dropdown */}
@@ -247,64 +245,55 @@ const isExactActive = item.paths
           >
             <ul className="mt-0.5 flex flex-col gap-0.5 font-['Inter']">
               {item.dropdown.map((subItem, subIdx) => (
-                <MenuItem key={subIdx} item={subItem} level={level + 1} />
+                <MenuItem key={subIdx} item={subItem} level={level + 1} isCollapsed={isCollapsed} />
               ))}
             </ul>
           </div>
         </>
       ) : (
         <NavLink
-  to={item.path}
-  className={() => {
-    const active = item.paths
-      ? item.paths.includes(location.pathname)
-      : location.pathname === item.path;
-    return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[12px] font-['Inter']
-      ${
-        level === 0
-          ? active
-            ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-            : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
-          : active
-          ? "bg-[#0EFF7B1A] text-white"
-          : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"
-      }`;
-  }}
->
-  {() => {
-    const active = item.paths
-      ? item.paths.includes(location.pathname)
-      : location.pathname === item.path;
-    return (
-      <>
-        <Icon className={`${iconSizeClass} ${active ? "text-white" : "text-emerald-500"}`} />
-        <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>
-      </>
-    );
-  }}
-</NavLink>
+          to={item.path}
+          className={() => {
+            const active = item.paths
+              ? item.paths.includes(location.pathname)
+              : location.pathname === item.path;
+            return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[12px]
+              ${level === 0
+                ? active
+                  ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                  : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                : active
+                ? "bg-[#0EFF7B1A] text-white"
+                : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"}`;
+          }}
+        >
+          {() => (
+            <>
+              <Icon className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-white" : "text-emerald-500"}`} />
+              {!isCollapsed && <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>}
+            </>
+          )}
+        </NavLink>
       )}
     </li>
   );
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <div
-      className="w-[220px] mt-[20px] ml-[15px] mb-4 
-                 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] 
-                 shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col 
-                 fixed left-0 top-0 overflow-hidden font-['Inter']"
+      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0 overflow-hidden transition-all duration-300`}
       style={{
-        height: "calc(100vh - 110px)", // responsive
+        width: isCollapsed ? "70px" : "220px",
+        height: "calc(100vh - 110px)",
         minHeight: "590px",
         maxHeight: "860px",
       }}
     >
       {/* Header */}
       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4">
-        {/* Menu Button */}
         <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#1E1E1E] bg-transparent"
         >
           <svg
@@ -319,20 +308,18 @@ export default function Sidebar() {
           </svg>
         </button>
 
-        {/* Logo */}
-        <img src={LOGO} alt="Logo" className="w-[118px] h-[36px] object-contain" />
+        {!isCollapsed && <img src={LOGO} alt="Logo" className="w-[118px] h-[36px] object-contain" />}
       </div>
 
       {/* Menu Items */}
-      <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] font-['Inter']">
-        <ul className="flex flex-col gap-1.5 font-['Inter']">
+      <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <ul className="flex flex-col gap-1.5">
           {menuItems.map((item, idx) => (
-            <MenuItem key={idx} item={item} />
+            <MenuItem key={idx} item={item} isCollapsed={isCollapsed} />
           ))}
         </ul>
       </div>
     </div>
   );
 }
-
 
