@@ -14,8 +14,8 @@ import { Listbox } from "@headlessui/react";
 import EditPatient from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 
-const AppointmentListIPD = () => {
-  const [activeMainTab, setActiveMainTab] = useState("In-Patients");
+const AppointmentListOPD = () => {
+  const [activeMainTab, setActiveMainTab] = useState("Out-Patients");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedAppointments, setSelectedAppointments] = useState([]);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -41,34 +41,34 @@ const AppointmentListIPD = () => {
     {
       patient: "Prakash",
       date: "2025-07-12",
+      time: "10:30 AM",
       patientId: "SAH257384",
       department: "Orthopedics",
       doctor: "Dr.Sravan",
       room: "RM 305",
       treatment: "Physiotherapy",
-      discharge: "Pending",
       status: "Completed",
     },
     {
       patient: "Sravan",
       date: "2025-07-12",
+      time: "11:00 AM",
       patientId: "SAH257385",
       department: "Neurology",
       doctor: "Dr.Naveen",
       room: "RM 405",
       treatment: "Medication",
-      discharge: "In-progress",
       status: "Severe",
     },
     {
       patient: "Prakash",
       date: "2025-07-12",
+      time: "02:00 PM",
       patientId: "SAH257386",
       department: "Cardiology",
       doctor: "Dr.Prakash",
       room: "N/A",
       treatment: "Surgery",
-      discharge: "Done",
       status: "Cancelled",
     },
   ];
@@ -158,7 +158,6 @@ const AppointmentListIPD = () => {
       department: "",
       doctor: "",
       treatment: "",
-      discharge: "",
       status: "",
       date: "",
     });
@@ -198,7 +197,7 @@ const AppointmentListIPD = () => {
   return (
     <div className="mt-[60px] h-[800px] mb-4 bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">IPD - Patient Lists</h2>
+        <h2 className="text-xl font-semibold">OPD - Patient Lists</h2>
         <button
           onClick={() => navigate("/patients/new-registration")}
           className="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full text-black font-semibold"
@@ -218,8 +217,8 @@ const AppointmentListIPD = () => {
                   : "border-gray-700 text-gray-300 bg-[#0D0D0D]"
               }`}
               onClick={() =>
-                tab === "Out-Patients"
-                  ? navigate("/patients/out-patients")
+                tab === "In-Patients"
+                  ? navigate("/patients/ipd-opd")
                   : setActiveMainTab(tab)
               }
             >
@@ -285,7 +284,7 @@ const AppointmentListIPD = () => {
               <th>Doctor</th>
               <th>Room no</th>
               <th>Treatment Type</th>
-              <th>Discharge Status</th>
+              <th>Appointment Date</th>
               <th>Status</th>
               <th className="text-center">Edit</th>
             </tr>
@@ -311,7 +310,10 @@ const AppointmentListIPD = () => {
                   <td>{appt.doctor}</td>
                   <td>{appt.room}</td>
                   <td>{appt.treatment}</td>
-                  <td>{appt.discharge}</td>
+                  <td>
+                    <div>{appt.date}</div>
+                    <div className="text-xs text-gray-400">{appt.time}</div>
+                  </td>
                   <td>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -436,15 +438,6 @@ const AppointmentListIPD = () => {
               </div>
 
               <Dropdown
-                label="Discharge Status"
-                value={filtersData.discharge}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, discharge: val })
-                }
-                options={["Pending", "In-progress", "Done"]}
-              />
-
-              <Dropdown
                 label="Status"
                 value={filtersData.status}
                 onChange={(val) =>
@@ -506,4 +499,4 @@ const AppointmentListIPD = () => {
   );
 };
 
-export default AppointmentListIPD;
+export default AppointmentListOPD;

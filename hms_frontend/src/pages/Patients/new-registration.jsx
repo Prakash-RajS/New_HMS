@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom"; 
 
 // ✅ Photo Upload Component
 const PhotoUploadBox = ({ photo, setPhoto }) => {
@@ -99,6 +100,7 @@ const InputField = ({ label, name, value, onChange, placeholder }) => (
 export default function NewRegistration() {
   const [formData, setFormData] = useState({});
   const [photo, setPhoto] = useState(null);
+  const navigate = useNavigate();
 
   // Dropdown options
   const doctors = ["Dr. Smith", "Dr. John", "Dr. Williams"];
@@ -124,7 +126,10 @@ export default function NewRegistration() {
       }}>
       {/* Back Button */}
       <div className="mb-6">
-        <button className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600">
+        <button
+          className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600"
+          onClick={() => navigate(-1)} // ✅ Go back to previous page
+        >
           ← Back
         </button>
       </div>

@@ -98,7 +98,12 @@ const menuItems = [
     icon: Users,
     dropdown: [
       { name: "New Registration", path: "/patients/new-registration", icon: User },
-      { name: "IPD / OPD Patient", path: "/patients/ipd-opd", icon: Bed },
+      { 
+  name: "IPD / OPD Patient",
+  path: "/patients/ipd-opd",
+  paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
+  icon: Bed 
+},
       { name: "Patient Profile", path: "/patients/profile", icon: ClipboardList },
     ],
   },
@@ -192,10 +197,13 @@ const MenuItem = ({ item, level = 0 }) => {
   const hasDropdown = item.dropdown && item.dropdown.length > 0;
   const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
 
-  const isParentActive =
-    location.pathname === item.path ||
-    location.pathname.startsWith(item.path + "/");
-  const isExactActive = location.pathname === item.path;
+  const isParentActive = item.paths
+  ? item.paths.includes(location.pathname)
+  : location.pathname.startsWith(item.path + "/");
+
+const isExactActive = item.paths
+  ? item.paths.includes(location.pathname)
+  : location.pathname === item.path;
 
   const Icon = item.icon;
 
@@ -246,29 +254,35 @@ const MenuItem = ({ item, level = 0 }) => {
         </>
       ) : (
         <NavLink
-          to={item.path}
-          className={({ isActive }) =>
-            `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[12px] font-['Inter']
-          ${
-            level === 0
-              ? isActive
-                ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
-              : isActive
-              ? "bg-[#0EFF7B1A] text-white"
-              : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"
-          }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              <Icon
-                className={`${iconSizeClass} ${isActive ? "text-white" : "text-emerald-500"}`}
-              />
-              <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>
-            </>
-          )}
-        </NavLink>
+  to={item.path}
+  className={() => {
+    const active = item.paths
+      ? item.paths.includes(location.pathname)
+      : location.pathname === item.path;
+    return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[12px] font-['Inter']
+      ${
+        level === 0
+          ? active
+            ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+            : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+          : active
+          ? "bg-[#0EFF7B1A] text-white"
+          : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"
+      }`;
+  }}
+>
+  {() => {
+    const active = item.paths
+      ? item.paths.includes(location.pathname)
+      : location.pathname === item.path;
+    return (
+      <>
+        <Icon className={`${iconSizeClass} ${active ? "text-white" : "text-emerald-500"}`} />
+        <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>
+      </>
+    );
+  }}
+</NavLink>
       )}
     </li>
   );

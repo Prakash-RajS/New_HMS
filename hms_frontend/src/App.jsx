@@ -19,6 +19,7 @@ import NewRegistration from "./pages/Patients/new-registration";
 import IpdOpd from "./pages/Patients/ipd-opd.jsx";
 import PatientProfile from "./pages/Patients/PatientProfile.jsx";
 import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
+import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
 
 export default function App() {
   return (
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="/patients">
                 <Route path="new-registration" element={<NewRegistration />} />
                 <Route path="ipd-opd" element={<IpdOpd />} />
+                <Route path="out-patients" element={<AppointmentListOPD />} />
                 <Route path="profile" element={<PatientProfile />} />
                 <Route path="profile/details" element={<ViewPatientProfile />} />
               </Route>
