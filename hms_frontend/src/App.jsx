@@ -33,11 +33,12 @@ export default function App() {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          <Header />
+        
+          <Header isCollapsed={isCollapsed} />
 
           {/* Scrollable Content Area */}
           <div
-            className={`p-2 overflow-y-hidden overflow-x-hidden h-[auto] transition-all duration-300`}
+            className={`p-2 overflow-y-hidden overflow-x-hidden h-[auto] transition-all duration-300 `}
             style={{ marginLeft: isCollapsed ? "120px" : "250px" }} // dynamic ml
           >
             <Routes>

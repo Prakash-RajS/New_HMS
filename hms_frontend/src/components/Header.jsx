@@ -1,18 +1,19 @@
 import React from 'react';
 
-const Header = () => {
+const Header = ({ isCollapsed }) => {
     return (
         <div className="w-full overflow-hidden">
             <header
-                className="flex items-center justify-between p-4 bg-black text-white gap-[20px]"
+                className="flex items-center  justify-between p-4 bg-black text-white gap-[20px] transition-all duration-300 ease-in-out"
                 style={{
-                    width: "1128px",      // fixed width for content
-                    maxWidth: "1180px",
-                    position: "fixed",    // keep it visible
-                    // a little space from top
-                    left: "239px",        // 👈 match your sidebar width
+                    width: `calc(100% - ${isCollapsed ? '120px' : '250px'})`, // dynamically adjust width
+                    maxWidth: "1580px",
+                    position: "fixed",
+                    left: isCollapsed ? "120px" : "250px", // match sidebar width
                     zIndex: 40,
-                    // optional: rounded like cards
+                    transitionProperty: 'width, left', // smooth transition for width and left
+                    transitionDuration: '300ms', // match sidebar transition duration
+                    transitionTimingFunction: 'ease-in-out', // smooth easing
                 }}
             >
                 {/* Empty div to balance the flex justify-between */}
@@ -133,8 +134,7 @@ const Header = () => {
                     <div className="h-6 w-px bg-gray-700 mx-1"></div>
 
                     {/* Profile */}
-                    {/* Profile */}
-                    <div className="flex items-center  gap-3 cursor-pointer group w-[163px] h-[32px]">
+                    <div className="flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]">
                         {/* Avatar */}
                         <div className="w-8 h-8 min-w-8 min-h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white font-medium shrink-0">
                             JD
@@ -166,7 +166,6 @@ const Header = () => {
                             />
                         </svg>
                     </div>
-
                 </div>
             </header>
         </div>

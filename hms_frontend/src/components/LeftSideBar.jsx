@@ -284,7 +284,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     <div
       className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0 overflow-hidden transition-all duration-300`}
       style={{
-        width: isCollapsed ? "70px" : "220px",
+        width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
         minHeight: "590px",
         maxHeight: "860px",
