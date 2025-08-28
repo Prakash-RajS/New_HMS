@@ -43,7 +43,7 @@ export default function App() {
           <div
             ref={contentRef}
             className="flex-1 p-2 overflow-y-auto overflow-x-hidden transition-all duration-300"
-            style={{ marginLeft: isCollapsed ? "80px" : "220px" }}
+            style={{ marginLeft: isCollapsed ? "100px" : "240px" }}
           >
             <Routes>
               <Route path="/" element={<DashboardComponents />}>
