@@ -2,7 +2,6 @@
 #root {
   
   max-width: 2560px;
-  max-height: 1800px;  /* allow 1440px screen width */
   width: 100%;        /* take full available width */
   margin: 0 auto;     /* center content when screen >1440px */
   padding: 0;

@@ -1,6 +1,9 @@
+// App.jsx
+import { useRef, useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/LeftSideBar.jsx";
 import Header from "./components/Header.jsx";
+import ScrollToTop from "./components/ScrollToTop";
 
 // Pages - Dashboard
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
@@ -20,41 +23,35 @@ import IpdOpd from "./pages/Patients/ipd-opd.jsx";
 import PatientProfile from "./pages/Patients/PatientProfile.jsx";
 import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
 import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
-import { useState } from "react";
+
 // Pages - Administrations
 import DepartmentList from "./pages/Administration/DepartmentList.jsx";
+import RoomManagement from "./pages/Administration/RoomManagement.jsx";
+import BedList from "./pages/Administration/BedList.jsx"
 
 export default function App() {
-  const [isCollapsed, setIsCollapsed] = useState(false); // lift collapse state
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const contentRef = useRef(null);
 
   return (
     <Router>
-      <div className="flex bg-black">
-        {/* Sidebar */}
+      <ScrollToTop contentRef={contentRef} />
+      <div className="flex min-h-screen bg-black">
         <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-
-        {/* Main Content */}
         <div className="flex-1 flex flex-col">
-
           <Header isCollapsed={isCollapsed} />
-
-          {/* Scrollable Content Area */}
           <div
-            className={`p-2 overflow-y-hidden overflow-x-hidden h-[auto] transition-all duration-300 `}
-            style={{ marginLeft: isCollapsed ? "110px" : "250px" }} // dynamic ml
+            ref={contentRef}
+            className="flex-1 p-2 overflow-y-auto overflow-x-hidden transition-all duration-300"
+            style={{ marginLeft: isCollapsed ? "80px" : "220px" }}
           >
             <Routes>
-              {/* Dashboard with nested routes */}
               <Route path="/" element={<DashboardComponents />}>
                 <Route path="patient-record" element={<PatientRecord />} />
                 <Route path="surgery-record" element={<SurgeryRecord />} />
                 <Route path="revenue-summary" element={<RevenueSummary />} />
               </Route>
-
-              {/* Other main routes */}
               <Route path="/appointments" element={<AppointmentList />} />
-
-              {/* Patients routes */}
               <Route path="/patients">
                 <Route path="new-registration" element={<NewRegistration />} />
                 <Route path="ipd-opd" element={<IpdOpd />} />
@@ -62,12 +59,11 @@ export default function App() {
                 <Route path="profile" element={<PatientProfile />} />
                 <Route path="profile/details" element={<ViewPatientProfile />} />
               </Route>
-
-              {/* Administrations routes */}
               <Route path="/Administration">
                 <Route path="Departments" element={<DepartmentList />} />
+                <Route path="roommanagement" element={<RoomManagement />} />
+                <Route path="bedlist" element={<BedList />} />
               </Route>
-
               <Route path="/reports" element={<Reports />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />

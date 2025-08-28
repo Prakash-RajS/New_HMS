@@ -119,7 +119,10 @@ const menuItems = [
     icon: Building2,
     dropdown: [
       { name: "Departments", path: "/Administration/Departments", icon: Building2 },
-      { name: "Room Management", path: "/Administration/RoomManagement", icon: Bed },
+      { name: "Room Management", 
+        path: "/Administration/RoomManagement",
+        paths:"/Administration/BedList",
+        icon: Bed },
       { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
     ],
   },
