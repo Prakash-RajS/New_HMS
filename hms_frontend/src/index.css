@@ -4,8 +4,15 @@
 
 html, body, #root {
      /* small 13" laptop (~11.7" wide screen) */
-  max-width: 2560px;
-  overflow-x: hidden; 
   
+  max-width: 2560px;
+  max-height: 1900px;
+  overflow-x: hidden; 
+ 
+   /* Ensure full height */
+  
+
 }
+
+/* Ensure dropdowns and scrollable areas handle high-DPI */
 

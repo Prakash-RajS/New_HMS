@@ -2,7 +2,7 @@ import React from 'react';
 
 const Header = ({ isCollapsed }) => {
     return (
-        <div className="w-full overflow-hidden">
+        <div className="w-full ">
             <header
                 className="flex items-center  justify-between p-4 bg-black text-white gap-[20px] transition-all duration-300 ease-in-out"
                 style={{
@@ -141,8 +141,8 @@ const Header = ({ isCollapsed }) => {
                         </div>
 
                         {/* Name & Role */}
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis group-hover:text-emerald-400 transition-colors">
+                        <div className="flex flex-col ">
+                            <span className="text-sm font-medium whitespace-nowrap  text-ellipsis group-hover:text-emerald-400 transition-colors">
                                 John Doe
                             </span>
                             <span className="text-xs text-gray-400 whitespace-nowrap">Admin</span>

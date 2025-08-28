@@ -21,6 +21,8 @@ import PatientProfile from "./pages/Patients/PatientProfile.jsx";
 import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
 import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
 import { useState } from "react";
+// Pages - Administrations
+import DepartmentList from "./pages/Administration/DepartmentList.jsx";
 
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false); // lift collapse state
@@ -33,13 +35,13 @@ export default function App() {
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-        
+
           <Header isCollapsed={isCollapsed} />
 
           {/* Scrollable Content Area */}
           <div
             className={`p-2 overflow-y-hidden overflow-x-hidden h-[auto] transition-all duration-300 `}
-            style={{ marginLeft: isCollapsed ? "120px" : "250px" }} // dynamic ml
+            style={{ marginLeft: isCollapsed ? "110px" : "250px" }} // dynamic ml
           >
             <Routes>
               {/* Dashboard with nested routes */}
@@ -59,6 +61,11 @@ export default function App() {
                 <Route path="out-patients" element={<AppointmentListOPD />} />
                 <Route path="profile" element={<PatientProfile />} />
                 <Route path="profile/details" element={<ViewPatientProfile />} />
+              </Route>
+
+              {/* Administrations routes */}
+              <Route path="/Administration">
+                <Route path="Departments" element={<DepartmentList />} />
               </Route>
 
               <Route path="/reports" element={<Reports />} />

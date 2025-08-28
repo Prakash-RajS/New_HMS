@@ -115,7 +115,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   return (
-    <div className="relative p-4 md:p-1">
+    <div className="w-full max-w-screen-2xl mx-auto">
       <div className="bg-black mt-16 md:mt-[90px] mb-4 p-4 md:p-6 text-white rounded-xl w-full max-w-screen-2xl mx-auto">
         {/* Back Button */}
         <div className="mb-6">
@@ -138,7 +138,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             <PhotoUploadBox photo={photo} setPhoto={setPhoto} />
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full">
             {/* General Info */}
             <div>
               <h3 className="text-lg font-medium mb-1 md:mb-2">General Info</h3>

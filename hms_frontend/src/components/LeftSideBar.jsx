@@ -93,20 +93,25 @@ const menuItems = [
   { name: "Appointments", path: "/appointments", icon: CalendarDays },
 
   {
-    name: "Patients",
-    path: "/patients",
-    icon: Users,
-    dropdown: [
-      { name: "New Registration", path: "/patients/new-registration", icon: User },
-      { 
-  name: "IPD / OPD Patient",
-  path: "/patients/ipd-opd",
-  paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
-  icon: Bed 
+  name: "Patients",
+  path: "/patients",
+  icon: Users,
+  dropdown: [
+    { name: "New Registration", path: "/patients/new-registration", icon: User },
+    { 
+      name: "IPD / OPD Patient",
+      path: "/patients/ipd-opd",
+      paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
+      icon: Bed 
+    },
+    { 
+      name: "Patient Profile",
+      path: "/patients/profile",
+      paths: ["/patients/profile", "/patients/profile/details"], // ✅ added both routes
+      icon: ClipboardList 
+    },
+  ],
 },
-      { name: "Patient Profile", path: "/patients/profile", icon: ClipboardList },
-    ],
-  },
 
   {
     name: "Administration",
@@ -282,7 +287,7 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <div
-      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0 overflow-hidden transition-all duration-300`}
+      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0  transition-all duration-300`}
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
