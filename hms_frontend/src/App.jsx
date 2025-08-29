@@ -28,7 +28,13 @@ import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
 import DepartmentList from "./pages/Administration/DepartmentList.jsx";
 import RoomManagement from "./pages/Administration/RoomManagement.jsx";
 import BedList from "./pages/Administration/BedList.jsx"
+import StaffManagement from "./pages/Administration/Staff/StafManagement.jsx";
+import SurgicalDept from "./pages/Administration/Staff/SurgicalDept.jsx";
+import SupportiveDept from "./pages/Administration/Staff/SupportiveDept.jsx";
+import AdministrativeDept from "./pages/Administration/Staff/AdministrativeDept.jsx";
 
+//Doctor & Nurse
+import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx"
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const contentRef = useRef(null);
@@ -63,11 +69,21 @@ export default function App() {
                 <Route path="Departments" element={<DepartmentList />} />
                 <Route path="roommanagement" element={<RoomManagement />} />
                 <Route path="bedlist" element={<BedList />} />
+                
+                <Route path="/Administration/StaffManagement">
+                  <Route index element={<StaffManagement />} />
+                  <Route path="surgical" element={<SurgicalDept />} />
+                  <Route path="supportive" element={<SupportiveDept />} />
+                  <Route path="administrative" element={<AdministrativeDept />} />
+                </Route>
               </Route>
               <Route path="/reports" element={<Reports />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />
+              <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />} />
             </Routes>
+                
+
           </div>
         </div>
       </div>

@@ -63,7 +63,7 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
-import { 
+import {
   LayoutDashboard,
   CalendarDays,
   Users,
@@ -93,25 +93,25 @@ const menuItems = [
   { name: "Appointments", path: "/appointments", icon: CalendarDays },
 
   {
-  name: "Patients",
-  path: "/patients",
-  icon: Users,
-  dropdown: [
-    { name: "New Registration", path: "/patients/new-registration", icon: User },
-    { 
-      name: "IPD / OPD Patient",
-      path: "/patients/ipd-opd",
-      paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
-      icon: Bed 
-    },
-    { 
-      name: "Patient Profile",
-      path: "/patients/profile",
-      paths: ["/patients/profile", "/patients/profile/details"], // ✅ added both routes
-      icon: ClipboardList 
-    },
-  ],
-},
+    name: "Patients",
+    path: "/patients",
+    icon: Users,
+    dropdown: [
+      { name: "New Registration", path: "/patients/new-registration", icon: User },
+      {
+        name: "IPD / OPD Patient",
+        path: "/patients/ipd-opd",
+        paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
+        icon: Bed
+      },
+      {
+        name: "Patient Profile",
+        path: "/patients/profile",
+        paths: ["/patients/profile", "/patients/profile/details"], // ✅ added both routes
+        icon: ClipboardList
+      },
+    ],
+  },
 
   {
     name: "Administration",
@@ -119,10 +119,12 @@ const menuItems = [
     icon: Building2,
     dropdown: [
       { name: "Departments", path: "/Administration/Departments", icon: Building2 },
-      { name: "Room Management", 
+      {
+        name: "Room Management",
         path: "/Administration/RoomManagement",
-        paths:"/Administration/BedList",
-        icon: Bed },
+        paths: ["/Administration/roommanagement", "/Administration/BedList", "/Administration/RoomManagement"], // ✅ array
+        icon: Bed
+      },
       { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
     ],
   },
@@ -226,10 +228,9 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
           <div
             onClick={() => setIsOpen(!isOpen)}
             className={`w-full h-[40px] rounded-[16px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
-              ${
-                isExactActive || isParentActive
-                  ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                  : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+              ${isExactActive || isParentActive
+                ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
               }`}
           >
             <div className={`flex items-center gap-2 ${isCollapsed ? "justify-center w-full" : ""}`}>
@@ -271,8 +272,8 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
                   : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
                 : active
-                ? "bg-[#0EFF7B1A] text-white"
-                : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"}`;
+                  ? "bg-[#0EFF7B1A] text-white"
+                  : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"}`;
           }}
         >
           {() => (
