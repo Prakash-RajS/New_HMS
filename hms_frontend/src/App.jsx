@@ -35,6 +35,11 @@ import AdministrativeDept from "./pages/Administration/Staff/AdministrativeDept.
 
 //Doctor & Nurse
 import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx"
+import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx"
+
+//Clinical_Resource/Lab
+import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx"
+
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const contentRef = useRef(null);
@@ -81,6 +86,8 @@ export default function App() {
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />
               <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />} />
+              <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />} />
+              <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />} />
             </Routes>
                 
 

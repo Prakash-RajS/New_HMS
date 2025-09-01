@@ -145,7 +145,7 @@ const menuItems = [
     icon: ShieldCheck,
     dropdown: [
       { name: "Add Doctor / Nurse", path: "/Doctors-Nurse/AddDoctorNurse", icon: User },
-      { name: "Doctor / Nurse", path: "/Doctors-Nurse/DoctorNurse", icon: Users },
+      { name: "Doctor / Nurse", path: "/Doctors-Nurse/DoctorNurseProfile", icon: Users },
     ],
   },
 
