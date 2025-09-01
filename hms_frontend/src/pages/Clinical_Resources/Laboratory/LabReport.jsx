@@ -297,7 +297,7 @@ const LabReport = () => {
                             }}
                             className="appearance-none bg-[#0EFF7B1A] px-4 py-2 rounded-[20px] flex items-center text-sm pr-8 focus:outline-none text-[#5CD592]"
                         >
-                            <option value="All">All Categories</option>
+                            <option value="All">Categories</option>
                             {departments.map((dept, index) => (
                                 <option key={index} value={dept}>{dept}</option>
                             ))}
@@ -318,7 +318,7 @@ const LabReport = () => {
             {/* Enhanced Filter Popup with Green Theme */}
             {showFilterPopup && (
   <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <div className="bg-[#000000] border-[1px] border-[#0D0D0D] rounded-xl p-6 w-[700px]">
+    <div className="bg-[#000000] border-2 border-[#0D0D0D] rounded-xl p-6 w-[700px]">
       <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] pb-3">
         <h3 className="text-lg font-semibold text-[#0EFF7B]">Filter Donor</h3>
         <button

@@ -245,9 +245,9 @@ const StockInventory = () => {
   };
 
   return (
-    <div className="min-h-screen mt-[60px] bg-black text-white p-6">
+    <div className="w-full min-h-screen mt-[60px] bg-black text-white p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 w-[1092px] ">
+      <div className="flex justify-between items-center mb-6 w-full ">
         <div>
           <h1 className="text-[20px] font-medium">Stock & Inventory</h1>
           <p className="text-[14px] mt-2 text-gray-400">
@@ -314,7 +314,7 @@ const StockInventory = () => {
       </div>
 
       {/* Top Stats */}
-      <div className="bg-[#0D0D0D] px-6 py-6 opacity-100 w-[1092px] h-[102px] rounded-2xl mb-6">
+      <div className="bg-[#0D0D0D] px-6 py-6 opacity-100 w-full h-[102px] rounded-2xl mb-6">
         <div className="grid grid-cols-4 gap-6 text-sm">
           {[
             {
@@ -364,166 +364,115 @@ const StockInventory = () => {
       </div>
 
       {/* Department Stocks & Upcoming/Expiring */}
-      <div className="flex w-[1092px] h-[200px] gap-[21px] opacity-100 mb-6">
-        {/* DEPARTMENT STOCKS */}
-        <div className="w-[350px] h-[200px] gap-[20px] opacity-100 rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-          <h3 className="text-[#0EFF7B] text-[14px] font-semibold mb-1">
-            DEPARTMENT STOCKS
-          </h3>
-          <hr className="border-[#333] mb-6" />
-          <div className="flex items-center justify-between">
-            {/* Department List */}
-            <div className="flex flex-col gap-5 mr-8">
-              <div className="flex items-center gap-3">
-                <span className="w-[14px] h-[14px] rounded-full bg-[#0EFF7B] inline-block"></span>
-                <span className="font-inter font-normal text-sm leading-none tracking-normal">
-                  Medical Dept
-                </span>
-                <span className="text-[#A0A0A0] font-inter font-normal text-sm leading-none tracking-normal">
-                  60%
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-[14px] h-[14px] rounded-full bg-[#0A7239] inline-block"></span>
-                <span className="font-inter font-normal text-sm leading-none tracking-normal">
-                  Surgical Dept
-                </span>
-                <span className="text-[#A0A0A0] font-inter font-normal text-sm leading-none tracking-normal">
-                  30%
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="w-[14px] h-[14px] rounded-full bg-[#D7FDE8] inline-block"></span>
-                <span className="font-inter font-normal text-sm leading-none tracking-normal">
-                  Supportive &<br /> Diagnostic Dept
-                </span>
-                <span className="text-[#A0A0A0] font-inter font-normal text-sm leading-none tracking-normal">
-                  10%
-                </span>
-              </div>
-            </div>
-            {/* Donut Chart */}
-            <svg
-              viewBox="0 0 36 36"
-              width="120"
-              height="120"
-              aria-label="Department stocks donut chart"
-            >
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="#242424"
-                strokeWidth="4"
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="#18FF96"
-                strokeWidth="4"
-                strokeDasharray="60 100"
-                strokeDashoffset="0"
-                strokeLinecap="round"
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="#1AB873"
-                strokeWidth="4"
-                strokeDasharray="30 100"
-                strokeDashoffset="60"
-                strokeLinecap="round"
-              />
-              <circle
-                cx="18"
-                cy="18"
-                r="16"
-                fill="none"
-                stroke="#C9FFE1"
-                strokeWidth="4"
-                strokeDasharray="10 100"
-                strokeDashoffset="90"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+      {/* Department Stocks & Upcoming/Expiring */}
+<div className="flex flex-wrap w-full gap-4 mb-6">
+  {/* DEPARTMENT STOCKS */}
+  <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+    <h3 className="text-[#0EFF7B] text-[14px] font-semibold mb-1">
+      DEPARTMENT STOCKS
+    </h3>
+    <hr className="border-[#333] mb-6" />
+    <div className="flex items-center justify-between">
+      {/* Department List */}
+      <div className="flex flex-col gap-5 mr-6">
+        <div className="flex items-center gap-3">
+          <span className="min-w-[14px] h-[14px] rounded-full bg-[#0EFF7B] inline-block"></span>
+          <span className="font-inter text-sm">Medical Dept</span>
+          <span className="text-[#A0A0A0] text-sm">60%</span>
         </div>
-
-        {/* UPCOMING STOCKS */}
-        <div className="w-[350px] h-[200px] gap-[20px] opacity-100 rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-          <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-            <span className="font-medium text-[14px] text-[#6E92FF] font-Inter leading-[17px] tracking-normal uppercase opacity-100 flex items-center gap-1">
-              <span>○</span> UPCOMING STOCKS
-            </span>
-            <span className="text-[#0EFF7B] text-[12px] cursor-pointer font-normal">
-              View all (80)
-            </span>
-          </h3>
-          <hr className="border-[#222] mb-6" />
-          <ul className="text-base space-y-3">
-            <li className="flex justify-between items-center">
-              <span>Ibuprofen</span>
-              <div className="flex items-center gap-x-2">
-                <span className="text-[#0EFF7B]">+145</span>
-                <span className="text-gray-400 text-xs">29 aug 25</span>
-              </div>
-            </li>
-            <li className="flex justify-between items-center">
-              <span>Amoxicillin</span>
-              <div className="flex items-center gap-x-2">
-                <span className="text-[#0EFF7B]">+120</span>
-                <span className="text-gray-400 text-xs">29 aug 25</span>
-              </div>
-            </li>
-            <li className="flex justify-between items-center">
-              <span>Disinfectant skin antiseptic</span>
-              <div className="flex items-center gap-x-2">
-                <span className="text-[#0EFF7B]">+200</span>
-                <span className="text-gray-400 text-xs">29 aug 25</span>
-              </div>
-            </li>
-          </ul>
+        <div className="flex items-center gap-3">
+          <span className="min-w-[14px] h-[14px] rounded-full bg-[#0A7239] inline-block"></span>
+          <span className="font-inter text-sm">Surgical Dept</span>
+          <span className="text-[#A0A0A0] text-sm">30%</span>
         </div>
-
-        {/* EXPIRING STOCKS */}
-        <div className="w-[350px] h-[200px] gap-[20px] opacity-100 rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-          <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-            <span className="font-medium text-[14px] text-[#FF2424] font-Inter leading-[17px] tracking-normal uppercase opacity-100 flex items-center gap-1">
-              <span>○</span> EXPIRING STOCKS
-            </span>
-            <span className="text-[#0EFF7B] text-[12px] cursor-pointer font-normal">
-              View all (150)
-            </span>
-          </h3>
-          <hr className="border-[#222] mb-4" />
-          <ul className="text-base space-y-3">
-            <li className="flex justify-between items-center">
-              <span>Mask 4-layered</span>
-              <span className="text-gray-400 text-xs">30 available</span>
-            </li>
-            <li className="flex justify-between items-center">
-              <span>Disinfectant chlorhexidine bigluconate 0.05%</span>
-              <span className="text-gray-400 text-xs">100 available</span>
-            </li>
-            <li className="flex justify-between items-center">
-              <span>Disinfectant skin antiseptic</span>
-              <span className="text-gray-400 text-xs">150 available</span>
-            </li>
-          </ul>
+        <div className="flex items-center gap-3">
+          <span className="min-w-[14px] h-[14px] rounded-full bg-[#D7FDE8] inline-block"></span>
+          <span className="font-inter text-sm">
+            Supportive &<br /> Diagnostic Dept
+          </span>
+          <span className="text-[#A0A0A0] text-sm">10%</span>
         </div>
       </div>
+      {/* Donut Chart */}
+      <svg viewBox="0 0 36 36" width="100" height="100">
+        <circle cx="18" cy="18" r="16" fill="none" stroke="#242424" strokeWidth="4" />
+        <circle cx="18" cy="18" r="16" fill="none" stroke="#18FF96" strokeWidth="4"
+          strokeDasharray="60 100" strokeDashoffset="0" strokeLinecap="round" />
+        <circle cx="18" cy="18" r="16" fill="none" stroke="#1AB873" strokeWidth="4"
+          strokeDasharray="30 100" strokeDashoffset="60" strokeLinecap="round" />
+        <circle cx="18" cy="18" r="16" fill="none" stroke="#C9FFE1" strokeWidth="4"
+          strokeDasharray="10 100" strokeDashoffset="90" strokeLinecap="round" />
+      </svg>
+    </div>
+  </div>
+
+  {/* UPCOMING STOCKS */}
+  <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+    <h3 className="flex justify-between text-[15px] font-semibold mb-1">
+      <span className="text-[#6E92FF] text-[14px] uppercase flex items-center gap-1">
+        <span>○</span> UPCOMING STOCKS
+      </span>
+      <span className="text-[#0EFF7B] text-[12px] cursor-pointer">View all (80)</span>
+    </h3>
+    <hr className="border-[#222] mb-6" />
+    <ul className="space-y-3 text-sm">
+      <li className="flex justify-between">
+        <span>Ibuprofen</span>
+        <div className="flex gap-x-2">
+          <span className="text-[#0EFF7B]">+145</span>
+          <span className="text-gray-400 text-xs">29 aug 25</span>
+        </div>
+      </li>
+      <li className="flex justify-between">
+        <span>Amoxicillin</span>
+        <div className="flex gap-x-2">
+          <span className="text-[#0EFF7B]">+120</span>
+          <span className="text-gray-400 text-xs">29 aug 25</span>
+        </div>
+      </li>
+      <li className="flex justify-between">
+        <span>Disinfectant skin antiseptic</span>
+        <div className="flex gap-x-2">
+          <span className="text-[#0EFF7B]">+200</span>
+          <span className="text-gray-400 text-xs">29 aug 25</span>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  {/* EXPIRING STOCKS */}
+  <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+    <h3 className="flex justify-between text-[15px] font-semibold mb-1">
+      <span className="text-[#FF2424] text-[14px] uppercase flex items-center gap-1">
+        <span>○</span> EXPIRING STOCKS
+      </span>
+      <span className="text-[#0EFF7B] text-[12px] cursor-pointer">View all (150)</span>
+    </h3>
+    <hr className="border-[#222] mb-4" />
+    <ul className="space-y-3 text-sm">
+      <li className="flex justify-between">
+        <span>Mask 4-layered</span>
+        <span className="text-gray-400 text-xs">30 available</span>
+      </li>
+      <li className="flex justify-between">
+        <span>Disinfectant chlorhexidine bigluconate 0.05%</span>
+        <span className="text-gray-400 text-xs">100 available</span>
+      </li>
+      <li className="flex justify-between">
+        <span>Disinfectant skin antiseptic</span>
+        <span className="text-gray-400 text-xs">150 available</span>
+      </li>
+    </ul>
+  </div>
+</div>
+
 
       {/* Inventory List */}
-      <h3 className="w-[1092px] h-[22px] font-inter font-medium text-[18px] leading-[22px] tracking-normal text-white mb-4">
+      <h3 className="w-full h-[22px] font-inter font-medium text-[18px] leading-[22px] tracking-normal text-white mb-4">
         Inventory list
       </h3>
 
-      <div className="mb-4 w-[1092px] flex justify-between items-center relative">
+      <div className="mb-4 w-full flex justify-between items-center relative">
         {/* Search */}
         <div className="flex items-center gap-2 bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[315px] max-w-md">
           <Search size={16} className="text-[#0EFF7B]" />
@@ -648,7 +597,7 @@ const StockInventory = () => {
 
       {/* Table */}
       <div className="overflow-hidden">
-        <table className="w-[1092px] border-collapse border border-black rounded-[8px]">
+        <table className="w-full border-collapse border border-black rounded-[8px]">
           <thead className="bg-[#1E1E1E] h-[52px] text-left text-sm text-white opacity-100">
             <tr className="h-[52px] bg-[#1E1E1E] text-left text-sm text-white rounded-[8px] border border-black">
               {/* Select All Checkbox */}
@@ -730,7 +679,7 @@ const StockInventory = () => {
             {sortedData.map((row, i) => (
               <tr
                 key={row.id}
-                className="w-[1092px] h-[62px] bg-black px-[12px] py-[12px] opacity-100 border-b border-[#1E1E1E]"
+                className="w-full h-[62px] bg-black px-[12px] py-[12px] opacity-100 border-b border-[#1E1E1E]"
               >
                 <td className="px-3 py-3">
                   <input

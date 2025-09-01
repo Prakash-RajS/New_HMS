@@ -20,7 +20,27 @@ import AppointmentList from "./pages/Appointments/appointments_list.jsx";
 // Pages - Patients
 import NewRegistration from "./pages/Patients/new-registration";
 import IpdOpd from "./pages/Patients/ipd-opd.jsx";
-// import PatientProfile from "./pages/Patients/PatientProfile.jsx";
+import PatientProfile from "./pages/Patients/PatientProfile.jsx";
+import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
+import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
+
+// Pages - Administrations
+import DepartmentList from "./pages/Administration/DepartmentList.jsx";
+import RoomManagement from "./pages/Administration/RoomManagement.jsx";
+import BedList from "./pages/Administration/BedList.jsx";
+import StaffManagement from "./pages/Administration/Staff/StafManagement.jsx";
+import SurgicalDept from "./pages/Administration/Staff/SurgicalDept.jsx";
+import SupportiveDept from "./pages/Administration/Staff/SupportiveDept.jsx";
+import AdministrativeDept from "./pages/Administration/Staff/AdministrativeDept.jsx";
+
+import StockInventory from "./pages/Pharmacy/Stock-Inventory.jsx";
+
+//Doctor & Nurse
+import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx";
+import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx";
+
+//Clinical_Resource/Lab
+import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx";
 
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,7 +68,12 @@ export default function App() {
               <Route path="/patients">
                 <Route path="new-registration" element={<NewRegistration />} />
                 <Route path="ipd-opd" element={<IpdOpd />} />
-                {/* <Route path="profile" element={<PatientProfile />} /> */}
+                <Route path="out-patients" element={<AppointmentListOPD />} />
+                <Route path="profile" element={<PatientProfile />} />
+                <Route
+                  path="profile/details"
+                  element={<ViewPatientProfile />}
+                />
               </Route>
               <Route path="/Administration">
                 <Route path="Departments" element={<DepartmentList />} />
@@ -59,9 +84,7 @@ export default function App() {
                   <Route index element={<StaffManagement />} />
                   <Route path="surgical" element={<SurgicalDept />} />
                   <Route path="supportive" element={<SupportiveDept />} />
-                  <Route
-                    path="administrative"
-                    element={<AdministrativeDept />}
+                  <Route path="administrative" element={<AdministrativeDept />}
                   />
                 </Route>
               </Route>
@@ -71,9 +94,11 @@ export default function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />
-              <Route
-                path="/Doctors-Nurse/AddDoctorNurse"
-                element={<AddDoctorNurse />}
+              <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />}
+              />
+              <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />}
+              />
+              <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />}
               />
             </Routes>
           </div>
