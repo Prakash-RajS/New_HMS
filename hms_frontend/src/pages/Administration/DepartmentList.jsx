@@ -1,4 +1,3 @@
-// DepartmentList.jsx
 import React, { useState, useMemo } from "react";
 import {
   Search,
@@ -383,7 +382,7 @@ const DepartmentList = () => {
             </thead>
             <tbody>
               {currentDepartments.length > 0 ? (
-                currentDepartments.map((dept) => {
+                currentDepartments.map((dept, idx) => {
                   const IconComponent = departmentIcons[dept.name] || Activity;
                   return (
                     <tr key={dept.id} className="bg-black border-b border-gray-600 h-[54px]">
@@ -427,7 +426,11 @@ const DepartmentList = () => {
                           <MoreHorizontal size={20} className="text-white" />
                         </div>
                         {menuOpenFor === dept.id && (
-                          <div className="absolute right-0 mr-3 z-[50] mt-2 w-40 rounded-md bg-black shadow-lg ring-1 ring-gray-700">
+                          <div
+                            className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-black shadow-lg ring-1 ring-gray-700 ${
+                              idx >= currentDepartments.length - 2 ? "bottom-full mb-2" : "top-full mt-2"
+                            }`}
+                          >
                             <ul className="py-1">
                               <li>
                                 <button

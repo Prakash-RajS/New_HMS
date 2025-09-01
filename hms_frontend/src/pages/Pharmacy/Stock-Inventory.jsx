@@ -245,7 +245,7 @@ const StockInventory = () => {
   };
 
   return (
-    <div className="w-full min-h-screen mt-[60px] bg-black text-white p-6">
+    <div className="w-full min-h-screen mt-[60px] bg-black text-white p-3">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 w-full ">
         <div>
