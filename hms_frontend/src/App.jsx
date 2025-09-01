@@ -20,23 +20,8 @@ import AppointmentList from "./pages/Appointments/appointments_list.jsx";
 // Pages - Patients
 import NewRegistration from "./pages/Patients/new-registration";
 import IpdOpd from "./pages/Patients/ipd-opd.jsx";
-import PatientProfile from "./pages/Patients/PatientProfile.jsx";
-import ViewPatientProfile from "./pages/Patients/ViewPatientProfile.jsx";
-import AppointmentListOPD from "./pages/Patients/OutPatientList.jsx";
+// import PatientProfile from "./pages/Patients/PatientProfile.jsx";
 
-// Pages - Administrations
-import DepartmentList from "./pages/Administration/DepartmentList.jsx";
-import RoomManagement from "./pages/Administration/RoomManagement.jsx";
-import BedList from "./pages/Administration/BedList.jsx";
-import StaffManagement from "./pages/Administration/Staff/StafManagement.jsx";
-import SurgicalDept from "./pages/Administration/Staff/SurgicalDept.jsx";
-import SupportiveDept from "./pages/Administration/Staff/SupportiveDept.jsx";
-import AdministrativeDept from "./pages/Administration/Staff/AdministrativeDept.jsx";
-
-import StockInventory from "./pages/Pharmacy/Stock-Inventory.jsx";
-
-//Doctor & Nurse
-import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx";
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const contentRef = useRef(null);
@@ -63,12 +48,7 @@ export default function App() {
               <Route path="/patients">
                 <Route path="new-registration" element={<NewRegistration />} />
                 <Route path="ipd-opd" element={<IpdOpd />} />
-                <Route path="out-patients" element={<AppointmentListOPD />} />
-                <Route path="profile" element={<PatientProfile />} />
-                <Route
-                  path="profile/details"
-                  element={<ViewPatientProfile />}
-                />
+                {/* <Route path="profile" element={<PatientProfile />} /> */}
               </Route>
               <Route path="/Administration">
                 <Route path="Departments" element={<DepartmentList />} />

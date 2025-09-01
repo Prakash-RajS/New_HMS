@@ -7,7 +7,7 @@ const DeleteAppointmentPopup = ({ onClose, onConfirm }) => {
       <div className="w-[504px] rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
-          <h3 className="text-lg font-semibold">Delete Appointment</h3>
+          <h3 className="text-lg font-semibold">Delete Patient</h3>
           <button
             onClick={onClose}
             className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] shadow-[0px 0px 4px 0px #0EFF7B1A;] flex items-center justify-center"

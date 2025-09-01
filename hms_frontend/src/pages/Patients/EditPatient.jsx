@@ -64,7 +64,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-white font-inter font-medium text-[16px] leading-[19px]">
-            Edit Appointment
+            Edit Patient
           </h3>
           <button
             onClick={onClose}
