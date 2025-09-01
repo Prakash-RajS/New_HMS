@@ -4,11 +4,13 @@ import {
   Search,
   Filter,
   Plus,
+  Edit2,
   Trash2,
   X,
   ChevronDown,
   Calendar,
-  Edit2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditPatient from "./EditPatient";
@@ -24,6 +26,8 @@ const AppointmentListIPD = () => {
   const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const itemsPerPage = 1;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -151,6 +155,12 @@ const AppointmentListIPD = () => {
     setFiltersData({ ...filtersData, [name]: value });
   };
 
+  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+  const currentAppointments = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredAppointments.slice(startIndex, startIndex + itemsPerPage);
+  }, [currentPage, filteredAppointments, itemsPerPage]);
+
   const handleClearFilters = () => {
     setFiltersData({
       patientName: "",
@@ -205,6 +215,46 @@ const AppointmentListIPD = () => {
         >
           <Plus size={18} /> Add Patients
         </button>
+      </div>
+      <div className="mb-3 w-[800px]">
+        <div className="flex items-center gap-4 rounded-xl ">
+          {/* Today's Total */}
+          <div className="flex items-center gap-3">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Today's Total
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#0EFF7B66] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A]">
+              150
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Visited */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              In-Patients
+            </span>
+            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#2231FF] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#6E92FF] to-[#425899]">
+              47
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+
+          {/* Waiting */}
+          <div className="flex items-center gap-2">
+            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+              Out-Patients
+            </span>
+            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-[#000000] gap-1 opacity-100 rounded-[20px] border border-[#FF930E] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#FF930E] to-[#995808]">
+              12
+            </span>
+          </div>
+
+          <div className="h-8 w-px bg-gray-700"></div>
+        </div>
       </div>
 
       <div className="flex justify-between items-center mb-4">
@@ -357,6 +407,8 @@ const AppointmentListIPD = () => {
         </table>
       </div>
 
+      {/* === FILTER POPUP === */}
+      {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="w-[600px] rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-lg backdrop-blur-md relative">

@@ -115,17 +115,19 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   return (
-    <div className="w-full max-w-screen-2xl mx-auto">
-      <div className="bg-black mt-16 md:mt-[90px] mb-4 p-4 md:p-6 text-white rounded-xl w-full max-w-screen-2xl mx-auto">
-        {/* Back Button */}
-        <div className="mb-6">
-          <button
-            className="px-4 py-2 md:px-6 md:py-2 bg-green-500 rounded-lg hover:bg-green-600 text-sm md:text-base"
-            onClick={() => navigate(-1)}
-          >
-            ← Back
-          </button>
-        </div>
+    <div className="mt-[60px] mb-4  bg-black text-white rounded-xl p-6 w-full"
+      style={{
+        width: "1380px",          // ✅ make flexible
+        maxWidth: "1389px",
+        height: '1467px',
+        // This prevents both horizontal and vertical scrolling
+      }}>
+      {/* Back Button */}
+      <div className="mb-6">
+        <button className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600">
+          ← Back
+        </button>
+      </div>
 
         <div className="grid grid-cols-1 gap-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

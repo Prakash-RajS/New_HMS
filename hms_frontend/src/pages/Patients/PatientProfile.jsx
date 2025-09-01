@@ -138,17 +138,13 @@ const ProfileSection = () => {
       }
       if (
         filtersData.patientId &&
-        !profile.id
-          .toLowerCase()
-          .includes(filtersData.patientId.toLowerCase())
+        !profile.id.toLowerCase().includes(filtersData.patientId.toLowerCase())
       ) {
         return false;
       }
       if (
         filtersData.room &&
-        !profile.room
-          .toLowerCase()
-          .includes(filtersData.room.toLowerCase())
+        !profile.room.toLowerCase().includes(filtersData.room.toLowerCase())
       ) {
         return false;
       }
@@ -216,8 +212,12 @@ const ProfileSection = () => {
     </div>
   );
   const totalPatients = filteredProfiles.length;
-  const inPatientsCount = filteredProfiles.filter(p => p.type === "In-patients").length;
-  const outPatientsCount = filteredProfiles.filter(p => p.type === "Out-patients").length;
+  const inPatientsCount = filteredProfiles.filter(
+    (p) => p.type === "In-patients"
+  ).length;
+  const outPatientsCount = filteredProfiles.filter(
+    (p) => p.type === "Out-patients"
+  ).length;
   return (
     <div className="mt-[60px] min-h-[920px] max-h-[1700px] mb-4 bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto">
       {/* Header */}
@@ -265,10 +265,11 @@ const ProfileSection = () => {
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`w-[104px] h-[35px] rounded-[20px] border ${activeMainTab === tab
+              className={`w-[104px] h-[35px] rounded-[20px] border ${
+                activeMainTab === tab
                   ? "bg-[#0EFF7B] text-black font-medium"
                   : "border-gray-700 text-gray-300 bg-[#0D0D0D]"
-                }`}
+              }`}
               onClick={() => setActiveMainTab(tab)}
             >
               {tab}
@@ -302,10 +303,11 @@ const ProfileSection = () => {
         {filters.map((f) => (
           <button
             key={f}
-            className={`px-6 py-2 rounded-full ${activeFilter === f
+            className={`px-6 py-2 rounded-full ${
+              activeFilter === f
                 ? "bg-[#0EFF7B] text-black font-medium"
                 : "bg-[#0D0D0D] text-white"
-              }`}
+            }`}
             onClick={() => setActiveFilter(f)}
           >
             {f}
@@ -372,7 +374,13 @@ const ProfileSection = () => {
                 onChange={(val) =>
                   setFiltersData({ ...filtersData, status: val })
                 }
-                options={["Normal", "Severe", "Critical", "Completed", "Cancelled"]}
+                options={[
+                  "Normal",
+                  "Severe",
+                  "Critical",
+                  "Completed",
+                  "Cancelled",
+                ]}
               />
             </div>
 
@@ -427,10 +435,11 @@ const ProfileSection = () => {
               />
             </div>
             <p
-              className={`text-[18px] font-medium ${profile.name === "N 76 x 76"
+              className={`text-[18px] font-medium ${
+                profile.name === "N 76 x 76"
                   ? "text-blue-400"
                   : "text-[#0EFF7B]"
-                }`}
+              }`}
             >
               {profile.name}
             </p>
