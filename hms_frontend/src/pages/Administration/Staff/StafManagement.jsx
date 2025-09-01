@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Search, Calendar, Filter, Stethoscope, Microscope, ClipboardList, Building } from "lucide-react";
+import {
+  Search,
+  Calendar,
+  Filter,
+  Stethoscope,
+  Microscope,
+  ClipboardList,
+  Building,
+} from "lucide-react";
 import SurgicalDept from "./SurgicalDept";
 import SupportiveDept from "./SupportiveDept";
 import AdministrativeDept from "./AdministrativeDept";
@@ -17,25 +25,102 @@ const StaffManagement = () => {
   const [selectedRows, setSelectedRows] = useState([]);
 
   const staffData = [
-    { id: 1, name: "Preethi", designation: "Anesthesiology", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 2, name: "Rajesh", designation: "Cardiology", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 3, name: "Krishna", designation: "Oncology", date: "20/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 4, name: "Raghul", designation: "Dermatology", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 5, name: "Ragu", designation: "Dermatology", date: "20/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 6, name: "Prashanth", designation: "Gastroenterology", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 7, name: "Sharmi", designation: "Pharmacy", date: "20/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "8.50am", checkOut: "5.30pm" },
-    { id: 8, name: "Ankita", designation: "Orthopedic", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
+    {
+      id: 1,
+      name: "Preethi",
+      designation: "Anesthesiology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Present",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 2,
+      name: "Rajesh",
+      designation: "Cardiology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Present",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 3,
+      name: "Krishna",
+      designation: "Oncology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Absent",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 4,
+      name: "Raghul",
+      designation: "Dermatology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Present",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 5,
+      name: "Ragu",
+      designation: "Dermatology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Absent",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 6,
+      name: "Prashanth",
+      designation: "Gastroenterology",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Present",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 7,
+      name: "Sharmi",
+      designation: "Pharmacy",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Absent",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
+    {
+      id: 8,
+      name: "Ankita",
+      designation: "Orthopedic",
+      date: "20/08/2025",
+      shift: "09am - 05pm",
+      status: "Present",
+      checkIn: "8.50am",
+      checkOut: "5.30pm",
+    },
   ];
 
   const itemsPerPage = 9;
   const filteredData = staffData.filter((row) => {
-    const matchesSearch = row.name.toLowerCase().includes(searchTerm.toLowerCase()) || row.designation.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      row.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      row.designation.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "All" || row.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 40;
-  const displayedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const displayedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleSelectAll = (e) => {
     const checked = e.target.checked;
@@ -88,11 +173,27 @@ const StaffManagement = () => {
               </div>
               <div className="text-sm text-gray-400 flex items-center gap-2">
                 <span>
-                  Page <span className="text-green-500">{currentPage}</span> of {totalPages} (1 to {Math.min(currentPage * itemsPerPage, filteredData.length)} Staff)
+                  Page <span className="text-green-500">{currentPage}</span> of{" "}
+                  {totalPages} (1 to{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredData.length)}{" "}
+                  Staff)
                 </span>
-                <button onClick={handlePrevPage} className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center">&lt;</button>
-                <button onClick={handleNextPage} className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center">&gt;</button>
-                <button onClick={() => setShowFilterPopup(!showFilterPopup)} className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center">
+                <button
+                  onClick={handlePrevPage}
+                  className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center"
+                >
+                  &lt;
+                </button>
+                <button
+                  onClick={handleNextPage}
+                  className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center"
+                >
+                  &gt;
+                </button>
+                <button
+                  onClick={() => setShowFilterPopup(!showFilterPopup)}
+                  className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center"
+                >
                   <Filter size={16} />
                 </button>
               </div>
@@ -108,7 +209,10 @@ const StaffManagement = () => {
                     <option>Present</option>
                     <option>Absent</option>
                   </select>
-                  <button onClick={applyFilter} className="bg-green-500 text-black px-4 py-1 rounded w-full">
+                  <button
+                    onClick={applyFilter}
+                    className="bg-green-500 text-black px-4 py-1 rounded w-full"
+                  >
                     Apply
                   </button>
                 </div>
@@ -124,11 +228,23 @@ const StaffManagement = () => {
                       <input
                         type="checkbox"
                         className="bg-gray-900 border-gray-700 rounded"
-                        checked={selectAll || selectedRows.length === displayedData.length}
+                        checked={
+                          selectAll ||
+                          selectedRows.length === displayedData.length
+                        }
                         onChange={handleSelectAll}
                       />
                     </th>
-                    {["Name", "Designation", "Date", "Shift time", "Status", "Check In", "Check Out", "Details"].map((head, i) => (
+                    {[
+                      "Name",
+                      "Designation",
+                      "Date",
+                      "Shift time",
+                      "Status",
+                      "Check In",
+                      "Check Out",
+                      "Details",
+                    ].map((head, i) => (
                       <th key={i} className="px-4 py-3 font-medium">
                         {head}
                       </th>
@@ -137,7 +253,10 @@ const StaffManagement = () => {
                 </thead>
                 <tbody className="text-sm">
                   {displayedData.map((row) => (
-                    <tr key={row.id} className="border-b border-gray-800 hover:bg-gray-900">
+                    <tr
+                      key={row.id}
+                      className="border-b border-gray-800 hover:bg-gray-900"
+                    >
                       <td className="px-4 py-3 h-[52px]">
                         <input
                           type="checkbox"
@@ -150,12 +269,20 @@ const StaffManagement = () => {
                       <td className="px-4 py-3">{row.designation}</td>
                       <td className="px-4 py-3">{row.date}</td>
                       <td className="px-4 py-3">{row.shift}</td>
-                      <td className={`px-4 py-3 font-medium ${row.status === "Present" ? "text-green-500" : "text-red-500"}`}>
+                      <td
+                        className={`px-4 py-3 font-medium ${
+                          row.status === "Present"
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                      >
                         {row.status}
                       </td>
                       <td className="px-4 py-3">{row.checkIn}</td>
                       <td className="px-4 py-3">{row.checkOut}</td>
-                      <td className="px-4 py-3 text-green-400 cursor-pointer hover:underline">view profile</td>
+                      <td className="px-4 py-3 text-green-400 cursor-pointer hover:underline">
+                        view profile
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -169,25 +296,30 @@ const StaffManagement = () => {
   return (
     <div className="min-h-screen mt-[60px] bg-black text-white p-4">
       {/* Header */}
-      <div className="mb-4">
+      <div className="mb-6">
         <h1 className="text-[20px] font-medium">Staff Management</h1>
         <p className="text-[14px] mt-2 text-gray-400">
-          Manage staff profiles, departments, roles, attendance, and payroll in one place
+          Manage staff profiles, departments, roles, attendance, and payroll in
+          one place
         </p>
       </div>
 
       {/* Tabs and Year/Month Selection */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex border-b border-gray-700 text-[18px] gap-[40px]">
-          {["Staff Profiles", "Attendance Tracking", "Payroll Management"].map((tab, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-2 ${activeTab === tab ? "text-green-500 " : "text-white"}`}
-            >
-              {tab}
-            </button>
-          ))}
+          {["Staff Profiles", "Attendance Tracking", "Payroll Management"].map(
+            (tab, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveTab(tab)}
+                className={`pb-2 ${
+                  activeTab === tab ? "text-green-500 " : "text-white"
+                }`}
+              >
+                {tab}
+              </button>
+            )
+          )}
         </div>
         <div className="flex gap-6 items-center text-white text-sm">
           <div className="flex text-[16px] items-center gap-2">
@@ -250,30 +382,30 @@ const StaffManagement = () => {
       {activeTab === "Staff Profiles" && (
         <div className="flex gap-4 mb-6">
           {[
-            { 
-              title: "Medical Departments", 
-              subtitle: "Doctors & Specialists", 
+            {
+              title: "Medical Departments",
+              subtitle: "Doctors & Specialists",
               count: "15 medical division",
               icon: <Stethoscope size={24} className="mx-auto" />,
-              dept: "Medical"
+              dept: "Medical",
             },
-            { 
-              title: "Surgical Departments", 
+            {
+              title: "Surgical Departments",
               count: "6 medical division",
               icon: <Microscope size={24} className="mx-auto" />,
-              dept: "Surgical"
+              dept: "Surgical",
             },
-            { 
-              title: "Supportive & Diagnostic Department", 
+            {
+              title: "Supportive & Diagnostic Department",
               count: "6 medical division",
               icon: <ClipboardList size={24} className="mx-auto" />,
-              dept: "Supportive"
+              dept: "Supportive",
             },
-            { 
-              title: "Administrative & Non-Medical Departments", 
+            {
+              title: "Administrative & Non-Medical Departments",
               count: "6 medical division",
               icon: <Building size={24} className="mx-auto" />,
-              dept: "Administrative"
+              dept: "Administrative",
             },
           ].map((card, i) => {
             const isActive = activeDept === card.dept;
@@ -282,20 +414,36 @@ const StaffManagement = () => {
                 key={i}
                 onClick={() => setActiveDept(card.dept)}
                 className={`p-4 rounded-[8px] mt-8 text-center transition min-w-[181px] h-[149px] cursor-pointer 
-                  ${isActive ? "bg-black border border-[#0EFF7B1A]" : "bg-[#1E1E1E] hover:bg-gray-800"}`}
+                  ${
+                    isActive
+                      ? "bg-black border border-[#0EFF7B1A]"
+                      : "bg-[#1E1E1E] hover:bg-gray-800"
+                  }`}
               >
                 <div className="w-[46px] h-[46px] bg-green-700 rounded-full mx-auto mb-3 flex items-center justify-center">
                   {card.icon}
                 </div>
-                <h3 className={`text-[14px] font-semibold line-clamp-2 leading-snug ${isActive ? "text-green-500" : "text-white"}`}>
+                <h3
+                  className={`text-[14px] font-semibold line-clamp-2 leading-snug ${
+                    isActive ? "text-green-500" : "text-white"
+                  }`}
+                >
                   {card.title}
                 </h3>
                 {card.subtitle && (
-                  <p className={`text-[12px] ${isActive ? "text-green-500" : "text-gray-400"}`}>
+                  <p
+                    className={`text-[12px] ${
+                      isActive ? "text-green-500" : "text-gray-400"
+                    }`}
+                  >
                     {card.subtitle}
                   </p>
                 )}
-                <p className={`text-xs mt-1 ${isActive ? "text-green-500" : "text-white"}`}>
+                <p
+                  className={`text-xs mt-1 ${
+                    isActive ? "text-green-500" : "text-white"
+                  }`}
+                >
                   {card.count}
                 </p>
               </div>
@@ -324,7 +472,9 @@ const StaffManagement = () => {
                 </div>
                 <div>
                   <p className="text-sm">Teja Khamas</p>
-                  <span className="text-xs text-gray-400">Aug 18 - Casual leave</span>
+                  <span className="text-xs text-gray-400">
+                    Aug 18 - Casual leave
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -333,7 +483,9 @@ const StaffManagement = () => {
                 </div>
                 <div>
                   <p className="text-sm">Geeth Kannan</p>
-                  <span className="text-xs text-gray-400">Aug 16 - Half leave</span>
+                  <span className="text-xs text-gray-400">
+                    Aug 16 - Half leave
+                  </span>
                 </div>
               </div>
             </div>
