@@ -42,6 +42,8 @@ import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx";
 //Clinical_Resource/Lab
 import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx";
 
+import BloodBank from "./pages/Clinical_Resources/ClinicalReport/BloodBank/BloodBank.jsx"
+
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const contentRef = useRef(null);
@@ -100,6 +102,7 @@ export default function App() {
               />
               <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />}
               />
+              <Route path="/ClinicalResources/ClinicalReports/BloodBank" element={<BloodBank />} />
             </Routes>
           </div>
         </div>

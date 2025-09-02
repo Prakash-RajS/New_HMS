@@ -274,7 +274,7 @@ const DepartmentList = () => {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto">
-      <div className="mt-[60px] mb-4 h-[817px] bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col">
+      <div className="mt-[60px] mb-4 bg-black text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold">Department Lists</h2>
@@ -350,7 +350,7 @@ const DepartmentList = () => {
         </div>
 
         {/* Table Container */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 flex flex-col min-h-0 overflow-auto">
           <table className="w-full text-left text-sm min-w-[600px]">
             <thead className="bg-[#1E1E1E] text-white border-b border-gray-700 sticky top-0 z-[10]">
               <tr>
@@ -472,39 +472,38 @@ const DepartmentList = () => {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center mt-4 bg-black p-4 rounded gap-x-4">
-          <div className="text-sm text-white">
-            Page <span className="text-[#0EFF7B] font-semibold">{currentPage}</span> of {totalPages} (
-            {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, filteredAndSortedDepartments.length)}{" "}
-            from {filteredAndSortedDepartments.length} Departments)
-          </div>
-          <div className="flex items-center gap-x-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
-                currentPage === 1
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
-              }`}
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
-                currentPage === totalPages
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
-              }`}
-            >
-              <ChevronRight size={12} />
-            </button>
+          {/* Pagination */}
+          <div className="flex items-center mt-4 bg-black p-4 rounded gap-x-4">
+            <div className="text-sm text-white">
+              Page <span className="text-[#0EFF7B] font-semibold">{currentPage}</span> of {totalPages} (
+              {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, filteredAndSortedDepartments.length)}{" "}
+              from {filteredAndSortedDepartments.length} Departments)
+            </div>
+            <div className="flex items-center gap-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+                  currentPage === 1
+                    ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
+                    : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                }`}
+              >
+                <ChevronLeft size={12} />
+              </button>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+                  currentPage === totalPages
+                    ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
+                    : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                }`}
+              >
+                <ChevronRight size={12} />
+              </button>
+            </div>
           </div>
         </div>
 
