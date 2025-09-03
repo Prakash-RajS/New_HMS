@@ -135,7 +135,7 @@ const menuItems = [
     icon: Pill,
     dropdown: [
       { name: "Stock & Inventory", path: "/Pharmacy/Stock-Inventory", icon: Boxes },
-      { name: "Medication", path: "/Pharmacy/Medication", icon: Pill },
+      // { name: "Medication", path: "/Pharmacy/Medication", icon: Pill },
     ],
   },
 
@@ -154,51 +154,58 @@ const menuItems = [
     path: "/ClinicalResources",
     icon: Microscope,
     dropdown: [
-      {
-        name: "Laboratory",
-        path: "/ClinicalResources/Laboratory",
-        icon: Microscope,
-        dropdown: [
-          { name: "Inventory Item Report", path: "/ClinicalResources/Laboratory/InventoryItemReport", icon: Boxes },
-          { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },
-        ],
-      },
-      {
-        name: "Clinical Reports",
-        path: "/ClinicalResources/ClinicalReports",
-        icon: FileText,
-        dropdown: [
-          { name: "Blood Reports", path: "/ClinicalResources/ClinicalReports/BloodReports", icon: Droplet },
-          { name: "Death Reports", path: "/ClinicalResources/ClinicalReports/DeathReports", icon: Activity },
-          { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
-        ],
-      },
-      {
-        name: "Emergency Services",
-        path: "/ClinicalResources/EmergencyServices",
-        icon: Ambulance,
-        dropdown: [
-          { name: "Emergency Service", path: "/ClinicalResources/EmergencyServices/emergency", icon: Activity },
-          { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },
-        ],
-      },
+      { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },
+      { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
+      { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },
     ],
+    // dropdown: [
+    //   {
+    //     name: "Laboratory",
+    //     path: "/ClinicalResources/Laboratory",
+    //     icon: Microscope,
+    //     dropdown: [
+    //       { name: "Inventory Item Report", path: "/ClinicalResources/Laboratory/InventoryItemReport", icon: Boxes },
+    //       { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },
+    //     ],
+    //   },
+    //   {
+    //     name: "Clinical Reports",
+    //     path: "/ClinicalResources/ClinicalReports",
+    //     icon: FileText,
+    //     dropdown: [
+    //       { name: "Blood Reports", path: "/ClinicalResources/ClinicalReports/BloodReports", icon: Droplet },
+    //       { name: "Death Reports", path: "/ClinicalResources/ClinicalReports/DeathReports", icon: Activity },
+    //       { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
+    //     ],
+    //   },
+    //   {
+    //     name: "Emergency Services",
+    //     path: "/ClinicalResources/EmergencyServices",
+    //     icon: Ambulance,
+    //     dropdown: [
+    //       // { name: "Emergency Service", path: "/ClinicalResources/EmergencyServices/emergency", icon: Activity },
+    //       { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },
+    //     ],
+    //   },
+    // ],
   },
 
   {
-    name: "Finance",
-    path: "/Finance",
+    name: "Billing",
+    path: "/Billing",
     icon: DollarSign,
-    dropdown: [
-      { name: "Income", path: "/Finance/Income", icon: DollarSign },
-      { name: "Expenses", path: "/Finance/Expenses", icon: FileText },
-      { name: "Invoice list", path: "/Finance/Invoice-list", icon: ReceiptText },
-      { name: "Invoice Details", path: "/Finance/Invoice-Details", icon: FileText },
-      { name: "Billing Info", path: "/Finance/Billing-Info", icon: CreditCard },
-    ],
+    // dropdown: [
+    //   { name: "Income", path: "/Finance/Income", icon: DollarSign },
+    //   { name: "Expenses", path: "/Finance/Expenses", icon: FileText },
+    //   { name: "Invoice list", path: "/Finance/Invoice-list", icon: ReceiptText },
+    //   { name: "Invoice Details", path: "/Finance/Invoice-Details", icon: FileText },
+    //   { name: "Billing Info", path: "/Finance/Billing-Info", icon: CreditCard },
+    // ],
   },
 
-  { name: "Accounts", path: "/Accounts", icon: UserCog },
+  { name: "Accounts", path: "/UserSettings",
+    paths: ["/security", "/UserSettings"],
+     icon: UserCog },
 ];
 
 const MenuItem = ({ item, level = 0, isCollapsed }) => {

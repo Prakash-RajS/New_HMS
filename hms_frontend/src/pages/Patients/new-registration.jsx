@@ -5,13 +5,13 @@ import { useNavigate } from "react-router-dom";
 
 // ✅ Photo Upload Component
 const PhotoUploadBox = ({ photo, setPhoto }) => {
+  const navigate = useNavigate();
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setPhoto(URL.createObjectURL(file));
     }
   };
-
   return (
     <div className="flex justify-center md:justify-end">
       <input
@@ -118,7 +118,8 @@ export default function NewRegistration({ isSidebarOpen }) {
     <div className="mt-[60px] mb-4  bg-black text-white rounded-xl p-6 w-full">
       {/* Back Button */}
       <div className="mb-6">
-        <button className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600">
+        <button className="px-6 py-2 bg-green-500 rounded-lg hover:bg-green-600
+        "onClick={() => navigate(-1)}>
           ← Back
         </button>
       </div>

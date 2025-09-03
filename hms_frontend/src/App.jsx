@@ -44,6 +44,11 @@ import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.j
 
 import BloodBank from "./pages/Clinical_Resources/ClinicalReport/BloodBank/BloodBank.jsx"
 
+import Billing from "./pages/Billing/Billing.jsx"
+import  Ambulance  from "./pages/Clinical_Resources/EmergencyService/AmbulanceManagement.jsx";
+import UserSettings from "./pages/Accounts/UserSettings.jsx"
+import Security from "./pages/Accounts/SecuritySettingsPage.jsx"
+
 export default function App() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const contentRef = useRef(null);
@@ -86,8 +91,7 @@ export default function App() {
                   <Route index element={<StaffManagement />} />
                   <Route path="surgical" element={<SurgicalDept />} />
                   <Route path="supportive" element={<SupportiveDept />} />
-                  <Route path="administrative" element={<AdministrativeDept />}
-                  />
+                  <Route path="administrative" element={<AdministrativeDept />}/>
                 </Route>
               </Route>
               <Route path="/Pharmacy">
@@ -96,13 +100,15 @@ export default function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/statistics" element={<Statistics />} />
               <Route path="/employee" element={<Employee />} />
-              <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />}
-              />
-              <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />}
-              />
-              <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />}
-              />
+              <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />}/>
+              <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />} />
+              <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />}/>
               <Route path="/ClinicalResources/ClinicalReports/BloodBank" element={<BloodBank />} />
+              <Route path="/Billing" element={<Billing />} />
+              <Route path="/ClinicalResources/EmergencyServices/Ambulance" element={<Ambulance />} />
+              <Route path="/UserSettings" element={<UserSettings />} />
+              <Route path="/security" element={<Security />} />
+              
             </Routes>
           </div>
         </div>
