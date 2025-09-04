@@ -1,65 +1,3 @@
-// import { NavLink } from "react-router-dom";
-// import {
-//   LayoutDashboard,
-//   CalendarCheck,
-//   Users,
-//   CalendarDays,
-//   FlaskConical,
-//   Pill,
-//   UserPlus,
-//   FileText,
-//   Siren,
-//   UserCircle,
-//   LogOut,
-// } from "lucide-react";
-
-// const menuItems = [
-//   { name: "Dashboard", path: "/", icon: <LayoutDashboard size={18} /> },
-//   { name: "Appointments", path: "/appointments", icon: <CalendarCheck size={18} /> },
-//   { name: "Patients", path: "/patients", icon: <Users size={18} /> },
-//   { name: "Schedule", path: "/schedule", icon: <CalendarDays size={18} /> },
-//   { name: "Laboratory Reports", path: "/LaboratoryReports", icon: <FlaskConical size={18} /> },
-//   { name: "Pharmacy", path: "/Pharmacy", icon: <Pill size={18} /> },
-//   { name: "New Registration", path: "/NewRegistration", icon: <UserPlus size={18} /> },
-//   { name: "Billing Info", path: "/BillingInfo", icon: <FileText size={18} /> },
-//   { name: "Emergencies", path: "/Emergencies", icon: <Siren size={18} /> },
-//   { name: "Accounts", path: "/Accounts", icon: <UserCircle size={18} /> },
-// ];
-
-// export default function Sidebar() {
-//   return (
-//     <div className="w-[260px] h-[calc(100vh-60px)] mt-[90px] ml-[41px] rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] flex flex-col justify-between p-4 fixed">
-//       <ul className="flex flex-col gap-2 mt-4 ml-2 text-[14px] text-left font-normal font-['Inter']">
-//         {menuItems.map((item, idx) => (
-//           <NavLink
-//             key={idx}
-//             to={item.path}
-//             className={({ isActive }) =>
-//               `w-[200px] h-[40px] rounded-[20px] flex items-center gap-3 px-3 py-2 cursor-pointer transition ${
-//                 isActive
-//                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] shadow-[0px_2px_12px_0px_#0EFF7B40] text-black font-medium"
-//                   : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_12px_0px_#0EFF7B40]"
-//               }`
-//             }
-//           >
-//             {item.icon}
-//             <span>{item.name}</span>
-//           </NavLink>
-//         ))}
-//       </ul>
-
-//       {/* Logout */}
-//       <div className="mt-auto mb-2">
-//         <button className="w-[200px] h-[40px] rounded-[20px] flex items-center gap-2 justify-center
-//           px-3 py-2 border border-red-500 text-red-500 hover:bg-red-600 hover:text-white transition">
-//           <LogOut size={18} /> Logout
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
-
-//LeftSideBar.jsx
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
@@ -101,13 +39,13 @@ const menuItems = [
       {
         name: "IPD / OPD Patient",
         path: "/patients/ipd-opd",
-        paths: ["/patients/ipd-opd", "/patients/out-patients"], // ✅ multiple routes
+        paths: ["/patients/ipd-opd", "/patients/out-patients"],
         icon: Bed
       },
       {
         name: "Patient Profile",
         path: "/patients/profile",
-        paths: ["/patients/profile", "/patients/profile/details"], // ✅ added both routes
+        paths: ["/patients/profile", "/patients/profile/details"],
         icon: ClipboardList
       },
     ],
@@ -122,7 +60,7 @@ const menuItems = [
       {
         name: "Room Management",
         path: "/Administration/RoomManagement",
-        paths: ["/Administration/roommanagement", "/Administration/BedList", "/Administration/RoomManagement"], // ✅ array
+        paths: ["/Administration/roommanagement", "/Administration/BedList", "/Administration/RoomManagement"],
         icon: Bed
       },
       { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
@@ -135,7 +73,6 @@ const menuItems = [
     icon: Pill,
     dropdown: [
       { name: "Stock & Inventory", path: "/Pharmacy/Stock-Inventory", icon: Boxes },
-      // { name: "Medication", path: "/Pharmacy/Medication", icon: Pill },
     ],
   },
 
@@ -158,49 +95,12 @@ const menuItems = [
       { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
       { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },
     ],
-    // dropdown: [
-    //   {
-    //     name: "Laboratory",
-    //     path: "/ClinicalResources/Laboratory",
-    //     icon: Microscope,
-    //     dropdown: [
-    //       { name: "Inventory Item Report", path: "/ClinicalResources/Laboratory/InventoryItemReport", icon: Boxes },
-    //       { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },
-    //     ],
-    //   },
-    //   {
-    //     name: "Clinical Reports",
-    //     path: "/ClinicalResources/ClinicalReports",
-    //     icon: FileText,
-    //     dropdown: [
-    //       { name: "Blood Reports", path: "/ClinicalResources/ClinicalReports/BloodReports", icon: Droplet },
-    //       { name: "Death Reports", path: "/ClinicalResources/ClinicalReports/DeathReports", icon: Activity },
-    //       { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
-    //     ],
-    //   },
-    //   {
-    //     name: "Emergency Services",
-    //     path: "/ClinicalResources/EmergencyServices",
-    //     icon: Ambulance,
-    //     dropdown: [
-    //       // { name: "Emergency Service", path: "/ClinicalResources/EmergencyServices/emergency", icon: Activity },
-    //       { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },
-    //     ],
-    //   },
-    // ],
   },
 
   {
     name: "Billing",
     path: "/Billing",
     icon: DollarSign,
-    // dropdown: [
-    //   { name: "Income", path: "/Finance/Income", icon: DollarSign },
-    //   { name: "Expenses", path: "/Finance/Expenses", icon: FileText },
-    //   { name: "Invoice list", path: "/Finance/Invoice-list", icon: ReceiptText },
-    //   { name: "Invoice Details", path: "/Finance/Invoice-Details", icon: FileText },
-    //   { name: "Billing Info", path: "/Finance/Billing-Info", icon: CreditCard },
-    // ],
   },
 
   { name: "Accounts", path: "/UserSettings",
@@ -224,7 +124,6 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
 
   const Icon = item.icon;
 
-  // Sizes based on level
   const iconSizeClass = level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
 
@@ -237,29 +136,28 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
             className={`w-full h-[40px] rounded-[16px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
               ${isExactActive || isParentActive
                 ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
               }`}
           >
             <div className={`flex items-center gap-2 ${isCollapsed ? "justify-center w-full" : ""}`}>
               <Icon
-                className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-white" : "text-emerald-500"}`}
+                className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-white" : "text-[#08994A] dark:text-emerald-500"}`}
               />
               {!isCollapsed && <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>}
             </div>
             {!isCollapsed && (
               <ChevronDown
                 size={16}
-                className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-white" : "text-emerald-500"}`}
+                className={`transition-transform duration-200 ${isOpen ? "rotate-180 text-white" : "text-[#08994A] dark:text-emerald-500"}`}
               />
             )}
           </div>
 
-          {/* Dropdown */}
           <div
             className="overflow-hidden transition-all duration-500 ease-in-out"
             style={{ maxHeight: isOpen ? "500px" : "0px" }}
           >
-            <ul className="mt-0.5 flex flex-col gap-0.5 font-['Inter']">
+            <ul className="mt-2 gap-[10px] flex flex-col gap-0.5 font-['Inter']">
               {item.dropdown.map((subItem, subIdx) => (
                 <MenuItem key={subIdx} item={subItem} level={level + 1} isCollapsed={isCollapsed} />
               ))}
@@ -277,15 +175,15 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
               ${level === 0
                 ? active
                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                  : "text-gray-300 hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                  : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
                 : active
-                  ? "bg-[#0EFF7B1A] text-white"
-                  : "text-gray-300 hover:bg-[#0EFF7B1A] hover:text-white"}`;
+                  ? "bg-[#0EFF7B1A] text-[#08994A] dark:text-white"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"}`;
           }}
         >
           {() => (
             <>
-              <Icon className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-white" : "text-emerald-500"}`} />
+              <Icon className={`${iconSizeClass} ${isExactActive || isParentActive ? "text-[#08994A]" : "text-[#08994A] dark:text-emerald-500"}`} />
               {!isCollapsed && <span className={`${textSizeClass} font-['Inter']`}>{item.name}</span>}
             </>
           )}
@@ -298,7 +196,7 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <div
-      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#1E1E1E] bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0  transition-all duration-300`}
+      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#08994A] dark:border-[#1E1E1E] bg-white dark:bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#08994A1F] dark:shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0 transition-all duration-300`}
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
@@ -310,7 +208,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#1E1E1E] bg-transparent"
+          className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#08994A] dark:border-[#1E1E1E] bg-transparent"
         >
           <svg
             width="24px"
@@ -318,7 +216,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="text-emerald-500"
+            className="text-[#08994A] dark:text-emerald-500"
           >
             <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
@@ -338,4 +236,3 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     </div>
   );
 }
-

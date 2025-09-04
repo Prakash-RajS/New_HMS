@@ -333,25 +333,25 @@ const AppointmentList = () => {
 
   const Dropdown = ({ label, value, onChange, options }) => (
     <div>
-      <label className="text-sm text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">{label}</label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
 
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-black shadow-lg z-50 border border-[#3A3A3A] left-[2px]">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                  ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"}
-                  ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                  ${active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
+                  ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
                 }
               >
                 {option}
@@ -364,64 +364,65 @@ const AppointmentList = () => {
   );
 
   return (
-    <div className="mt-[60px] h-[800px] mb-4  bg-black text-white rounded-xl p-6 w-full max-w-[1100px] mx-auto">
+    <div className="mt-[60px] h-auto mb-6 bg-white dark:bg-black text-black dark:text-white  dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1100px] mx-auto">
       {/* Header */}
       <div className="flex justify-between items-center mb-2">
-        <h2 className="text-xl font-semibold">Appointment List</h2>
+        <h2 className="text-black dark:text-white text-xl font-semibold">Appointment List</h2>
         <button
           onClick={() => setShowAddPopup(true)}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full text-black font-semibold"
+          className="flex items-center gap-2 bg-[#08994A] dark:bg-green-500 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 border border-[#0EFF7B] dark:border-[#1E1E1E] px-4 py-2 rounded-full text-white font-semibold"
         >
-          <Plus size={18} /> Add Appointments
+          <Plus size={18} className="text-white" /> Add Appointments
         </button>
       </div>
 
       {/* Today's Total Section */}
+       {/* Today's Total Section */}
       <div className="mb-3 w-[800px]">
         <div className="flex items-center gap-4 rounded-xl ">
           {/* Today's Total */}
           <div className="flex items-center gap-3">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Today's Total
             </span>
-            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#0EFF7B66] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A]">
+            <span className="w-6 h-6 flex items-center text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] border border-[#08994A] dark:border-[#0EFF7B66] p-1 text-xs font-normal bg-gradient-to-r from-[#08994A] to-[#067a3b] dark:from-[#14DC6F] dark:to-[#09753A]">
               150
             </span>
           </div>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-gray-700"></div>
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Visited */}
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Visited
             </span>
-            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#2231FF] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#6E92FF] to-[#425899]">
+            <span className="w-6 h-6 flex items-center text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] border border-blue-500 dark:border-[#2231FF] p-1 text-xs font-normal bg-gradient-to-b from-blue-500 to-blue-700 dark:from-[#6E92FF] dark:to-[#425899]">
               47
             </span>
           </div>
 
-          <div className="h-8 w-px bg-gray-700"></div>
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Waiting */}
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Waiting
             </span>
-            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-[#000000] gap-1 opacity-100 rounded-[20px] border border-[#FF930E] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#FF930E] to-[#995808]">
+            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-white gap-1 opacity-100 rounded-[20px] border border-amber-500 dark:border-[#FF930E] p-1 text-xs font-normal bg-gradient-to-b from-amber-500 to-amber-700 dark:from-[#FF930E] dark:to-[#995808]">
               12
             </span>
           </div>
 
-          <div className="h-8 w-px bg-gray-700"></div>
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Cancelled */}
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Cancelled
             </span>
-            <span className="h-6 min-w-[24px] flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#A0A0A0] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#3C3C3C] to-[#A0A0A0]">
+            <span className="h-6 min-w-[24px] flex items-center text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] border border-gray-400 dark:border-[#A0A0A0] p-1 text-xs font-normal bg-gradient-to-r from-gray-400 to-gray-600 dark:from-[#3C3C3C] dark:to-[#A0A0A0]">
               2
             </span>
           </div>
@@ -429,15 +430,15 @@ const AppointmentList = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between  items-center mb-4">
         <div className="flex gap-4">
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`w-[104px] h-[35px] rounded-[20px] border ${
+              className={`w-[104px] h-[35px] hover:bg-[#0EFF7B1A] rounded-[20px] border ${
                 activeMainTab === tab
-                  ? "border-green-500 text-green-400 bg-[#0D0D0D]"
-                  : "border-gray-700 text-gray-300 bg-[#0D0D0D]"
+                  ? "border-[#08994A] text-[#08994A] bg-white dark:border-green-500 dark:text-green-400 dark:bg-[#0D0D0D]"
+                  : "border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 bg-white dark:bg-[#0D0D0D]"
               }`}
               onClick={() => setActiveMainTab(tab)}
             >
@@ -448,34 +449,34 @@ const AppointmentList = () => {
 
         {/* Search and Filter */}
         <div className="flex gap-4">
-          <div className="flex items-center bg-[#0D0D0D] rounded-full px-3 py-1 border border-gray-700">
-            <Search size={18} className="text-gray-400" />
+          <div className="flex items-center bg-white dark:bg-[#0D0D0D] rounded-full px-3 py-1 border border-[#0EFF7B] dark:border-gray-700">
+            <Search size={18} className="text-[#08994A] dark:text-gray-400" />
             <input
               type="text"
               placeholder="Search patient name or ID"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent px-2 text-sm outline-none text-white w-48"
+              className="bg-transparent px-2 text-sm outline-none text-black dark:text-white w-48"
             />
           </div>
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="flex items-center gap-2 bg-[#0D0D0D] text-white px-4 py-2 rounded-full border border-gray-700"
+            className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] text-black dark:text-white px-4 py-2 rounded-full border border-[#0EFF7B] dark:border-gray-700 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
           >
-            <Filter size={18} /> Filter
+            <Filter size={18} className="text-[#08994A] dark:text-white" /> Filter
           </button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="w-full overflow-x-auto h-[57px] rounded-[40px] border border-[#0EFF7B1A] bg-[#0D0D0D] flex items-center justify-between px-10 mb-4">
+      <div className="w-full overflow-x-auto h-[57px] rounded-[40px] border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0D0D0D] flex items-center justify-between px-10 mb-4">
         {filters.map((f) => (
           <button
             key={f}
             className={`px-6 py-2 rounded-full ${
               activeFilter === f
-                ? "bg-green-900 text-green-400"
-                : "bg-[#0D0D0D] text-white"
+                ? "bg-[#08994A] dark:bg-green-900 text-white dark:text-green-400"
+                : "bg-white dark:bg-[#0D0D0D] text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
             onClick={() => setActiveFilter(f)}
           >
@@ -487,21 +488,12 @@ const AppointmentList = () => {
       {/* === TABLE === */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="text-green-400 border-b border-gray-700">
+          <thead className="text-[#08994A] dark:text-green-400 border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input
                   type="checkbox"
-                  className="
-    w-5 h-5
-    rounded-md
-    border border-gray-600
-    accent-green-500
-    bg-transparent
-    focus:outline-none
-    cursor-pointer
-    transition-colors
-  "
+                  className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
                   checked={
                     currentAppointments.length > 0 &&
                     selectedAppointments.length === currentAppointments.length
@@ -522,33 +514,24 @@ const AppointmentList = () => {
           <tbody>
             {currentAppointments.length > 0 ? (
               currentAppointments.map((appt, idx) => (
-                <tr key={idx} className="border-b border-gray-800">
+                <tr key={idx} className="border-b border-gray-300 dark:border-gray-800">
                   <td className="px-2">
                     <input
                       type="checkbox"
-                      className="
-    w-5 h-5
-    rounded-md
-    border border-gray-600
-    accent-green-500
-    bg-transparent
-    focus:outline-none
-    cursor-pointer
-    transition-colors
-  "
+                      className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
                       checked={selectedAppointments.includes(idx)}
                       onChange={() => handleCheckboxChange(idx)}
                     />
                   </td>
                   <td className="py-3">
-                    <div className="font-medium">{appt.patient}</div>
-                    <div className="text-xs text-gray-400">{appt.date}</div>
+                    <div className="font-medium text-black dark:text-white">{appt.patient}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{appt.date}</div>
                   </td>
-                  <td>{appt.patientId}</td>
-                  <td>{appt.department}</td>
-                  <td>{appt.doctor}</td>
-                  <td>{appt.room}</td>
-                  <td>{appt.type}</td>
+                  <td className="text-black dark:text-white">{appt.patientId}</td>
+                  <td className="text-black dark:text-white">{appt.department}</td>
+                  <td className="text-black dark:text-white">{appt.doctor}</td>
+                  <td className="text-black dark:text-white">{appt.room}</td>
+                  <td className="text-black dark:text-white">{appt.type}</td>
                   <td>
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
@@ -566,7 +549,7 @@ const AppointmentList = () => {
                           setSelectedAppointment(appt);
                           setShowEditPopup(true);
                         }}
-                        className="text-blue-400 cursor-pointer"
+                        className="text-[#08994A] dark:text-blue-400 cursor-pointer"
                       />
                       <Trash2
                         size={16}
@@ -574,7 +557,7 @@ const AppointmentList = () => {
                           setSelectedAppointment(appt);
                           setShowDeletePopup(true);
                         }}
-                        className="text-gray-400 cursor-pointer"
+                        className="text-[#08994A] dark:text-gray-400 cursor-pointer"
                       />
                     </div>
                   </td>
@@ -584,7 +567,7 @@ const AppointmentList = () => {
               <tr>
                 <td
                   colSpan="9"
-                  className="text-center py-6 text-gray-400 italic"
+                  className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                 >
                   No appointments found
                 </td>
@@ -595,8 +578,8 @@ const AppointmentList = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-black p-4 rounded gap-x-4">
-        <div className="text-sm text-white">
+      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+        <div className="text-sm text-black dark:text-white">
           Page {currentPage} of {totalPages} (
           {(currentPage - 1) * itemsPerPage + 1} to{" "}
           {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
@@ -607,26 +590,26 @@ const AppointmentList = () => {
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
             disabled={currentPage === 1}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border gap-[12px] ${
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
               currentPage === 1
-                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronLeft size={12} />
+            <ChevronLeft size={12} className="text-[#08994A] dark:text-black" />
           </button>
           <button
             onClick={() =>
               setCurrentPage(Math.min(totalPages, currentPage + 1))
             }
             disabled={currentPage === totalPages}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
               currentPage === totalPages
-                ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white  opacity-50"
-                : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronRight size={12} />
+            <ChevronRight size={12} className="text-[#08994A] dark:text-black" />
           </button>
         </div>
       </div>
@@ -634,39 +617,39 @@ const AppointmentList = () => {
       {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-lg backdrop-blur-md relative">
+          <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative">
             <div className="flex justify-between items-center pb-3 mb-4">
-              <h3 className="text-white font-medium text-[16px]">
+              <h3 className="text-black dark:text-white font-medium text-[16px]">
                 Filter Appointment
               </h3>
               <button
                 onClick={() => setShowFilterPopup(false)}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
-                <X size={16} className="text-white" />
+                <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
             </div>
 
             {/* Filter Form */}
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="text-sm text-white">Patient Name</label>
+                <label className="text-sm text-black dark:text-white">Patient Name</label>
                 <input
                   name="patientName"
                   value={filtersData.patientName}
                   onChange={handleFilterChange}
                   placeholder="enter patient name"
-                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-sm text-white">Patient ID</label>
+                <label className="text-sm text-black dark:text-white">Patient ID</label>
                 <input
                   name="patientId"
                   value={filtersData.patientId}
                   onChange={handleFilterChange}
                   placeholder="enter patient ID"
-                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
                 />
               </div>
 
@@ -697,15 +680,15 @@ const AppointmentList = () => {
 
               {/* Date with Calendar Icon */}
               <div className="relative">
-                <label className="text-sm text-white">Date</label>
+                <label className="text-sm text-black dark:text-white">Date</label>
                 <input
                   type="date"
                   name="date"
                   value={filtersData.date}
                   onChange={handleFilterChange}
-                  className="w-[228px] h-[33px] mt-1 pl-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] outline-none"
+                  className="w-[228px] h-[33px] mt-1 pl-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none"
                 />
-                <Calendar className="absolute right-3 bottom-2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
+                <Calendar className="absolute right-3 bottom-2 text-[#08994A] dark:text-[#0EFF7B] w-4 h-4 pointer-events-none" />
               </div>
             </div>
 
@@ -713,16 +696,13 @@ const AppointmentList = () => {
             <div className="flex justify-center gap-6 mt-8">
               <button
                 onClick={handleClearFilters}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#3A3A3A] px-3 py-2 
-            text-white font-medium text-[14px] leading-[16px] shadow opacity-100"
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 Clear
               </button>
               <button
                 onClick={() => setShowFilterPopup(false)}
-                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] px-3 py-2 
-            bg-gradient-to-r from-[#14DC6F] to-[#09753A] shadow 
-            text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0EFF7B66] bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
               >
                 Filter
               </button>
