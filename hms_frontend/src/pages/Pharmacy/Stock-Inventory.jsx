@@ -37,56 +37,9 @@ const StockInventory = () => {
     vendor: "",
     vendorCode: "",
     stock: "",
-    status: "Slect Status",
+    status: "IN STOCK",
   });
-  const onClose = () => {
-    setShowAddStockPopup(false);
-  };
-  const categories = ["Electronics", "Furniture", "Groceries", "Clothing"];
-
-  // ✅ Reusable Dropdown
-  const Dropdown = ({ label, value, onChange, options }) => (
-    <div>
-      <label className="text-sm text-white">{label}</label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] text-left text-[14px] leading-[16px]">
-            {value || "Select Categories"}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
-
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-black shadow-lg z-50 border border-[#3A3A3A] left-[2px]">
-            {options.map((option, idx) => (
-              <Listbox.Option
-                key={idx}
-                value={option}
-                className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"
-                  } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                }
-              >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
-
-  const handleSort = (column) => {
-    if (sortColumn === column) {
-      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column);
-      setSortOrder("asc");
-    }
-  };
-
-  const inventoryData = [
+  const [inventoryData, setInventoryData] = useState([
     {
       id: 1,
       name: "Septodont",
@@ -157,19 +110,23 @@ const StockInventory = () => {
       stock: 0,
       status: "OUT OF STOCK",
     },
-  ];
+  ]);
 
+  const categories = ["Local Anesthesia", "Antiseptics", "Antibiotics", "Anti-inflammatory", "Analgesics", "Steroid", "Antifungal"];
   const itemsPerPage = 9;
 
-  const filteredData = inventoryData.filter((item) =>
-    Object.values(item)
+  // Updated filter logic to include status and category
+  const filteredData = inventoryData.filter((item) => {
+    const matchesSearch = Object.values(item)
       .join(" ")
       .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+      .includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "All" || item.status === filterStatus;
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
   const displayedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -179,11 +136,8 @@ const StockInventory = () => {
     if (!sortColumn) return 0;
     const valA = a[sortColumn];
     const valB = b[sortColumn];
-
     if (typeof valA === "string") {
-      return sortOrder === "asc"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
+      return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
     } else {
       return sortOrder === "asc" ? valA - valB : valB - valA;
     }
@@ -207,13 +161,15 @@ const StockInventory = () => {
   const handleSelectAll = () => {
     if (selectedRows.length === displayedData.length) {
       setSelectedRows([]);
+      setSelectAll(false);
     } else {
       setSelectedRows(displayedData.map((row) => row.id));
+      setSelectAll(true);
     }
   };
 
   const handleDeleteSelected = () => {
-    console.log("Deleting selected rows:", selectedRows);
+    setInventoryData(inventoryData.filter((item) => !selectedRows.includes(item.id)));
     setSelectedRows([]);
     setSelectAll(false);
   };
@@ -223,7 +179,7 @@ const StockInventory = () => {
     const id = inventoryData.length + 1;
     setInventoryData([
       ...inventoryData,
-      { id, ...newStock, stock: parseInt(newStock.stock) },
+      { id, ...newStock, stock: parseInt(newStock.stock) || 0 },
     ]);
     setShowAddStockPopup(false);
     setNewStock({
@@ -237,31 +193,59 @@ const StockInventory = () => {
     });
   };
 
-  const setInventoryData = (newData) => {
-    // This is a workaround since inventoryData is a const. In a real app, use useState or a state management solution.
-    // For this example, we'll assume inventoryData is mutable for simplicity.
-    inventoryData.length = 0;
-    inventoryData.push(...newData);
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortOrder("asc");
+    }
   };
 
+  const Dropdown = ({ label, value, onChange, options }) => (
+    <div>
+      <label className="text-sm text-black dark:text-white">{label}</label>
+      <Listbox value={value} onChange={onChange}>
+        <div className="relative mt-1 w-[228px]">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+            {value || "Select Option"}
+            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+            </span>
+          </Listbox.Button>
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+            {options.map((option, idx) => (
+              <Listbox.Option
+                key={idx}
+                value={option}
+                className={({ active, selected }) =>
+                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                    active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                  } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                }
+              >
+                {option}
+              </Listbox.Option>
+            ))}
+          </Listbox.Options>
+        </div>
+      </Listbox>
+    </div>
+  );
+
   return (
-    <div className="w-full min-h-screen mt-[60px] bg-black text-white p-3">
+    <div className="w-full min-h-screen mt-[60px] bg-white dark:bg-black text-black dark:text-white p-3">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 w-full ">
+      <div className="flex justify-between items-center mb-6 w-full">
         <div>
-          <h1 className="text-[20px] font-medium">Stock & Inventory</h1>
-          <p className="text-[14px] mt-2 text-gray-400">
-            Manage staff profiles, departments, roles, attendance, and payroll
-            in one place.
+          <h1 className="text-[20px] font-medium text-black dark:text-white">Stock & Inventory</h1>
+          <p className="text-[14px] mt-2 text-gray-600 dark:text-gray-400">
+            Manage staff profiles, departments, roles, attendance, and payroll in one place.
           </p>
         </div>
         <button
           onClick={() => setShowAddStockPopup(true)}
-          className="w-[200px] h-[40px] flex items-center justify-center gap-2 
-             rounded-full border border-[#0EFF7B66] 
-             bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
-             shadow-[0px_2px_12px_0px_#0EFF7B40] 
-             text-sm font-semibold text-white px-3 py-2"
+          className="w-[200px] h-[40px] flex items-center justify-center gap-2 rounded-full border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] shadow-[0px_2px_12px_0px_#0EFF7B40] text-sm font-semibold text-white px-3 py-2 hover:scale-105 transition"
         >
           + Add Stock
         </button>
@@ -276,85 +260,79 @@ const StockInventory = () => {
               setActiveFilter(f);
               setShowCalendar(false);
             }}
-            className={`hover:text-[#ffffff] ${
+            className={`hover:text-black dark:hover:text-white ${
               f === activeFilter
-                ? "text-[#ffffff] border-b-2 border-[#ffffff]"
-                : "text-gray-400"
+                ? "text-black dark:text-white border-b-2 border-[#08994A] dark:border-white"
+                : "text-gray-600 dark:text-gray-400"
             }`}
           >
             {f}
           </button>
         ))}
-
-        {/* Custom Tab */}
         <button
           onClick={() => {
             setActiveFilter("Custom");
             setShowCalendar(!showCalendar);
           }}
-          className={`flex items-center gap-1 hover:text-[#ffffff] ${
-            activeFilter === "Custom" ? "text-[#ffffff]" : "text-gray-400"
+          className={`flex items-center gap-1 hover:text-black dark:hover:text-white ${
+            activeFilter === "Custom" ? "text-black dark:text-white" : "text-gray-600 dark:text-gray-400"
           }`}
         >
           Custom
           <ChevronDown size={14} />
         </button>
-
-        {/* Dropdown Calendar */}
         {showCalendar && (
-          <div className="absolute top-10 left-[15%] bg-[#1E1E1E] p-3 rounded-lg shadow-lg border border-gray-700 z-50">
+          <div className="absolute top-10 left-[15%] bg-white dark:bg-[#1E1E1E] p-3 rounded-lg shadow-lg border border-[#0EFF7B] dark:border-gray-600 z-50">
             <input
               type="date"
               value={customDate}
               onChange={(e) => setCustomDate(e.target.value)}
-              className="bg-transparent text-white text-sm border border-gray-600 rounded-md p-1 focus:outline-none"
+              className="bg-white dark:bg-transparent text-black dark:text-white text-sm border border-[#0EFF7B] dark:border-gray-600 rounded-md p-1 focus:outline-none"
             />
           </div>
         )}
       </div>
 
       {/* Top Stats */}
-      <div className="bg-[#0D0D0D] px-6 py-6 opacity-100 w-full h-[102px] rounded-2xl mb-6">
+      <div className="bg-gray-100 dark:bg-[#0D0D0D] px-6 py-6 w-full h-[102px] rounded-2xl mb-6">
         <div className="grid grid-cols-4 gap-6 text-sm">
           {[
             {
               label: "Total Profit",
               value: "$1,30,734",
               icon: <DollarSign className="w-6 h-6 text-green-400" />,
-              ring: "ring-green-600/60 bg-green-900/10",
+              ring: "ring-green-600/60 bg-green-200/10 dark:bg-green-900/10",
             },
             {
               label: "Inventory Stock",
               value: "1,432",
               icon: <Package className="w-6 h-6 text-amber-500" />,
-              ring: "ring-amber-600/60 bg-amber-900/10",
+              ring: "ring-amber-600/60 bg-amber-200/10 dark:bg-amber-900/10",
             },
             {
               label: "Out of Stock",
               value: "1,432",
               icon: <AlertTriangle className="w-6 h-6 text-gray-400" />,
-              ring: "ring-gray-600/60 bg-gray-900/10",
+              ring: "ring-gray-600/60 bg-gray-200/10 dark:bg-gray-900/10",
             },
             {
               label: "Expired",
               value: "24",
               icon: <XCircle className="w-6 h-6 text-indigo-400" />,
-              ring: "ring-indigo-600/60 bg-indigo-900/10",
+              ring: "ring-indigo-600/60 bg-indigo-200/10 dark:bg-indigo-900/10",
             },
           ].map((stat, i) => (
             <div key={i} className="flex items-center gap-[27px]">
-              {/* Circle Icon Background */}
               <div
-                className={`flex items-center justify-center w-12 h-12 ml-6 rounded-full ring-2  ${stat.ring}`}
+                className={`flex items-center justify-center w-12 h-12 ml-6 rounded-full ring-2 ${stat.ring}`}
               >
                 {stat.icon}
               </div>
-              {/* Text Section */}
               <div>
-                <p className="font-Inter font-normal text-[12px] leading-[100%] tracking-normal text-white mb-3">
+                <p className="font-Inter font-normal text-[12px] leading-[100%] tracking-normal text-black dark:text-white mb-3">
                   {stat.label}
                 </p>
-                <p className="font-Inter font-bold text-[16px] leading-[100%] tracking-normal text-white">
+                <p className="font-Inter font-bold text-[16px] leading-[100%] tracking-normal text-black dark:text-white">
                   {stat.value}
                 </p>
               </div>
@@ -364,169 +342,153 @@ const StockInventory = () => {
       </div>
 
       {/* Department Stocks & Upcoming/Expiring */}
-      {/* Department Stocks & Upcoming/Expiring */}
-<div className="flex flex-wrap w-full gap-4 mb-6">
-  {/* DEPARTMENT STOCKS */}
-  <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-    <h3 className="text-[#0EFF7B] text-[14px] font-semibold mb-1">
-      DEPARTMENT STOCKS
-    </h3>
-    <hr className="border-[#333] mb-6" />
-    <div className="flex items-center justify-between">
-      {/* Department List */}
-      <div className="flex flex-col gap-5 mr-6">
-        <div className="flex items-center gap-3">
-          <span className="min-w-[14px] h-[14px] rounded-full bg-[#0EFF7B] inline-block"></span>
-          <span className="font-inter text-sm">Medical Dept</span>
-          <span className="text-[#A0A0A0] text-sm">60%</span>
+      <div className="flex flex-wrap w-full gap-4 mb-6">
+        {/* Department Stocks */}
+        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+          <h3 className="text-[#08994A] dark:text-[#0EFF7B] text-[14px] font-semibold mb-1">
+            DEPARTMENT STOCKS
+          </h3>
+          <hr className="border-gray-300 dark:border-[#333] mb-6" />
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-5 mr-6">
+              <div className="flex items-center gap-3">
+                <span className="min-w-[14px] h-[14px] rounded-full bg-[#0EFF7B] inline-block"></span>
+                <span className="font-inter text-sm text-black dark:text-white">Medical Dept</span>
+                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">60%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="min-w-[14px] h-[14px] rounded-full bg-[#0A7239] inline-block"></span>
+                <span className="font-inter text-sm text-black dark:text-white">Surgical Dept</span>
+                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">30%</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="min-w-[14px] h-[14px] rounded-full bg-[#D7FDE8] inline-block"></span>
+                <span className="font-inter text-sm text-black dark:text-white">
+                  Supportive &<br /> Diagnostic Dept
+                </span>
+                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">10%</span>
+              </div>
+            </div>
+            <svg viewBox="0 0 36 36" width="100" height="100">
+              <circle cx="18" cy="18" r="16" fill="none" stroke="gray-200 dark:stroke-[#242424]" strokeWidth="4" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#18FF96" strokeWidth="4" strokeDasharray="60 100" strokeDashoffset="0" strokeLinecap="round" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#1AB873" strokeWidth="4" strokeDasharray="30 100" strokeDashoffset="60" strokeLinecap="round" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#C9FFE1" strokeWidth="4" strokeDasharray="10 100" strokeDashoffset="90" strokeLinecap="round" />
+            </svg>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="min-w-[14px] h-[14px] rounded-full bg-[#0A7239] inline-block"></span>
-          <span className="font-inter text-sm">Surgical Dept</span>
-          <span className="text-[#A0A0A0] text-sm">30%</span>
+
+        {/* Upcoming Stocks */}
+        <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+          <h3 className="flex justify-between text-[15px] font-semibold mb-1">
+            <span className="text-[#6E92FF] dark:text-[#6E92FF] text-[14px] uppercase flex items-center gap-1">
+              <span>○</span> UPCOMING STOCKS
+            </span>
+            <span className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer">View all (80)</span>
+          </h3>
+          <hr className="border-gray-300 dark:border-[#222] mb-6" />
+          <ul className="space-y-3 text-sm">
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Ibuprofen</span>
+              <div className="flex gap-x-2">
+                <span className="text-[#08994A] dark:text-[#0EFF7B]">+145</span>
+                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+              </div>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Amoxicillin</span>
+              <div className="flex gap-x-2">
+                <span className="text-[#08994A] dark:text-[#0EFF7B]">+120</span>
+                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+              </div>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Disinfectant skin antiseptic</span>
+              <div className="flex gap-x-2">
+                <span className="text-[#08994A] dark:text-[#0EFF7B]">+200</span>
+                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+              </div>
+            </li>
+          </ul>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="min-w-[14px] h-[14px] rounded-full bg-[#D7FDE8] inline-block"></span>
-          <span className="font-inter text-sm">
-            Supportive &<br /> Diagnostic Dept
-          </span>
-          <span className="text-[#A0A0A0] text-sm">10%</span>
+
+        {/* Expiring Stocks */}
+        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+          <h3 className="flex justify-between text-[15px] font-semibold mb-1">
+            <span className="text-[#FF2424] dark:text-[#FF2424] text-[14px] uppercase flex items-center gap-1">
+              <span>○</span> EXPIRING STOCKS
+            </span>
+            <span className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer">View all (150)</span>
+          </h3>
+          <hr className="border-gray-300 dark:border-[#222] mb-4" />
+          <ul className="space-y-3 text-sm">
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Mask 4-layered</span>
+              <span className="text-gray-600 dark:text-gray-400 text-xs">30 available</span>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Disinfectant chlorhexidine bigluconate 0.05%</span>
+              <span className="text-gray-600 dark:text-gray-400 text-xs">100 available</span>
+            </li>
+            <li className="flex justify-between">
+              <span className="text-black dark:text-white">Disinfectant skin antiseptic</span>
+              <span className="text-gray-600 dark:text-gray-400 text-xs">150 available</span>
+            </li>
+          </ul>
         </div>
       </div>
-      {/* Donut Chart */}
-      <svg viewBox="0 0 36 36" width="100" height="100">
-        <circle cx="18" cy="18" r="16" fill="none" stroke="#242424" strokeWidth="4" />
-        <circle cx="18" cy="18" r="16" fill="none" stroke="#18FF96" strokeWidth="4"
-          strokeDasharray="60 100" strokeDashoffset="0" strokeLinecap="round" />
-        <circle cx="18" cy="18" r="16" fill="none" stroke="#1AB873" strokeWidth="4"
-          strokeDasharray="30 100" strokeDashoffset="60" strokeLinecap="round" />
-        <circle cx="18" cy="18" r="16" fill="none" stroke="#C9FFE1" strokeWidth="4"
-          strokeDasharray="10 100" strokeDashoffset="90" strokeLinecap="round" />
-      </svg>
-    </div>
-  </div>
-
-  {/* UPCOMING STOCKS */}
-  <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-    <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-      <span className="text-[#6E92FF] text-[14px] uppercase flex items-center gap-1">
-        <span>○</span> UPCOMING STOCKS
-      </span>
-      <span className="text-[#0EFF7B] text-[12px] cursor-pointer">View all (80)</span>
-    </h3>
-    <hr className="border-[#222] mb-6" />
-    <ul className="space-y-3 text-sm">
-      <li className="flex justify-between">
-        <span>Ibuprofen</span>
-        <div className="flex gap-x-2">
-          <span className="text-[#0EFF7B]">+145</span>
-          <span className="text-gray-400 text-xs">29 aug 25</span>
-        </div>
-      </li>
-      <li className="flex justify-between">
-        <span>Amoxicillin</span>
-        <div className="flex gap-x-2">
-          <span className="text-[#0EFF7B]">+120</span>
-          <span className="text-gray-400 text-xs">29 aug 25</span>
-        </div>
-      </li>
-      <li className="flex justify-between">
-        <span>Disinfectant skin antiseptic</span>
-        <div className="flex gap-x-2">
-          <span className="text-[#0EFF7B]">+200</span>
-          <span className="text-gray-400 text-xs">29 aug 25</span>
-        </div>
-      </li>
-    </ul>
-  </div>
-
-  {/* EXPIRING STOCKS */}
-  <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] p-3 bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-    <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-      <span className="text-[#FF2424] text-[14px] uppercase flex items-center gap-1">
-        <span>○</span> EXPIRING STOCKS
-      </span>
-      <span className="text-[#0EFF7B] text-[12px] cursor-pointer">View all (150)</span>
-    </h3>
-    <hr className="border-[#222] mb-4" />
-    <ul className="space-y-3 text-sm">
-      <li className="flex justify-between">
-        <span>Mask 4-layered</span>
-        <span className="text-gray-400 text-xs">30 available</span>
-      </li>
-      <li className="flex justify-between">
-        <span>Disinfectant chlorhexidine bigluconate 0.05%</span>
-        <span className="text-gray-400 text-xs">100 available</span>
-      </li>
-      <li className="flex justify-between">
-        <span>Disinfectant skin antiseptic</span>
-        <span className="text-gray-400 text-xs">150 available</span>
-      </li>
-    </ul>
-  </div>
-</div>
-
 
       {/* Inventory List */}
-      <h3 className="w-full h-[22px] font-inter font-medium text-[18px] leading-[22px] tracking-normal text-white mb-4">
+      <h3 className="w-full h-[22px] font-inter font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-4">
         Inventory list
       </h3>
 
       <div className="mb-4 w-full flex justify-between items-center relative">
-        {/* Search */}
-        <div className="flex items-center gap-2 bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[315px] max-w-md">
-          <Search size={16} className="text-[#0EFF7B]" />
+        <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[315px] max-w-md">
+          <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
           <input
             type="text"
             placeholder="Search by name, category, batch, vendor, or code"
-            className="bg-transparent outline-none text-sm w-full"
+            className="bg-transparent outline-none text-sm text-[#08994A] dark:text-white w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
-        {/* Action Buttons */}
-        <div className="text-sm text-gray-400 flex items-center gap-3 relative">
+        <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-3 relative">
           <span>
-            Page <span className="text-[#0EFF7B]">{currentPage}</span> of{" "}
-            {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, filteredData.length)} of{" "}
-            {filteredData.length})
+            Page <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span> of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length})
           </span>
-
           <button
             onClick={handlePrevPage}
-            className="bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white"
+            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${currentPage === 1 ? "opacity-50" : ""}`}
             disabled={currentPage === 1}
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={handleNextPage}
-            className="bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white"
+            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${currentPage === totalPages ? "opacity-50" : ""}`}
             disabled={currentPage === totalPages}
           >
             <ChevronRight size={16} />
           </button>
-
-          {/* Categories Dropdown */}
           <button
             onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            className="bg-[#0EFF7B] text-black rounded-full px-4 py-1 flex items-center text-sm font-medium"
+            className="bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black rounded-full px-4 py-1 flex items-center text-sm font-medium"
           >
-            {selectedCategory} <ChevronDown size={16} className="ml-2" />
+            {selectedCategory || "All"} <ChevronDown size={16} className="ml-2" />
           </button>
           {showCategoryDropdown && (
-            <div className="absolute top-full mt-2 right-0 w-[150px] bg-[#000000E5] p-2 rounded-[20px] border-[2px] border-[#1E1E1E] backdrop-blur-[4px] shadow-[0_0_4px_0_#FFFFFF1F] z-50">
-              <ul className="text-white text-sm">
-                {["Medicine", "Equipments", "Tools"].map((cat) => (
+            <div className="absolute top-full mt-2 right-0 w-[150px] bg-white dark:bg-[#000000E5] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-50">
+              <ul className="text-black dark:text-white text-sm">
+                {["All", ...categories].map((cat) => (
                   <li
                     key={cat}
                     onClick={() => {
                       setSelectedCategory(cat);
                       setShowCategoryDropdown(false);
                     }}
-                    className="px-4 py-2 hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
+                    className="px-4 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
                   >
                     {cat}
                   </li>
@@ -534,49 +496,43 @@ const StockInventory = () => {
               </ul>
             </div>
           )}
-
-          {/* Filter Button */}
           <button
             onClick={() => setShowFilterPopup(!showFilterPopup)}
-            className="bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center"
+            className="bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]"
           >
             <Filter size={16} />
           </button>
-
-          {/* Filter Popup */}
           {showFilterPopup && (
-            <div className="absolute top-full mt-2 right-0 w-[188px] h-[119px] gap-[12px] rounded-[20px] border-[2px] border-[#1E1E1E] p-[18px_12px] bg-[#000000E5] backdrop-blur-[4px] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
+            <div className="absolute top-full mt-2 right-0 w-[188px] h-[119px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
               <div className="flex flex-col justify-start items-start space-y-[8px]">
                 <button
                   onClick={() => setFilterStatus("IN STOCK")}
                   className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
                     filterStatus === "IN STOCK"
-                      ? "bg-[#1E1E1E] text-[#0EFF7B]"
-                      : "bg-[#000000] text-[#0EFF7B]"
+                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B]"
                   }`}
                 >
-                  <span className="w-[8px] h-[8px] rounded-full bg-[#0EFF7B] inline-block mr-2"></span>
+                  <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B] inline-block mr-2"></span>
                   IN STOCK
                 </button>
-
                 <button
                   onClick={() => setFilterStatus("LOW STOCK")}
                   className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
                     filterStatus === "LOW STOCK"
-                      ? "bg-[#1E1E1E] text-[#FF930E]"
-                      : "bg-[#000000] text-[#FF930E]"
+                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF930E] dark:text-[#FF930E]"
+                      : "bg-white dark:bg-[#000000] text-[#FF930E] dark:text-[#FF930E]"
                   }`}
                 >
                   <span className="w-[8px] h-[8px] rounded-full bg-[#FF930E] inline-block mr-2"></span>
                   LOW STOCK
                 </button>
-
                 <button
                   onClick={() => setFilterStatus("OUT OF STOCK")}
                   className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
                     filterStatus === "OUT OF STOCK"
-                      ? "bg-[#1E1E1E] text-[#FF2424]"
-                      : "bg-[#000000] text-[#FF2424]"
+                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF2424] dark:text-[#FF2424]"
+                      : "bg-white dark:bg-[#000000] text-[#FF2424] dark:text-[#FF2424]"
                   }`}
                 >
                   <span className="w-[8px] h-[8px] rounded-full bg-[#FF2424] inline-block mr-2"></span>
@@ -585,10 +541,9 @@ const StockInventory = () => {
               </div>
             </div>
           )}
-
           <button
             onClick={handleDeleteSelected}
-            className="bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500"
+            className="bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-500"
           >
             <Trash2 size={16} />
           </button>
@@ -597,27 +552,17 @@ const StockInventory = () => {
 
       {/* Table */}
       <div className="overflow-hidden">
-        <table className="w-full border-collapse border border-black rounded-[8px]">
-          <thead className="bg-[#1E1E1E] h-[52px] text-left text-sm text-white opacity-100">
-            <tr className="h-[52px] bg-[#1E1E1E] text-left text-sm text-white rounded-[8px] border border-black">
-              {/* Select All Checkbox */}
+        <table className="w-full border-collapse border border-[#0EFF7B] dark:border-black rounded-[8px]">
+          <thead className="bg-gray-100 dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+            <tr className="h-[52px] bg-gray-100 dark:bg-[#1E1E1E] text-left text-sm text-[#08994A] dark:text-white rounded-[8px] border border-[#0EFF7B] dark:border-black">
               <th className="px-3 py-3">
                 <input
                   type="checkbox"
-                  className="appearance-none w-5 h-5 border border-white rounded-sm
-          bg-black checked:bg-green-500 checked:border-green-500
-          flex items-center justify-center 
-          checked:before:content-['✔'] checked:before:text-black 
-          checked:before:text-sm"
-                  checked={
-                    displayedData.length > 0 &&
-                    selectedRows.length === displayedData.length
-                  }
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                  checked={displayedData.length > 0 && selectedRows.length === displayedData.length}
                   onChange={handleSelectAll}
                 />
               </th>
-
-              {/* Table Columns */}
               {[
                 { label: "Name", key: "name" },
                 { label: "Categories", key: "category" },
@@ -634,39 +579,21 @@ const StockInventory = () => {
                   <div className="flex items-center gap-1">
                     {col.label}
                     <div className="flex flex-col ml-1">
-                      {/* Up Arrow */}
                       <svg
-                        className={`w-3 h-3 ${
-                          sortColumn === col.key && sortOrder === "asc"
-                            ? "stroke-[#0EFF7B]"
-                            : "stroke-gray-500"
-                        }`}
+                        className={`w-3 h-3 ${sortColumn === col.key && sortOrder === "asc" ? "stroke-[#08994A] dark:stroke-[#0EFF7B]" : "stroke-gray-500"}`}
                         viewBox="0 0 20 20"
                         fill="none"
                         strokeWidth="2"
                       >
-                        <path
-                          d="M5 12 L10 7 L15 12"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                        <path d="M10 4 L16 10 L4 10 Z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      {/* Down Arrow */}
                       <svg
-                        className={`w-3 h-3 ${
-                          sortColumn === col.key && sortOrder === "desc"
-                            ? "stroke-[#0EFF7B]"
-                            : "stroke-gray-500"
-                        }`}
+                        className={`w-3 h-3 ${sortColumn === col.key && sortOrder === "desc" ? "stroke-[#08994A] dark:stroke-[#0EFF7B]" : "stroke-gray-500"}`}
                         viewBox="0 0 20 20"
                         fill="none"
                         strokeWidth="2"
                       >
-                        <path
-                          d="M5 8 L10 13 L15 8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
+                        <path d="M10 16 L16 10 L4 10 Z" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </div>
                   </div>
@@ -674,48 +601,50 @@ const StockInventory = () => {
               ))}
             </tr>
           </thead>
-
-          <tbody className="text-sm">
-            {sortedData.map((row, i) => (
-              <tr
-                key={row.id}
-                className="w-full h-[62px] bg-black px-[12px] py-[12px] opacity-100 border-b border-[#1E1E1E]"
-              >
-                <td className="px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className="appearance-none w-5 h-5 border border-white rounded-sm
-             bg-black checked:bg-green-500 checked:border-green-500
-             flex items-center justify-center 
-             checked:before:content-['✔'] checked:before:text-black 
-             checked:before:text-sm"
-                    checked={selectedRows.includes(row.id)}
-                    onChange={() => handleRowSelect(row.id)}
-                  />
-                </td>
-                <td className="px-3 py-3 text-white">{row.name}</td>
-                <td className="px-3 py-3 text-white">{row.category}</td>
-                <td className="px-3 py-3 text-white">{row.batch}</td>
-                <td className="px-3 py-3 text-white">
-                  {row.vendor}{" "}
-                  <span className="text-gray-500 ml-1">({row.vendorCode})</span>
-                </td>
-                <td className="px-3 py-3 text-white">{row.stock}</td>
-                <td className="px-3 py-3 font-medium">
-                  <span
-                    className={`${
-                      row.status === "IN STOCK"
-                        ? "text-green-500"
-                        : row.status === "LOW STOCK"
-                        ? "text-yellow-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    • {row.status}
-                  </span>
+          <tbody className="text-sm bg-white dark:bg-black">
+            {sortedData.length > 0 ? (
+              sortedData.map((row) => (
+                <tr
+                  key={row.id}
+                  className="w-full h-[62px] bg-white dark:bg-black px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E]"
+                >
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                      checked={selectedRows.includes(row.id)}
+                      onChange={() => handleRowSelect(row.id)}
+                    />
+                  </td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.name}</td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.category}</td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.batch}</td>
+                  <td className="px-3 py-3 text-black dark:text-white">
+                    {row.vendor} <span className="text-gray-500 ml-1">({row.vendorCode})</span>
+                  </td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.stock}</td>
+                  <td className="px-3 py-3 font-medium">
+                    <span
+                      className={`${
+                        row.status === "IN STOCK"
+                          ? "text-green-500"
+                          : row.status === "LOW STOCK"
+                          ? "text-yellow-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      • {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr className="h-[62px] bg-white dark:bg-black">
+                <td colSpan="7" className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                  No inventory found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -723,106 +652,80 @@ const StockInventory = () => {
       {/* Add Stock Popup */}
       {showAddStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] h-[463px] bg-[#000000E5] border-2 border-[#1E1E1E] rounded-[20px] p-5 gap-8 shadow-[0px_0px_2px_0px_#A0A0A040] backdrop-blur-md relative">
-            {/* Header */}
+          <div className="w-[504px] h-[463px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 gap-8 shadow-[0px_0px_2px_0px_#A0A0A040] relative">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-white font-medium text-[16px] leading-[19px]">
+              <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
                 Add New Stock
               </h2>
               <button
-                onClick={onClose}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center"
+                onClick={() => setShowAddStockPopup(false)}
+                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
               >
-                <X size={16} className="text-white" />
+                <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
             </div>
-
-            {/* Form */}
             <form onSubmit={handleAddStock} className="grid grid-cols-2 gap-6">
-              {/* Stock Name */}
               <div>
-                <label className="text-sm text-white">Product Name</label>
+                <label className="text-sm text-black dark:text-white">Product Name</label>
                 <input
                   type="text"
                   placeholder="Enter product name"
                   value={newStock.name}
-                  onChange={(e) =>
-                    setNewStock({ ...newStock, name: e.target.value })
-                  }
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Category Dropdown */}
               <Dropdown
                 label="Category"
                 value={newStock.category}
                 onChange={(val) => setNewStock({ ...newStock, category: val })}
                 options={categories}
               />
-
-              {/* Batch Number */}
               <div>
-                <label className="text-sm text-white">Batch Number</label>
+                <label className="text-sm text-black dark:text-white">Batch Number</label>
                 <input
                   type="text"
                   placeholder="Enter Batch Number"
                   value={newStock.batch}
-                  onChange={(e) =>
-                    setNewStock({ ...newStock, batch: e.target.value })
-                  }
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  onChange={(e) => setNewStock({ ...newStock, batch: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Vendor */}
               <div>
-                <label className="text-sm text-white">Vendor</label>
+                <label className="text-sm text-black dark:text-white">Vendor</label>
                 <input
                   type="text"
                   placeholder="Enter Vendor"
                   value={newStock.vendor}
-                  onChange={(e) =>
-                    setNewStock({ ...newStock, vendor: e.target.value })
-                  }
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Stock Quantity */}
               <div>
-                <label className="text-sm text-white">No Of Stocks</label>
+                <label className="text-sm text-black dark:text-white">No Of Stocks</label>
                 <input
                   type="number"
                   placeholder="Stock Quantity"
                   value={newStock.stock}
-                  onChange={(e) =>
-                    setNewStock({ ...newStock, stock: e.target.value })
-                  }
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  onChange={(e) => setNewStock({ ...newStock, stock: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Vendor Code */}
               <div>
-                <label className="text-sm text-white">Vendor ID</label>
+                <label className="text-sm text-black dark:text-white">Vendor ID</label>
                 <input
                   type="text"
                   placeholder="Enter Vendor ID"
                   value={newStock.vendorCode}
-                  onChange={(e) =>
-                    setNewStock({ ...newStock, vendorCode: e.target.value })
-                  }
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  onChange={(e) => setNewStock({ ...newStock, vendorCode: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
                   required
                 />
               </div>
-
-              {/* Status Dropdown */}
               <Dropdown
                 label="Status"
                 value={newStock.status}
@@ -830,19 +733,17 @@ const StockInventory = () => {
                 options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
               />
             </form>
-
-            {/* Buttons */}
             <div className="flex justify-center gap-4 mt-6">
               <button
-                onClick={onClose}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#3A3A3A] text-white font-medium text-[14px] leading-[16px]"
+                onClick={() => setShowAddStockPopup(false)}
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 onClick={handleAddStock}
-                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
               >
                 Add Stock
               </button>

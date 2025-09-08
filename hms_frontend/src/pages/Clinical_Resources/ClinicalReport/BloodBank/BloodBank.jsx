@@ -14,6 +14,8 @@ const BloodBank = () => {
   const [deleteBlood, setDeleteBlood] = useState(null);
   const [showEditDonorPopup, setShowEditDonorPopup] = useState(false);
   const [editDonor, setEditDonor] = useState(null);
+  const [showDeleteDonorPopup, setShowDeleteDonorPopup] = useState(false);
+  const [deleteDonor, setDeleteDonor] = useState(null);
   const [showBloodFilterPopup, setShowBloodFilterPopup] = useState(false);
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
   const [tempBloodFilters, setTempBloodFilters] = useState({ status: "All" });
@@ -25,7 +27,7 @@ const BloodBank = () => {
   const [bloodSearch, setBloodSearch] = useState("");
   const [showBloodSearch, setShowBloodSearch] = useState(false);
   const [selectedDonors, setSelectedDonors] = useState([]);
-  const [showDeleteDonorPopup, setShowDeleteDonorPopup] = useState(false);
+  const [selectedBloodTypes, setSelectedBloodTypes] = useState([]);
 
   // ---------- Blood Types Data ----------
   const [allBloodTypes, setAllBloodTypes] = useState([
@@ -143,7 +145,15 @@ const BloodBank = () => {
   const totalBloodPages = Math.ceil(filteredBloodTypes.length / rowsPerPage);
   const totalDonorPages = Math.ceil(filteredDonors.length / rowsPerPage);
 
-  // ---------- Handle Checkbox Selection for Donors ----------
+  // ---------- Handle Checkbox Selection ----------
+  const handleBloodTypeCheckboxChange = (bloodType) => {
+    setSelectedBloodTypes((prev) =>
+      prev.includes(bloodType)
+        ? prev.filter((b) => b !== bloodType)
+        : [...prev, bloodType]
+    );
+  };
+
   const handleDonorCheckboxChange = (donor) => {
     setSelectedDonors((prev) =>
       prev.includes(donor)
@@ -152,7 +162,19 @@ const BloodBank = () => {
     );
   };
 
-  // ---------- Handle Delete Selected Donors ----------
+  const handleSelectAllBloodTypes = () => {
+    setSelectedBloodTypes(
+      selectedBloodTypes.length === bloodTypes.length ? [] : bloodTypes
+    );
+  };
+
+  const handleSelectAllDonors = () => {
+    setSelectedDonors(
+      selectedDonors.length === donors.length ? [] : donors
+    );
+  };
+
+  // ---------- Handle Delete Actions ----------
   const handleDeleteSelectedDonors = () => {
     if (selectedDonors.length > 0) {
       setShowDeleteDonorPopup(true);
@@ -167,60 +189,71 @@ const BloodBank = () => {
     setShowDeleteDonorPopup(false);
   };
 
+  const handleDeleteSingleDonor = (donor) => {
+    setDeleteDonor(donor);
+    setShowDeleteDonorPopup(true);
+  };
+
   return (
-    <div className="w-full max-w-[1400px] mx-auto">
+    <div className="w-full max-w-[1400px] mx-auto bg-white dark:bg-black text-black dark:text-white p-6">
       {/* Header */}
-      <div className="mt-[60px] mb-4 bg-black text-white rounded-xl p-6 w-full flex flex-col">
+      <div className="mt-[60px] mb-4 bg-white dark:bg-black rounded-xl p-6 w-full flex flex-col">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Blood Bank</h2>
+          <h2 className="text-xl font-semibold text-black dark:text-white">Blood Bank</h2>
           <button
             onClick={() => setShowAddPopup(true)}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full text-white font-semibold"
+            className="flex items-center gap-2 bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] hover:bg-[#0cd968] px-4 py-2 rounded-full text-white dark:text-black font-semibold"
           >
-            <Plus size={18} className="text-black"/> Add blood group
+            <Plus size={18} className="text-black dark:text-black" />
+            Add blood group
           </button>
         </div>
-        <p className="text-gray-400">Available Blood Types and Donor Registry</p>
+        <p className="text-gray-600 dark:text-gray-400">Available Blood Types and Donor Registry</p>
       </div>
 
       {/* Blood Types Table */}
-      <div className="bg-[#0D0D0D] text-white rounded-xl p-6 shadow-md">
+      <div className="bg-white dark:bg-[#0D0D0D] text-black dark:text-white rounded-xl p-6 shadow-md">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Blood Type</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Blood Type</h3>
           <div className="flex gap-2 items-center">
             {showBloodSearch && (
-              <input
-                type="text"
-                placeholder="Search blood types..."
-                value={bloodSearch}
-                onChange={(e) => setBloodSearch(e.target.value)}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full border border-[#3C3C3C] focus:outline-none focus:border-[#0EFF7B]"
-              />
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                <input
+                  type="text"
+                  placeholder="Search blood types..."
+                  value={bloodSearch}
+                  onChange={(e) => setBloodSearch(e.target.value)}
+                  className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm focus:outline-none"
+                />
+              </div>
             )}
-            <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]"
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
               onClick={() => setShowBloodSearch(!showBloodSearch)}
             >
-              <Search size={18} className="cursor-pointer text-white" />
-            </div>
-            <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]"
+              <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
               onClick={() => {
                 setTempBloodFilters(bloodFilters);
                 setShowBloodFilterPopup(true);
               }}
             >
-              <Filter size={18} className="cursor-pointer text-white" />
-            </div>
+              <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            </button>
           </div>
         </div>
         <table className="w-full border-collapse">
           <thead className="min-h-[52px]">
-            <tr className="text-left bg-[#1E1E1E] text-[#FFFFFF] text-[16px] border-b border-[#3C3C3C]">
+            <tr className="text-left bg-gray-200 dark:bg-[#1E1E1E] text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-[#3C3C3C]">
               <th className="p-3">
                 <input
                   type="checkbox"
-                  className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                  checked={selectedBloodTypes.length === bloodTypes.length && bloodTypes.length > 0}
+                  onChange={handleSelectAllBloodTypes}
+                  className="accent-[#08994A] dark:accent-[#0EFF7B]"
                 />
               </th>
               <th className="p-3">Blood Types</th>
@@ -233,56 +266,63 @@ const BloodBank = () => {
             {bloodTypes.map((b, i) => (
               <tr
                 key={i}
-                className="border-b h-[62px] border-[#3C3C3C] hover:bg-[#000000CC] transition"
+                className="border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] transition"
               >
                 <td className="p-3">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                    checked={selectedBloodTypes.includes(b)}
+                    onChange={() => handleBloodTypeCheckboxChange(b)}
+                    className="accent-[#08994A] dark:accent-[#0EFF7B]"
                   />
                 </td>
-                <td className="p-3">{b.type}</td>
-                <td className="p-3">{b.units}</td>
+                <td className="p-3 text-black dark:text-white">{b.type}</td>
+                <td className="p-3 text-black dark:text-white">{b.units}</td>
                 <td className="p-3">
                   <span
                     className={`py-1 rounded-full text-xs font-semibold ${
                       b.status === "Available"
-                        ? "text-green-400"
+                        ? "text-green-500 dark:text-green-400"
                         : b.status === "Low Stock"
-                        ? "text-yellow-400"
-                        : "text-red-400"
+                        ? "text-yellow-500 dark:text-yellow-400"
+                        : "text-red-500 dark:text-red-400"
                     }`}
                   >
                     {b.status}
                   </span>
                 </td>
                 <td className="p-3 flex justify-end gap-2">
-                  <div
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                     onClick={() => {
                       setEditBlood(b);
                       setShowEditBloodPopup(true);
                     }}
                   >
-                    <Edit size={18} className="text-white" />
-                  </div>
-                  <div
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+                    <Edit size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                  </button>
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                     onClick={() => {
                       setDeleteBlood(b);
                       setShowDeleteBloodPopup(true);
                     }}
                   >
-                    <Trash2 size={18} className="text-white" />
-                  </div>
+                    <Trash2 size={18} className="text-red-600 dark:text-red-700" />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="flex items-center mt-4 bg-[#0D0D0D] rounded gap-x-4">
-          <div className="text-sm text-white">
-            Page <span className="text-[#0EFF7B] font-semibold">{bloodPage}</span> of {totalBloodPages} (
+        {filteredBloodTypes.length === 0 && (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+            No blood types found matching your criteria.
+          </div>
+        )}
+        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4">
+          <div className="text-sm text-gray-600 dark:text-white">
+            Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{bloodPage}</span> of {totalBloodPages} (
             {(bloodPage - 1) * rowsPerPage + 1} to{" "}
             {Math.min(bloodPage * rowsPerPage, filteredBloodTypes.length)}{" "}
             from {filteredBloodTypes.length} Blood Groups)
@@ -293,8 +333,8 @@ const BloodBank = () => {
               disabled={bloodPage === 1}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 bloodPage === 1
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
               }`}
             >
               <ChevronLeft size={12} />
@@ -304,8 +344,8 @@ const BloodBank = () => {
               disabled={bloodPage === totalBloodPages}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 bloodPage === totalBloodPages
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
               }`}
             >
               <ChevronRight size={12} />
@@ -315,55 +355,55 @@ const BloodBank = () => {
       </div>
 
       {/* Donor List Table */}
-      <div className="bg-[#0D0D0D] text-white rounded-xl p-6 mt-7 shadow-md">
+      <div className="bg-white dark:bg-[#0D0D0D] text-black dark:text-white rounded-xl p-6 mt-7 shadow-md">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">Donor List</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Donor List</h3>
           <div className="flex gap-2 items-center">
             {showDonorSearch && (
-              <input
-                type="text"
-                placeholder="Search donors..."
-                value={donorSearch}
-                onChange={(e) => setDonorSearch(e.target.value)}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full border border-[#3C3C3C] focus:outline-none focus:border-[#0EFF7B]"
-              />
+              <div className="relative w-72">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                <input
+                  type="text"
+                  placeholder="Search donors..."
+                  value={donorSearch}
+                  onChange={(e) => setDonorSearch(e.target.value)}
+                  className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm focus:outline-none"
+                />
+              </div>
             )}
-            <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]"
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
               onClick={() => setShowDonorSearch(!showDonorSearch)}
             >
-              <Search size={18} className="cursor-pointer text-white" />
-            </div>
-            <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]"
+              <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
               onClick={() => {
                 setTempDonorFilters(donorFilters);
                 setShowDonorFilterPopup(true);
               }}
             >
-              <Filter size={18} className="cursor-pointer text-white" />
-            </div>
-            <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+              <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
               onClick={handleDeleteSelectedDonors}
+              disabled={selectedDonors.length === 0}
             >
-              <Trash2 size={18} className="text-white" />
-            </div>
+              <Trash2 size={18} className="text-red-600 dark:text-red-700" />
+            </button>
           </div>
         </div>
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-left h-[52px] bg-[#1E1E1E] text-[#FFFFFF] text-[16px] border-b border-[#3C3C3C]">
+            <tr className="text-left h-[52px] bg-gray-200 dark:bg-[#1E1E1E] text-gray-600 dark:text-gray-400 border-b border-gray-300 dark:border-[#3C3C3C]">
               <th className="p-3">
                 <input
                   type="checkbox"
                   checked={selectedDonors.length === donors.length && donors.length > 0}
-                  onChange={() =>
-                    setSelectedDonors(
-                      selectedDonors.length === donors.length ? [] : donors
-                    )
-                  }
-                  className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                  onChange={handleSelectAllDonors}
+                  className="accent-[#08994A] dark:accent-[#0EFF7B]"
                 />
               </th>
               <th className="p-3">Donor</th>
@@ -379,51 +419,64 @@ const BloodBank = () => {
             {donors.map((d, i) => (
               <tr
                 key={i}
-                className="border-b h-[62px] border-[#3C3C3C] hover:bg-[#000000CC] transition"
+                className="border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] transition"
               >
                 <td className="p-3">
                   <input
                     type="checkbox"
                     checked={selectedDonors.includes(d)}
                     onChange={() => handleDonorCheckboxChange(d)}
-                    className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                    className="accent-[#08994A] dark:accent-[#0EFF7B]"
                   />
                 </td>
-                <td className="p-3">{d.name}</td>
-                <td className="p-3">{d.gender}</td>
-                <td className="p-3">{d.blood}</td>
-                <td className="p-3">{d.phone}</td>
-                <td className="p-3">{d.lastDonation}</td>
+                <td className="p-3 text-black dark:text-white">{d.name}</td>
+                <td className="p-3 text-black dark:text-white">{d.gender}</td>
+                <td className="p-3 text-black dark:text-white">{d.blood}</td>
+                <td className="p-3 text-black dark:text-white">{d.phone}</td>
+                <td className="p-3 text-black dark:text-white">{d.lastDonation}</td>
                 <td className="p-3">
                   <span
                     className={`py-1 rounded-full text-xs font-semibold ${
-                      d.status === "Eligible" ? "text-green-400" : "text-red-400"
+                      d.status === "Eligible" ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"
                     }`}
                   >
                     {d.status}
                   </span>
                 </td>
                 <td className="p-3 flex justify-end gap-2">
-                  <div
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                     onClick={() => {
                       setEditDonor(d);
                       setShowEditDonorPopup(true);
                     }}
                   >
-                    <Edit size={18} className="text-white" />
-                  </div>
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]">
-                    <Mail size={18} className="cursor-pointer text-white" />
-                  </div>
+                    <Edit size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                  </button>
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+                    onClick={() => handleDeleteSingleDonor(d)}
+                  >
+                    <Trash2 size={18} className="text-red-600 dark:text-red-700" />
+                  </button>
+                  <button
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+                  >
+                    <Mail size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="flex items-center mt-4 bg-[#0D0D0D] rounded gap-x-4">
-          <div className="text-sm text-white">
-            Page <span className="text-[#0EFF7B] font-semibold">{donorPage}</span> of {totalDonorPages} (
+        {filteredDonors.length === 0 && (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+            No donors found matching your criteria.
+          </div>
+        )}
+        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4">
+          <div className="text-sm text-gray-600 dark:text-white">
+            Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{donorPage}</span> of {totalDonorPages} (
             {(donorPage - 1) * rowsPerPage + 1} to{" "}
             {Math.min(donorPage * rowsPerPage, filteredDonors.length)}{" "}
             from {filteredDonors.length} Donors)
@@ -434,8 +487,8 @@ const BloodBank = () => {
               disabled={donorPage === 1}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 donorPage === 1
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
               }`}
             >
               <ChevronLeft size={12} />
@@ -445,8 +498,8 @@ const BloodBank = () => {
               disabled={donorPage === totalDonorPages}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 donorPage === totalDonorPages
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
               }`}
             >
               <ChevronRight size={12} />
@@ -473,29 +526,43 @@ const BloodBank = () => {
       )}
       {showDeleteDonorPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-[#000000] border-2 border-[#0D0D0D] rounded-xl p-6 w-[400px]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-[#0EFF7B]">Delete Donors</h3>
+          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[400px]">
+            <div className="flex justify-between items-center mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] pb-3">
+              <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+                {deleteDonor ? "Delete Donor" : "Delete Donors"}
+              </h3>
               <button
                 onClick={() => setShowDeleteDonorPopup(false)}
-                className="text-[#0EFF7B] hover:text-white p-1 rounded-full hover:bg-[#0EFF7B33]"
+                className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-white mb-6">
-              Are you sure you want to delete {selectedDonors.length} donor(s)?
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              {deleteDonor
+                ? `Are you sure you want to delete donor ${deleteDonor.name}?`
+                : `Are you sure you want to delete ${selectedDonors.length} donor(s)?`}
+              <br />
+              This action cannot be undone.
             </p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowDeleteDonorPopup(false)}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full font-semibold"
+                className="px-4 py-2 text-sm rounded-lg border border-[#0EFF7B] dark:border-[#0D0D0D] text-[#08994A] dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmDeleteDonors}
-                className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold"
+                onClick={() => {
+                  if (deleteDonor) {
+                    setAllDonors((prev) => prev.filter((d) => d !== deleteDonor));
+                    setDeleteDonor(null);
+                  } else {
+                    confirmDeleteDonors();
+                  }
+                  setShowDeleteDonorPopup(false);
+                }}
+                className="px-4 py-2 text-sm rounded-lg bg-gradient-to-r from-[#FF4D4D] to-[#B30000] text-white font-medium hover:bg-[#FF4D4D]"
               >
                 Delete
               </button>
@@ -504,57 +571,50 @@ const BloodBank = () => {
         </div>
       )}
       {showBloodFilterPopup && (
-              <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-                <div className="bg-[#000000] border-2 border-[#0D0D0D] rounded-xl p-6 w-[400px]">
-                  <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] pb-3">
-                    <h3 className="text-lg font-semibold text-[#0EFF7B]">Filter Blood Types</h3>
-                    <button
-                      onClick={() => setShowBloodFilterPopup(false)}
-                      className="text-[#0EFF7B] hover:text-white p-1 rounded-full hover:bg-[#0EFF7B33]"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-      
-                  {/* Status Filter */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2 text-white">
-                      Status
-                    </label>
-                    <div className="relative">
-                      <Listbox
-                        value={tempBloodFilters.status}
-                        onChange={(value) =>
-                          setTempBloodFilters({ ...tempBloodFilters, status: value })
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[400px]">
+            <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] pb-3">
+              <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">Filter Blood Types</h3>
+              <button
+                onClick={() => setShowBloodFilterPopup(false)}
+                className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2 text-black dark:text-white">Status</label>
+              <div className="relative">
+                <Listbox
+                  value={tempBloodFilters.status}
+                  onChange={(value) => setTempBloodFilters({ ...tempBloodFilters, status: value })}
+                >
+                  <Listbox.Button
+                    className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
+                  >
+                    {tempBloodFilters.status}
+                    <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
+                  >
+                    {statusOptions.map((status) => (
+                      <Listbox.Option
+                        key={status}
+                        value={status}
+                        className={({ active }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                          }`
                         }
                       >
-                        <Listbox.Button
-                          className="w-full bg-black border-2 border-[#0D0D0D] rounded-lg p-3 text-sm text-white 
-                          focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] text-left "
-                        >
-                          {tempBloodFilters.status}
-                          <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#0EFF7B]" />
-                        </Listbox.Button>
-                        <Listbox.Options
-                          className="absolute mt-1 w-full rounded-[12px] bg-black shadow-lg z-[50] border border-[#3A3A3A] max-h-60 overflow-y-auto left-0"
-                        >
-                          {statusOptions.map((status) => (
-                            <Listbox.Option
-                              key={status}
-                              value={status}
-                              className={({ active }) =>
-                                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                                  active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"
-                                }`
-                              }
-                            >
-                              {status}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </Listbox>
-                    </div>
-                  </div>
+                        {status}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+              </div>
+            </div>
             <div className="flex justify-end gap-4 mt-6">
               <button
                 onClick={() => {
@@ -562,7 +622,7 @@ const BloodBank = () => {
                   setTempBloodFilters({ status: "All" });
                   setShowBloodFilterPopup(false);
                 }}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full font-semibold"
+                className="px-4 py-2 text-sm rounded-lg border border-[#0EFF7B] dark:border-[#0D0D0D] text-[#08994A] dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
               >
                 Reset
               </button>
@@ -571,7 +631,7 @@ const BloodBank = () => {
                   setBloodFilters(tempBloodFilters);
                   setShowBloodFilterPopup(false);
                 }}
-                className="bg-[#0EFF7B] text-black px-4 py-2 rounded-full font-semibold"
+                className="px-4 py-2 text-sm rounded-lg bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968]"
               >
                 Apply Filters
               </button>
@@ -581,39 +641,38 @@ const BloodBank = () => {
       )}
       {showDonorFilterPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-[#000000] border-2 border-[#0D0D0D] rounded-xl p-6 w-[700px]">
-            <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-[#0EFF7B]">Filter Donor</h3>
+          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[700px]">
+            <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] pb-3">
+              <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">Filter Donor</h3>
               <button
                 onClick={() => setShowDonorFilterPopup(false)}
-                className="text-[#0EFF7B] hover:text-white p-1 rounded-full hover:bg-[#0EFF7B33]"
+                className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Blood Type</label>
+                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Blood Type</label>
                 <div className="relative">
                   <Listbox
                     value={tempDonorFilters.bloodType}
                     onChange={(value) => setTempDonorFilters({ ...tempDonorFilters, bloodType: value })}
                   >
                     <Listbox.Button
-                      className="w-full bg-black border-2 border-[#0D0D0D] rounded-lg p-3 text-sm text-white 
-                      focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] text-left"
+                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
                     >
                       {tempDonorFilters.bloodType === "All" ? "Select blood type" : tempDonorFilters.bloodType}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#0EFF7B]" />
+                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
                     </Listbox.Button>
                     <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-black shadow-lg z-[50] border border-[#3A3A3A] max-h-60 overflow-y-auto left-0"
+                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
                     >
                       <Listbox.Option
                         value="All"
                         className={({ active }) =>
                           `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                            active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"
+                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
                           }`
                         }
                       >
@@ -625,7 +684,7 @@ const BloodBank = () => {
                           value={type}
                           className={({ active }) =>
                             `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"
+                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
                             }`
                           }
                         >
@@ -637,16 +696,15 @@ const BloodBank = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-white">Last Donation Date</label>
+                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Last Donation Date</label>
                 <div className="relative">
                   <input
                     type="date"
                     value={tempDonorFilters.date}
                     onChange={(e) => setTempDonorFilters({ ...tempDonorFilters, date: e.target.value })}
-                    className="w-full bg-black border-2 border-[#0D0D0D] rounded-lg p-3 text-sm text-white 
-                    focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] text-left"
+                    className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                   />
-                  <Calendar className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#0EFF7B]" />
+                  <Calendar className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
                 </div>
               </div>
             </div>
@@ -657,7 +715,7 @@ const BloodBank = () => {
                   setTempDonorFilters({ bloodType: "All", date: "" });
                   setShowDonorFilterPopup(false);
                 }}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full font-semibold"
+                className="px-4 py-2 text-sm rounded-lg border border-[#0EFF7B] dark:border-[#0D0D0D] text-[#08994A] dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
               >
                 Reset
               </button>
@@ -666,7 +724,7 @@ const BloodBank = () => {
                   setDonorFilters(tempDonorFilters);
                   setShowDonorFilterPopup(false);
                 }}
-                className="bg-[#0EFF7B] text-black px-4 py-2 rounded-full font-semibold"
+                className="px-4 py-2 text-sm rounded-lg bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968]"
               >
                 Apply Filters
               </button>
@@ -679,5 +737,3 @@ const BloodBank = () => {
 };
 
 export default BloodBank;
-
-

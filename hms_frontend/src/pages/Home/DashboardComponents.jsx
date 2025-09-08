@@ -15,23 +15,22 @@ const DashboardComponents = () => {
     <div className="relative">
       {/* Main Container with exact dimensions and overflow control */}
       <div 
-        className="flex-1 bg-[#0D0D0D] mt-[90px] mb-4 pt-2 text-white rounded-[12px]"
+        className="flex-1 h-[750px] bg-white dark:bg-[#0D0D0D] mt-[90px] mb-4 pt-2 text-black dark:text-white rounded-[12px]"
         style={{
-          width: "100%",          // ✅ make flexible
-    maxWidth: "1440px",
-          height: '905px',
-           // This prevents both horizontal and vertical scrolling
+          width: "100%",          // Flexible width
+          maxWidth: "1440px",
+          
         }}
       >
         {/* Top Navigation Bar */}
-        <div className="bg-black mt-[-8px] flex gap-[97px] text-[20px] mb-6 overflow-x-hidden">
+        <div className="bg-white dark:bg-black mt-[-8px] flex gap-[97px] text-[20px] mb-6 overflow-x-hidden">
           {["Dashboard", "Reports", "Statistics", "Employee"].map((tab) => (
             <button
               key={tab}
               className={`text-left py-2 px-4 flex-1 max-w-[266px] ${
                 activeTab === tab 
-                  ? "bg-[#0D0D0D] " 
-                  : "bg-black text-left "
+                  ? "bg-[#08994A1A] dark:bg-[#0D0D0D] text-black dark:text-[#0EFF7B]" 
+                  : "bg-white dark:bg-black text-black dark:text-white"
               }`}
               onClick={() => setActiveTab(tab)}
             >
@@ -46,10 +45,10 @@ const DashboardComponents = () => {
             {["Patient Record", "Surgery Record", "Revenue Summary"].map((subTab) => (
               <button
                 key={subTab}
-                className={`flex-1 max-w-[319px] h-[37px] text-[14px] px-5  rounded-[20px] border ${
+                className={`flex-1 max-w-[319px] h-[37px] text-[14px] px-5 rounded-[20px] border ${
                   activeSubTab === subTab
-                    ? "bg-[linear-gradient(94.31deg,#0EFF7B_17.81%,#08994A_73.63%)] border-[#0EFF7B4D] text-black"
-                    : "bg-[#0D0D0D] border-[#3C3C3C] "
+                    ? "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A66] dark:border-[#0EFF7B66] text-white dark:text-black"
+                    : "bg-white dark:bg-[#0D0D0D] border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
                 }`}
                 onClick={() => setActiveSubTab(subTab)}
               >
@@ -60,7 +59,8 @@ const DashboardComponents = () => {
         )}
 
         {/* Content */}
-        <div className="overflow-y-auto" style={{ height: 'calc(905px - 120px)' }}>
+        {/* <div className="overflow-y-auto" style={{ height: 'calc(905px - 120px)' }}> */}
+        <div className="h-auto overflow-y-auto">
           {activeTab === "Dashboard" && (
             <>
               {activeSubTab === "Patient Record" && <PatientRecord />}
@@ -69,13 +69,12 @@ const DashboardComponents = () => {
             </>
           )}
           {activeTab === "Reports" && <Reports />}
-{activeTab === "Statistics" && <Statistics />}
-{activeTab === "Employee" && <Employee />}
+          {activeTab === "Statistics" && <Statistics />}
+          {activeTab === "Employee" && <Employee />}
         </div>
       </div>
       <Outlet />
     </div>
-    
   );
 };
 

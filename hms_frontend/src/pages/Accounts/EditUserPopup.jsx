@@ -1,47 +1,85 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
 const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
-  const [formData, setFormData] = useState({ ...user });
+  // ✅ Safe fallback in case `user` is undefined
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    department: "",
+    joinedOn: "",
+  });
+
+  // ✅ Update state when `user` prop changes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        ...user,
+        joinedOn: user.joinedOn || "",
+      });
+    }
+  }, [user]);
+
+  // Input validation
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isValidForm = () => formData.name.trim() !== "" && isValidEmail(formData.email);
 
   const handleUpdate = () => {
-    if (onUpdate) onUpdate(formData);
+    if (!isValidForm()) {
+      alert("Please provide a valid name and email address.");
+      return;
+    }
+
+    // Convert joinedOn to MM/DD/YYYY format if provided
+    const formattedData = {
+      ...formData,
+      joinedOn: formData.joinedOn
+        ? new Date(formData.joinedOn).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+          })
+        : "",
+    };
+
+    if (onUpdate) onUpdate(formattedData);
     onClose();
   };
 
-  // Dropdown options
-  const roles = ["Admin", "User", "Manager"];
-  const departments = ["IT", "HR", "Finance", "Marketing"];
+  // Dropdown options synced with UserSettings.jsx
+  const roles = ["Doctor", "Staff", "Receptionist"];
+  const departments = ["IT", "HR", "Finance", "Marketing", "Sales"];
 
-  // ✅ Reusable Dropdown
+  // Reusable Dropdown component
   const Dropdown = ({ label, value, onChange, options }) => (
     <div>
-      <label className="text-sm text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">{label}</label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#3A3A3A]
-            bg-transparent text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className="w-full h-[33px] px-3 pr-8 rounded-full border border-gray-300 dark:border-[#3A3A3A]
+            bg-white dark:bg-black text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
           >
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
 
           <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-black shadow-lg z-50 
-            border border-[#3A3A3A] left-[2px]"
+            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 
+            border border-gray-300 dark:border-[#3A3A3A] left-[2px]"
           >
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                  ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"}
-                  ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                  `cursor-pointer select-none py-2 px-2 text-sm rounded-[12px] 
+                  ${active ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-[#0EFF7B]"}
+                  ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
                 }
               >
                 {option}
@@ -55,18 +93,18 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-      <div className="w-[504px] h-auto rounded-[20px] border border-[#1E1E1E] bg-[#000000E5] text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+      <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative">
         
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
-          <h3 className="text-white font-inter font-medium text-[16px] leading-[19px]">
+          <h3 className="text-black dark:text-white font-inter font-medium text-[16px] leading-[19px]">
             Update User
           </h3>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] shadow flex items-center justify-center"
+            className="w-6 h-6 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
           >
-            <X size={16} className="text-white" />
+            <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
           </button>
         </div>
 
@@ -74,28 +112,30 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
         <div className="grid grid-cols-2 gap-6">
           {/* Name */}
           <div>
-            <label className="text-sm text-white">Name</label>
+            <label className="text-sm text-black dark:text-white">Name</label>
             <input
               name="name"
               value={formData.name || ""}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter name"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] 
-              bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-gray-300 dark:border-[#3A3A3A] 
+              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
+              focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="text-sm text-white">Email Address</label>
+            <label className="text-sm text-black dark:text-white">Email Address</label>
             <input
               type="email"
               name="email"
               value={formData.email || ""}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter email"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] 
-              bg-transparent text-[#0EFF7B] placeholder-gray-500 outline-none"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-gray-300 dark:border-[#3A3A3A] 
+              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
+              focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
           </div>
 
@@ -117,21 +157,22 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
 
           {/* Joined Date */}
           <div>
-            <label className="text-sm text-white">Joined Date</label>
+            <label className="text-sm text-black dark:text-white">Joined Date</label>
             <div className="relative">
               <input
                 type="date"
-                name="joinedDate"
-                value={formData.joinedDate || ""}
+                name="joinedOn"
+                value={formData.joinedOn || ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, joinedDate: e.target.value })
+                  setFormData({ ...formData, joinedOn: e.target.value })
                 }
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#3A3A3A] 
-                bg-transparent text-[#0EFF7B] outline-none"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-gray-300 dark:border-[#3A3A3A] 
+                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
               />
               <Calendar
                 size={18}
-                className="absolute right-0 top-3 text-white pointer-events-none"
+                className="absolute right-0 top-3 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
               />
             </div>
           </div>
@@ -141,16 +182,15 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
         <div className="flex justify-center gap-[18px] mt-8">
           <button
             onClick={onClose}
-            className="w-[104px] h-[33px] rounded-[20px] border border-[#3A3A3A] 
-            px-3 py-2 text-white font-medium text-[14px] leading-[16px] shadow opacity-100"
+            className="w-[104px] h-[33px] rounded-[20px] border border-gray-300 dark:border-[#3A3A3A] 
+            bg-white dark:bg-[#1E1E1E] text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
           >
             Cancel
           </button>
           <button
             onClick={handleUpdate}
-            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B66] px-3 py-2 
-            bg-gradient-to-r from-[#14DC6F] to-[#09753A] shadow 
-            text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+            className="w-[104px] h-[33px] rounded-[20px] border border-[#08994A66] dark:border-[#0EFF7B66] 
+            bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black font-medium text-[14px] leading-[16px] hover:bg-[#0cd968] dark:hover:bg-[#0cd968]"
           >
             Update
           </button>

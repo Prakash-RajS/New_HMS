@@ -12,6 +12,8 @@ const UserSettings = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showDeleteUserPopup, setShowDeleteUserPopup] = useState(false);
   const [deleteUser, setDeleteUser] = useState(null);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
   const navigate = useNavigate();
 
   // ---------- User Data ----------
@@ -93,7 +95,16 @@ const UserSettings = () => {
     return true;
   });
 
-  const users = filteredUsers.slice(
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (!sortColumn) return 0;
+    const valA = a[sortColumn];
+    const valB = b[sortColumn];
+    return sortOrder === "asc"
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  });
+
+  const users = sortedUsers.slice(
     (userPage - 1) * rowsPerPage,
     userPage * rowsPerPage
   );
@@ -109,6 +120,14 @@ const UserSettings = () => {
     );
   };
 
+  const handleSelectAll = () => {
+    setSelectedUsers(
+      selectedUsers.length === users.length && users.length > 0
+        ? []
+        : users
+    );
+  };
+
   // ---------- Handle Delete Selected Users ----------
   const handleDeleteSelectedUsers = () => {
     if (selectedUsers.length > 0) {
@@ -121,42 +140,62 @@ const UserSettings = () => {
       prev.filter((user) => !selectedUsers.includes(user))
     );
     setSelectedUsers([]);
+    setDeleteUser(null);
     setShowDeleteUserPopup(false);
+  };
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortOrder("asc");
+    }
+  };
+
+  const handlePrint = () => {
+    console.log("Print button clicked");
+    // Placeholder for print logic
+  };
+
+  const handleExport = () => {
+    console.log("Export button clicked");
+    // Placeholder for export logic
   };
 
   const getRoleColor = (role) => {
     switch (role) {
       case "Doctor":
-        return "text-green-500";
+        return "text-green-600 dark:text-green-500";
       case "Staff":
-        return "text-orange-500";
+        return "text-orange-600 dark:text-orange-500";
       case "Receptionist":
-        return "text-red-500";
+        return "text-red-600 dark:text-red-500";
       default:
-        return "text-white";
+        return "text-black dark:text-white";
     }
   };
 
   const Dropdown = ({ label, placeholder, value, onChange, options }) => (
     <div>
-      <label className="block text-sm font-medium mb-2 text-white">{label}</label>
+      <label className="block text-sm font-medium mb-2 text-black dark:text-white">{label}</label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
-          <Listbox.Button className="min-w-[291px] h-[40px] px-3 pr-8 rounded-full border border-[#3A3A3A] bg-transparent text-[#ffffff] text-left text-[14px] leading-[16px]">
+          <Listbox.Button className="min-w-[291px] h-[40px] px-3 pr-8 rounded-full border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-black dark:text-white text-left text-[14px] leading-[16px]">
             {value || placeholder}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-black shadow-lg z-50 border border-[#3A3A3A]">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                  ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-white"}
-                  ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                  ${active ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
+                  ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
                 }
               >
                 {option}
@@ -171,17 +210,17 @@ const UserSettings = () => {
   return (
     <div className="w-full mb-4 max-w-[1400px] mx-auto">
       {/* Header */}
-      <div className="mt-[60px] bg-black text-white rounded-xl p-6 w-full flex flex-col">
+      <div className="mt-[60px] bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col  dark:border-[#0D0D0D]">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">User settings</h2>
+          <h2 className="text-xl font-semibold text-black dark:text-[#0EFF7B]">User settings</h2>
           <button
             onClick={() => navigate("/security")}
-            className="flex items-center gap-2 bg-[#0EFF7B1A] border-[1px] border-[#0EFF7B4D] hover:bg-green-600 px-4 py-2 rounded-full text-white font-medium"
+            className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] hover:bg-[#08994A] dark:hover:bg-[#0EFF7B] hover:text-white dark:hover:text-black px-4 py-2 rounded-full text-black dark:text-white font-medium transition"
           >
-            <Shield size={18} className="text-white" /> Security Settings
+            <Shield size={18} className="text-[#08994A] dark:text-[#0EFF7B]" /> Security Settings
           </button>
         </div>
-        <p className="text-gray-400">These settings help add or manage user</p>
+        <p className="text-gray-600 dark:text-gray-400">These settings help add or manage user</p>
       </div>
 
       <div className="flex flex-wrap p-6 gap-6">
@@ -210,21 +249,27 @@ const UserSettings = () => {
 
       {/* User Profile Section Heading */}
       <div className="w-full flex items-center justify-between p-6">
-        <h2 className="text-white text-lg font-semibold">User profile</h2>
+        <h2 className="text-black dark:text-white text-lg font-semibold">User profile</h2>
         <div className="flex gap-2">
-          <button className="bg-[#0D0D0D] border-[1px] border-[#0EFF7B4D] text-green-500 px-4 py-2 rounded-full flex items-center gap-2">
+          <button
+            onClick={handlePrint}
+            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+          >
             <Printer size={16} /> Print
           </button>
-          <button className="bg-[#0D0D0D] border-[1px] border-[#0EFF7B4D] text-green-500 px-4 py-2 rounded-full flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+          >
             <Download size={16} /> Export PDF
           </button>
         </div>
       </div>
 
       {/* User List Table */}
-      <div className="bg-[#0D0D0D] text-white rounded-xl p-6 mt-7 shadow-md">
+      <div className="bg-white dark:bg-[#0D0D0D] text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#0D0D0D]">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold">User List</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">User List</h3>
           <div className="flex gap-2 items-center">
             {showUserSearch && (
               <input
@@ -232,43 +277,49 @@ const UserSettings = () => {
                 placeholder="Search users..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full border border-[#3C3C3C] focus:outline-none focus:border-[#0EFF7B]"
+                className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-full border border-gray-300 dark:border-[#3C3C3C] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400"
               />
             )}
             <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A]"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
               onClick={() => setShowUserSearch(!showUserSearch)}
             >
-              <Search size={18} className="cursor-pointer text-white" />
+              <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             </div>
             <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
               onClick={handleDeleteSelectedUsers}
             >
-              <Trash2 size={18} className="text-white" />
+              <Trash2 size={18} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
             </div>
-          </div>
+        </div>
         </div>
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-left h-[52px] bg-[#1E1E1E] text-[#FFFFFF] text-[16px] border-b border-[#3C3C3C]">
+            <tr className="text-left h-[52px] bg-white dark:bg-[#1E1E1E] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
               <th className="p-3">
                 <input
                   type="checkbox"
                   checked={selectedUsers.length === users.length && users.length > 0}
-                  onChange={() =>
-                    setSelectedUsers(
-                      selectedUsers.length === users.length ? [] : users
-                    )
-                  }
-                  className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                  onChange={handleSelectAll}
+                  className="w-5 h-5 border border-gray-600 dark:border-gray-400 accent-[#08994A] dark:accent-[#0EFF7B]"
                 />
               </th>
-              <th className="p-3">Name</th>
-              <th className="p-3">Email address</th>
-              <th className="p-3">Role</th>
-              <th className="p-3">Department</th>
-              <th className="p-3">Joined on</th>
+              <th className="p-3 cursor-pointer" onClick={() => handleSort("name")}>
+                Name {sortColumn === "name" && (sortOrder === "asc" ? "↑" : "↓")}
+              </th>
+              <th className="p-3 cursor-pointer" onClick={() => handleSort("email")}>
+                Email address {sortColumn === "email" && (sortOrder === "asc" ? "↑" : "↓")}
+              </th>
+              <th className="p-3 cursor-pointer" onClick={() => handleSort("role")}>
+                Role {sortColumn === "role" && (sortOrder === "asc" ? "↑" : "↓")}
+              </th>
+              <th className="p-3 cursor-pointer" onClick={() => handleSort("department")}>
+                Department {sortColumn === "department" && (sortOrder === "asc" ? "↑" : "↓")}
+              </th>
+              <th className="p-3 cursor-pointer" onClick={() => handleSort("joinedOn")}>
+                Joined on {sortColumn === "joinedOn" && (sortOrder === "asc" ? "↑" : "↓")}
+              </th>
               <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
@@ -276,53 +327,53 @@ const UserSettings = () => {
             {users.map((u, i) => (
               <tr
                 key={i}
-                className="border-b h-[62px] border-[#3C3C3C] hover:bg-[#000000CC] transition"
+                className="border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition"
               >
                 <td className="p-3">
                   <input
                     type="checkbox"
                     checked={selectedUsers.includes(u)}
                     onChange={() => handleUserCheckboxChange(u)}
-                    className="w-5 h-5 bg-black border border-[#A0A0A0] rounded appearance-none checked:bg-[#0EFF7B] relative checked:after:absolute checked:after:top-0 checked:after:left-1 checked:after:content-['\2713'] checked:after:text-white checked:after:text-sm"
+                    className="w-5 h-5 border border-gray-600 dark:border-gray-400 accent-[#08994A] dark:accent-[#0EFF7B]"
                   />
                 </td>
                 <td className="p-3">
-                  <div>{u.name}</div>
-                  <div className="text-[#A0A0A0]  text-[12px]"> (ID: {u.id})</div>
+                  <div className="text-black dark:text-white">{u.name}</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-[12px]">(ID: {u.id})</div>
                 </td>
-                <td className="p-3">{u.email}</td>
+                <td className="p-3 text-black dark:text-white">{u.email}</td>
                 <td className="p-3">
                   <span className={getRoleColor(u.role)}>{u.role}</span>
                 </td>
-                <td className="p-3">{u.department}</td>
-                <td className="p-3">{u.joinedOn}</td>
+                <td className="p-3 text-black dark:text-white">{u.department}</td>
+                <td className="p-3 text-black dark:text-white">{u.joinedOn}</td>
                 <td className="p-3 flex justify-end gap-2">
                   <div
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                     onClick={() => {
                       setEditUser(u);
                       setShowEditUserPopup(true);
                     }}
                   >
-                    <Edit size={18} className="text-white" />
+                    <Edit size={18} className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]" />
                   </div>
                   <div
-                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] cursor-pointer"
+                    className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                     onClick={() => {
                       setDeleteUser(u);
                       setShowDeleteUserPopup(true);
                     }}
                   >
-                    <Trash2 size={18} className="text-white" />
+                    <Trash2 size={18} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        <div className="flex items-center mt-4 bg-[#0D0D0D] rounded gap-x-4">
-          <div className="text-sm text-white">
-            Page <span className="text-[#0EFF7B] font-semibold">{userPage}</span> of {totalUserPages} (
+        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{userPage}</span> of {totalUserPages} (
             {(userPage - 1) * rowsPerPage + 1} to{" "}
             {Math.min(userPage * rowsPerPage, filteredUsers.length)}{" "}
             from {filteredUsers.length} Users)
@@ -333,8 +384,8 @@ const UserSettings = () => {
               disabled={userPage === 1}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 userPage === 1
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-[#08994A1A] dark:bg-[#0EFF7B1A] border-[#08994A1A] dark:border-[#0EFF7B1A] text-gray-600 dark:text-gray-400 opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A33] dark:border-[#0EFF7B33] text-black dark:text-black opacity-100"
               }`}
             >
               <ChevronLeft size={12} />
@@ -344,8 +395,8 @@ const UserSettings = () => {
               disabled={userPage === totalUserPages}
               className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                 userPage === totalUserPages
-                  ? "bg-[#0EFF7B1A] border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-white opacity-50"
-                  : "bg-[#0EFF7B] border-[#0EFF7B33] shadow-[0_0_4px_0_#0EFF7B33] text-black opacity-100"
+                  ? "bg-[#08994A1A] dark:bg-[#0EFF7B1A] border-[#08994A1A] dark:border-[#0EFF7B1A] text-gray-600 dark:text-gray-400 opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A33] dark:border-[#0EFF7B33] text-black dark:text-black opacity-100"
               }`}
             >
               <ChevronRight size={12} />
@@ -360,37 +411,29 @@ const UserSettings = () => {
       )}
       {showDeleteUserPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-[#000000] border-2 border-[#0D0D0D] rounded-xl p-6 w-[400px]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-[#0EFF7B]">Delete User</h3>
+          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[400px]">
+            <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-[#0EFF7B33] pb-3">
+              <h3 className="text-lg font-semibold text-[#08994A] dark:text-[#0EFF7B]">Delete User</h3>
               <button
                 onClick={() => setShowDeleteUserPopup(false)}
-                className="text-[#0EFF7B] hover:text-white p-1 rounded-full hover:bg-[#0EFF7B33]"
+                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968] p-1 rounded-full hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-white mb-6">
+            <p className="text-black dark:text-white mb-6">
               Are you sure you want to delete {deleteUser ? deleteUser.name : selectedUsers.length} user(s)?
             </p>
             <div className="flex justify-end gap-4">
               <button
                 onClick={() => setShowDeleteUserPopup(false)}
-                className="bg-[#1E1E1E] text-white px-4 py-2 rounded-full font-semibold"
+                className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (deleteUser) {
-                    setAllUsers((prev) => prev.filter((user) => user !== deleteUser));
-                  } else {
-                    setAllUsers((prev) => prev.filter((user) => !selectedUsers.includes(user)));
-                    setSelectedUsers([]);
-                  }
-                  setShowDeleteUserPopup(false);
-                }}
-                className="bg-red-500 text-white px-4 py-2 rounded-full font-semibold"
+                onClick={confirmDeleteUsers}
+                className="bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-red-700 dark:hover:bg-red-400 transition"
               >
                 Delete
               </button>
