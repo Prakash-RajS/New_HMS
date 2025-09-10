@@ -329,7 +329,7 @@ const ProfileSection = () => {
           currentProfiles.map((profile, index) => (
             <div
               key={index}
-              className="w-[203px] h-[238px] bg-white dark:bg-[#0D0D0D] opacity-100 rounded-lg p-[18px] pr-[12px] pl-[12px] border border-[#0EFF7B] dark:border-gray-800 shadow-[0px_0px_4px_0px_#D2D2D240] relative text-center"
+              className="min-w-[203px] h-[238px] bg-white dark:bg-[#0D0D0D] opacity-100 rounded-lg p-[18px] pr-[12px] pl-[12px] border border-[#0EFF7B] dark:border-gray-800 shadow-[0px_0px_4px_0px_#D2D2D240] relative text-center"
             >
               <div className="absolute top-2 left-2 text-[#08994A] dark:text-[#0EFF7B] text-[14px] mt-1">
                 {profile.type}
@@ -459,7 +459,6 @@ const ProfileSection = () => {
                   className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
                 />
               </div>
-
               <Dropdown
                 label="Status"
                 value={filtersData.status}

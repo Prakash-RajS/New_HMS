@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { Moon, Sun } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
+import { useNavigate } from "react-router-dom";
 
 const Header = ({ isCollapsed }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const navigate = useNavigate();
 
   // Toggle dropdown and manage body class
   const toggleDropdown = () => {
@@ -98,7 +100,9 @@ const Header = ({ isCollapsed }) => {
           </button>
 
           {/* Settings Icon */}
-          <button className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors">
+          <button 
+          onClick={() => navigate("/security")}
+          className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -249,7 +253,9 @@ const Header = ({ isCollapsed }) => {
                   <li className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
                     Profile
                   </li>
-                  <li className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
+                  <li 
+                  onClick={() => navigate("/UserSettings")}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
                     Settings
                   </li>
                   <li className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer">
