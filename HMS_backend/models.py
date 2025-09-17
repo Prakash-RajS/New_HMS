@@ -37,8 +37,7 @@ class Appointment(models.Model):
     patient_name = models.CharField(max_length=200)
     patient_id = models.CharField(max_length=20, unique=True, editable=False)  # auto-generated
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="appointments")
-    # doctor = models.ForeignKey("Doctor", on_delete=models.CASCADE, related_name="appointments")
-    doctor = models.CharField(max_length=20, unique=True, editable=False)
+    staff = models.ForeignKey("Staff", on_delete=models.CASCADE, related_name="appointments")
     room_no = models.CharField(max_length=20)
     phone_no = models.CharField(max_length=15)
     appointment_type = models.CharField(max_length=20, choices=APPOINTMENT_TYPES)
@@ -63,3 +62,31 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.patient_name} ({self.patient_id})"
+
+class Staff(models.Model):
+    full_name = models.CharField(max_length=255)
+    date_of_birth = models.DateField()
+    gender = models.CharField(max_length=20)
+    age = models.IntegerField()
+    marital_status = models.CharField(max_length=50)
+    address = models.TextField()
+    phone = models.CharField(max_length=20, unique=True)
+    email = models.EmailField(unique=True)
+    national_id = models.CharField(max_length=100, unique=True)
+    city = models.CharField(max_length=100)
+    country = models.CharField(max_length=100)
+    date_of_joining = models.DateField()
+    designation = models.CharField(max_length=100)
+    # 🔹 ForeignKey to Department instead of CharField
+    department = models.ForeignKey(
+        Department, 
+        on_delete=models.CASCADE,   # delete staff if department is deleted
+        related_name="staff_members"
+    )
+    specialization = models.CharField(max_length=150, blank=True, null=True)
+    status = models.CharField(max_length=50)
+    shift_timing = models.CharField(max_length=100)
+    certificates = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.designation} ({self.department.name})"

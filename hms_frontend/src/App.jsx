@@ -166,6 +166,7 @@ import StockInventory from "./pages/Pharmacy/Stock-Inventory.jsx";
 //Doctor & Nurse
 import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx";
 import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx";
+import ViewProfile from "./pages/Doctor/ViewProfiles.jsx"
 
 //Clinical_Resource/Lab
 import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx";
@@ -232,6 +233,10 @@ function AppContent({ contentRef }) {
             <Route
               path="/Doctors-Nurse/DoctorNurseProfile"
               element={<DoctorNurseProfile />}
+            />
+            <Route
+              path="/Doctors-Nurse/ViewProfile"
+              element={<ViewProfile />}
             />
             <Route
               path="/ClinicalResources/Laboratory/LaboratoryReports"

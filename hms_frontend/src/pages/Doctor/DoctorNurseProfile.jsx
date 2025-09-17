@@ -372,7 +372,7 @@ const ProfileSection = () => {
               </button>
               <button
                 className="w-[112px] h-[33px] rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white text-[14px] font-medium hover:scale-105 transition"
-                onClick={() => navigate("/staff/profile/details")}
+                onClick={() => navigate("/Doctors-Nurse/ViewProfile")}
               >
                 View profile
               </button>

@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'my_project.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "hms",
+        "NAME": "HMS_project", 
         "USER": "root",
         "PASSWORD": "Welcome#1234",
         "HOST": "127.0.0.1",
