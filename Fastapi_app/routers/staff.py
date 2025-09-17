@@ -1,7 +1,3 @@
-# staff.py (inside your FastAPI routes folder)
-
-# fastapi_app/routers/staff.py
-
 # fastapi_app/routers/staff.py
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
@@ -18,11 +14,39 @@ router = APIRouter(prefix="/staff", tags=["Staffs"])
 # ---------- Pydantic Schemas ----------
 class StaffResponse(BaseModel):
     id: int
+    employee_id: str
     full_name: str
     email: str
     phone: str
     department: str
-    certificates: Optional[str] = None  # path to file
+    certificates: Optional[str] = None
+    profile_picture: Optional[str] = None
+
+
+# ---------- Helper for Employee ID ----------
+async def generate_employee_id(designation: str) -> str:
+    prefix_map = {
+        "doctor": "DOC",
+        "nurse": "NUR",
+        "staff": "STA"
+    }
+
+    prefix = prefix_map.get(designation.lower(), "STA")
+
+    # Count existing employees with this prefix
+    last_staff = await run_in_threadpool(
+        lambda: Staff.objects.filter(employee_id__startswith=prefix)
+        .order_by("-employee_id")
+        .first()
+    )
+
+    if last_staff and last_staff.employee_id:
+        last_num = int(last_staff.employee_id.replace(prefix, ""))
+        new_num = last_num + 1
+    else:
+        new_num = 1
+
+    return f"{prefix}{str(new_num).zfill(4)}"
 
 
 # -----------------------------
@@ -47,14 +71,19 @@ async def add_staff(
     specialization: Optional[str] = Form(None),
     status: str = Form(...),
     shift_timing: str = Form(...),
-    certificates: Optional[UploadFile] = File(None)
+    certificates: Optional[UploadFile] = File(None),
+    profile_picture: Optional[UploadFile] = File(None)
 ):
     try:
         department = await run_in_threadpool(Department.objects.get, id=department_id)
 
-        # Create staff without certificates first
+        # Generate employee ID
+        employee_id = await generate_employee_id(designation)
+
+        # Create staff without files first
         staff = await run_in_threadpool(
             Staff.objects.create,
+            employee_id=employee_id,
             full_name=full_name,
             date_of_birth=date_of_birth,
             gender=gender,
@@ -81,15 +110,26 @@ async def add_staff(
             with open(certificate_path, "wb") as f:
                 f.write(await certificates.read())
             staff.certificates = certificate_path
-            await run_in_threadpool(staff.save)
+
+        # Save profile picture if provided
+        if profile_picture:
+            os.makedirs("fastapi_app/staffs_pictures", exist_ok=True)
+            pic_path = f"fastapi_app/staffs_pictures/{profile_picture.filename}"
+            with open(pic_path, "wb") as f:
+                f.write(await profile_picture.read())
+            staff.profile_picture = pic_path
+
+        await run_in_threadpool(staff.save)
 
         return StaffResponse(
             id=staff.id,
+            employee_id=staff.employee_id,
             full_name=staff.full_name,
             email=staff.email,
             phone=staff.phone,
             department=staff.department.name,
-            certificates=staff.certificates
+            certificates=staff.certificates,
+            profile_picture=staff.profile_picture
         )
 
     except Department.DoesNotExist:
@@ -111,11 +151,13 @@ async def get_all_staff():
         result.append(
             StaffResponse(
                 id=s.id,
+                employee_id=s.employee_id,
                 full_name=s.full_name,
                 email=s.email,
                 phone=s.phone,
                 department=s.department.name,
-                certificates=s.certificates
+                certificates=s.certificates,
+                profile_picture=s.profile_picture
             )
         )
     return result
@@ -144,7 +186,8 @@ async def update_staff(
     specialization: Optional[str] = Form(None),
     status: Optional[str] = Form(None),
     shift_timing: Optional[str] = Form(None),
-    certificates: Optional[UploadFile] = File(None)
+    certificates: Optional[UploadFile] = File(None),
+    profile_picture: Optional[UploadFile] = File(None)
 ):
     try:
         staff = await run_in_threadpool(Staff.objects.get, id=staff_id)
@@ -160,6 +203,14 @@ async def update_staff(
             with open(certificate_path, "wb") as f:
                 f.write(await certificates.read())
             staff.certificates = certificate_path
+
+        # Update profile picture if provided
+        if profile_picture:
+            os.makedirs("fastapi_app/staffs_pictures", exist_ok=True)
+            pic_path = f"fastapi_app/staffs_pictures/{profile_picture.filename}"
+            with open(pic_path, "wb") as f:
+                f.write(await profile_picture.read())
+            staff.profile_picture = pic_path
 
         # Update other fields dynamically
         for field, value in {
@@ -187,11 +238,13 @@ async def update_staff(
 
         return StaffResponse(
             id=staff.id,
+            employee_id=staff.employee_id,
             full_name=staff.full_name,
             email=staff.email,
             phone=staff.phone,
             department=staff.department.name,
-            certificates=staff.certificates
+            certificates=staff.certificates,
+            profile_picture=staff.profile_picture
         )
 
     except Staff.DoesNotExist:
@@ -202,6 +255,7 @@ async def update_staff(
         raise HTTPException(status_code=400, detail="Staff with this email or ID already exists")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 

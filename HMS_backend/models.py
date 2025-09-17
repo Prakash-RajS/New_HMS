@@ -63,7 +63,13 @@ class Appointment(models.Model):
     def __str__(self):
         return f"{self.patient_name} ({self.patient_id})"
 
+from django.db import models
+
 class Staff(models.Model):
+    # 🔹 New employee ID (used in your FastAPI code)
+    employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
+
+
     full_name = models.CharField(max_length=255)
     date_of_birth = models.DateField()
     gender = models.CharField(max_length=20)
@@ -77,16 +83,22 @@ class Staff(models.Model):
     country = models.CharField(max_length=100)
     date_of_joining = models.DateField()
     designation = models.CharField(max_length=100)
-    # 🔹 ForeignKey to Department instead of CharField
+
+    # 🔹 ForeignKey to Department
     department = models.ForeignKey(
-        Department, 
-        on_delete=models.CASCADE,   # delete staff if department is deleted
+        "Department", 
+        on_delete=models.CASCADE,
         related_name="staff_members"
     )
+
     specialization = models.CharField(max_length=150, blank=True, null=True)
     status = models.CharField(max_length=50)
     shift_timing = models.CharField(max_length=100)
+
+    # 🔹 File fields
     certificates = models.TextField(blank=True, null=True)
+    profile_picture = models.TextField(blank=True, null=True)  # path saved here
 
     def __str__(self):
         return f"{self.full_name} - {self.designation} ({self.department.name})"
+
