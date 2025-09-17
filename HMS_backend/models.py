@@ -102,3 +102,56 @@ class Staff(models.Model):
     def __str__(self):
         return f"{self.full_name} - {self.designation} ({self.department.name})"
 
+
+class Patient(models.Model):
+    patient_unique_id = models.CharField(max_length=20, unique=True, editable=False)
+    full_name = models.CharField(max_length=200)
+    date_of_birth = models.DateField(blank=True, null=True)
+    gender = models.CharField(max_length=10, blank=True, null=True)
+    age = models.IntegerField(blank=True, null=True)
+    marital_status = models.CharField(max_length=20, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    email_address = models.EmailField(blank=True, null=True)
+    national_id = models.CharField(max_length=50, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    date_of_registration = models.DateField(blank=True, null=True)
+    occupation = models.CharField(max_length=100, blank=True, null=True)
+    weight_in_kg = models.FloatField(blank=True, null=True)
+    height_in_cm = models.FloatField(blank=True, null=True)
+
+    blood_group = models.CharField(max_length=5, blank=True, null=True)
+    blood_pressure = models.CharField(max_length=20, blank=True, null=True)
+    body_temperature = models.FloatField(blank=True, null=True)
+    consultation_type = models.CharField(max_length=20, blank=True, null=True)
+
+    department = models.ForeignKey("Department", on_delete=models.SET_NULL, null=True)
+    staff = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
+
+    appointment_type = models.CharField(max_length=20, blank=True, null=True)
+    admission_date = models.DateField(blank=True, null=True)
+    room_number = models.CharField(max_length=20, blank=True, null=True)
+    test_report_details = models.TextField(blank=True, null=True)
+    casualty_status = models.CharField(max_length=10, blank=True, null=True)
+    reason_for_visit = models.TextField(blank=True, null=True)
+    photo = models.ImageField(upload_to="patient_photos/", blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "patients"
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.patient_unique_id:
+            last = Patient.objects.order_by("id").last()
+            if last and last.patient_unique_id.startswith("PAT"):
+                num = int(last.patient_unique_id.replace("PAT", ""))
+                self.patient_unique_id = f"PAT{num + 1}"
+            else:
+                self.patient_unique_id = "PAT1000"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.full_name} ({self.patient_unique_id})"
