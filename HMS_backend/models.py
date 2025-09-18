@@ -155,3 +155,36 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"{self.full_name} ({self.patient_unique_id})"
+    
+    
+class BloodGroup(models.Model):
+    BLOOD_TYPES = [
+        ("A+", "A+"),
+        ("A-", "A-"),
+        ("B+", "B+"),
+        ("B-", "B-"),
+        ("O+", "O+"),
+        ("O-", "O-"),
+        ("AB+", "AB+"),
+        ("AB-", "AB-"),
+    ]
+
+    STATUS_CHOICES = [
+        ("Available", "Available"),
+        ("Low Stock", "Low Stock"),
+        ("Out of Stock", "Out of Stock"),
+    ]
+
+    blood_type = models.CharField(max_length=3, choices=BLOOD_TYPES, unique=True)
+    available_units = models.IntegerField(default=0)  # store units like 150, 200 etc.
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Available")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "blood_groups"
+        ordering = ["blood_type"]
+
+    def __str__(self):
+        return f"{self.blood_type} ({self.available_units} units - {self.status})"
