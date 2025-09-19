@@ -9,12 +9,15 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
+  X,
 } from "lucide-react";
 import { Listbox, Menu, Transition } from "@headlessui/react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import DeleteAppointmentPopup from "./DeleteDepartmentPopup";
+import AddBedGroupPopup from "./AddBedGroupPopup";
 
-const RoomManagement = () => {
+const BedList = () => {
+  const [showAddPopup, setShowAddPopup] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,11 +49,18 @@ const RoomManagement = () => {
       if (searchTerm && !room.bedGroup.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
-      if (bedGroupFilter && room.bedGroup !== bedGroupFilter) return false;
-      if (statusFilter && room.status !== statusFilter) return false;
+      if (filterValue && filterValue !== "All" && room.bedGroup !== filterValue) {
+        return false;
+      }
+      if (bedGroupFilter && bedGroupFilter !== "All" && room.bedGroup !== bedGroupFilter) {
+        return false;
+      }
+      if (statusFilter && room.status !== statusFilter) {
+        return false;
+      }
       return true;
     });
-  }, [roomsData, searchTerm, bedGroupFilter, statusFilter]);
+  }, [roomsData, searchTerm, filterValue, bedGroupFilter, statusFilter]);
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -104,6 +114,20 @@ const RoomManagement = () => {
     const start = Math.floor(occupied / 20) * 20;
     const end = start + 20;
     return `${start} to ${end}`;
+  };
+
+  const handleAddBedGroup = (newGroup) => {
+    const { bedGroupName, bedFrom, bedTo } = newGroup;
+    const capacity = parseInt(bedTo) - parseInt(bedFrom) + 1;
+    const newEntry = {
+      bedGroup: bedGroupName,
+      capacity,
+      occupied: 0,
+      unoccupied: capacity,
+      status: "Available",
+      bedRange: `${bedFrom} - ${bedTo}`,
+    };
+    setRoomsData((prev) => [...prev, newEntry]);
   };
 
   const FilterPopover = ({ isOpen, onClose }) => {
@@ -213,7 +237,10 @@ const RoomManagement = () => {
         {/* Header */}
         <div className="flex justify-between items-center mb-1">
           <h2 className="text-xl font-semibold text-black dark:text-white">Room Management</h2>
-          <button className="flex items-center gap-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] hover:text-green-800 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 px-4 py-2 rounded-full text-white dark:text-black font-semibold">
+          <button 
+            onClick={() => setShowAddPopup(true)}
+            className="flex items-center gap-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] hover:text-green-800 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 px-4 py-2 rounded-full text-white dark:text-black font-semibold"
+          >
             <Plus size={18} className="text-green-800 dark:text-black" /> Add Bed Group
           </button>
         </div>
@@ -236,7 +263,7 @@ const RoomManagement = () => {
                   <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-green-400 ml-2" />
                 </Listbox.Button>
                 <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-                  {["All", "Bed group lists"].map((option, idx) => (
+                  {["All", "ICU", "Ward", "Cabin", "PACU", "Special ward", "NICU"].map((option, idx) => (
                     <Listbox.Option
                       key={idx}
                       value={option}
@@ -260,7 +287,7 @@ const RoomManagement = () => {
                 className={`px-4 h-[40px] ml-4 rounded-full text-sm border border-[#0EFF7B] dark:border-green-400 text-[#08994A] dark:text-[white] ${
                   isBedListRoute
                     ? "text-white bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
-                    : " bg-[#0EFF7B1A] dark:bg-[#0EFF7B22]"
+                    : "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22]"
                 }`}
               >
                 Bed group lists
@@ -408,7 +435,12 @@ const RoomManagement = () => {
             onConfirm={handleConfirmDelete}
           />
         )}
-
+        {showAddPopup && (
+          <AddBedGroupPopup
+            onClose={() => setShowAddPopup(false)}
+            onAdd={handleAddBedGroup}
+          />
+        )}
         {/* Pagination */}
         {!isBedListRoute && (
           <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
@@ -446,4 +478,5 @@ const RoomManagement = () => {
     </div>
   );
 };
-export default RoomManagement;
+
+export default BedList;
