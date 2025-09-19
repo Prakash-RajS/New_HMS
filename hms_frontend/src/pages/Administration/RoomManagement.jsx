@@ -336,7 +336,7 @@ const RoomManagement = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold text-black dark:text-white">Room Management</h2>
           <button className="flex items-center gap-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] hover:text-green-800 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 px-4 py-2 rounded-full text-white dark:text-black font-semibold">
-                      <Plus size={18} className="text-green-800 dark:text-black" /> Add Bed Group
+                      <Plus size={18} className="text-green-800 dark:text-black" /> Add Admission
                     </button>
         </div>
 
@@ -388,7 +388,7 @@ const RoomManagement = () => {
                 onClick={handleBedListClick}
                 className={`px-4 h-[40px] rounded-full text-sm border border-[#0EFF7B] dark:border-green-400 text-[#08994A] dark:text-green-400 ${
                   isBedListRoute 
-                    ? "text-white border-[#0EFF7B66] bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A]"
+                    ? "text-white  border-[#0EFF7B66] bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A]"
                     : "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22]"
                 }`}
               >
@@ -450,7 +450,7 @@ const RoomManagement = () => {
                         onChange={handleSelectAll}
                       />
                     </th>
-                    <th>Room no</th>
+                    <th>Bed no</th>
                     <th>Bed Group</th>
                     <th>Patients</th>
                     <th>Admit</th>

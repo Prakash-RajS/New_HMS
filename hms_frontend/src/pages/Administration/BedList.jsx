@@ -7,14 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  Settings,
-  X,
-  Bed,
-  Home,
-  Building,
-  Heart,
-  Baby,
-  Stethoscope,
   Edit,
   Trash2,
 } from "lucide-react";
@@ -38,36 +30,20 @@ const RoomManagement = () => {
   const itemsPerPage = 9;
 
   const [roomsData, setRoomsData] = useState([
-    { roomNo: "101", bedGroup: "ICU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 80, unoccupied: 70 },
-    { roomNo: "102", bedGroup: "Ward", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 90, unoccupied: 60 },
-    { roomNo: "103", bedGroup: "Cabin", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Not Available", capacity: 150, occupied: 100, unoccupied: 50 },
-    { roomNo: "104", bedGroup: "Special ward", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 70, unoccupied: 80 },
-    { roomNo: "105", bedGroup: "PACU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 85, unoccupied: 65 },
-    { roomNo: "106", bedGroup: "PACU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 95, unoccupied: 55 },
-    { roomNo: "107", bedGroup: "ICU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 75, unoccupied: 75 },
-    { roomNo: "108", bedGroup: "NICU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Not Available", capacity: 150, occupied: 110, unoccupied: 40 },
-    { roomNo: "109", bedGroup: "ICU", patient: "Abishek", patientId: "SMH07204", admit: "12/08/2025", discharge: "20/08/2025", status: "Available", capacity: 150, occupied: 88, unoccupied: 62 },
+    { bedGroup: "ICU", capacity: 150, occupied: 80, unoccupied: 70, status: "Available" },
+    { bedGroup: "Ward", capacity: 150, occupied: 90, unoccupied: 60, status: "Available" },
+    { bedGroup: "Cabin", capacity: 150, occupied: 100, unoccupied: 50, status: "Not Available" },
+    { bedGroup: "Special ward", capacity: 150, occupied: 70, unoccupied: 80, status: "Available" },
+    { bedGroup: "PACU", capacity: 150, occupied: 85, unoccupied: 65, status: "Available" },
+    { bedGroup: "PACU", capacity: 150, occupied: 95, unoccupied: 55, status: "Available" },
+    { bedGroup: "ICU", capacity: 150, occupied: 75, unoccupied: 75, status: "Available" },
+    { bedGroup: "NICU", capacity: 150, occupied: 110, unoccupied: 40, status: "Not Available" },
+    { bedGroup: "ICU", capacity: 150, occupied: 88, unoccupied: 62, status: "Available" },
   ]);
-
-  const bedGroupIcons = {
-    ICU: <Heart size={18} className="text-red-500" />,
-    Ward: <Home size={18} className="text-blue-500" />,
-    Cabin: <Building size={18} className="text-green-500" />,
-    "Special ward": <Building size={18} className="text-purple-500" />,
-    PACU: <Stethoscope size={18} className="text-yellow-500" />,
-    NICU: <Baby size={18} className="text-pink-500" />,
-  };
 
   const filteredRooms = useMemo(() => {
     return roomsData.filter((room) => {
-      if (
-        searchTerm &&
-        !(
-          room.roomNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.patientId.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      ) {
+      if (searchTerm && !room.bedGroup.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
       if (bedGroupFilter && room.bedGroup !== bedGroupFilter) return false;
@@ -81,11 +57,11 @@ const RoomManagement = () => {
   const currentRooms = filteredRooms.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
 
-  const handleCheckboxChange = (roomNo) => {
-    if (selectedRooms.includes(roomNo)) {
-      setSelectedRooms(selectedRooms.filter((r) => r !== roomNo));
+  const handleCheckboxChange = (index) => {
+    if (selectedRooms.includes(index)) {
+      setSelectedRooms(selectedRooms.filter((r) => r !== index));
     } else {
-      setSelectedRooms([...selectedRooms, roomNo]);
+      setSelectedRooms([...selectedRooms, index]);
     }
   };
 
@@ -93,18 +69,18 @@ const RoomManagement = () => {
     if (selectedRooms.length === currentRooms.length) {
       setSelectedRooms([]);
     } else {
-      setSelectedRooms(currentRooms.map((r) => r.roomNo));
+      setSelectedRooms(currentRooms.map((_, index) => index));
     }
   };
 
-  const handleDeleteClick = (roomNo) => {
-    setRoomToDelete(roomNo);
+  const handleDeleteClick = (index) => {
+    setRoomToDelete(index);
     setShowDeletePopup(true);
   };
 
   const handleConfirmDelete = () => {
-    if (roomToDelete) {
-      setRoomsData((prev) => prev.filter((r) => r.roomNo !== roomToDelete));
+    if (roomToDelete !== null) {
+      setRoomsData((prev) => prev.filter((_, i) => i !== roomToDelete));
       setSelectedRooms((prev) => prev.filter((r) => r !== roomToDelete));
     }
     setRoomToDelete(null);
@@ -124,53 +100,10 @@ const RoomManagement = () => {
     navigate("/Administration/roommanagement");
   };
 
-  const ActionMenu = () => {
-    return (
-      <Menu as="div" className="relative inline-block text-left">
-        <Menu.Button className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
-          <MoreHorizontal size={18} />
-        </Menu.Button>
-        <Transition
-          as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
-          <Menu.Items
-            className="absolute mt-2 right-0 w-56 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg z-50"
-          >
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  className={`${
-                    active ? "bg-[#0EFF7B1A] dark:bg-gray-800" : ""
-                  } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                >
-                  <Edit className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                  Mark as attention needed
-                </button>
-              )}
-            </Menu.Item>
-            <Menu.Item>
-              {({ active }) => (
-                <button
-                  onClick={() => handleDeleteClick(roomToDelete)}
-                  className={`${
-                    active ? "bg-[#0EFF7B1A] dark:bg-gray-800" : ""
-                  } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                >
-                  <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
-                  Delete
-                </button>
-              )}
-            </Menu.Item>
-          </Menu.Items>
-        </Transition>
-      </Menu>
-    );
+  const getRoomRange = (occupied) => {
+    const start = Math.floor(occupied / 20) * 20;
+    const end = start + 20;
+    return `${start} to ${end}`;
   };
 
   const FilterPopover = ({ isOpen, onClose }) => {
@@ -289,7 +222,6 @@ const RoomManagement = () => {
 
         {/* Filter + Search */}
         <div className="flex justify-between items-center mb-4">
-          {/* Filter Dropdown */}
           <Listbox value={filterValue} onChange={setFilterValue}>
             <div className="flex items-center gap-3">
               <input
@@ -298,7 +230,6 @@ const RoomManagement = () => {
                 checked={selectedRooms.length === currentRooms.length && currentRooms.length > 0}
                 onChange={handleSelectAll}
               />
-              {/* Dropdown */}
               <div className="relative">
                 <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-full border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-transparent text-[#08994A] dark:text-white min-w-[120px]">
                   {filterValue}
@@ -324,29 +255,24 @@ const RoomManagement = () => {
                   ))}
                 </Listbox.Options>
               </div>
-
-              {/* Chip button for "Bed group lists" */}
               <button
                 onClick={isBedListRoute ? handleRoomManagementClick : handleBedListClick}
-                className={`px-4 h-[40px] ml-4 rounded-full text-sm border border-[#0EFF7B] dark:border-green-400 text-[#08994A] dark:text-green-400 ${
+                className={`px-4 h-[40px] ml-4 rounded-full text-sm border border-[#0EFF7B] dark:border-green-400 text-[#08994A] dark:text-[white] ${
                   isBedListRoute
                     ? "text-white bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
-                    : "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22]"
+                    : " bg-[#0EFF7B1A] dark:bg-[#0EFF7B22]"
                 }`}
               >
                 Bed group lists
               </button>
             </div>
           </Listbox>
-
-          {/* Search + Settings together */}
-       
         </div>
 
         {/* Filter Popover */}
         <FilterPopover isOpen={filterOpen} onClose={() => setFilterOpen(false)} />
 
-        {/* Render different content based on route */}
+        {/* Table */}
         <Routes>
           <Route
             path="/"
@@ -364,11 +290,11 @@ const RoomManagement = () => {
                             onChange={handleSelectAll}
                           />
                         </th>
-                        <th className="px-4 py-3 w-[80px]">Icon</th>
                         <th className="px-4 py-3">Bed Group</th>
+                        <th className="px-4 py-3">Bed No's</th>
                         <th className="px-4 py-3">Capacity</th>
-                        <th className="px-4 py-3">Occupied RM</th>
-                        <th className="px-4 py-3">Unoccupied RM</th>
+                        <th className="px-4 py-3">Occupied Bed</th>
+                        <th className="px-4 py-3">Unoccupied Bed</th>
                         <th className="px-4 py-3 w-[80px] text-center">Actions</th>
                       </tr>
                     </thead>
@@ -376,23 +302,18 @@ const RoomManagement = () => {
                       {currentRooms.length > 0 ? (
                         currentRooms.map((room, index) => {
                           const isLastFewRows = index >= currentRooms.length - 2;
-
                           return (
-                            <tr key={room.roomNo} className="hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
+                            <tr key={index} className="hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                               <td className="px-4 py-3 h-[60px]">
                                 <input
                                   type="checkbox"
                                   className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
-                                  checked={selectedRooms.includes(room.roomNo)}
-                                  onChange={() => handleCheckboxChange(room.roomNo)}
+                                  checked={selectedRooms.includes(index)}
+                                  onChange={() => handleCheckboxChange(index)}
                                 />
                               </td>
-                              <td className="px-4 py-3">
-                                {bedGroupIcons[room.bedGroup] || (
-                                  <Bed size={18} className="text-gray-600 dark:text-gray-400" />
-                                )}
-                              </td>
                               <td className="px-4 py-3 text-black dark:text-white">{room.bedGroup}</td>
+                              <td className="px-4 py-3 text-black dark:text-white">{getRoomRange(room.occupied)}</td>
                               <td className="px-4 py-3 text-black dark:text-white">{room.capacity}</td>
                               <td className="px-4 py-3 text-black dark:text-white">{room.occupied}</td>
                               <td className="px-4 py-3 text-black dark:text-white">{room.unoccupied}</td>
@@ -430,7 +351,7 @@ const RoomManagement = () => {
                                       <Menu.Item>
                                         {({ active }) => (
                                           <button
-                                            onClick={() => handleDeleteClick(room.roomNo)}
+                                            onClick={() => handleDeleteClick(index)}
                                             className={`${
                                               active ? "bg-[#0EFF7B1A] dark:bg-gray-800" : ""
                                             } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
@@ -488,7 +409,7 @@ const RoomManagement = () => {
           />
         )}
 
-        {/* Pagination - Only show for room management view */}
+        {/* Pagination */}
         {!isBedListRoute && (
           <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
@@ -525,5 +446,4 @@ const RoomManagement = () => {
     </div>
   );
 };
-
 export default RoomManagement;

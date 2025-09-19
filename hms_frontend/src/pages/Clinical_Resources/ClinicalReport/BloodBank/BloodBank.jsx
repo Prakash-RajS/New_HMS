@@ -5,9 +5,11 @@ import DeleteBloodBankPopup from "./DeleteBloodBankPopup.jsx";
 import EditBloodTypes from "./EditBloodTypes.jsx";
 import EditDonorPopup from "./EditDonorPopup.jsx";
 import AddBloodTypePopup from "./AddBloodTypesPopup.jsx";
+import AddDonorPopup from "./AddDonorPopup.jsx";
 
 const BloodBank = () => {
   const [showAddPopup, setShowAddPopup] = useState(false);
+  const [showAddDonorPopup, setShowAddDonorPopup] = useState(false); 
   const [showEditBloodPopup, setShowEditBloodPopup] = useState(false);
   const [editBlood, setEditBlood] = useState(null);
   const [showDeleteBloodPopup, setShowDeleteBloodPopup] = useState(false);
@@ -353,6 +355,19 @@ const BloodBank = () => {
           </div>
         </div>
       </div>
+      <div className="mt-5 mb-1 bg-white dark:bg-black rounded-xl p-6 w-full flex flex-col">
+  <div className="flex justify-end items-center">
+    <button
+      onClick={() => setShowAddDonorPopup(true)}
+      className="w-[210px] flex justify-center items-center gap-2 bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] hover:bg-[#0cd968] px-4 py-2 rounded-full text-white dark:text-black font-semibold"
+    >
+      <Plus size={18} className="text-black dark:text-black" />
+      Add Donor
+    </button>
+  </div>
+</div>
+
+
 
       {/* Donor List Table */}
       <div className="bg-white dark:bg-[#0D0D0D] text-black dark:text-white rounded-xl p-6 mt-7 shadow-md">
@@ -453,12 +468,12 @@ const BloodBank = () => {
                   >
                     <Edit size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
                   </button>
-                  <button
+                  {/* <button
                     className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                     onClick={() => handleDeleteSingleDonor(d)}
                   >
                     <Trash2 size={18} className="text-red-600 dark:text-red-700" />
-                  </button>
+                  </button> */}
                   <button
                     className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                   >
@@ -524,6 +539,9 @@ const BloodBank = () => {
       {showEditDonorPopup && (
         <EditDonorPopup data={editDonor} onClose={() => setShowEditDonorPopup(false)} />
       )}
+      {showAddDonorPopup && (
+  <AddDonorPopup data={null} onClose={() => setShowAddDonorPopup(false)} />
+)}
       {showDeleteDonorPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[400px]">

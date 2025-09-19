@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 class Department(models.Model):
     STATUS_CHOICES = (("active", "Active"), ("inactive", "Inactive"))
@@ -156,7 +158,6 @@ class Patient(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.patient_unique_id})"
     
-    
 class BloodGroup(models.Model):
     BLOOD_TYPES = [
         ("A+", "A+"),
@@ -176,7 +177,7 @@ class BloodGroup(models.Model):
     ]
 
     blood_type = models.CharField(max_length=3, choices=BLOOD_TYPES, unique=True)
-    available_units = models.IntegerField(default=0)  # store units like 150, 200 etc.
+    available_units = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Available")
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -188,3 +189,57 @@ class BloodGroup(models.Model):
 
     def __str__(self):
         return f"{self.blood_type} ({self.available_units} units - {self.status})"
+
+    def update_status(self):
+        """Update stock status based on available units"""
+        if self.available_units == 0:
+            self.status = "Out of Stock"
+        elif self.available_units < 50:
+            self.status = "Low Stock"
+        else:
+            self.status = "Available"
+        self.save()
+
+
+class Donor(models.Model):
+    GENDER_CHOICES = [
+        ("Male", "Male"),
+        ("Female", "Female"),
+        ("Other", "Other"),
+    ]
+
+    donor_name = models.CharField(max_length=255)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    blood_type = models.CharField(max_length=3, choices=BloodGroup.BLOOD_TYPES)
+    phone = models.CharField(max_length=20, unique=True)
+    last_donation_date = models.DateField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=[("Eligible", "Eligible"), ("Not Eligible", "Not Eligible")],
+        default="Not Eligible",
+    )
+    added_date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        db_table = "donors"
+        ordering = ["donor_name"]
+
+    def __str__(self):
+        return f"{self.donor_name} - {self.blood_type} ({self.status})"
+
+    def check_eligibility(self):
+        """Donor becomes eligible 6 months after last donation"""
+        if self.last_donation_date:
+            next_eligible_date = self.last_donation_date + timedelta(days=180)
+            if timezone.now().date() >= next_eligible_date:
+                self.status = "Eligible"
+            else:
+                self.status = "Not Eligible"
+        else:
+            # Newly added donor → Not Eligible until 6 months pass
+            next_eligible_date = self.added_date + timedelta(days=180)
+            if timezone.now().date() >= next_eligible_date:
+                self.status = "Eligible"
+            else:
+                self.status = "Not Eligible"
+        self.save()
