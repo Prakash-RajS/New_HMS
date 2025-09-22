@@ -103,6 +103,8 @@ class Staff(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.designation} ({self.department.name})"
+    class Meta:
+        db_table = "staff"  
 
 
 class Patient(models.Model):
@@ -289,3 +291,67 @@ class LabReport(models.Model):
         return str(self.patient.patient_unique_id)
 
 
+class BedGroup(models.Model):
+    bedGroup = models.CharField(max_length=100, unique=True)
+    capacity = models.IntegerField()
+    occupied = models.IntegerField(default=0)
+    unoccupied = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, default="Available")
+
+    def update_status(self):
+        """Update availability status"""
+        self.status = "Available" if self.unoccupied > 0 else "Not Available"
+        self.save()
+
+    def __str__(self):
+        return f"{self.bedGroup} (Total: {self.capacity}, Occ: {self.occupied}, Free: {self.unoccupied})"
+
+
+class Bed(models.Model):
+    bed_number = models.IntegerField()
+    is_occupied = models.BooleanField(default=False)
+    bed_group = models.ForeignKey(BedGroup, related_name="beds", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("bed_number", "bed_group")
+
+    def __str__(self):
+        return f"Bed {self.bed_number} ({'Occupied' if self.is_occupied else 'Free'}) in {self.bed_group.bedGroup}"
+    
+
+class Payroll(models.Model):
+    STATUS_CHOICES = [
+        ("Paid", "Paid"),
+        ("Unpaid", "Unpaid"),
+        ("Pending", "Pending"),
+        ("Failed", "Failed")
+    ]
+
+    staff = models.ForeignKey(Staff, on_delete=models.CASCADE, related_name="payrolls")
+    pay_period = models.CharField(max_length=20)   # e.g., "Mar 2025"
+    net_pay = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="Pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.staff.full_name} - {self.pay_period}"
+    
+class Staff_Management(models.Model):
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE,
+        related_name="attendance_records",null=True, blank=True
+    )
+    date = models.DateField(null=True, blank=True)
+    shift = models.CharField(max_length=20, null=True, blank=True)
+    status = models.CharField(max_length=20, null=True, blank=True)
+    check_in = models.TimeField(null=True, blank=True)
+    check_out = models.TimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "staff_management"
+
+    def __str__(self):
+        return self.staff.full_name if self.staff else "Unnamed Staff"

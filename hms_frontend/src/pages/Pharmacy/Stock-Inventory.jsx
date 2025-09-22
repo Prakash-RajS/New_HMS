@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Listbox } from "@headlessui/react";
 import {
   Search,
@@ -13,7 +13,45 @@ import {
   AlertTriangle,
   XCircle,
   X,
+  Edit2,
 } from "lucide-react";
+
+const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+      <div className="w-[400px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 shadow-[0px_0px_2px_0px_#A0A0A040]">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+            Confirm Deletion
+          </h2>
+          <button
+            onClick={onCancel}
+            className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+          >
+            <X size={16} className="text-[#08994A] dark:text-white" />
+          </button>
+        </div>
+        <p className="text-sm text-black dark:text-white mb-6">
+          Are you sure you want to delete {itemsToDelete.length} item(s)?
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            onClick={onCancel}
+            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const StockInventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,6 +68,11 @@ const StockInventory = () => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddStockPopup, setShowAddStockPopup] = useState(false);
+  const [showEditStockPopup, setShowEditStockPopup] = useState(false);
+  const [editStockId, setEditStockId] = useState(null);
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [showSingleDeletePopup, setShowSingleDeletePopup] = useState(false);
+  const [singleDeleteId, setSingleDeleteId] = useState(null);
   const [newStock, setNewStock] = useState({
     name: "",
     category: "",
@@ -39,6 +82,9 @@ const StockInventory = () => {
     stock: "",
     status: "IN STOCK",
   });
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const dropdownRefs = useRef({});
+
   const [inventoryData, setInventoryData] = useState([
     {
       id: 1,
@@ -115,6 +161,19 @@ const StockInventory = () => {
   const categories = ["Local Anesthesia", "Antiseptics", "Antibiotics", "Anti-inflammatory", "Analgesics", "Steroid", "Antifungal"];
   const itemsPerPage = 9;
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdownId && !dropdownRefs.current[openDropdownId]?.contains(event.target)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdownId]);
+
   // Updated filter logic to include status and category
   const filteredData = inventoryData.filter((item) => {
     const matchesSearch = Object.values(item)
@@ -172,6 +231,13 @@ const StockInventory = () => {
     setInventoryData(inventoryData.filter((item) => !selectedRows.includes(item.id)));
     setSelectedRows([]);
     setSelectAll(false);
+    setShowDeletePopup(false);
+  };
+
+  const handleDeleteSingle = (id) => {
+    setInventoryData(inventoryData.filter((item) => item.id !== id));
+    setShowSingleDeletePopup(false);
+    setSingleDeleteId(null);
   };
 
   const handleAddStock = (e) => {
@@ -191,6 +257,40 @@ const StockInventory = () => {
       stock: "",
       status: "IN STOCK",
     });
+  };
+
+  const handleEditStock = (e) => {
+    e.preventDefault();
+    setInventoryData(
+      inventoryData.map((item) =>
+        item.id === editStockId ? { ...item, ...newStock, stock: parseInt(newStock.stock) || 0 } : item
+      )
+    );
+    setShowEditStockPopup(false);
+    setNewStock({
+      name: "",
+      category: "",
+      batch: "",
+      vendor: "",
+      vendorCode: "",
+      stock: "",
+      status: "IN STOCK",
+    });
+    setEditStockId(null);
+  };
+
+  const openEditPopup = (item) => {
+    setNewStock({
+      name: item.name,
+      category: item.category,
+      batch: item.batch,
+      vendor: item.vendor,
+      vendorCode: item.vendorCode,
+      stock: item.stock.toString(),
+      status: item.status,
+    });
+    setEditStockId(item.id);
+    setShowEditStockPopup(true);
   };
 
   const handleSort = (column) => {
@@ -542,8 +642,9 @@ const StockInventory = () => {
             </div>
           )}
           <button
-            onClick={handleDeleteSelected}
-            className="bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-500"
+            onClick={() => selectedRows.length > 0 && setShowDeletePopup(true)}
+            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-500 ${selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+            disabled={selectedRows.length === 0}
           >
             <Trash2 size={16} />
           </button>
@@ -551,31 +652,32 @@ const StockInventory = () => {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden">
-        <table className="w-full border-collapse border border-[#0EFF7B] dark:border-black rounded-[8px]">
-          <thead className="bg-gray-100 dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
-            <tr className="h-[52px] bg-gray-100 dark:bg-[#1E1E1E] text-left text-sm text-[#08994A] dark:text-white rounded-[8px] border border-[#0EFF7B] dark:border-black">
-              <th className="px-3 py-3">
-                <input
-                  type="checkbox"
-                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                  checked={displayedData.length > 0 && selectedRows.length === displayedData.length}
-                  onChange={handleSelectAll}
-                />
-              </th>
-              {[
-                { label: "Name", key: "name" },
-                { label: "Categories", key: "category" },
-                { label: "Batch number", key: "batch" },
-                { label: "Vendor", key: "vendor" },
-                { label: "Available stocks", key: "stock" },
-                { label: "Status", key: "status" },
-              ].map((col) => (
-                <th
-                  key={col.key}
-                  className="px-3 py-3 font-medium cursor-pointer select-none"
-                  onClick={() => handleSort(col.key)}
-                >
+      <table className="w-full border-collapse border border-[#0EFF7B] dark:border-black rounded-[8px] min-w-[800px]">
+        <thead className="bg-gray-100 dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+          <tr className="h-[52px] bg-gray-100 dark:bg-[#1E1E1E] text-left text-sm text-[#08994A] dark:text-white rounded-[8px] border border-[#0EFF7B] dark:border-black">
+            <th className="px-3 py-3">
+              <input
+                type="checkbox"
+                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                checked={displayedData.length > 0 && selectedRows.length === displayedData.length}
+                onChange={handleSelectAll}
+              />
+            </th>
+            {[
+              { label: "Name", key: "name" },
+              { label: "Categories", key: "category" },
+              { label: "Batch number", key: "batch" },
+              { label: "Vendor", key: "vendor" },
+              { label: "Available stocks", key: "stock" },
+              { label: "Status", key: "status" },
+              { label: "Action", key: "action" },
+            ].map((col) => (
+              <th
+                key={col.key}
+                className={`px-3 py-3 font-medium ${col.key !== "action" ? "cursor-pointer select-none" : ""}`}
+                onClick={col.key !== "action" ? () => handleSort(col.key) : undefined}
+              >
+                {col.key !== "action" ? (
                   <div className="flex items-center gap-1">
                     {col.label}
                     <div className="flex flex-col ml-1">
@@ -597,57 +699,97 @@ const StockInventory = () => {
                       </svg>
                     </div>
                   </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="text-sm bg-white dark:bg-black">
-            {sortedData.length > 0 ? (
-              sortedData.map((row) => (
-                <tr
-                  key={row.id}
-                  className="w-full h-[62px] bg-white dark:bg-black px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E]"
-                >
-                  <td className="px-3 py-3">
-                    <input
-                      type="checkbox"
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                      checked={selectedRows.includes(row.id)}
-                      onChange={() => handleRowSelect(row.id)}
-                    />
-                  </td>
-                  <td className="px-3 py-3 text-black dark:text-white">{row.name}</td>
-                  <td className="px-3 py-3 text-black dark:text-white">{row.category}</td>
-                  <td className="px-3 py-3 text-black dark:text-white">{row.batch}</td>
-                  <td className="px-3 py-3 text-black dark:text-white">
-                    {row.vendor} <span className="text-gray-500 ml-1">({row.vendorCode})</span>
-                  </td>
-                  <td className="px-3 py-3 text-black dark:text-white">{row.stock}</td>
-                  <td className="px-3 py-3 font-medium">
-                    <span
-                      className={`${
-                        row.status === "IN STOCK"
-                          ? "text-green-500"
-                          : row.status === "LOW STOCK"
-                          ? "text-yellow-500"
-                          : "text-red-500"
-                      }`}
+                ) : (
+                  col.label
+                )}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="text-sm bg-white dark:bg-black">
+          {sortedData.length > 0 ? (
+            sortedData.map((row, index) => (
+              <tr
+                key={row.id}
+                className="w-full h-[62px] bg-white dark:bg-black px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E] relative"
+              >
+                <td className="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    checked={selectedRows.includes(row.id)}
+                    onChange={() => handleRowSelect(row.id)}
+                  />
+                </td>
+                <td className="px-3 py-3 text-black dark:text-white">{row.name}</td>
+                <td className="px-3 py-3 text-black dark:text-white">{row.category}</td>
+                <td className="px-3 py-3 text-black dark:text-white">{row.batch}</td>
+                <td className="px-3 py-3 text-black dark:text-white">
+                  {row.vendor} <span className="text-gray-500 ml-1">({row.vendorCode})</span>
+                </td>
+                <td className="px-3 py-3 text-black dark:text-white">{row.stock}</td>
+                <td className="px-3 py-3 font-medium">
+                  <span
+                    className={`${
+                      row.status === "IN STOCK"
+                        ? "text-green-500"
+                        : row.status === "LOW STOCK"
+                        ? "text-yellow-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    • {row.status}
+                  </span>
+                </td>
+                <td className="px-3 py-3 relative">
+                  <button
+                    className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+                    onClick={() => setOpenDropdownId(openDropdownId === row.id ? null : row.id)}
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                  <div
+                    ref={(el) => (dropdownRefs.current[row.id] = el)}
+                    id={`dropdown-${row.id}`}
+                    className={`absolute z-50 bg-white dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-2 ${
+                      openDropdownId === row.id ? "block" : "hidden"
+                    } ${index >= sortedData.length - 3 ? "bottom-full mb-0 ml-[-50px]" : "top-full mt-2 ml-[-50px]"}`}
+                    style={{ left: 0 }}
+                  >
+                    <button
+                      onClick={() => {
+                        openEditPopup(row);
+                        setOpenDropdownId(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
                     >
-                      • {row.status}
-                    </span>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr className="h-[62px] bg-white dark:bg-black">
-                <td colSpan="7" className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                  No inventory found
+                      <Edit2 size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSingleDeleteId(row.id);
+                        setShowSingleDeletePopup(true);
+                        setOpenDropdownId(null);
+                      }}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                    >
+                      <Trash2 size={14} className="text-red-500" />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          ) : (
+            <tr className="h-[62px] bg-white dark:bg-black">
+              <td colSpan="8" className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                No inventory found
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
 
       {/* Add Stock Popup */}
       {showAddStockPopup && (
@@ -750,6 +892,154 @@ const StockInventory = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Stock Popup */}
+      {showEditStockPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="w-[504px] h-[463px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 gap-8 shadow-[0px_0px_2px_0px_#A0A0A040] relative">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+                Edit Stock
+              </h2>
+              <button
+                onClick={() => {
+                  setShowEditStockPopup(false);
+                  setNewStock({
+                    name: "",
+                    category: "",
+                    batch: "",
+                    vendor: "",
+                    vendorCode: "",
+                    stock: "",
+                    status: "IN STOCK",
+                  });
+                  setEditStockId(null);
+                }}
+                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+              >
+                <X size={16} className="text-[#08994A] dark:text-white" />
+              </button>
+            </div>
+            <form onSubmit={handleEditStock} className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm text-black dark:text-white">Product Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter product name"
+                  value={newStock.name}
+                  onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  required
+                />
+              </div>
+              <Dropdown
+                label="Category"
+                value={newStock.category}
+                onChange={(val) => setNewStock({ ...newStock, category: val })}
+                options={categories}
+              />
+              <div>
+                <label className="text-sm text-black dark:text-white">Batch Number</label>
+                <input
+                  type="text"
+                  placeholder="Enter Batch Number"
+                  value={newStock.batch}
+                  onChange={(e) => setNewStock({ ...newStock, batch: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm text-black dark:text-white">Vendor</label>
+                <input
+                  type="text"
+                  placeholder="Enter Vendor"
+                  value={newStock.vendor}
+                  onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm text-black dark:text-white">Add Stock</label>
+                <input
+                  type="number"
+                  placeholder="Stock Quantity"
+                  value={newStock.stock}
+                  onChange={(e) => setNewStock({ ...newStock, stock: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm text-black dark:text-white">Vendor ID</label>
+                <input
+                  type="text"
+                  placeholder="Enter Vendor ID"
+                  value={newStock.vendorCode}
+                  onChange={(e) => setNewStock({ ...newStock, vendorCode: e.target.value })}
+                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
+                  required
+                />
+              </div>
+              <Dropdown
+                label="Status"
+                value={newStock.status}
+                onChange={(val) => setNewStock({ ...newStock, status: val })}
+                options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
+              />
+            </form>
+            <div className="flex justify-center gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditStockPopup(false);
+                  setNewStock({
+                    name: "",
+                    category: "",
+                    batch: "",
+                    vendor: "",
+                    vendorCode: "",
+                    stock: "",
+                    status: "IN STOCK",
+                  });
+                  setEditStockId(null);
+                }}
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleEditStock}
+                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+              >
+                Update Stock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Popup */}
+      {showDeletePopup && (
+        <DeleteStockList
+          itemsToDelete={selectedRows}
+          onConfirm={handleDeleteSelected}
+          onCancel={() => setShowDeletePopup(false)}
+        />
+      )}
+
+      {/* Single Delete Popup */}
+      {showSingleDeletePopup && (
+        <DeleteStockList
+          itemsToDelete={[singleDeleteId]}
+          onConfirm={() => handleDeleteSingle(singleDeleteId)}
+          onCancel={() => {
+            setShowSingleDeletePopup(false);
+            setSingleDeleteId(null);
+          }}
+        />
       )}
     </div>
   );
