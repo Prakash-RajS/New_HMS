@@ -434,7 +434,7 @@ const AppointmentListOPD = () => {
 
       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
-          Page {currentPage} of {totalPages} (
+          Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{currentPage}</span> of {totalPages} (
           {(currentPage - 1) * itemsPerPage + 1} to{" "}
           {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
           from {filteredAppointments.length} Patients)

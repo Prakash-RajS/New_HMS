@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import DeleteLabReportPopup from "./DeleteLabReport.jsx";
+import CreateTestOrderPopup from "./CreateTestOrderPopup.jsx";
 import {
   Plus,
   Search,
   MoreHorizontal,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Filter,
   Download,
   Link,
@@ -16,13 +19,15 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
-const Dropdown = ({ label, value, onChange, options }) => (
-  <div className="space-y-1 w-full">
+const Dropdown = ({ label, value, onChange, options, error }) => (
+  <div>
     <label className="text-sm text-black dark:text-white">{label}</label>
     <Listbox value={value || "Select"} onChange={onChange}>
-      <div className="relative w-full min-w-0">
+      <div className="relative mt-1 w-[228px]">
         <Listbox.Button
-          className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+          className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#0D0D0D] 
+          bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
+          focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -30,16 +35,17 @@ const Dropdown = ({ label, value, onChange, options }) => (
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black 
+          shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]"
         >
           {options.map((option, idx) => (
             <Listbox.Option
               key={idx}
               value={option.value || option}
               className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                  active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
+                ${active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
+                ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
               }
             >
               {option.label || option}
@@ -47,6 +53,7 @@ const Dropdown = ({ label, value, onChange, options }) => (
           ))}
         </Listbox.Options>
       </div>
+      {error && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
     </Listbox>
   </div>
 );
@@ -67,10 +74,18 @@ const LabReport = () => {
     date: "",
   });
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState(null);
   const [showActionMenu, setShowActionMenu] = useState(null);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [selectedOrderForDelete, setSelectedOrderForDelete] = useState(null);
+  const [formData, setFormData] = useState({
+    patient: "",
+    department: "",
+    type: "",
+    status: "",
+  });
+  const [errors, setErrors] = useState({});
   const [testOrders, setTestOrders] = useState([
     {
       id: "L12345",
@@ -239,6 +254,12 @@ const LabReport = () => {
 
   const openEditPopup = (order) => {
     setSelectedOrderForEdit(order);
+    setFormData({
+      patient: order.patient,
+      department: order.department,
+      type: order.type,
+      status: order.status,
+    });
     setShowEditPopup(true);
     setShowActionMenu(null);
   };
@@ -249,13 +270,31 @@ const LabReport = () => {
     setShowActionMenu(null);
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.patient.trim()) newErrors.patient = "Patient name is required";
+    if (!formData.department) newErrors.department = "Department is required";
+    if (!formData.type.trim()) newErrors.type = "Test type is required";
+    if (!formData.status) newErrors.status = "Status is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveEdit = () => {
-    setTestOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.id === selectedOrderForEdit.id ? selectedOrderForEdit : order
-      )
-    );
-    setShowEditPopup(false);
+    if (validateForm()) {
+      setTestOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === selectedOrderForEdit.id ? { ...order, ...formData } : order
+        )
+      );
+      setShowEditPopup(false);
+      setErrors({});
+    }
+  };
+
+  const handleCreateOrder = (newOrder) => {
+    setTestOrders((prevOrders) => [...prevOrders, newOrder]);
+    setShowCreatePopup(false);
   };
 
   const departments = [...new Set(testOrders.map((order) => order.department))];
@@ -286,11 +325,12 @@ const LabReport = () => {
   }, [showActionMenu]);
 
   return (
-    <div className="bg-white dark:bg-black mt-[70px] text-black dark:text-white min-h-screen p-6">
+    <div className="bg-white dark:bg-black mt-[70px] text-black dark:text-white min-h-auto p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-lg font-semibold text-black dark:text-white">Laboratory & Radiology</h1>
         <button
+          onClick={() => setShowCreatePopup(true)}
           className="flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[20px] text-white font-medium shadow-md bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] border border-[#0EFF7B66] dark:border-[#0EFF7B66] hover:scale-105 transition"
         >
           <Plus className="w-4 h-4 text-black dark:text-black" />
@@ -350,24 +390,6 @@ const LabReport = () => {
           />
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600 dark:text-white">
-            Page <span className="text-green-500 dark:text-green-500">{currentPage}</span> of {totalPages} (
-            {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} Orders)
-          </span>
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="bg-gray-200 dark:bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-black dark:text-white disabled:opacity-50"
-          >
-            &lt;
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="bg-gray-200 dark:bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-black dark:text-white disabled:opacity-50"
-          >
-            &gt;
-          </button>
           <div className="relative">
             <Listbox
               value={filterCategory}
@@ -423,163 +445,72 @@ const LabReport = () => {
 
       {/* Filter Popup */}
       {showFilterPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[700px]">
-            <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">Filter Test Orders</h3>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] 
+            backdrop-blur-md relative">
+            {/* Header */}
+            <div className="flex justify-between items-center pb-3 mb-4">
+              <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-[#0EFF7B]">
+                Filter Test Orders
+              </h3>
               <button
                 onClick={() => setShowFilterPopup(false)}
-                className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] 
+                shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center"
               >
-                <X className="w-5 h-5 text-[#08994A] dark:text-[#0EFF7B]" />
+                <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
               </button>
             </div>
+
+            {/* Form */}
             <div className="grid grid-cols-2 gap-6">
+              {/* Category */}
+              <Dropdown
+                label="Category"
+                value={tempFilters.category}
+                onChange={(value) => setTempFilters({ ...tempFilters, category: value })}
+                options={["All", ...departments]}
+              />
+
+              {/* Last Test Date */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Category</label>
-                <div className="relative">
-                  <Listbox
-                    value={tempFilters.category}
-                    onChange={(value) => setTempFilters({ ...tempFilters, category: value })}
-                  >
-                    <Listbox.Button
-                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
-                    >
-                      {tempFilters.category === "All" ? "Select category" : tempFilters.category}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-                    </Listbox.Button>
-                    <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-                    >
-                      <Listbox.Option
-                        value="All"
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                          } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        Select category
-                      </Listbox.Option>
-                      {departments.map((dept) => (
-                        <Listbox.Option
-                          key={dept}
-                          value={dept}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                            } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          {dept}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </Listbox>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">
-                  Last Test Date
-                </label>
+                <label className="text-sm text-black dark:text-white">Last Test Date</label>
                 <div className="relative">
                   <input
                     type="date"
                     value={tempFilters.date}
                     onChange={(e) => setTempFilters({ ...tempFilters, date: e.target.value })}
-                    className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+                    dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+                    outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                   />
-                  <Calendar className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3 top-3.5 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                  />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Status</label>
-                <div className="relative">
-                  <Listbox
-                    value={tempFilters.status}
-                    onChange={(value) => setTempFilters({ ...tempFilters, status: value })}
-                  >
-                    <Listbox.Button
-                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
-                    >
-                      {tempFilters.status === "All" ? "Select status" : tempFilters.status}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-                    </Listbox.Button>
-                    <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-                    >
-                      <Listbox.Option
-                        value="All"
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                          } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        Select status
-                      </Listbox.Option>
-                      {statusOptions.slice(1).map((status) => (
-                        <Listbox.Option
-                          key={status}
-                          value={status}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                            } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          {status}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </Listbox>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Gender</label>
-                <div className="relative">
-                  <Listbox
-                    value={tempFilters.gender}
-                    onChange={(value) => setTempFilters({ ...tempFilters, gender: value })}
-                  >
-                    <Listbox.Button
-                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
-                    >
-                      {tempFilters.gender === "All" ? "Select gender" : tempFilters.gender}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-                    </Listbox.Button>
-                    <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-                    >
-                      <Listbox.Option
-                        value="All"
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                          } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        Select gender
-                      </Listbox.Option>
-                      {genderOptions.slice(1).map((gender) => (
-                        <Listbox.Option
-                          key={gender}
-                          value={gender}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                            } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          {gender}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </Listbox>
-                </div>
-              </div>
+
+              {/* Status */}
+              <Dropdown
+                label="Status"
+                value={tempFilters.status}
+                onChange={(value) => setTempFilters({ ...tempFilters, status: value })}
+                options={statusOptions}
+              />
+
+              {/* Gender */}
+              <Dropdown
+                label="Gender"
+                value={tempFilters.gender}
+                onChange={(value) => setTempFilters({ ...tempFilters, gender: value })}
+                options={genderOptions}
+              />
             </div>
-            <div className="flex justify-end gap-3 mt-8 pt-4">
+
+            {/* Buttons */}
+            <div className="flex justify-center gap-[18px] mt-8">
               <button
                 onClick={() => {
                   clearFilters();
@@ -590,13 +521,15 @@ const LabReport = () => {
                     date: "",
                   });
                 }}
-                className="px-5 py-2.5 text-sm rounded-lg bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0D0D0D] text-[#08994A] dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+                text-[#08994A] dark:text-white font-medium text-[14px] hover:bg-[#0EFF7B1A] transition"
               >
-                Clear
+                Cancel
               </button>
               <button
                 onClick={applyFilters}
-                className="px-5 py-2.5 text-sm rounded-lg bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968]"
+                className="w-[104px] h-[33px] rounded-[20px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
+                text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition"
               >
                 Update
               </button>
@@ -685,6 +618,39 @@ const LabReport = () => {
         </table>
       </div>
 
+      {/* Pagination */}
+      <div className="flex items-center mt-4 bg-white dark:bg-[#000000] rounded gap-x-4">
+        <div className="text-sm text-gray-600 dark:text-white">
+          Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{currentPage}</span> of {totalPages} (
+          {(currentPage - 1) * itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, filteredData.length)} from {filteredData.length} Orders)
+        </div>
+        <div className="flex items-center gap-x-2">
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 1}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              currentPage === 1
+                ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+            }`}
+          >
+            <ChevronLeft size={12} />
+          </button>
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              currentPage === totalPages
+                ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+            }`}
+          >
+            <ChevronRight size={12} />
+          </button>
+        </div>
+      </div>
+
       {/* No Results Message */}
       {filteredData.length === 0 && (
         <div className="text-center py-8 text-gray-600 dark:text-gray-400">
@@ -692,123 +658,98 @@ const LabReport = () => {
         </div>
       )}
 
+      {/* Create Test Order Popup */}
+      {showCreatePopup && (
+        <CreateTestOrderPopup
+          onClose={() => setShowCreatePopup(false)}
+          onCreate={handleCreateOrder}
+        />
+      )}
+
       {/* Edit Popup */}
       {showEditPopup && selectedOrderForEdit && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[700px]">
-            <div className="flex justify-between items-center mb-6 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">Edit Order</h3>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] 
+            backdrop-blur-md relative">
+            {/* Header */}
+            <div className="flex justify-between items-center pb-3 mb-4">
+              <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-[#0EFF7B]">
+                Edit Test Order
+              </h3>
               <button
                 onClick={() => setShowEditPopup(false)}
-                className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] 
+                shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center"
               >
-                <X className="w-5 h-5 text-[#08994A] dark:text-[#0EFF7B]" />
+                <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
               </button>
             </div>
+
+            {/* Form */}
             <div className="grid grid-cols-2 gap-6">
+              {/* Patient Name */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Patient Name</label>
+                <label className="text-sm text-black dark:text-white">Patient Name</label>
                 <input
-                  type="text"
-                  value={selectedOrderForEdit.patient}
-                  onChange={(e) =>
-                    setSelectedOrderForEdit({ ...selectedOrderForEdit, patient: e.target.value })
-                  }
-                  className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  name="patient"
+                  value={formData.patient}
+                  onChange={(e) => setFormData({ ...formData, patient: e.target.value })}
+                  placeholder="Enter patient name"
+                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+                  dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+                  outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 />
+                {errors.patient && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.patient}</p>}
               </div>
+
+              {/* Department */}
+              <Dropdown
+                label="Department"
+                value={formData.department}
+                onChange={(val) => setFormData({ ...formData, department: val })}
+                options={departments}
+                error={errors.department}
+              />
+
+              {/* Test Type */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Department</label>
-                <div className="relative">
-                  <Listbox
-                    value={selectedOrderForEdit.department}
-                    onChange={(value) =>
-                      setSelectedOrderForEdit({ ...selectedOrderForEdit, department: value })
-                    }
-                  >
-                    <Listbox.Button
-                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
-                    >
-                      {selectedOrderForEdit.department || "Select"}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-                    </Listbox.Button>
-                    <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-                    >
-                      {departments.map((dept) => (
-                        <Listbox.Option
-                          key={dept}
-                          value={dept}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                            } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          {dept}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </Listbox>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Test Type</label>
+                <label className="text-sm text-black dark:text-white">Test Type</label>
                 <input
-                  type="text"
-                  value={selectedOrderForEdit.type}
-                  onChange={(e) =>
-                    setSelectedOrderForEdit({ ...selectedOrderForEdit, type: e.target.value })
-                  }
-                  className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  name="type"
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  placeholder="Enter test type"
+                  className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+                  dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+                  outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 />
+                {errors.type && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.type}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Status</label>
-                <div className="relative">
-                  <Listbox
-                    value={selectedOrderForEdit.status}
-                    onChange={(value) =>
-                      setSelectedOrderForEdit({ ...selectedOrderForEdit, status: value })
-                    }
-                  >
-                    <Listbox.Button
-                      className="w-full bg-white dark:bg-black border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-lg p-3 text-sm text-[#08994A] dark:text-white focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-left"
-                    >
-                      {selectedOrderForEdit.status || "Select"}
-                      <ChevronDown className="absolute right-3 top-3.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-                    </Listbox.Button>
-                    <Listbox.Options
-                      className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-                    >
-                      {statusOptions.slice(1).map((status) => (
-                        <Listbox.Option
-                          key={status}
-                          value={status}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                            } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          {status}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </Listbox>
-                </div>
-              </div>
+
+              {/* Status */}
+              <Dropdown
+                label="Status"
+                value={formData.status}
+                onChange={(val) => setFormData({ ...formData, status: val })}
+                options={statusOptions.slice(1)}
+                error={errors.status}
+              />
             </div>
-            <div className="flex justify-end gap-3 mt-8 pt-4">
+
+            {/* Buttons */}
+            <div className="flex justify-center mt-7 gap-[18px] mb-4">
               <button
                 onClick={() => setShowEditPopup(false)}
-                className="px-5 py-2.5 text-sm rounded-lg bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0D0D0D] text-[#08994A] dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+                text-[#08994A] dark:text-white font-medium text-[14px] hover:bg-[#0EFF7B1A] transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-5 py-2.5 text-sm rounded-lg bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968]"
+                className="w-[104px] h-[33px] rounded-[20px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
+                text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition"
               >
                 Update
               </button>
@@ -830,7 +771,6 @@ const LabReport = () => {
       )}
     </div>
   );
-  
 };
 
 export default LabReport;

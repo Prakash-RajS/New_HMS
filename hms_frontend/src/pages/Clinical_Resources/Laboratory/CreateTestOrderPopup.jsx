@@ -1,0 +1,196 @@
+import React, { useState } from "react";
+import { X, ChevronDown } from "lucide-react";
+import { Listbox } from "@headlessui/react";
+
+const CreateTestOrderPopup = ({ onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    patientName: "",
+    patientId: "",
+    department: "",
+    testType: "",
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!formData.patientName.trim())
+      newErrors.patientName = "Patient name is required";
+    if (!formData.patientId.trim())
+      newErrors.patientId = "Patient ID is required";
+    if (!formData.department)
+      newErrors.department = "Department is required";
+    if (!formData.testType.trim())
+      newErrors.testType = "Test type is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = () => {
+    if (validateForm()) {
+      if (onSave) onSave(formData);
+      onClose();
+    }
+  };
+
+  // Dropdown options
+  const departments = [
+    "Cardiology",
+    "Neurology",
+    "Orthopedics",
+    "Radiology",
+    "Pathology",
+    "General Medicine",
+  ];
+
+  const Dropdown = ({ label, value, onChange, options, error }) => (
+    <div>
+      <label className="text-sm text-black dark:text-white">{label}</label>
+      <Listbox value={value} onChange={onChange}>
+        <div className="relative mt-1 w-[228px]">
+          <Listbox.Button
+            className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
+            focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+          >
+            {value || "Select"}
+            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+            </span>
+          </Listbox.Button>
+          <Listbox.Options
+            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black 
+            shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]"
+          >
+            {options.map((option, idx) => (
+              <Listbox.Option
+                key={idx}
+                value={option}
+                className={({ active, selected }) =>
+                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
+                  ${active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
+                  ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                }
+              >
+                {option}
+              </Listbox.Option>
+            ))}
+          </Listbox.Options>
+        </div>
+      </Listbox>
+      {error && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+      <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+      bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] 
+      backdrop-blur-md relative">
+        {/* Header */}
+        <div className="flex justify-between items-center pb-3 mb-4">
+          <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-[#0EFF7B]">
+            Create Test Order
+          </h3>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] 
+            shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center"
+          >
+            <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Patient Name */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Patient Name</label>
+            <input
+              name="patientName"
+              value={formData.patientName}
+              onChange={(e) =>
+                setFormData({ ...formData, patientName: e.target.value })
+              }
+              placeholder="Enter name"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+              outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+            />
+            {errors.patientName && (
+              <p className="text-red-500 text-xs mt-1">{errors.patientName}</p>
+            )}
+          </div>
+
+          {/* Patient ID */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Patient ID</label>
+            <input
+              name="patientId"
+              value={formData.patientId}
+              onChange={(e) =>
+                setFormData({ ...formData, patientId: e.target.value })
+              }
+              placeholder="Enter ID"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+              outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+            />
+            {errors.patientId && (
+              <p className="text-red-500 text-xs mt-1">{errors.patientId}</p>
+            )}
+          </div>
+
+          {/* Department */}
+          <Dropdown
+            label="Department"
+            value={formData.department}
+            onChange={(val) => setFormData({ ...formData, department: val })}
+            options={departments}
+            error={errors.department}
+          />
+
+          {/* Test Type */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Test Type</label>
+            <input
+              name="testType"
+              value={formData.testType}
+              onChange={(e) =>
+                setFormData({ ...formData, testType: e.target.value })
+              }
+              placeholder="e.g., X-ray, CT Scan, MRI"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
+              outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+            />
+            {errors.testType && (
+              <p className="text-red-500 text-xs mt-1">{errors.testType}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex justify-center gap-[18px] mt-8">
+          <button
+            onClick={onClose}
+            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            text-[#08994A] dark:text-white font-medium text-[14px] hover:bg-[#0EFF7B1A] transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            className="w-[104px] h-[33px] rounded-[20px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
+            text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CreateTestOrderPopup;

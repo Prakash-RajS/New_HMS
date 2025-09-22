@@ -243,3 +243,49 @@ class Donor(models.Model):
             else:
                 self.status = "Not Eligible"
         self.save()
+
+
+
+from HMS_backend.models import Patient
+
+class LabReport(models.Model):
+    order_id = models.CharField(max_length=20, unique=True)  # LABID0001 format
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="lab_reports", null=True)
+    department = models.CharField(max_length=100)
+    test_type = models.CharField(max_length=100)
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('inprogress', 'In Progress'),
+        ('completed', 'Completed'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "lab_reports"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.order_id} - {self.patient.full_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.order_id:
+            last = LabReport.objects.all().order_by("id").last()
+            if not last:
+                self.order_id = "LABID0001"
+            else:
+                last_id_num = int(last.order_id.replace("LABID", ""))
+                self.order_id = f"LABID{last_id_num + 1:04d}"
+        super().save(*args, **kwargs)
+
+    @property
+    def patient_name(self):
+        return str(self.patient.full_name)
+
+    @property
+    def patient_id(self):
+        return str(self.patient.patient_unique_id)
+
+
