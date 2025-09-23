@@ -3,7 +3,7 @@ import fastapi_app.django_setup  # <-- this sets DJANGO_SETTINGS_MODULE & calls 
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_app.routers import department, appointments, staff,new_registration, add_bloodgroup, blood_donor, labreport, bed_group_list,staffmanagement,payroll,attendance
+from fastapi_app.routers import department, appointments, staff,new_registration, add_bloodgroup, blood_donor, labreport, bed_group_list,staffmanagement,payroll,attendance, stock, ambulance, billing
 
 app = FastAPI(title="HMS Dashboard API")
 
@@ -28,3 +28,7 @@ app.include_router(bed_group_list.router)
 app.include_router(staffmanagement.router)
 app.include_router(attendance.router)
 app.include_router(payroll.router)
+app.include_router(stock.router)
+app.include_router(ambulance.router)
+app.include_router(billing.router)
+

@@ -355,3 +355,139 @@ class Staff_Management(models.Model):
 
     def __str__(self):
         return self.staff.full_name if self.staff else "Unnamed Staff"
+    
+class Stock(models.Model):
+    product_name = models.CharField(max_length=200)
+    category = models.CharField(max_length=100)
+    batch_number = models.CharField(max_length=100)
+    vendor = models.CharField(max_length=200)
+    quantity = models.PositiveIntegerField(default=0)
+    vendor_id = models.CharField(max_length=50)
+    
+    STATUS_CHOICES = [
+        ('available', 'Available'),
+        ('outofstock', 'Out of Stock')
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "stock"
+        unique_together = ('product_name', 'batch_number', 'vendor_id')
+
+    def __str__(self):
+        return f"{self.product_name} - {self.batch_number} - {self.quantity}"
+
+    def add_stock(self, amount: int):
+        """Add stock quantity and update status automatically."""
+        self.quantity += amount
+        self.status = "available" if self.quantity > 0 else "outofstock"
+        self.save()
+
+    @property
+    def no_of_stocks(self):
+        """Alias for total quantity of stock."""
+        return self.quantity
+    
+class AmbulanceUnit(models.Model):
+    unit_number = models.CharField(max_length=50, unique=True)  # e.g. "AMB-09"
+    vehicle_make = models.CharField(max_length=100, blank=True, null=True)
+    vehicle_model = models.CharField(max_length=100, blank=True, null=True)
+    in_service = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "ambulance_units"
+        ordering = ["unit_number"]
+
+    def __str__(self):
+        return self.unit_number
+
+
+class Dispatch(models.Model):
+    CALL_TYPE_CHOICES = [
+        ("Emergency", "Emergency"),
+        ("Non-Emergency", "Non-Emergency"),
+        ("Transfer", "Transfer"),
+    ]
+    STATUS_CHOICES = [
+        ("Completed", "Completed"),
+        ("En Route", "En Route"),
+        ("Standby", "Standby"),
+        ("Cancelled", "Cancelled")
+    ]
+
+    dispatch_id = models.CharField(max_length=50, unique=True)  # e.g. "D-10241"
+    timestamp = models.DateTimeField()  # dispatched time
+    unit = models.ForeignKey(AmbulanceUnit, on_delete=models.SET_NULL, null=True, related_name="dispatches")
+    dispatcher = models.CharField(max_length=150)  # name of dispatcher
+    call_type = models.CharField(max_length=30, choices=CALL_TYPE_CHOICES, default="Emergency")
+    location = models.CharField(max_length=255)
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="Standby")
+
+    class Meta:
+        db_table = "ambulance_dispatches"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.dispatch_id} - {self.unit}"
+
+
+class Trip(models.Model):
+    TRIP_STATUS = [
+        ("Completed", "Completed"),
+        ("En Route", "En Route"),
+        ("Standby", "Standby"),
+        ("Cancelled", "Cancelled"),
+    ]
+
+    trip_id = models.CharField(max_length=50, unique=True)  # e.g. "T-7751"
+    dispatch = models.ForeignKey(Dispatch, on_delete=models.CASCADE, related_name="trips")
+    unit = models.ForeignKey(AmbulanceUnit, on_delete=models.SET_NULL, null=True, related_name="trips")
+    crew = models.TextField(blank=True, null=True)  # e.g. "Paramedic Lewis, EMT Clark"
+    patient_id = models.CharField(max_length=50, blank=True, null=True)
+    pickup_location = models.CharField(max_length=255, blank=True, null=True)
+    destination = models.CharField(max_length=255, blank=True, null=True)
+    start_time = models.DateTimeField(blank=True, null=True)
+    end_time = models.DateTimeField(blank=True, null=True)
+    mileage = models.CharField(max_length=50, blank=True, null=True)  # could be minutes or distance
+    status = models.CharField(max_length=30, choices=TRIP_STATUS, default="Standby")
+    notes = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "ambulance_trips"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.trip_id} (Dispatch: {self.dispatch.dispatch_id})"
+
+class Invoice(models.Model):
+    STATUS_CHOICES = [
+        ("Paid", "Paid"),
+        ("Unpaid", "Unpaid"),
+        ("Pending", "Pending"),
+    ]
+
+    invoice_id = models.CharField(max_length=50, unique=True)
+    date = models.DateField()
+    patient_name = models.CharField(max_length=100)
+    patient_id = models.CharField(max_length=50)
+    department = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=50)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.invoice_id} - {self.patient_name} ({self.status})"
