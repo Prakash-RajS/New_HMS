@@ -145,7 +145,9 @@ async def add_staff(
 # -----------------------------
 @router.get("/all/", response_model=List[StaffResponse])
 async def get_all_staff():
-    staffs = await run_in_threadpool(Staff.objects.select_related('department').all)
+    staffs = await run_in_threadpool(
+        lambda: list(Staff.objects.select_related("department").all())
+    )
     result = []
     for s in staffs:
         result.append(
@@ -155,13 +157,12 @@ async def get_all_staff():
                 full_name=s.full_name,
                 email=s.email,
                 phone=s.phone,
-                department=s.department.name,
+                department=s.department.name if s.department else "",
                 certificates=s.certificates,
                 profile_picture=s.profile_picture
             )
         )
     return result
-
 
 # -----------------------------
 # Update Staff
