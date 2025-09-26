@@ -3,6 +3,7 @@ import { Moon, Sun } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 
+
 const Header = ({ isCollapsed }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -15,6 +16,16 @@ const Header = ({ isCollapsed }) => {
     document.body.classList.toggle("dropdown-open", !isDropdownOpen);
   };
 
+  
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("role");
+
+    // Redirect to login page
+    navigate("/");
+  };
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -258,7 +269,8 @@ const Header = ({ isCollapsed }) => {
                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
                     Settings
                   </li>
-                  <li className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer">
+                  <li className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer"
+                  onClick={handleLogout}>
                     Logout
                   </li>
                 </ul>

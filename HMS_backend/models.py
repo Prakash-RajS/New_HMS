@@ -1,6 +1,38 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, username, password=None, role="admin"):
+        if not username:
+            raise ValueError("Users must have a username")
+        user = self.model(username=username, role=role)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, password):
+        return self.create_user(username=username, password=password, role="admin")
+
+class User(AbstractBaseUser):
+    ROLE_CHOICES = (
+        ("admin", "Admin"),
+    )
+
+    username = models.CharField(max_length=100, unique=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="admin")
+    is_active = models.BooleanField(default=True)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return f"{self.username} ({self.role})"
 
 class Department(models.Model):
     STATUS_CHOICES = (("active", "Active"), ("inactive", "Inactive"))
@@ -491,3 +523,38 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"{self.invoice_id} - {self.patient_name} ({self.status})"
+
+
+class SecuritySettings(models.Model):
+    user = models.OneToOneField(Staff, on_delete=models.CASCADE, related_name="security_settings")
+
+    save_logs = models.BooleanField(default=True)
+    two_factor_auth = models.BooleanField(default=False)
+    login_alerts = models.BooleanField(default=False)
+
+    last_password_change = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Security Settings - {self.user.username}"
+    
+class Permission(models.Model):
+    ROLE_CHOICES = User.ROLE_CHOICES
+
+    MODULE_CHOICES = [
+        ("viewPatients", "View Patients"),
+        ("editPatients", "Edit Patients"),
+        ("generateBills", "Generate Bills"),
+        ("approveInsurance", "Approve Insurance"),
+        ("manageAppointments", "Manage Appointments"),
+        ("manageInventory", "Manage Inventory"),
+        ("ambulance", "Ambulance"),
+    ]
+
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES)
+    module = models.CharField(max_length=100, choices=MODULE_CHOICES)
+    enabled = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("role", "module")

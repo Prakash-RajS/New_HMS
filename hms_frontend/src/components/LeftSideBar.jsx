@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { name: "Dashboard", path: "/", icon: LayoutDashboard },
+  { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { name: "Appointments", path: "/appointments", icon: CalendarDays },
 
   {
