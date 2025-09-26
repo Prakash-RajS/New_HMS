@@ -18,7 +18,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
     try:
-        user = User.objects.get(username=username, role="admin")
+        user = User.objects.get(username=username)  # ✅ No role restriction
     except User.DoesNotExist:
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -34,7 +34,6 @@ def login(username: str = Form(...), password: str = Form(...)):
     }
     token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
-    # Return token + user info
     return {
         "message": "Login successful",
         "token": token,
