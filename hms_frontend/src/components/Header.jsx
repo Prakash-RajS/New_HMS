@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { Moon, Sun } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
+import { successToast, errorToast } from "./Toast.jsx";
 
 
 const Header = ({ isCollapsed }) => {
@@ -18,14 +19,23 @@ const Header = ({ isCollapsed }) => {
 
   
   const handleLogout = () => {
-    // Clear localStorage
+  try {
+    // Clear user session / localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("user_id");
     localStorage.removeItem("role");
 
-    // Redirect to login page
-    navigate("/");
-  };
+    // ✅ Show success toast
+    successToast("Logged out successfully!");
+
+    // Optionally, navigate to login page
+    navigate("/"); 
+  } catch (err) {
+    console.error(err);
+    // ✅ Show error toast if something goes wrong
+    errorToast("Logout failed. Please try again.");
+  }
+};
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {

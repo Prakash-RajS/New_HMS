@@ -1,108 +1,159 @@
-# fastapi_app/routers/security.py
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from typing import List
-from datetime import datetime, timedelta
-import jwt
-import django
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import check_password, make_password
-from HMS_backend.models import Permission
-
-# ------------------ Django setup ------------------
 import os
+import django
+import jwt
+from jwt import ExpiredSignatureError, InvalidTokenError  # ✅ correct imports
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "HMS_backend.settings")
 django.setup()
 
-User = get_user_model()
+from HMS_backend.models import User, Staff, Permission
+from django.contrib.auth.hashers import make_password
 
-# ------------------ Config ------------------
-SECRET_KEY = "your_secret_key_here"
+# ✅ Must match auth.py
+SECRET_KEY = "super_secret_123"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# ------------------ OAuth2 for Swagger ------------------
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/security/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# ------------------ Pydantic Schemas ------------------
+
+# ------------------ Schemas ------------------
+class StaffSchema(BaseModel):
+    full_name: str
+    designation: str
+    staff_id: str
+    department: str
+    email: str
+
+
 class PermissionSchema(BaseModel):
     module: str
     enabled: bool
 
-class UserSchema(BaseModel):
-    username: str
-    role: str
-    permissions: List[PermissionSchema]
 
-# ------------------ Helper Functions ------------------
-def create_access_token(data: dict, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
-    to_encode = data.copy()
-    to_encode.update({"exp": datetime.utcnow() + expires_delta})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-
-def authenticate_user(username: str, password: str):
-    try:
-        user = User.objects.get(username=username)
-        if check_password(password, user.password):
-            return user
-    except User.DoesNotExist:
-        return None
-    return None
-
+# ------------------ Helpers ------------------
 def get_permissions_by_role(role: str):
     perms = Permission.objects.filter(role=role)
-    return [PermissionSchema(module=p.module, enabled=p.enabled) for p in perms]
+    return [{"module": p.module, "enabled": p.enabled} for p in perms]
 
-# ------------------ Dependencies ------------------
+
 def get_current_user(token: str = Depends(oauth2_scheme)):
+    if not token:
+        raise HTTPException(status_code=401, detail="Token missing")
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username = payload.get("sub")
-        role = payload.get("role")
+
+        username = payload.get("sub")  # ✅ matches auth.py
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid token: username missing")
+
         user = User.objects.get(username=username)
-        return {"username": username, "role": role}
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        role = payload.get("role", "staff")
+
+        staff_data = None
+        if hasattr(user, "staff") and user.staff:
+            s = user.staff
+            staff_data = StaffSchema(
+                full_name=s.full_name,
+                designation=s.designation,
+                staff_id=s.employee_id,
+                department=s.department.name,
+                email=s.email,
+            )
+
+        return {
+            "username": username,
+            "role": role,
+            "permissions": get_permissions_by_role(role),
+            "staff_details": staff_data,
+        }
+
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token invalid")
+    except User.DoesNotExist:
+        raise HTTPException(status_code=401, detail="User not found")
+
 
 # ------------------ Router ------------------
 router = APIRouter(prefix="/security", tags=["Security"])
 
 
-# ---------- Create User (Admin only) ----------
+# ---------- Create User ----------
+# ---------- Create User ----------
 @router.post("/create_user")
-def create_user(username: str, password: str, role: str, current_user: dict = Depends(get_current_user)):
-    if current_user["role"] != "admin":
-        raise HTTPException(status_code=403, detail="Only admin can create users")
-    
+def create_user(
+    username: str = Form(...),
+    password: str = Form(...),
+    staff_id: str = Form(...),
+    current_user: dict = Depends(get_current_user),
+):
+    # ✅ Allow Django superuser or role=admin to bypass permission checks
+    db_user = User.objects.get(username=current_user["username"])
+    if not db_user.is_superuser and current_user["role"] != "admin":
+        if "create_user" not in [
+            p["module"] for p in current_user["permissions"] if p["enabled"]
+        ]:
+            raise HTTPException(
+                status_code=403, detail="You do not have permission to create users"
+            )
+
     if User.objects.filter(username=username).exists():
-        raise HTTPException(status_code=400, detail="User already exists")
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    try:
+        staff = Staff.objects.get(employee_id=staff_id)
+    except Staff.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Staff ID not found")
 
     user = User.objects.create(
         username=username,
         password=make_password(password),
-        role=role
+        role=staff.designation,
+        staff=staff,
     )
 
-    # Optional: Create default permissions for the role
+    # Assign default permissions
     for module, _ in getattr(Permission, "MODULE_CHOICES", []):
-        Permission.objects.get_or_create(role=role, module=module)
+        Permission.objects.get_or_create(role=staff.designation, module=module)
 
-    return {"username": user.username, "role": user.role}
+    return {
+        "message": "User created successfully",
+        "username": user.username,
+        "role": user.role,
+        "staff_id": staff.employee_id,
+    }
+
 
 # ---------- Get Permissions ----------
 @router.get("/permissions/{role}", response_model=List[PermissionSchema])
 def read_permissions(role: str, current_user: dict = Depends(get_current_user)):
-    if current_user["role"] != "admin" and current_user["role"] != role:
-        raise HTTPException(status_code=403, detail="Not authorized")
+    db_user = User.objects.get(username=current_user["username"])
+    # ✅ Allow superuser or admin role bypass
+    if not db_user.is_superuser and current_user["role"] != "admin":
+        if current_user["role"] != role:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
     return get_permissions_by_role(role)
 
-# ---------- Toggle Permission (Admin only) ----------
+
+# ---------- Toggle Permission ----------
 @router.post("/permissions/toggle")
-def toggle_permission(role: str, module: str, current_user: dict = Depends(get_current_user)):
-    if current_user["role"] != "admin":
+def toggle_permission(
+    role: str = Form(...),
+    module: str = Form(...),
+    current_user: dict = Depends(get_current_user),
+):
+    db_user = User.objects.get(username=current_user["username"])
+    # ✅ Allow superuser or admin role bypass
+    if not db_user.is_superuser and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admin can toggle permissions")
-    
+
     try:
         perm = Permission.objects.get(role=role, module=module)
         perm.enabled = not perm.enabled

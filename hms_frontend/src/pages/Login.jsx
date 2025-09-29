@@ -17,6 +17,7 @@ import axios from "axios";
 import * as jwt_decode from "jwt-decode";
 import Logo from "../assets/logo_1.png";
 import Eclipse from "../assets/eclipse.png";
+import { successToast, errorToast } from "../components/Toast.jsx";
 
 const icons = [Microscope, Pill, HeartPulse, Ambulance, User, ShieldCheck, Activity];
 
@@ -32,7 +33,7 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
   e.preventDefault();
   setError("");
-  setIsLoading(true); // start loading
+  setIsLoading(true);
 
   try {
     const formData = new FormData();
@@ -41,17 +42,21 @@ const LoginPage = () => {
 
     const res = await axios.post("http://localhost:8000/auth/login", formData);
 
-    // Store token, user_id, role directly from response
-    localStorage.setItem("token", res.data.token);
+    localStorage.setItem("token", res.data.access_token);
     localStorage.setItem("user_id", res.data.user_id);
     localStorage.setItem("role", res.data.role);
 
-    navigate("/dashboard"); // redirect
+    // ✅ Use custom toast functions instead of react-toastify directly
+    successToast("Login successful! Redirecting...");
+    navigate("/dashboard");
   } catch (err) {
     console.error(err);
     setError("Invalid username or password");
+
+    // ✅ Use custom toast
+    errorToast("Invalid username or password");
   } finally {
-    setIsLoading(false); // stop loading
+    setIsLoading(false);
   }
 };
 
@@ -84,7 +89,7 @@ const LoginPage = () => {
 
         {/* Full screen background dots with twinkle animation */}
         <div className="fixed h-full inset-0 z-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 600 }).map((_, i) => {
+          {Array.from({ length: 200 }).map((_, i) => {
             const x = Math.random() * window.innerWidth;
             const y = Math.random() * window.innerHeight;
             return (
@@ -95,10 +100,10 @@ const LoginPage = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: [0, 1, 0] }}
                 transition={{
-                  duration: Math.random() * 2 + 1,
+                  duration: Math.random() * 1 + 0.5,
                   repeat: Infinity,
                   repeatType: "reverse",
-                  delay: Math.random() * 2,
+                  delay: Math.random() * 1,
                 }}
               />
             );
@@ -177,7 +182,7 @@ const LoginPage = () => {
           </motion.p>
 
           {/* Error Message */}
-          {error && (
+          {/* {error && (
             <motion.p
               className="text-red-500 text-center mb-4"
               initial={{ opacity: 0 }}
@@ -186,80 +191,90 @@ const LoginPage = () => {
             >
               {error}
             </motion.p>
-          )}
+          )} */}
 
           {/* Login Form */}
           <form className="flex flex-col gap-4" onSubmit={handleLogin}>
-            <motion.div
-              className="flex flex-col"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              <label htmlFor="username" className="text-gray-400 font-medium mb-1">
-                Username
-              </label>
-              <input
-                type="text"
-                id="username"
-                placeholder="Enter your username"
-                className="min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 bg-[#0EFF7B1A] text-white focus:outline-none transition-all duration-300 hover:border-[#0EFF7B] border border-transparent"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                aria-label="Username"
-              />
-            </motion.div>
+  {/* Autofill style fix */}
+  <style>{`
+    input:-webkit-autofill {
+      -webkit-box-shadow: 0 0 0px 1000px #0EFF7B1A inset !important;
+      -webkit-text-fill-color: #fff !important;
+      caret-color: #fff !important;
+      transition: background-color 9999s ease-in-out 0s;
+    }
+  `}</style>
 
-            <motion.div
-              className="flex flex-col"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
-            >
-              <label htmlFor="password" className="text-gray-400 font-medium mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  placeholder="Enter your password"
-                  className="min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 bg-[#0EFF7B1A] text-white focus:outline-none pr-10 transition-all duration-300 hover:border-[#0EFF7B] border border-transparent"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  aria-label="Password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-5 h-5"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff /> : <Eye />}
-                </button>
-              </div>
-            </motion.div>
+  <motion.div
+    className="flex flex-col"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay: 0.6 }}
+  >
+    <label htmlFor="username" className="text-gray-400 font-medium mb-1">
+      Username
+    </label>
+    <input
+      type="text"
+      id="username"
+      placeholder="Enter your username"
+      className="min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 bg-[#0EFF7B1A] text-white focus:outline-none focus:bg-[#0EFF7B1A] transition-all duration-300 hover:border-[#0EFF7B] border border-transparent"
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      aria-label="Username"
+    />
+  </motion.div>
 
-            <motion.div
-              className="flex justify-between items-center mt-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1.0 }}
-            >
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="accent-[#0EFF7B] mr-2"
-                  aria-label="Remember me"
-                />
-                <label htmlFor="remember" className="text-gray-400">
-                  Remember me
-                </label>
-              </div>
-            </motion.div>
+  <motion.div
+    className="flex flex-col"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay: 0.8 }}
+  >
+    <label htmlFor="password" className="text-gray-400 font-medium mb-1">
+      Password
+    </label>
+    <div className="relative">
+      <input
+        type={showPassword ? "text" : "password"}
+        id="password"
+        placeholder="Enter your password"
+        className="min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 bg-[#0EFF7B1A] text-white focus:outline-none focus:bg-[#0EFF7B1A] pr-10 transition-all duration-300 hover:border-[#0EFF7B] border border-transparent"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        aria-label="Password"
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-5 h-5"
+        aria-label={showPassword ? "Hide password" : "Show password"}
+      >
+        {showPassword ? <EyeOff /> : <Eye />}
+      </button>
+    </div>
+  </motion.div>
 
-            <motion.button
+  <motion.div
+    className="flex justify-between items-center mt-2"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.6, delay: 1.0 }}
+  >
+    <div className="flex items-center">
+      <input
+        type="checkbox"
+        id="remember"
+        className="accent-[#0EFF7B] mr-2"
+        aria-label="Remember me"
+      />
+      <label htmlFor="remember" className="text-gray-400">
+        Remember me
+      </label>
+    </div>
+  </motion.div>
+
+  <motion.button
     type="submit"
     className={`min-w-[500px] h-[54px] rounded-[8px] font-semibold transition-all duration-300 ${
       isLoading ? "bg-gray-500 cursor-not-allowed" : "bg-[#0EFF7B80] text-black"
@@ -273,8 +288,8 @@ const LoginPage = () => {
   >
     {isLoading ? "Signing In..." : "Sign In"}
   </motion.button>
+</form>
 
-          </form>
 
           {/* StacklyCare Text inside container */}
           <motion.div

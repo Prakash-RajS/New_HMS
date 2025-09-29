@@ -2,29 +2,37 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None, role="admin"):
+    def create_user(self, username, password=None, staff=None, **extra_fields):
         if not username:
-            raise ValueError("Users must have a username")
-        user = self.model(username=username, role=role)
+            raise ValueError("The username must be set")
+        user = self.model(username=username, staff=staff, **extra_fields)
+        if not password:
+            raise ValueError("Password must be set")
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, password):
-        return self.create_user(username=username, password=password, role="admin")
+    def create_superuser(self, username, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
 
-class User(AbstractBaseUser):
-    ROLE_CHOICES = (
-        ("admin", "Admin"),
-    )
+        if not password:
+            raise ValueError("Superuser must have a password")
 
+        return self.create_user(username=username, password=password, **extra_fields)
+
+# ------------------ Custom User ------------------
+class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=100, unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default="admin")
+    role = models.CharField(max_length=50, default="staff")  # ✅ Add this
     is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    staff = models.OneToOneField("Staff", on_delete=models.CASCADE, null=True, blank=True)
 
     objects = UserManager()
 
@@ -32,7 +40,7 @@ class User(AbstractBaseUser):
     REQUIRED_FIELDS = []
 
     def __str__(self):
-        return f"{self.username} ({self.role})"
+        return self.username
 
 class Department(models.Model):
     STATUS_CHOICES = (("active", "Active"), ("inactive", "Inactive"))
@@ -540,9 +548,12 @@ class SecuritySettings(models.Model):
         return f"Security Settings - {self.user.username}"
     
 class Permission(models.Model):
-    ROLE_CHOICES = User.ROLE_CHOICES
+    role = models.CharField(max_length=100)  # stores Staff.designation
+    module = models.CharField(max_length=100)
+    enabled = models.BooleanField(default=False)
 
     MODULE_CHOICES = [
+        ("create_user", "Create User"),
         ("viewPatients", "View Patients"),
         ("editPatients", "Edit Patients"),
         ("generateBills", "Generate Bills"),
@@ -552,9 +563,8 @@ class Permission(models.Model):
         ("ambulance", "Ambulance"),
     ]
 
-    role = models.CharField(max_length=50, choices=ROLE_CHOICES)
-    module = models.CharField(max_length=100, choices=MODULE_CHOICES)
-    enabled = models.BooleanField(default=False)
-
     class Meta:
         unique_together = ("role", "module")
+
+    def __str__(self):
+        return f"{self.role} - {self.module} ({'Enabled' if self.enabled else 'Disabled'})"

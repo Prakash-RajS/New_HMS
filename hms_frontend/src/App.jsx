@@ -7,6 +7,10 @@ import Header from "./components/Header.jsx";
 import ScrollToTop from "./components/ScrollToTop";
 
 import Login from "./pages/Login.jsx"; 
+
+// ✅ Custom Toast helper
+import { ToastProvider } from "./components/Toast.jsx";
+
 // Pages - Dashboard
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
 import PatientRecord from "./pages/Home/PatientRecord.jsx";
@@ -57,7 +61,6 @@ function AppContent({ contentRef }) {
   const { theme } = useContext(ThemeContext);
   const location = useLocation();
 
-  // ✅ check if we are on login page
   const isLoginPage = location.pathname === "/";
 
   return (
@@ -76,16 +79,19 @@ function AppContent({ contentRef }) {
           style={!isLoginPage ? { marginLeft: isCollapsed ? "100px" : "240px" } : {}}
         >
           <Routes>
-            {/* ✅ Login Page */}
             <Route path="/" element={<Login />} />
 
-            {/* ✅ All other routes */}
+            {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardComponents />}>
               <Route path="patient-record" element={<PatientRecord />} />
               <Route path="surgery-record" element={<SurgeryRecord />} />
               <Route path="revenue-summary" element={<RevenueSummary />} />
             </Route>
+
+            {/* Appointments */}
             <Route path="/appointments" element={<AppointmentList />} />
+
+            {/* Patients */}
             <Route path="/patients">
               <Route path="new-registration" element={<NewRegistration />} />
               <Route path="ipd-opd" element={<IpdOpd />} />
@@ -93,6 +99,8 @@ function AppContent({ contentRef }) {
               <Route path="profile" element={<PatientProfile />} />
               <Route path="profile/details" element={<ViewPatientProfile />} />
             </Route>
+
+            {/* Administration */}
             <Route path="/Administration">
               <Route path="Departments" element={<DepartmentList />} />
               <Route path="roommanagement" element={<RoomManagement />} />
@@ -104,9 +112,13 @@ function AppContent({ contentRef }) {
                 <Route path="administrative" element={<AdministrativeDept />} />
               </Route>
             </Route>
+
+            {/* Pharmacy */}
             <Route path="/Pharmacy">
               <Route path="Stock-Inventory" element={<StockInventory />} />
             </Route>
+
+            {/* Other Pages */}
             <Route path="/reports" element={<Reports />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/employee" element={<Employee />} />
@@ -122,6 +134,9 @@ function AppContent({ contentRef }) {
           </Routes>
         </div>
       </div>
+
+      {/* ✅ Custom Toast Component */}
+      <ToastProvider />
     </div>
   );
 }
@@ -138,5 +153,3 @@ export default function App() {
     </ThemeProvider>
   );
 }
-
-
