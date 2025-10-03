@@ -534,7 +534,7 @@ class Invoice(models.Model):
 
 
 class SecuritySettings(models.Model):
-    user = models.OneToOneField(Staff, on_delete=models.CASCADE, related_name="security_settings")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="security_settings")
 
     save_logs = models.BooleanField(default=True)
     two_factor_auth = models.BooleanField(default=False)

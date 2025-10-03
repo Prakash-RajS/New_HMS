@@ -19,17 +19,27 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
+    # ✅ Validation before hitting DB
+    if not username and not password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    if not password:
+        raise HTTPException(status_code=400, detail="Password is required")
+
+    # ✅ Check if user exists
     try:
         user = User.objects.get(username=username)
     except User.DoesNotExist:
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=404, detail="Username not found")
 
+    # ✅ Check password
     if not user.check_password(password):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
+        raise HTTPException(status_code=401, detail="Invalid password")
 
-    # ✅ standardized claims
+    # ✅ Token claims
     token_data = {
-        "sub": user.username,  # subject claim
+        "sub": user.username,  
         "role": user.role,
         "user_id": user.id,
         "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),

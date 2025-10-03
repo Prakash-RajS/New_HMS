@@ -33,6 +33,20 @@ const LoginPage = () => {
   const handleLogin = async (e) => {
   e.preventDefault();
   setError("");
+  
+  if (!username && !password) {
+    errorToast("Please enter username and password");
+    return;
+  }
+  if (!username) {
+    errorToast("Username is required");
+    return;
+  }
+  if (!password) {
+    errorToast("Password is required");
+    return;
+  }
+
   setIsLoading(true);
 
   try {
@@ -46,15 +60,17 @@ const LoginPage = () => {
     localStorage.setItem("user_id", res.data.user_id);
     localStorage.setItem("role", res.data.role);
 
-    // ✅ Use custom toast functions instead of react-toastify directly
-    successToast("Login successful! Redirecting...");
+    successToast(`Welcome back, ${username}!`);
     navigate("/dashboard");
   } catch (err) {
     console.error(err);
-    setError("Invalid username or password");
 
-    // ✅ Use custom toast
-    errorToast("Invalid username or password");
+    // Backend should ideally send proper error messages
+    if (err.response?.data?.detail) {
+      errorToast(err.response.data.detail);
+    } else {
+      errorToast("Login failed. Please try again.");
+    }
   } finally {
     setIsLoading(false);
   }

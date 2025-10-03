@@ -203,7 +203,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
         minHeight: "590px",
-        maxHeight: "860px",
+        maxHeight: "1860px",
       }}
     >
       {/* Header */}
