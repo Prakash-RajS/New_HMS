@@ -138,8 +138,8 @@ const DepartmentList = () => {
   ]);
 
   const statusColors = {
-    Active: "bg-[#08994A] dark:bg-green-900 text-white dark:text-green-300",
-    Inactive: "bg-gray-300 dark:bg-gray-700 text-black dark:text-gray-300",
+    Active: "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white",
+    Inactive: "bg-gray-300 dark:bg-gray-700 text-black dark:text-white",
   };
 
   const departmentIcons = {
@@ -243,29 +243,32 @@ const DepartmentList = () => {
   };
 
   const Dropdown = ({ value, onChange, options }) => (
-    <Listbox value={value} onChange={onChange}>
-      <div className="relative w-full">
-        <Listbox.Button
-          className="w-full h-[42px] px-3 pr-8 rounded-full border border-[#0EFF7B] 
-                   dark:border-[#3A3A3A] bg-white dark:bg-transparent 
-                   text-[#08994A] dark:text-[#0EFF7B] text-left 
-                   text-sm leading-[16px]"
-        >
-          {value || "Select"}
-          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-          </span>
-        </Listbox.Button>
+  <Listbox value={value} onChange={onChange}>
+    <div className="relative w-full">
+      <Listbox.Button
+        className="w-full h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] 
+                 dark:border-[#3A3A3A] bg-white dark:bg-transparent 
+                 text-[#08994A] dark:text-[#0EFF7B] text-left 
+                 text-sm leading-[16px]"
+      >
+        {value || "Select"}
+        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+        </span>
+      </Listbox.Button>
 
-        <Listbox.Options
-          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black 
-                   shadow-lg z-[50] border border-[#0EFF7B] 
-                   dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-        >
-          {options.map((option, idx) => (
+      <Listbox.Options
+        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black 
+                 shadow-lg z-[60] border border-[#0EFF7B] 
+                 dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
+      >
+        {options.map((option, idx) => {
+          const label = typeof option === "string" ? option : option.label;
+          const val = typeof option === "string" ? option : option.value;
+          return (
             <Listbox.Option
               key={idx}
-              value={option}
+              value={val}
               className={({ active, selected }) =>
                 `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
                   active
@@ -278,13 +281,15 @@ const DepartmentList = () => {
                 }`
               }
             >
-              {option}
+              {label}
             </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </div>
-    </Listbox>
-  );
+          );
+        })}
+      </Listbox.Options>
+    </div>
+  </Listbox>
+);
+
 
   const applySettings = () => {
     setCurrentPage(1);
@@ -293,19 +298,33 @@ const DepartmentList = () => {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto">
-      <div className="mt-[60px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col">
-        {/* Header */}
+       <div
+        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] 
+    border border-transparent bg-white dark:bg-transparent overflow-hidden relative"
+      >
+        <div
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+            zIndex: 0,
+          }}
+        ></div>
+  {/* Header */}
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold text-black dark:text-white">
             Department Lists
           </h2>
           <button
-            onClick={() => setShowAddPopup(true)}
-            className="flex items-center gap-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#067a3a] dark:hover:bg-green-600 px-4 py-2 rounded-full text-white dark:text-black font-semibold"
-          >
-            <Plus size={18} className="text-white dark:text-black" /> Add
-            Department
-          </button>
+  onClick={() => setShowAddPopup(true)}
+  className="flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300"
+  style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
+>
+  <Plus size={18} className="text-white" /> Add Department
+</button>
+
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -336,9 +355,9 @@ const DepartmentList = () => {
 
           <Listbox value={bulkStatus} onChange={handleBulkStatusChange}>
             <div className="relative w-[164px]">
-              <Listbox.Button className="w-full h-[40px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-transparent text-[#08994A] dark:text-white text-[16px] flex items-center justify-between px-4">
+              <Listbox.Button className="w-full h-[40px] rounded-[8px] dark:border-[#3C3C3C] bg-[#025126] dark:bg-[#025126] text-white dark:text-white text-[16px] flex items-center justify-between px-4">
                 {bulkStatus || "Change Status"}
-                <ChevronDown className="h-5 w-5 text-[#08994A] dark:text-white" />
+                <ChevronDown className="h-5 w-5 text-[#0EFF7B] dark:text-[#0EFF7B]" />
               </Listbox.Button>
               <Listbox.Options className="absolute mt-1 min-w-full w-full rounded-md bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A]">
                 {["Active", "Inactive"].map((option, idx) => (
@@ -380,7 +399,7 @@ const DepartmentList = () => {
         {/* Table Container */}
         <div className="flex-1 flex flex-col min-h-0 overflow-auto">
           <table className="w-full text-left text-sm min-w-[600px]">
-            <thead className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-white border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
+            <thead className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
               <tr>
                 <th className="py-3 px-4">
                   <div className="flex items-center relative w-5 h-5">
@@ -404,8 +423,7 @@ const DepartmentList = () => {
                       )}
                   </div>
                 </th>
-                <th className="px-4">Icon</th>
-                <th className="px-4">Department</th>
+                <th className="px-4 ">Department</th>
                 <th className="px-4">Description</th>
                 <th className="px-4">Status</th>
                 <th className="text-center px-4">...</th>
@@ -436,12 +454,6 @@ const DepartmentList = () => {
                           )}
                         </div>
                       </td>
-                      <td className="px-4">
-                        <IconComponent
-                          size={24}
-                          className="text-[#08994A] dark:text-white"
-                        />
-                      </td>
                       <td className="font-medium px-4 text-black dark:text-white">
                         {dept.name}
                       </td>
@@ -468,7 +480,7 @@ const DepartmentList = () => {
                         >
                           <MoreHorizontal
                             size={20}
-                            className="text-[#08994A] dark:text-white"
+                            className="text-[#08994A] dark:text-[white]"
                           />
                         </div>
                         {menuOpenFor === dept.id && (
@@ -482,7 +494,7 @@ const DepartmentList = () => {
                             <ul className="py-1">
                               <li>
                                 <button
-                                  className="flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800"
+                                  className="flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                                   onClick={() => {
                                     setSelectedDepartment(dept);
                                     setShowEditPopup(true);
@@ -498,7 +510,7 @@ const DepartmentList = () => {
                               </li>
                               <li>
                                 <button
-                                  className="flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800"
+                                  className="flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                                   onClick={() => {
                                     setSelectedDepartment(dept);
                                     setShowDeletePopup(true);
@@ -583,7 +595,25 @@ const DepartmentList = () => {
         {/* Filter Popup */}
         {showFilterPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md">
+           
+            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+  {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px]">
                   Filter
@@ -606,7 +636,7 @@ const DepartmentList = () => {
                     value={filtersData.name}
                     onChange={handleFilterChange}
                     placeholder="Enter Name"
-                    className="w-full h-[42px] px-3 rounded-full border border-[#0EFF7B] 
+                    className="w-full h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] 
                  dark:border-[#3A3A3A] bg-white dark:bg-transparent 
                  text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                  dark:placeholder-gray-500 outline-none text-sm"
@@ -631,13 +661,16 @@ const DepartmentList = () => {
               <div className="flex justify-center gap-6 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
                 >
                   Filter
                 </button>
@@ -649,7 +682,24 @@ const DepartmentList = () => {
         {/* Settings Popup */}
         {showSettingsPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md">
+            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+  {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px]">
                   Settings
@@ -661,63 +711,75 @@ const DepartmentList = () => {
                   <X size={16} className="text-[#08994A] dark:text-white" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Number of Lines
-                  </label>
-                  <Listbox value={itemsPerPage} onChange={setItemsPerPage}>
-                    <div className="relative w-full min-w-0">
-                      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
-                        {itemsPerPage}
-                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-                        </span>
-                      </Listbox.Button>
-                      <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
-                          <Listbox.Option
-                            key={option}
-                            value={option}
-                            className={({ active, selected }) =>
-                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                                active
-                                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                                  : "text-black dark:text-white"
-                              } ${
-                                selected
-                                  ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                                  : ""
-                              }`
-                            }
-                          >
-                            {option}
-                          </Listbox.Option>
-                        ))}
-                      </Listbox.Options>
-                    </div>
-                  </Listbox>
-                </div>
-                <Dropdown
-                  label="Order"
-                  value={sortOrder}
-                  onChange={setSortOrder}
-                  options={[
-                    { value: "A-to-Z", label: "A to Z" },
-                    { value: "Z-to-A", label: "Z to A" },
-                  ]}
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-6 items-end">
+  {/* Number of Lines */}
+  <div>
+  <label className="text-sm text-black dark:text-white">
+    Number of Lines
+  </label>
+  <Listbox value={itemsPerPage} onChange={setItemsPerPage}>
+    <div className="relative w-full min-w-0">
+      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
+        {itemsPerPage}
+        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+        </span>
+      </Listbox.Button>
+      <Listbox.Options 
+        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
+          <Listbox.Option
+            key={option}
+            value={option}
+            className={({ active, selected }) =>
+              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                active
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                  : "text-black dark:text-white"
+              } ${
+                selected
+                  ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                  : ""
+              }`
+            }
+          >
+            {option}
+          </Listbox.Option>
+        ))}
+      </Listbox.Options>
+    </div>
+  </Listbox>
+</div>
+
+{/* Order Dropdown */}
+<div>
+  <label className="text-sm text-black dark:text-white">Order</label>
+  <Dropdown
+    value={sortOrder}
+    onChange={setSortOrder}
+    options={["A to Z", "Z to A"]}
+  />
+</div>
+</div>
+
               <div className="flex justify-center gap-6 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
                 >
                   Clear
                 </button>
                 <button
                   onClick={applySettings}
-                  className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
                 >
                   Apply
                 </button>

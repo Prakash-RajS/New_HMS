@@ -13,12 +13,7 @@ import { ToastProvider } from "./components/Toast.jsx";
 
 // Pages - Dashboard
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
-import PatientRecord from "./pages/Home/PatientRecord.jsx";
-import SurgeryRecord from "./pages/Home/SurgeryRecord.jsx";
-import RevenueSummary from "./pages/Home/RevenueSummary.jsx";
-import Reports from "./pages/Home/Reports.jsx";
-import Statistics from "./pages/Home/Statistics.jsx";
-import Employee from "./pages/Home/Employee.jsx";
+
 
 // Pages - Appointments
 import AppointmentList from "./pages/Appointments/appointments_list.jsx";
@@ -82,11 +77,9 @@ function AppContent({ contentRef }) {
             <Route path="/" element={<Login />} />
 
             {/* Dashboard */}
-            <Route path="/dashboard" element={<DashboardComponents />}>
-              <Route path="patient-record" element={<PatientRecord />} />
-              <Route path="surgery-record" element={<SurgeryRecord />} />
-              <Route path="revenue-summary" element={<RevenueSummary />} />
-            </Route>
+            <Route path="/dashboard" element={<DashboardComponents />} />
+              
+
 
             {/* Appointments */}
             <Route path="/appointments" element={<AppointmentList />} />
@@ -119,9 +112,6 @@ function AppContent({ contentRef }) {
             </Route>
 
             {/* Other Pages */}
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/statistics" element={<Statistics />} />
-            <Route path="/employee" element={<Employee />} />
             <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />} />
             <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />} />
             <Route path="/Doctors-Nurse/ViewProfile" element={<ViewProfile />} />

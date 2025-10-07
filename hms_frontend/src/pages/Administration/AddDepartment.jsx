@@ -27,7 +27,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
           >
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -59,7 +59,24 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-      <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.1)] dark:shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+      <div className="w-[504px] h-auto rounded-[20px]  bg-white dark:bg-[#000000E5] text-black dark:text-white p-6   backdrop-blur-md relative">
+        {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-black dark:text-white font-inter font-medium text-[16px] leading-[19px]">
@@ -85,7 +102,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
                 setFormData({ ...formData, departmentName: e.target.value })
               }
               placeholder="Enter department"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
             />
           </div>
 
@@ -117,15 +134,18 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
         <div className="flex justify-center gap-[18px] mt-8">
           <button
             onClick={handleClear}
-            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+            className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
           >
             Clear
           </button>
           <button
             onClick={handleSave}
-            className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 hover:scale-105 transition"
+            className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 hover:scale-105 transition"
+            style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
           >
-            Add Department
+            Add
           </button>
         </div>
       </div>
