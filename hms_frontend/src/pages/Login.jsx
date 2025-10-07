@@ -21,7 +21,6 @@ import { successToast, errorToast } from "../components/Toast.jsx";
 
 const icons = [Microscope, Pill, HeartPulse, Ambulance, User, ShieldCheck, Activity];
 
-
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -30,10 +29,57 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+//   const handleLogin = async (e) => {
+//   e.preventDefault();
+//   setError("");
+  
+//   if (!username && !password) {
+//     errorToast("Please enter username and password");
+//     return;
+//   }
+//   if (!username) {
+//     errorToast("Username is required");
+//     return;
+//   }
+//   if (!password) {
+//     errorToast("Password is required");
+//     return;
+//   }
+
+//   setIsLoading(true);
+
+//   try {
+//     const formData = new FormData();
+//     formData.append("username", username);
+//     formData.append("password", password);
+
+//     const res = await axios.post("http://localhost:8000/auth/login", formData);
+
+//     localStorage.setItem("token", res.data.access_token);
+//     localStorage.setItem("user_id", res.data.user_id);
+//     localStorage.setItem("role", res.data.role);
+
+//     successToast(`Welcome back, ${username}!`);
+//     navigate("/dashboard");
+//   } catch (err) {
+//     console.error(err);
+
+//     // Backend should ideally send proper error messages
+//     if (err.response?.data?.detail) {
+//       errorToast(err.response.data.detail);
+//     } else {
+//       errorToast("Login failed. Please try again.");
+//     }
+//   } finally {
+//     setIsLoading(false);
+//   }
+// };
+
+const handleLogin = async (e) => {
   e.preventDefault();
   setError("");
-  
+
+  // Simple input validation
   if (!username && !password) {
     errorToast("Please enter username and password");
     return;
@@ -50,27 +96,30 @@ const LoginPage = () => {
   setIsLoading(true);
 
   try {
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", password);
+    // 🔹 Hardcoded credentials for frontend testing
+    const demoEmail = "sample@gmail.com";
+    const demoPassword = "12345";
 
-    const res = await axios.post("http://localhost:8000/auth/login", formData);
+    // 🔹 Check if entered credentials match
+    if (username === demoEmail && password === demoPassword) {
+      // Simulate token and user details
+      const fakeToken = "test_token_12345";
+      const fakeUserId = "1";
+      const fakeRole = "user";
 
-    localStorage.setItem("token", res.data.access_token);
-    localStorage.setItem("user_id", res.data.user_id);
-    localStorage.setItem("role", res.data.role);
+      // Save to localStorage
+      localStorage.setItem("token", fakeToken);
+      localStorage.setItem("user_id", fakeUserId);
+      localStorage.setItem("role", fakeRole);
 
-    successToast(`Welcome back, ${username}!`);
-    navigate("/dashboard");
+      successToast(`Welcome back, ${username}!`);
+      navigate("/dashboard");
+    } else {
+      errorToast("Invalid email or password. Try again.");
+    }
   } catch (err) {
     console.error(err);
-
-    // Backend should ideally send proper error messages
-    if (err.response?.data?.detail) {
-      errorToast(err.response.data.detail);
-    } else {
-      errorToast("Login failed. Please try again.");
-    }
+    errorToast("Something went wrong. Please try again.");
   } finally {
     setIsLoading(false);
   }
