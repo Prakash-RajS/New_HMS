@@ -1,13 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-const AddBedGroupPopup = ({ onClose, onAdd }) => {
+const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   const [formData, setFormData] = useState({
     bedGroupName: "",
     bedFrom: "",
     bedTo: "",
   });
   const [errors, setErrors] = useState({});
+
+  // Prefill form when `data` changes
+  useEffect(() => {
+    if (data) {
+      setFormData({
+        bedGroupName: data.bedGroupName || "",
+        bedFrom: data.bedFrom || "",
+        bedTo: data.bedTo || "",
+      });
+    }
+  }, [data]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -21,38 +32,39 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAdd = () => {
+  const handleUpdate = () => {
     if (validateForm()) {
-      if (onAdd) onAdd(formData);
+      if (onUpdate) onUpdate(formData);
       onClose();
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="w-[420px] h-auto rounded-[20px]  
-      bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-md backdrop-blur-md relative">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-20 bg-opacity-50 z-50">
+      <div className="w-[420px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+      bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
         {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-white">
-            Add Bed Group
+            Edit Bed Group
           </h3>
           <button
             onClick={onClose}
@@ -122,14 +134,15 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
             Cancel
           </button>
           <button
-            onClick={handleAdd}
+            onClick={handleUpdate}
             className="w-[104px] h-[33px] rounded-[8px] 
             bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] 
             text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
-          style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}>
-            Add
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+          >
+            Update!
           </button>
         </div>
       </div>
@@ -137,4 +150,4 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   );
 };
 
-export default AddBedGroupPopup;
+export default EditBedGroupPopup;

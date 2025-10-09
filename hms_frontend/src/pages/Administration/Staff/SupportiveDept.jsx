@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Search, Filter } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
 const SupportiveDept = () => {
@@ -17,6 +17,24 @@ const SupportiveDept = () => {
     { id: 4, name: "Vijay", designation: "Ultrasound Specialist", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.55am", checkOut: "5.25pm" },
     { id: 5, name: "Nithya", designation: "MRI Technician", date: "20/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
     { id: 6, name: "Ravi", designation: "Phlebotomist", date: "20/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.40am", checkOut: "5.15pm" },
+    { id: 7, name: "Lakshmi", designation: "Radiology Technician", date: "21/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
+    { id: 8, name: "Arun", designation: "Pathology", date: "21/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 9, name: "Deepa", designation: "Lab Technician", date: "21/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.45am", checkOut: "5.20pm" },
+    { id: 10, name: "Vijay", designation: "Ultrasound Specialist", date: "21/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.55am", checkOut: "5.25pm" },
+    { id: 11, name: "Nithya", designation: "MRI Technician", date: "21/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 12, name: "Ravi", designation: "Phlebotomist", date: "21/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.40am", checkOut: "5.15pm" },
+    { id: 13, name: "Lakshmi", designation: "Radiology Technician", date: "22/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
+    { id: 14, name: "Arun", designation: "Pathology", date: "22/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 15, name: "Deepa", designation: "Lab Technician", date: "22/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.45am", checkOut: "5.20pm" },
+    { id: 16, name: "Vijay", designation: "Ultrasound Specialist", date: "22/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.55am", checkOut: "5.25pm" },
+    { id: 17, name: "Nithya", designation: "MRI Technician", date: "22/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 18, name: "Ravi", designation: "Phlebotomist", date: "22/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.40am", checkOut: "5.15pm" },
+    { id: 19, name: "Lakshmi", designation: "Radiology Technician", date: "23/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.50am", checkOut: "5.30pm" },
+    { id: 20, name: "Arun", designation: "Pathology", date: "23/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 21, name: "Deepa", designation: "Lab Technician", date: "23/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.45am", checkOut: "5.20pm" },
+    { id: 22, name: "Vijay", designation: "Ultrasound Specialist", date: "23/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.55am", checkOut: "5.25pm" },
+    { id: 23, name: "Nithya", designation: "MRI Technician", date: "23/08/2025", shift: "09am - 05pm", status: "Absent", checkIn: "-", checkOut: "-" },
+    { id: 24, name: "Ravi", designation: "Phlebotomist", date: "23/08/2025", shift: "09am - 05pm", status: "Present", checkIn: "8.40am", checkOut: "5.15pm" },
   ];
 
   const itemsPerPage = 9;
@@ -27,7 +45,15 @@ const SupportiveDept = () => {
   });
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const displayedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const indexOfFirst = (currentPage - 1) * itemsPerPage;
+  const indexOfLast = currentPage * itemsPerPage;
+  const displayedData = filteredData.slice(indexOfFirst, indexOfLast);
+
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages]);
 
   const handleSelectAll = (e) => {
     const checked = e.target.checked;
@@ -43,16 +69,26 @@ const SupportiveDept = () => {
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      setSelectAll(false);
+      setSelectedRows([]);
+    }
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      setSelectAll(false);
+      setSelectedRows([]);
+    }
   };
 
   const applyFilter = () => {
     setShowFilterPopup(false);
     setCurrentPage(1);
+    setSelectAll(false);
+    setSelectedRows([]);
   };
 
   const FilterPopup = () => (
@@ -86,42 +122,51 @@ const SupportiveDept = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-black text-black dark:text-white">
+    <div className="bg-white dark:bg-transparent text-black dark:text-white relative rounded-xl p-4 w-full max-w-[1400px] mx-auto dark:border-[#1E1E1E] flex flex-col">
+     
       {/* Search and Pagination Header */}
-      <div className="flex justify-between items-center mb-4 relative">
+      <div className="flex justify-between items-center mb-4 relative z-10">
         <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[315px] max-w-md">
           <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
           <input
             type="text"
             placeholder="Search staff name or designation"
-            className="bg-transparent outline-none text-sm text-[#08994A] dark:text-white w-full"
+            className="bg-transparent outline-none text-sm placeholder-[#5CD592] text-[#08994A] dark:text-white w-full"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+        <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-3">
           <span>
-            Page <span className="text-[#08994A] dark:text-green-500">{currentPage}</span> of {totalPages} (1 to {Math.min(currentPage * itemsPerPage, filteredData.length)} Staff)
+            Page <span className="text-[#08994A] dark:text-green-500">{currentPage}</span> of {totalPages} ({indexOfFirst + 1} to {Math.min(indexOfLast, filteredData.length)} Staff)
           </span>
           <button
             onClick={handlePrevPage}
             disabled={currentPage === 1}
-            className={`bg-[#F5F6F5] dark:bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${currentPage === 1 ? "opacity-50" : ""}`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              currentPage === 1
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+            }`}
           >
-            &lt;
+            <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={handleNextPage}
             disabled={currentPage === totalPages}
-            className={`bg-[#F5F6F5] dark:bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${currentPage === totalPages ? "opacity-50" : ""}`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              currentPage === totalPages
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+            }`}
           >
-            &gt;
+            <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() => setShowFilterPopup(!showFilterPopup)}
-            className="bg-[#F5F6F5] dark:bg-gray-900 rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+            className="bg-[#F5F6F5] dark:bg-[#0EFF7B1A] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
           >
-            <Filter size={16} className="text-[#08994A] dark:text-white" />
+            <Filter size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
           </button>
         </div>
         {showFilterPopup && <FilterPopup />}
@@ -131,7 +176,7 @@ const SupportiveDept = () => {
       <div className="overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-[#F5F6F5] dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+            <tr className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-[#0EFF7B]">
               <th className="px-4 py-3 font-medium">
                 <input
                   type="checkbox"
@@ -150,7 +195,7 @@ const SupportiveDept = () => {
           <tbody className="text-sm bg-white dark:bg-black">
             {displayedData.length > 0 ? (
               displayedData.map((row) => (
-                <tr key={row.id} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900">
+                <tr key={`${row.id}-${row.date}`} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                   <td className="px-4 py-3 h-[52px]">
                     <input
                       type="checkbox"
@@ -182,6 +227,35 @@ const SupportiveDept = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination Footer */}
+      <div className="text-sm mt-4 text-gray-600 dark:text-gray-400 flex items-center gap-3">
+        <span>
+          Page <span className="text-[#08994A] dark:text-green-500">{currentPage}</span> of {totalPages} ({indexOfFirst + 1} to {Math.min(indexOfLast, filteredData.length)} Staff)
+        </span>
+        <button
+          onClick={handlePrevPage}
+          disabled={currentPage === 1}
+          className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+            currentPage === 1
+              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+              : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+          }`}
+        >
+          <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
+        </button>
+        <button
+          onClick={handleNextPage}
+          disabled={currentPage === totalPages}
+          className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+            currentPage === totalPages
+              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+              : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+          }`}
+        >
+          <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
+        </button>
       </div>
     </div>
   );

@@ -130,19 +130,19 @@ const PayrollManagement = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-[#0D0D0D] border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-[#FFFFFF]">This Month's Payroll</div>
           <div className="text-2xl font-bold text-[#08994A]">$1,200,000</div>
         </div>
-        <div className="bg-white dark:bg-[#0D0D0D] border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-[#FFFFFF]">Employees Paid</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">90/100</div>
         </div>
-        <div className="bg-white dark:bg-[#0D0D0D] border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
         </div>
-        <div className="bg-white dark:bg-[#0D0D0D] border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">2</div>
         </div>
@@ -156,82 +156,94 @@ const PayrollManagement = () => {
         </div>
         
         <div className="flex flex-wrap gap-4">
-          {/* Department */}
-          <div className="relative">
-            <p className="text-black dark:text-white text-sm mb-1">Department</p>
-            <Listbox value={department} onChange={setDepartment}>
-              <div className="relative">
-                <Listbox.Button className="flex items-center justify-between w-[228px] h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[20px] px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white bg-[#F5F6F5] dark:bg-black">
-                  <span>{department || 'Select Departments'}</span>
-                  <svg
-                    className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Listbox.Button>
-                <Listbox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg">
-                  {departments.map((dept) => (
-                    <Listbox.Option
-                      key={dept}
-                      value={dept === 'All Departments' ? '' : dept}
-                      className={({ active }) => 
-                        `px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white cursor-pointer ${
-                          active ? 'bg-[#0EFF7B1A] dark:bg-[#0EFF7B33]' : ''
-                        }`
-                      }
-                    >
-                      {dept}
-                    </Listbox.Option>
-                  ))}
-                </Listbox.Options>
-              </div>
-            </Listbox>
-          </div>
+  {/* Department */}
+  <div className="relative">
+    <p className="text-black dark:text-white text-sm mb-1">Department</p>
+    <Listbox value={department} onChange={setDepartment}>
+      <div className="relative">
+        <Listbox.Button className="flex items-center justify-between w-[228px] h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white bg-[#F5F6F5] dark:bg-black">
+          <span className="truncate">{department || 'Select Departments'}</span>
+          <svg
+            className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </Listbox.Button>
+        <Listbox.Options 
+          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg scrollbar-hide"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {departments.map((dept) => (
+            <Listbox.Option
+              key={dept}
+              value={dept === 'All Departments' ? '' : dept}
+              className={({ active }) => 
+                `px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white cursor-pointer ${
+                  active ? 'bg-[#0EFF7B1A] dark:bg-[#0EFF7B33]' : ''
+                }`
+              }
+            >
+              {dept}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  </div>
 
-          {/* Specialist */}
-          <div className="relative">
-            <p className="text-black dark:text-white text-sm mb-1">Specialist</p>
-            <Listbox value={role} onChange={setRole}>
-              <div className="relative">
-                <Listbox.Button className="flex items-center justify-between w-[228px] h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[20px] px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white bg-[#F5F6F5] dark:bg-black">
-                  <span>{role || 'Select Roles'}</span>
-                  <svg
-                    className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </Listbox.Button>
-                <Listbox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg">
-                  {roles.map((rl) => (
-                    <Listbox.Option
-                      key={rl}
-                      value={rl === 'All Roles' ? '' : rl}
-                      className={({ active }) => 
-                        `px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white cursor-pointer ${
-                          active ? 'bg-[#0EFF7B1A] dark:bg-[#0EFF7B33]' : ''
-                        }`
-                      }
-                    >
-                      {rl}
-                    </Listbox.Option>
-                  ))}
-                </Listbox.Options>
-              </div>
-            </Listbox>
-          </div>
-        </div>
+  {/* Specialist */}
+  <div className="relative">
+    <p className="text-black dark:text-white text-sm mb-1">Specialist</p>
+    <Listbox value={role} onChange={setRole}>
+      <div className="relative">
+        <Listbox.Button className="flex items-center justify-between w-[228px] h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white bg-[#F5F6F5] dark:bg-black">
+          <span className="truncate">{role || 'Select Roles'}</span>
+          <svg
+            className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </Listbox.Button>
+        <Listbox.Options 
+          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg scrollbar-hide"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          {roles.map((rl) => (
+            <Listbox.Option
+              key={rl}
+              value={rl === 'All Roles' ? '' : rl}
+              className={({ active }) => 
+                `px-[12px] py-[8px] text-sm text-[#08994A] dark:text-white cursor-pointer ${
+                  active ? 'bg-[#0EFF7B1A] dark:bg-[#0EFF7B33]' : ''
+                }`
+              }
+            >
+              {rl}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  </div>
+</div>
       </div>
 
       {/* Table Container */}
-      <div className="w-full bg-white dark:bg-[#0D0D0D] rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#0D0D0D]">
+      <div className="w-full bg-white dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
         {/* Search + Filter + Delete - Separated */}
         <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
           <span className="text-black dark:text-white text-base font-medium">All Invoices</span>
@@ -241,7 +253,7 @@ const PayrollManagement = () => {
               <input
                 type="text"
                 placeholder="Search..."
-                className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] outline-none text-sm text-black dark:text-white flex-1 min-w-[229px] placeholder-gray-600 dark:placeholder-gray-400 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] px-3 py-2 rounded-full border border-[#0EFF7B1A]"
+                className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] outline-none text-sm  flex-1 min-w-[229px] placeholder-gray-600 dark:placeholder-[#0EFF7B] focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] px-3 py-2 rounded-full border border-[#0EFF7B1A]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -260,11 +272,11 @@ const PayrollManagement = () => {
               disabled={selectedEmployees.length === 0}
               className={`w-[32px] h-[32px] rounded-[20px] border border-[#0EFF7B1A] flex items-center justify-center ${
                 selectedEmployees.length === 0 
-                  ? 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed' 
+                  ? 'bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-not-allowed' 
                   : 'bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]'
               }`}
             >
-              <Trash2 size={16} className={selectedEmployees.length === 0 ? 'text-gray-400' : 'text-red-600 dark:text-red-500'} />
+              <Trash2 size={16} className={selectedEmployees.length === 0 ? 'text-[#0EFF7B]' : 'text-red-600 dark:text-red-500'} />
             </button>
           </div>
         </div>
@@ -272,7 +284,7 @@ const PayrollManagement = () => {
         {/* Table */}
         <div className="bg-white dark:bg-black rounded-lg shadow overflow-hidden border border-gray-300 dark:border-gray-800">
           <table className="w-full">
-            <thead className="bg-[#F5F6F5] dark:bg-[#1E1E1E]">
+            <thead className="bg-[#F5F6F5] dark:bg-[#091810]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">
                   <input 
@@ -282,19 +294,19 @@ const PayrollManagement = () => {
                     onChange={handleSelectAll} 
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Employee</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Department</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Net Pay</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Payment Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Employee</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Department</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Role</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Net Pay</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Payment Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-800">
               {paginatedEmployees.length > 0 ? (
                 paginatedEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900">
+                  <tr key={emp.id} className="hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
@@ -314,7 +326,7 @@ const PayrollManagement = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button className="w-[32px] h-[32px] rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B33]">
+                      <button className="w-[32px] h-[22px] rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B33]">
                         <Share2 size={16} className="text-[#08994A] dark:text-green-400" />
                       </button>
                     </td>

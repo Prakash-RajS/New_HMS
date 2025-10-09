@@ -45,7 +45,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
             bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
             focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
           >
@@ -80,12 +80,29 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-      <div className="w-[504px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+      <div className="w-[504px] h-auto rounded-[20px] 
       bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] 
       backdrop-blur-md relative">
+            {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
-          <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-[#0EFF7B]">
+          <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-white">
             Edit Patient Admission
           </h3>
           <button
@@ -107,7 +124,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Enter name"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
               dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
               outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
@@ -122,7 +139,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
               value={formData.patientId}
               onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
               placeholder="Enter ID"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
               dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
               outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
@@ -146,7 +163,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
               value={formData.bedNumber}
               onChange={(e) => setFormData({ ...formData, bedNumber: e.target.value })}
               placeholder="Enter bed number"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
               dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
               outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
@@ -162,7 +179,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
                 name="admitDate"
                 value={formData.admitDate}
                 onChange={(e) => setFormData({ ...formData, admitDate: e.target.value })}
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
                 dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
                 outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
               />
@@ -183,7 +200,7 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
                 name="dischargeDate"
                 value={formData.dischargeDate}
                 onChange={(e) => setFormData({ ...formData, dischargeDate: e.target.value })}
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] 
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
                 dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] 
                 outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
               />
@@ -200,16 +217,18 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
         <div className="flex justify-center gap-[18px] mt-8">
           <button
             onClick={onClose}
-            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+            className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
             text-[#08994A] dark:text-white font-medium text-[14px] hover:bg-[#0EFF7B1A] transition"
           >
             Cancel
           </button>
           <button
             onClick={handleUpdate}
-            className="w-[104px] h-[33px] rounded-[20px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
-            text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition"
-          >
+            className="w-[104px] h-[33px] rounded-[8px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] 
+            text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
+          style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}>
             Update
           </button>
         </div>

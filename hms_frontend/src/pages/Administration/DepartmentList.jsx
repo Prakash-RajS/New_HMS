@@ -299,8 +299,8 @@ const DepartmentList = () => {
   return (
     <div className="w-full max-w-[1400px] mx-auto">
        <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] 
-    border border-transparent bg-white dark:bg-transparent overflow-hidden relative"
+        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
       >
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -310,6 +310,23 @@ const DepartmentList = () => {
             zIndex: 0,
           }}
         ></div>
+          {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
   {/* Header */}
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-semibold text-black dark:text-white">
@@ -399,7 +416,7 @@ const DepartmentList = () => {
         {/* Table Container */}
         <div className="flex-1 flex flex-col min-h-0 overflow-auto">
           <table className="w-full text-left text-sm min-w-[600px]">
-            <thead className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
+            <thead className="bg-[#F5F6F5] dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
               <tr>
                 <th className="py-3 px-4">
                   <div className="flex items-center relative w-5 h-5">
@@ -436,7 +453,7 @@ const DepartmentList = () => {
                   return (
                     <tr
                       key={dept.id}
-                      className="border-b border-gray-300 dark:border-gray-600 h-[54px]"
+                      className="border-b border-gray-300 dark:border-gray-600 h-[54px] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                     >
                       <td className="px-4">
                         <div className="flex items-center relative w-5 h-5">
@@ -569,7 +586,7 @@ const DepartmentList = () => {
               >
                 <ChevronLeft
                   size={12}
-                  className="text-[#08994A] dark:text-black"
+                  className="text-[#08994A] dark:text-white"
                 />
               </button>
               <button
@@ -585,7 +602,7 @@ const DepartmentList = () => {
               >
                 <ChevronRight
                   size={12}
-                  className="text-[#08994A] dark:text-black"
+                  className="text-[#08994A] dark:text-white"
                 />
               </button>
             </div>

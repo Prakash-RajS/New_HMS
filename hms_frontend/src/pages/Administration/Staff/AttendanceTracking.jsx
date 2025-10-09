@@ -84,23 +84,32 @@ const ThemeDropdown = ({ label, options, value, onChange }) => (
       <div className="relative">
         {/* Dropdown Button */}
         <Listbox.Button
-          className="w-[268px] h-[40px] bg-[#F5F6F5] dark:bg-black 
+          className="w-full min-w-[245px] max-w-auto h-[40px] bg-[#F5F6F5] dark:bg-black 
                      text-[#08994A] dark:text-white 
-                     rounded-[20px] px-[12px] py-[8px] pr-10 
+                     rounded-[8px] px-[12px] py-[8px] pr-10 
                      border border-[#0EFF7B] dark:border-[#3C3C3C] 
                      shadow-[0px_0px_4px_0px_rgba(160,160,160,0.12)]
                      text-left text-xs sm:text-sm flex items-center justify-between"
         >
-          {value}
+          <span className="truncate">{value}</span>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#08994A] dark:text-white w-5 h-5" />
         </Listbox.Button>
 
         {/* Dropdown Options */}
         <Listbox.Options
-          className="absolute z-10 mt-1 w-[268px] bg-white dark:bg-black 
+          className="absolute z-10 mt-1 w-full min-w-[245px] max-w-auto bg-white dark:bg-black 
                      border border-[#0EFF7B] dark:border-[#3C3C3C] 
-                     rounded-[20px] shadow-lg max-h-60 overflow-auto"
+                     rounded-[8px] shadow-lg max-h-60 overflow-auto"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
         >
+          <style jsx>{`
+            .scroll-hide::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           {options.map((opt, i) => (
             <Listbox.Option
               key={i}
@@ -133,6 +142,111 @@ const initialRows = [
     details: "Approved",
   },
   {
+    name: "Rajesh",
+    designation: "Accounts Manager",
+    department: "Finance",
+    role: "Doctor",
+    date: "2025-08-20",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Pending",
+  },
+  {
+    name: "Krishna",
+    designation: "System Admin",
+    department: "IT & Systems",
+    role: "IT Support",
+    date: "2025-08-19",
+    shift: "09am - 05pm",
+    status: "Absent",
+    checkin: "-",
+    checkout: "-",
+    details: "Approved",
+  },
+  {
+    name: "Raghul",
+    designation: "Housekeeping",
+    department: "Housekeeping & Maintenance",
+    role: "Housekeeping",
+    date: "2025-08-18",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Approved",
+  },{
+    name: "Rajesh",
+    designation: "Accounts Manager",
+    department: "Finance",
+    role: "Doctor",
+    date: "2025-08-20",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Pending",
+  },
+  {
+    name: "Krishna",
+    designation: "System Admin",
+    department: "IT & Systems",
+    role: "IT Support",
+    date: "2025-08-19",
+    shift: "09am - 05pm",
+    status: "Absent",
+    checkin: "-",
+    checkout: "-",
+    details: "Approved",
+  },
+  {
+    name: "Raghul",
+    designation: "Housekeeping",
+    department: "Housekeeping & Maintenance",
+    role: "Housekeeping",
+    date: "2025-08-18",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Approved",
+  },{
+    name: "Rajesh",
+    designation: "Accounts Manager",
+    department: "Finance",
+    role: "Doctor",
+    date: "2025-08-20",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Pending",
+  },
+  {
+    name: "Krishna",
+    designation: "System Admin",
+    department: "IT & Systems",
+    role: "IT Support",
+    date: "2025-08-19",
+    shift: "09am - 05pm",
+    status: "Absent",
+    checkin: "-",
+    checkout: "-",
+    details: "Approved",
+  },
+  {
+    name: "Raghul",
+    designation: "Housekeeping",
+    department: "Housekeeping & Maintenance",
+    role: "Housekeeping",
+    date: "2025-08-18",
+    shift: "09am - 05pm",
+    status: "Present",
+    checkin: "8.50am",
+    checkout: "5.30pm",
+    details: "Approved",
+  },{
     name: "Rajesh",
     designation: "Accounts Manager",
     department: "Finance",
@@ -245,67 +359,75 @@ const AttendanceTracking = () => {
   };
 
   return (
-    <div className="min-h-screen text-black dark:text-white p-4 sm:p-6 lg:p-8 bg-white dark:bg-black flex-1 max-w-full overflow-x-hidden">
+    <div className="min-h-screen text-black dark:text-white p-6 bg-white dark:bg-black flex-1 w-full overflow-x-hidden">
       <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium mb-4 sm:mb-6 font-inter">
         Attendance Tracking
       </h1>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
-        {[
-          { title: "Total Present", value: 152 },
-          { title: "Total Absent", value: 10 },
-          { title: "On Leave", value: 18 },
-          { title: "Pending Review", value: 20 },
-        ].map((card, i) => (
-          <div
-            key={i}
-            className="bg-white dark:bg-[#000000] border border-gray-300 dark:border-[#2B2B2B] rounded-xl p-4 flex flex-col gap-2 w-full"
-          >
-            <p className="font-inter font-medium text-sm sm:text-base text-black dark:text-white">
-              {card.title}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-[#A0A0A0]">
-              +12 this week ↗
-            </p>
-            <p className="text-lg sm:text-xl md:text-2xl font-semibold bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-transparent bg-clip-text">
-              {card.value}
-            </p>
-          </div>
-        ))}
+  {[
+    { title: "Total Present", value: 152 },
+    { title: "Total Absent", value: 10 },
+    { title: "On Leave", value: 18 },
+    { title: "Pending Review", value: 20 },
+  ].map((card, i) => (
+    <div
+      key={i}
+      className="relative bg-white dark:bg-[#0EFF7B0D] border border-gray-300 dark:border-[#0EFF7BB2] rounded-xl p-4 flex flex-col justify-between w-full h-[130px]"
+    >
+      <div>
+        <p className="font-inter font-medium text-[24px] text-black dark:text-white">
+          {card.title}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-[#A0A0A0]">
+          +12 this week ↗
+        </p>
       </div>
 
-      {/* Filters and Export */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-4 sm:mb-6 gap-4">
-        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 w-full md:w-auto flex-wrap">
-          <ThemeDropdown
-            label="Department"
-            options={departments}
-            value={selectedDept}
-            onChange={setSelectedDept}
-          />
-          <ThemeDropdown
-            label="Roles"
-            options={roles}
-            value={selectedRole}
-            onChange={setSelectedRole}
-          />
-          <ThemeDropdown
-            label="Date Range"
-            options={Object.keys(dateRanges)}
-            value={dateRange}
-            onChange={setDateRange}
-          />
-        </div>
+      {/* Value moved to bottom-right */}
+      <p className="absolute bottom-4 right-4 text-[42px] font-bold bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-transparent bg-clip-text">
+        {card.value}
+      </p>
+    </div>
+  ))}
+</div>
 
-        {/* Export Button */}
-        <button
-          onClick={handleExport}
-          className="w-full sm:w-[180px] md:w-[200px] lg:w-[216px] h-[48px] bg-[#F5F6F5] dark:bg-gray-900 text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-xl px-3 py-1 text-xs sm:text-sm font-medium flex items-center justify-center gap-1 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-        >
-          Export
-        </button>
-      </div>
+
+     {/* Filters and Export */}
+<div className="flex flex-col xl:flex-row xl:items-end justify-between mb-4 sm:mb-6 gap-4">
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:flex xl:flex-row gap-4 w-full xl:w-auto">
+    <ThemeDropdown
+      label="Department"
+      options={departments}
+      value={selectedDept}
+      onChange={setSelectedDept}
+      className="w-full min-w-[160px]"
+    />
+    <ThemeDropdown
+      label="Roles"
+      options={roles}
+      value={selectedRole}
+      onChange={setSelectedRole}
+      className="w-full min-w-[160px]"
+    />
+    <ThemeDropdown
+      label="Date Range"
+      options={Object.keys(dateRanges)}
+      value={dateRange}
+      onChange={setDateRange}
+      className="w-full min-w-[160px]"
+    />
+  </div>
+
+  {/* Export Button */}
+  <button
+    onClick={handleExport}
+    className="min-w-[210px] max-w-full h-[48px] bg-[#F5F6F5] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B4D] rounded-xl px-3 py-1 text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] transition-colors duration-200 shrink-0"
+  >
+    <span>Export</span>
+  </button>
+</div>
 
       {/* Chart */}
       <div className="bg-white dark:bg-black rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 w-full border border-gray-300 dark:border-[#2B2B2B]">
@@ -320,10 +442,10 @@ const AttendanceTracking = () => {
               stroke={isDark ? "#ffffff" : "#000000"}
               tick={{ fontSize: 12, fill: isDark ? "#ffffff" : "#000000" }}
               label={{
-                value: "Day",
+                value: "Date",
                 position: "insideBottom",
                 offset: -2,
-                fill: isDark ? "#ffffff" : "#000000",
+                fill: isDark ? "#0EFF7B" : "#000000",
                 fontSize: 14,
               }}
             />
@@ -335,7 +457,7 @@ const AttendanceTracking = () => {
                 angle: -90,
                 position: "insideLeft",
                 offset: 10,
-                fill: isDark ? "#ffffff" : "#000000",
+                fill: isDark ? "#0EFF7B" : "#000000",
                 fontSize: 14,
               }}
             />
@@ -385,43 +507,43 @@ const AttendanceTracking = () => {
       <div className="bg-white dark:bg-black rounded-xl overflow-x-auto w-full border border-gray-300 dark:border-gray-800">
         <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-[800px] md:min-w-[1000px]">
           <thead>
-            <tr className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-white text-xs">
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+            <tr className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] text-xs">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 <input
                   type="checkbox"
-                  className="bg-white dark:bg-gray-900 border border-[#0EFF7B] dark:border-gray-700 checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 checked:before:content-['✔'] w-4 h-4"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   checked={selectAll}
                   onChange={handleSelectAll}
                 />
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Name
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Designation
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              {/* <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Department
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Role
-              </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              </th> */}
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Date
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Shift time
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Status
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Check In
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Check Out
               </th>
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#1E1E1E] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
                 Details
               </th>
             </tr>
@@ -440,27 +562,27 @@ const AttendanceTracking = () => {
               paginatedRows.map((row, i) => (
                 <tr
                   key={i}
-                  className="bg-white dark:bg-black border-t border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+                  className="bg-white dark:bg-black border-t border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                 >
                   <td className="p-2 sm:p-3">
                     <input
                       type="checkbox"
-                      className="bg-white dark:bg-gray-900 border border-[#0EFF7B] dark:border-gray-700 checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 checked:before:content-['✔'] w-4 h-4"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       checked={selectedRows.includes(i)}
                       onChange={() => handleRowSelect(i)}
                     />
                   </td>
                   <td className="p-2 sm:p-3">{row.name}</td>
-                  <td className="p-2 sm:p-3">{row.designation}</td>
+                  {/* <td className="p-2 sm:p-3">{row.designation}</td> */}
                   <td className="p-2 sm:p-3">{row.department}</td>
-                  <td className="p-2 sm:p-3">{row.role}</td>
+                  {/* <td className="p-2 sm:p-3">{row.role}</td> */}
                   <td className="p-2 sm:p-3">{row.date}</td>
                   <td className="p-2 sm:p-3">{row.shift}</td>
                   <td
                     className={`p-2 sm:p-3 ${
                       row.status === "Present"
-                        ? "text-green-500"
-                        : "text-red-500"
+                        ? "text-[#6771FF]"
+                        : "text-[#FF2424]"
                     }`}
                   >
                     {row.status}
@@ -494,22 +616,28 @@ const AttendanceTracking = () => {
             disabled={currentPage === 1}
             className={`w-5 h-5 flex items-center justify-center rounded-full border ${
               currentPage === 1
-                ? "border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                : "border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronLeft size={16} className={currentPage === 1 ? "text-gray-400" : "text-[#08994A] dark:text-black"} />
+           <ChevronLeft
+                             size={12}
+                             className="text-[#08994A] dark:text-white"
+                           />
           </button>
           <button
             onClick={handleNextPage}
             disabled={currentPage === totalPages || totalPages === 0}
             className={`w-5 h-5 flex items-center justify-center rounded-full border ${
               currentPage === totalPages || totalPages === 0
-                ? "border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed"
-                : "border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronRight size={16} className={currentPage === totalPages || totalPages === 0 ? "text-gray-400" : "text-[#08994A] dark:text-black"} />
+            <ChevronRight
+                              size={12}
+                              className="text-[#08994A] dark:text-white"
+                            />
           </button>
         </div>
       </div>

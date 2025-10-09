@@ -23,7 +23,7 @@ const DeleteDepartmentPopup = ({ onClose, onConfirm }) => {
     }}
   ></div>{/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
-          <h3 className="text-lg font-semibold text-black dark:text-white">Delete Department</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">Delete Room List</h3>
           <button
             onClick={onClose}
             className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
@@ -34,7 +34,7 @@ const DeleteDepartmentPopup = ({ onClose, onConfirm }) => {
 
         {/* Message */}
         <p className="text-gray-600 dark:text-gray-300 text-center text-base mb-8">
-          Are you sure you want to delete this appointment? <br />
+          Are you sure you want to delete this Room List? <br />
           This action cannot be undone.
         </p>
 

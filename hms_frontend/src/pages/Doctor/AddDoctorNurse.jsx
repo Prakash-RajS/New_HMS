@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Listbox } from "@headlessui/react";
-import { ChevronDown, Upload } from "lucide-react";
+import { ChevronDown, Upload, ArrowLeft, Calendar ,UserPlus} from "lucide-react"; // Added Calendar icon
 import { useNavigate } from "react-router-dom";
 
+// PhotoUploadBox and CertificateUploadBox remain unchanged
 const PhotoUploadBox = ({ photo, setPhoto }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -22,7 +23,7 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
       />
       <label
         htmlFor="photoUpload"
-        className="border-2 mr-12 border-dashed border-gray-300 dark:border-gray-600 w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-lg overflow-hidden hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+        className="border-2 mr-12 border-dashed bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border-[#0EFF7B] dark:border-[#0EFF7B] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-lg overflow-hidden hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
       >
         {photo ? (
           <img src={photo} alt="Preview" className="w-full h-full object-cover" />
@@ -58,7 +59,7 @@ const CertificateUploadBox = ({ certificates, setCertificates }) => {
       />
       <label
         htmlFor="certificateUpload"
-        className="border-[1px] border-[#0EFF7B] dark:border-[#3A3A3A] w-full h-10 md:h-[42px] flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-full hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+        className="border-[1px] border-[#0EFF7B] dark:border-[#3A3A3A] w-full h-10 md:h-[42px] flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-[8px] hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
       >
         <Upload size={16} className="mr-2 text-[#08994A] dark:text-[#0EFF7B]" />
         <span className="text-sm">Upload Certificates</span>
@@ -88,7 +89,7 @@ const Dropdown = ({ label, value, onChange, options }) => (
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
         <Listbox.Button
-          className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]"
+          className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]"
         >
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -96,7 +97,11 @@ const Dropdown = ({ label, value, onChange, options }) => (
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
+          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-40 overflow-y-auto"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
         >
           {options.map((option, idx) => (
             <Listbox.Option
@@ -117,18 +122,28 @@ const Dropdown = ({ label, value, onChange, options }) => (
   </div>
 );
 
+// Updated InputField component with custom date picker icon
 const InputField = ({ label, name, value, onChange, placeholder, type = "text" }) => (
   <div className="space-y-1 w-full">
     <label className="text-sm text-black dark:text-white">{label}</label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      required={["fullname", "dob", "age", "address", "phone", "email", "nid", "city", "country", "doj", "designation", "specialization"].includes(name)}
-      className="w-full h-10 md:h-[42px] px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
-    />
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={["fullname", "dob", "age", "address", "phone", "email", "nid", "city", "country", "doj", "designation", "specialization"].includes(name)}
+        className={`w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] ${
+          type === "date" ? "pr-6" : "" // Add padding for date inputs to accommodate icon
+        }`}
+      />
+      {type === "date" && (
+        <span className="absolute inset-y-0 right-6  flex items-center pointer-events-none">
+          <Calendar size={16} className="text-[#0EFF7B]" />
+        </span>
+      )}
+    </div>
   </div>
 );
 
@@ -151,13 +166,43 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className="bg-white dark:bg-black mt-16 md:mt-[90px] mb-4 p-4 md:p-6 text-black dark:text-white rounded-xl w-full max-w-screen-2xl mx-auto">
+      <div
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
         <div className="mb-6">
           <button
-            className="px-4 py-2 md:px-6 md:py-2 bg-[#08994A] dark:bg-green-500 rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-black text-sm md:text-base"
+            className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
             onClick={() => navigate(-1)}
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
           >
-            ← Back
+            <ArrowLeft size={18} /> Back
           </button>
         </div>
         <div className="grid grid-cols-1 gap-8">
@@ -170,7 +215,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             </div>
             <PhotoUploadBox photo={photo} setPhoto={setPhoto} />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full min-h-[690px]">
+          <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full h-[640px]">
             <div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 <InputField
@@ -298,7 +343,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
               <button
                 type="reset"
-                className="px-4 py-2 md:px-6 md:py-2 rounded-lg border border-[#0EFF7B] dark:border-gray-600 bg-white dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
+                className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-white dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
                 onClick={() => {
                   setFormData({});
                   setPhoto(null);
@@ -308,11 +353,16 @@ export default function NewRegistration({ isSidebarOpen }) {
                 ✕ Clear
               </button>
               <button
-                type="submit"
-                className="px-4 py-2 md:px-6 md:py-2 bg-[#08994A] dark:bg-green-500 rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-black text-sm md:text-base"
-              >
-                + Add Staff
-              </button>
+  type="submit"
+  className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
+  style={{
+    background:
+      "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
+>
+  <UserPlus size={18} className="text-white" />
+  Add Staff
+</button>
             </div>
           </form>
         </div>
