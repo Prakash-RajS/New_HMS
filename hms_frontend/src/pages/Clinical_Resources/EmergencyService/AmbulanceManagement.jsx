@@ -11,6 +11,7 @@ import {
   Clock,
   Filter,
   Trash2,
+  X,
 } from "lucide-react";
 
 const AmbulanceManagement = () => {
@@ -19,6 +20,12 @@ const AmbulanceManagement = () => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [activeTab, setActiveTab] = useState("Dispatch Log");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedRows, setSelectedRows] = useState(new Set());
+  const [selectAll, setSelectAll] = useState(false);
 
   const dispatchData = [
     {
@@ -116,14 +123,14 @@ const AmbulanceManagement = () => {
 
   const itemsPerPage = 10;
 
-  const filteredData = (
-    activeTab === "Dispatch Log" ? dispatchData : tripData
-  ).filter((item) =>
-    Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const filteredData = (activeTab === "Dispatch Log" ? dispatchData : tripData)
+    .filter((item) =>
+      Object.values(item)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+    .filter((item) => (filterStatus ? item.status === filterStatus : true));
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
@@ -163,13 +170,34 @@ const AmbulanceManagement = () => {
   };
 
   const handleFilter = () => {
-    console.log("Filter button clicked");
-    // Placeholder for filter popup or logic
+    setIsFilterOpen(true);
   };
 
-  const handleDelete = () => {
-    console.log("Delete button clicked");
-    // Placeholder for delete popup or logic
+  const handleDelete = (item) => {
+    setSelectedItem(item);
+    setIsDeleteOpen(true);
+  };
+
+  const applyFilter = (status) => {
+    setFilterStatus(status);
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const clearFilter = () => {
+    setFilterStatus("");
+    setIsFilterOpen(false);
+    setCurrentPage(1);
+  };
+
+  const confirmDelete = () => {
+    console.log(
+      `Deleting ${activeTab === "Dispatch Log" ? "dispatch" : "trip"}: ${
+        selectedItem?.id || selectedItem?.tripId
+      }`
+    );
+    setIsDeleteOpen(false);
+    setSelectedItem(null);
   };
 
   const getStatusColor = (status) => {
@@ -179,12 +207,88 @@ const AmbulanceManagement = () => {
     return "text-gray-600 dark:text-gray-400";
   };
 
+  // Select All functionality
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedRows(new Set());
+    } else {
+      const allIds = new Set(sortedData.map((item) => item.id || item.tripId));
+      setSelectedRows(allIds);
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Individual row selection
+  const handleRowSelect = (id) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+    setSelectAll(newSelected.size === sortedData.length);
+  };
+
+  // Check if a row is selected
+  const isRowSelected = (id) => selectedRows.has(id);
+
+  // Bulk delete
+  const handleBulkDelete = () => {
+    if (selectedRows.size > 0) {
+      console.log(
+        `Deleting ${selectedRows.size} selected items:`,
+        Array.from(selectedRows)
+      );
+      setSelectedRows(new Set());
+      setSelectAll(false);
+      setIsDeleteOpen(false);
+    }
+  };
+
   return (
-    <div className="w-full flex-1 mt-[80px] bg-white dark:bg-black text-black dark:text-white p-6">
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    ><div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient overlay for dark mode */}
+      {/* <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div> */}
+
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 mt-4 relative z-10">
         <div>
-          <h1 className="text-[20px] font-medium text-black dark:text-[#0EFF7B]">
+          <h1 className="text-[20px] font-medium text-black dark:text-[#FFFFFF] flex items-center gap-2">
             Ambulance Management
           </h1>
           <p className="text-[14px] mt-2 text-gray-600 dark:text-gray-400">
@@ -194,13 +298,17 @@ const AmbulanceManagement = () => {
       </div>
 
       {/* Map + Notifications */}
-      <div className="w-full flex flex-col lg:flex-row gap-6 mb-6">
+      <div className="w-full flex flex-col lg:flex-row gap-6 mb-6 relative z-10">
         {/* Left Column: Map + Stats */}
         <div className="w-full lg:flex-1">
           {/* Map */}
           <div className="w-full h-[284px] bg-white dark:bg-[#1E1E1E] rounded-xl mb-6 relative">
             <div className="absolute top-2 right-2 bg-white dark:bg-black px-2 py-1 rounded-md text-sm flex items-center gap-1 text-black dark:text-white border border-[#0EFF7B] dark:border-[#0D0D0D]">
-              View live map <ChevronDown size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
+              View live map{" "}
+              <ChevronDown
+                size={14}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
             </div>
             <div className="w-full h-full flex items-center justify-center text-gray-600 dark:text-gray-400">
               Map View (Integrate with Google Maps or Leaflet)
@@ -208,10 +316,14 @@ const AmbulanceManagement = () => {
           </div>
 
           {/* Stats */}
-          <div className="w-full h-[91px] flex items-center justify-between rounded-lg px-6 py-[22px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0D0D0D]">
+          <div className="w-full h-[91px] flex items-center justify-between rounded-lg px-6 py-[22px] bg-white dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0D0D0D]">
             <div className="flex-1 flex flex-col items-center text-center">
-              <span className="text-black dark:text-white text-sm">Total Vehicles</span>
-              <span className="text-black dark:text-white text-base font-medium">250</span>
+              <span className="text-black dark:text-white text-sm">
+                Total Vehicles
+              </span>
+              <span className="text-black dark:text-white text-base font-medium">
+                250
+              </span>
             </div>
             <div className="w-px h-10 bg-gray-300 dark:bg-[#3C3C3C]" />
             <div className="flex-1 flex flex-col items-center text-center">
@@ -219,7 +331,9 @@ const AmbulanceManagement = () => {
                 <span className="w-2 h-2 rounded-full bg-green-600 dark:bg-green-500"></span>
                 Ready to Dispatch
               </span>
-              <span className="text-green-600 dark:text-green-500 text-base font-medium">7</span>
+              <span className="text-green-600 dark:text-green-500 text-base font-medium">
+                7
+              </span>
             </div>
             <div className="w-px h-10 bg-gray-300 dark:bg-[#3C3C3C]" />
             <div className="flex-1 flex flex-col items-center text-center">
@@ -227,7 +341,9 @@ const AmbulanceManagement = () => {
                 <span className="w-2 h-2 rounded-full bg-orange-600 dark:bg-orange-500"></span>
                 On Road (Trips)
               </span>
-              <span className="text-orange-600 dark:text-orange-500 text-base font-medium">4</span>
+              <span className="text-orange-600 dark:text-orange-500 text-base font-medium">
+                4
+              </span>
             </div>
             <div className="w-px h-10 bg-gray-300 dark:bg-[#3C3C3C]" />
             <div className="flex-1 flex flex-col items-center text-center">
@@ -235,73 +351,132 @@ const AmbulanceManagement = () => {
                 <span className="w-2 h-2 rounded-full bg-red-600 dark:bg-red-500"></span>
                 Out of Service
               </span>
-              <span className="text-red-600 dark:text-red-500 text-base font-medium">1</span>
+              <span className="text-red-600 dark:text-red-500 text-base font-medium">
+                1
+              </span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Notifications */}
-        <div className="w-full lg:w-[320px] h-[399px] bg-white dark:bg-[#0D0D0D] rounded-xl p-4 flex flex-col border border-[#0EFF7B] dark:border-[#0D0D0D]">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-black dark:text-white text-[15px] font-semibold flex items-center gap-2">
-              <Bell size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
-              Notifications & Alerts
-            </h3>
-            <a
-              href="#"
-              className="text-gray-600 dark:text-gray-400 text-xs hover:text-[#08994A] dark:hover:text-white transition-colors"
-            >
-              View all
-            </a>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400 text-xs mb-3">July 2025</p>
-          <div className="flex-1 overflow-y-auto">
-            <ul className="divide-y divide-gray-300 dark:divide-gray-700 text-sm">
-              <li className="py-3">
-                <p className="text-black dark:text-white font-medium">David’s vans</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs">Today at 12:03</p>
-                <p className="text-gray-600 dark:text-gray-300 text-xs flex items-center gap-1 mt-1">
-                  <Clock size={12} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                  Out of hours usage detected
-                </p>
-              </li>
-            </ul>
+        <div className="w-full lg:w-[320px] h-[399px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B1A] rounded-xl p-2 flex flex-col">
+          <div className="flex flex-col bg-white dark:bg-[#000000] rounded-xl p-4 flex-1">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="dark:text-white text:black text-[15px] font-semibold flex items-center gap-2">
+                <Bell size={16} className="text-[#0EFF7B]" />
+                Notifications & Alerts
+              </h3>
+              <a
+                href="#"
+                className="text-[#0EFF7B] text-xs hover:text-[#08994A] transition-colors"
+              >
+                View all
+              </a>
+            </div>
+            <p className="dark:text-gray-400 text:black text-xs mb-3">
+              July 2025
+            </p>
+            <div className="flex-1 overflow-y-auto">
+              <ul className="text-sm">
+                {[
+                  {
+                    title: "David's vans",
+                    time: "Today at 12:03",
+                    message: "Out of hours usage detected",
+                  },
+                  {
+                    title: "City Hospital",
+                    time: "Yesterday at 17:45",
+                    message: "New donor registered",
+                  },
+                  {
+                    title: "Red Cross Center",
+                    time: "July 8, 2025",
+                    message: "Blood stock updated",
+                  },
+                ].map((notif, idx) => (
+                  <li
+                    key={idx}
+                    className="py-3 flex justify-between items-start border-b border-[#3C3C3C] last:border-b-0"
+                  >
+                    <div className="flex flex-col">
+                      <p className="dark:text-white text:black font-medium">
+                        {notif.title}
+                      </p>
+                      <p className="dark:text-gray-400 text:black text-xs">
+                        {notif.time}
+                      </p>
+                      <p className="dark:text-gray-300 text:black text-xs flex items-center gap-1 mt-1">
+                        <Clock size={12} className="text-[#0EFF7B]" />
+                        {notif.message}
+                      </p>
+                    </div>
+                    <MapPin size={16} className="text-[#0EFF7B]" />
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 mb-4 text-sm border-b border-gray-300 dark:border-[#1E1E1E]">
-        <button
-          onClick={() => setActiveTab("Dispatch Log")}
-          className={`pb-2 hover:text-black dark:hover:text-white ${
-            activeTab === "Dispatch Log"
-              ? "text-black dark:text-white border-b-2 border-[#08994A] dark:border-[#0EFF7B]"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          Dispatch Log
-        </button>
-        <button
-          onClick={() => setActiveTab("Trip Log")}
-          className={`pb-2 hover:text-black dark:hover:text-white ${
-            activeTab === "Trip Log"
-              ? "text-black dark:text-white border-b-2 border-[#08994A] dark:border-[#0EFF7B]"
-              : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          Trip Log
-        </button>
+      <div className="mb-6 relative z-10">
+        {/* Heading */}
+        <h1 className="text-[20px] font-medium text-black dark:text-white">
+          Transport Management
+        </h1>
+        {/* Subheading */}
+        <p className="text-[14px] text-gray-600 dark:text-gray-400 mb-3">
+          List of all stocks
+        </p>
+
+        {/* Tabs Buttons */}
+        <div className="flex gap-3 text-sm">
+          <button
+            onClick={() => {
+              setActiveTab("Dispatch Log");
+              setSelectedRows(new Set());
+              setSelectAll(false);
+            }}
+            className={`w-[140px] h-[34px] rounded-[4px] px-3 py-2 flex items-center justify-center text-sm font-medium transition-all ${
+              activeTab === "Dispatch Log"
+                ? "bg-[#025126] border-t border-r border-b-2 border-l border-[#025126] shadow-[0_0_20px_0_#0EFF7B40] text-white"
+                : "bg-[#1E1E1E] border border-[#1E1E1E] shadow-[0_0_20px_0_#00000066] text-gray-400"
+            }`}
+          >
+            Dispatch Log
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("Trip Log");
+              setSelectedRows(new Set());
+              setSelectAll(false);
+            }}
+            className={`w-[140px] h-[34px] rounded-[4px] px-3 py-2 flex items-center justify-center text-sm font-medium transition-all ${
+              activeTab === "Trip Log"
+                ? "bg-[#025126] border-t border-r border-b-2 border-l border-[#025126] shadow-[0_0_20px_0_#0EFF7B40] text-white"
+                : "bg-[#1E1E1E] border border-[#1E1E1E] shadow-[0_0_20px_0_#00000066] text-gray-400"
+            }`}
+          >
+            Trip Log
+          </button>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="w-full bg-white dark:bg-[#0D0D0D] rounded-xl p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#0D0D0D]">
+      <div className="relative z-10 border border-[#0EFF7B] dark:border-[#0D0D0D] rounded-[12px] p-4 bg-white dark:bg-[#0D0D0D]">
         {/* Header */}
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <h2 className="text-black dark:text-white text-lg font-semibold">{activeTab}</h2>
+          <h2 className="text-black dark:text-white text-lg font-semibold">
+            {activeTab}
+          </h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 flex-1 sm:flex-initial">
-              <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+              <Search
+                size={16}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
               <input
                 type="text"
                 placeholder="Search by ID, unit, dispatcher, etc."
@@ -312,163 +487,459 @@ const AmbulanceManagement = () => {
             </div>
             <button
               onClick={handleFilter}
-              className="p-2 bg-white dark:bg-[#1E1E1E] rounded-full text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B] transition"
+              className="w-8 h-8 flex items-center justify-center rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] dark:border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B] transition"
             >
               <Filter size={18} />
             </button>
+
             <button
-              onClick={handleDelete}
-              className="p-2 bg-white dark:bg-[#1E1E1E] rounded-full text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition"
+              onClick={() =>
+                selectedRows.size > 0 ? handleBulkDelete() : handleDelete(null)
+              }
+              className={`w-8 h-8 flex items-center justify-center rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] dark:border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] transition ${
+                selectedRows.size > 0
+                  ? "text-red-600 dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-900"
+                  : "text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500"
+              }`}
             >
               <Trash2 size={18} />
             </button>
           </div>
         </div>
 
+        {/* Filter Popup */}
+        {isFilterOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-helvetica">
+            <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+              <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+                {/* Header */}
+                <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+                  <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+                    Filter {activeTab}
+                  </h3>
+                  <button
+                    onClick={() => setIsFilterOpen(false)}
+                    className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Status Dropdown */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+                    Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full h-[32px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] font-helvetica"
+                    >
+                      <option value="">All Statuses</option>
+                      <option value="Completed">Completed</option>
+                      <option value="En Route">En Route</option>
+                      <option value="Standby">Standby</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-4 mt-6">
+                  <button
+                    onClick={clearFilter}
+                    className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] font-helvetica"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={() => {
+                      applyFilter(filterStatus);
+                      setIsFilterOpen(false);
+                    }}
+                    className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition font-helvetica"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Popup */}
+        {isDeleteOpen && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-helvetica">
+            <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+              <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+                {/* Header */}
+                <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+                  <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+                    Delete {activeTab}
+                  </h3>
+                  <button
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Confirmation Text */}
+                <p className="text-sm text-black dark:text-white mb-4">
+                  {selectedItem
+                    ? `Are you sure you want to delete ${
+                        activeTab === "Dispatch Log" ? "dispatch" : "trip"
+                      } with ID ${selectedItem?.id || selectedItem?.tripId}?`
+                    : `Are you sure you want to delete ${
+                        selectedRows.size
+                      } selected ${
+                        selectedRows.size === 1 ? "item" : "items"
+                      }?`}
+                </p>
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-4 mt-6">
+                  <button
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] font-helvetica"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={selectedItem ? confirmDelete : handleBulkDelete}
+                    className="w-[144px] h-[32px] rounded-[8px] bg-red-600 dark:bg-red-500 text-white font-medium hover:bg-red-700 dark:hover:bg-red-600 font-helvetica"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table */}
         <div className="overflow-hidden rounded-lg">
-          <table className="w-full border-collapse min-w-[800px]">
-            <thead className="bg-white dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-black dark:text-white">
+          <table className="w-full border-collapse min-w-[800px] font-helvetica">
+            <thead className="bg-gray-200 dark:bg-[#091810] h-[52px] text-sm text-center border-b border-gray-300 dark:border-[#3C3C3C] text-[#0EFF7B]">
               <tr>
+                {/* Select All Checkbox */}
+                <th className="px-3 py-3 w-12">
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-[#0EFF7B] bg-gray-100 border-gray-300 rounded focus:ring-[#0EFF7B] dark:focus:ring-[#0EFF7B] dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    />
+                  </div>
+                </th>
+
                 {activeTab === "Dispatch Log" ? (
                   <>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("id")}>
-                      Dispatch ID {sortColumn === "id" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("id")}
+                    >
+                      Dispatch ID{" "}
+                      {sortColumn === "id" && (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("time")}>
-                      Dispatched Time/Date {sortColumn === "time" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("time")}
+                    >
+                      Dispatched Time/Date{" "}
+                      {sortColumn === "time" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("unit")}>
-                      Unit No {sortColumn === "unit" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("unit")}
+                    >
+                      Unit No{" "}
+                      {sortColumn === "unit" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("dispatcher")}>
-                      Dispatcher {sortColumn === "dispatcher" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("dispatcher")}
+                    >
+                      Dispatcher{" "}
+                      {sortColumn === "dispatcher" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("type")}>
-                      Call Type {sortColumn === "type" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("type")}
+                    >
+                      Call Type{" "}
+                      {sortColumn === "type" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("location")}>
-                      Location Assigned {sortColumn === "location" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("location")}
+                    >
+                      Location Assigned{" "}
+                      {sortColumn === "location" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("status")}>
-                      Status {sortColumn === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("status")}
+                    >
+                      Status{" "}
+                      {sortColumn === "status" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
                     <th className="px-3 py-3">Action</th>
                   </>
                 ) : (
                   <>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("tripId")}>
-                      Trip ID {sortColumn === "tripId" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("tripId")}
+                    >
+                      Trip ID{" "}
+                      {sortColumn === "tripId" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("dispatchId")}>
-                      Dispatch ID {sortColumn === "dispatchId" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("dispatchId")}
+                    >
+                      Dispatch ID{" "}
+                      {sortColumn === "dispatchId" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("unit")}>
-                      Unit No {sortColumn === "unit" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("unit")}
+                    >
+                      Unit No{" "}
+                      {sortColumn === "unit" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("crew")}>
-                      Crew {sortColumn === "crew" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("crew")}
+                    >
+                      Crew{" "}
+                      {sortColumn === "crew" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("patientId")}>
-                      Patient ID {sortColumn === "patientId" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("patientId")}
+                    >
+                      Patient ID{" "}
+                      {sortColumn === "patientId" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("pickupLocation")}>
-                      Pickup Location {sortColumn === "pickupLocation" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("pickupLocation")}
+                    >
+                      Pickup Location{" "}
+                      {sortColumn === "pickupLocation" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("destination")}>
-                      Destination {sortColumn === "destination" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("destination")}
+                    >
+                      Destination{" "}
+                      {sortColumn === "destination" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("startTime")}>
-                      Start Time {sortColumn === "startTime" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("startTime")}
+                    >
+                      Start Time{" "}
+                      {sortColumn === "startTime" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("endTime")}>
-                      End Time {sortColumn === "endTime" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("endTime")}
+                    >
+                      End Time{" "}
+                      {sortColumn === "endTime" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("mileage")}>
-                      Mileage {sortColumn === "mileage" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("mileage")}
+                    >
+                      Mileage{" "}
+                      {sortColumn === "mileage" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
-                    <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("status")}>
-                      Status {sortColumn === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+                    <th
+                      className="px-3 py-3 cursor-pointer"
+                      onClick={() => handleSort("status")}
+                    >
+                      Status{" "}
+                      {sortColumn === "status" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
                     </th>
                   </>
                 )}
               </tr>
             </thead>
-            <tbody className="text-sm">
-              {sortedData.map((row) => (
-                <tr
-                  key={row.id || row.tripId}
-                  className="h-[62px] bg-white dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-gray-100 dark:hover:bg-[#1A1A1A]"
-                >
-                  {activeTab === "Dispatch Log" ? (
-                    <>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.id}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.time}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.unit}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.dispatcher}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.type}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.location}</td>
-                      <td
-                        className={`px-3 py-3 font-medium ${getStatusColor(
-                          row.status
-                        )}`}
-                      >
-                        {row.status}
-                      </td>
-                      <td className="px-3 py-3 flex gap-3">
-                        <button className="text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400">
-                          <Phone size={16} />
-                        </button>
-                        <button className="text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400">
-                          <Edit size={16} />
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.tripId}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.dispatchId}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.unit}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.crew}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.patientId}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.pickupLocation}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.destination}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.startTime}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.endTime}</td>
-                      <td className="px-3 py-3 text-black dark:text-white">{row.mileage}</td>
-                      <td
-                        className={`px-3 py-3 font-medium ${getStatusColor(
-                          row.status
-                        )}`}
-                      >
-                        {row.status}
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
+            <tbody>
+              {sortedData.map((row) => {
+                const rowId = row.id || row.tripId;
+                return (
+                  <tr
+                    key={rowId}
+                    className="text-center border-b border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] h-[62px]"
+                  >
+                    {/* Checkbox for row selection */}
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={isRowSelected(rowId)}
+                          onChange={() => handleRowSelect(rowId)}
+                          className="w-4 h-4 text-[#0EFF7B] bg-gray-100 border-gray-300 rounded focus:ring-[#0EFF7B] dark:focus:ring-[#0EFF7B] dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                      </div>
+                    </td>
+
+                    {activeTab === "Dispatch Log" ? (
+                      <>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.id}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.time}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.unit}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.dispatcher}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.type}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.location}
+                        </td>
+                        <td
+                          className={`px-3 py-3 font-medium ${getStatusColor(
+                            row.status
+                          )}`}
+                        >
+                          {row.status}
+                        </td>
+                        <td className="px-3 py-3 flex justify-end gap-2">
+                          <button className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]">
+                            <Phone
+                              size={16}
+                              className="text-[#08994A] dark:text-[#0EFF7B]"
+                            />
+                          </button>
+                          <button className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]">
+                            <Edit
+                              size={16}
+                              className="text-[#08994A] dark:text-[#0EFF7B]"
+                            />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(row)}
+                            className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] hover:bg-red-100 dark:hover:bg-red-900"
+                          >
+                            <Trash2
+                              size={16}
+                              className="text-red-600 dark:text-red-500"
+                            />
+                          </button>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.tripId}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.dispatchId}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.unit}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.crew}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.patientId}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.pickupLocation}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.destination}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.startTime}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.endTime}
+                        </td>
+                        <td className="px-3 py-3 text-black dark:text-white">
+                          {row.mileage}
+                        </td>
+                        <td
+                          className={`px-3 py-3 font-medium ${getStatusColor(
+                            row.status
+                          )}`}
+                        >
+                          {row.status}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        <div className="mt-4 flex justify-left items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-          <span>
-            Page <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span> of {totalPages}
-          </span>
-          <button
-            onClick={handlePrevPage}
-            className="bg-white dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B] disabled:opacity-40 transition"
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <button
-            onClick={handleNextPage}
-            className="bg-white dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B] disabled:opacity-40 transition"
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRight size={16} />
-          </button>
+        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4 p-4 font-helvetica">
+          <div className="text-sm text-gray-600 dark:text-white">
+            Page{" "}
+            <span className="text-[#08994A] dark:text-[#0EFF7B]">
+              {currentPage}
+            </span>{" "}
+            of {totalPages}
+          </div>
+          <div className="flex items-center gap-x-2">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+                currentPage === 1
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+              }`}
+            >
+              <ChevronLeft size={12} />
+            </button>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+                currentPage === totalPages
+                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
+                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+              }`}
+            >
+              <ChevronRight size={12} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

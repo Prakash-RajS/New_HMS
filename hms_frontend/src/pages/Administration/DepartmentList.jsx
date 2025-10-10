@@ -328,7 +328,7 @@ const DepartmentList = () => {
     }}
   ></div>
   {/* Header */}
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mt-4 mb-2">
           <h2 className="text-xl font-semibold text-black dark:text-white">
             Department Lists
           </h2>

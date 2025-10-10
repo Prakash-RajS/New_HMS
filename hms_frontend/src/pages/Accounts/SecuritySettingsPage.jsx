@@ -62,8 +62,8 @@ const SecuritySettingsPage = () => {
   const Toggle = ({ enabled, onChange }) => (
     <button
       onClick={onChange}
-      className={`relative inline-flex border-[1px] border-gray-300 dark:border-[#3C3C3C] 
-        w-[48px] h-[24px] items-center rounded-full transition 
+      className={`relative inline-flex border-[1px] border-gray-300 dark:border-[#0EFF7B4D] 
+        w-[48px] h-[24px] items-center rounded-full transition shadow-[0px_0px_4px_0px_#0EFF7B]
         ${enabled ? "bg-[#0EFF7B] dark:bg-[#0EFF7B1A]" : "bg-gray-200 dark:bg-[#0D0D0D]"}`}
     >
       <span
@@ -79,15 +79,46 @@ const SecuritySettingsPage = () => {
   };
 
   return (
-    <div className="w-full bg-white dark:bg-black mt-[70px] mx-auto p-3 text-black dark:text-white rounded-xl">
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mt-4 mb-6">
         <button
-          className="px-6 py-2 bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black rounded-lg hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition flex items-center gap-2"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft size={18} className="text-white dark:text-black" /> Back
-        </button>
+            className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
+            onClick={() => navigate(-1)}
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
       </div>
 
       {/* Header */}
@@ -105,7 +136,7 @@ const SecuritySettingsPage = () => {
               You can save all your activity logs including unusual activity detected
             </p>
           </div>
-          <div className="self-center">
+          <div className="self-center mr-3">
             <Toggle enabled={saveLogs} onChange={() => setSaveLogs(!saveLogs)} />
           </div>
         </div>
@@ -121,12 +152,12 @@ const SecuritySettingsPage = () => {
         </div>
         <div className="flex flex-col items-end">
           <button
-            className="bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition"
+            className="min-w-[180px] bg-[#08994A] dark:bg-[#0EFF7B1A] border-[1px] border-[#0EFF7B66] text-white dark:text-white px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition shadow-[0px_0px_4px_0px_#0EFF7B40]"
             onClick={handleChangePassword}
           >
             Change Password
           </button>
-          <p className="text-[12px] text-gray-600 dark:text-gray-400 mt-2">Last changed: Mar 2, 2025</p>
+          <p className="text-[12px] text-gray-600 dark:text-gray-400 mr-3 mt-2">Last changed: Mar 2, 2025</p>
         </div>
       </div>
 
@@ -140,12 +171,13 @@ const SecuritySettingsPage = () => {
             </span>
           </h3>
           <p className="min-w-[400px] text-black dark:text-white text-[16px] mt-2">
-            Secure your account with 2FA security. When it is activated, you will need to enter not only your password, but also a special code using an app. You will receive this code in a mobile app.
+            Secure your account with 2FA security. When it is activated,<br /> you will need to enter not only your password, but also a special code using an app. <br />You will receive this code in a mobile app.
           </p>
         </div>
+        
         <button
           onClick={() => setTwoFactorAuth(!twoFactorAuth)}
-          className="bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition"
+           className="min-w-[180px] bg-[#08994A] dark:bg-[#0EFF7B1A] border-[1px] border-[#0EFF7B66] text-white dark:text-white px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition shadow-[0px_0px_4px_0px_#0EFF7B40]"
         >
           {twoFactorAuth ? "Disable" : "Enable"}
         </button>
@@ -161,8 +193,7 @@ const SecuritySettingsPage = () => {
         </div>
         <button
           onClick={() => setLoginAlerts(!loginAlerts)}
-          className="bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition"
-        >
+           className="min-w-[180px] bg-[#08994A] dark:bg-[#0EFF7B1A] border-[1px] border-[#0EFF7B66] text-white dark:text-white px-4 py-2 rounded-full font-medium hover:bg-[#0cd968] dark:hover:bg-[#0cd968] transition shadow-[0px_0px_4px_0px_#0EFF7B40]">
           {loginAlerts ? "Disable" : "Enable"}
         </button>
       </div>
@@ -175,10 +206,10 @@ const SecuritySettingsPage = () => {
         </p>
 
         {/* Permissions Table */}
-        <div className="w-full ml-6 overflow-x-auto">
-          <table className="w-full border-collapse text-center table-fixed">
-            <thead>
-              <tr className="text-[18px] text-black dark:text-white">
+        <div className=" min-w-[1000px] ml-2 rounded-[8px] overflow-x-auto">
+          <table className="min-w-[1000px]  bg-white dark:bg-[#0EFF7B1A] border-collapse text-center table-fixed">
+            <thead className="h-[62px]">
+              <tr className="text-[18px] text-black dark:text-[#0EFF7B]">
                 <th className="p-2 w-1/5">Modules</th>
                 <th className="p-2 w-1/5">Receptionist</th>
                 <th className="p-2 w-1/5">Doctor</th>
@@ -198,7 +229,7 @@ const SecuritySettingsPage = () => {
               ].map(([label, key]) => (
                 <tr
                   key={key}
-                  className="bg-white dark:bg-black border-b border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition"
+                  className="bg-white h-[52px] dark:bg-black border-b border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
                 >
                   <td className="p-2 break-words text-black dark:text-white">{label}</td>
                   {["receptionist", "doctor", "billing", "admin"].map((role) => (

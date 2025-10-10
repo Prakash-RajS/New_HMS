@@ -75,7 +75,7 @@ const UserSettings = () => {
   const rowsPerPage = 5;
 
   const userOptions = ["Select Name", ...new Set(allUsers.map((u) => u.name))];
-  const roleOptions = ["Select Role", "Doctor", "Staff", "Receptionist"];
+  const roleOptions = ["Select Role", "Doctor", "Staff", "Receptionist","Select Role", "Doctor", "Staff", "Receptionist","Select Role", "Doctor", "Staff", "Receptionist","Select Role", "Doctor", "Staff", "Receptionist"];
   const departmentOptions = ["Select Department", ...new Set(allUsers.map((u) => u.department))];
 
   const filteredUsers = allUsers.filter((u) => {
@@ -181,13 +181,17 @@ const UserSettings = () => {
       <label className="block text-sm font-medium mb-2 text-black dark:text-white">{label}</label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
-          <Listbox.Button className="min-w-[291px] h-[40px] px-3 pr-8 rounded-full border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-black dark:text-white text-left text-[14px] leading-[16px]">
+          <Listbox.Button className="min-w-[321px] h-[40px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-black dark:text-white text-left text-[14px] leading-[16px]">
             {value || placeholder}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+          <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}>
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -208,14 +212,43 @@ const UserSettings = () => {
   );
 
   return (
-    <div className="w-full mb-4 max-w-[1400px] mx-auto">
+    
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Header */}
-      <div className="mt-[60px] bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col  dark:border-[#0D0D0D]">
+      <div className="mt-[10px] bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col  dark:border-[#0D0D0D]">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-black dark:text-[#0EFF7B]">User settings</h2>
           <button
             onClick={() => navigate("/security")}
-            className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] hover:bg-[#08994A] dark:hover:bg-[#0EFF7B] hover:text-white dark:hover:text-black px-4 py-2 rounded-full text-black dark:text-white font-medium transition"
+            className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] hover:bg-[#08994A] dark:hover:bg-[#0EFF7B1A] hover:text-white dark:hover:text-[#0EFF7B] px-4 py-2 rounded-full text-black dark:text-white font-medium transition"
           >
             <Shield size={18} className="text-[#08994A] dark:text-[#0EFF7B]" /> Security Settings
           </button>
@@ -253,13 +286,13 @@ const UserSettings = () => {
         <div className="flex gap-2">
           <button
             onClick={handlePrint}
-            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
           >
             <Printer size={16} /> Print
           </button>
           <button
             onClick={handleExport}
-            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-full flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+            className="bg-white dark:bg-[#0D0D0D] border-[1px] border-[#08994A4D] dark:border-[#0EFF7B4D] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
           >
             <Download size={16} /> Export PDF
           </button>
@@ -267,7 +300,7 @@ const UserSettings = () => {
       </div>
 
       {/* User List Table */}
-      <div className="bg-white dark:bg-[#0D0D0D] text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#0D0D0D]">
+      <div className="bg-white dark:bg-transparent text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#3C3C3C]">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-black dark:text-white">User List</h3>
           <div className="flex gap-2 items-center">
@@ -296,13 +329,13 @@ const UserSettings = () => {
         </div>
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-left h-[52px] bg-white dark:bg-[#1E1E1E] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
+            <tr className="text-left h-[52px] bg-white dark:bg-[#0EFF7B1A] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
               <th className="p-3">
                 <input
                   type="checkbox"
                   checked={selectedUsers.length === users.length && users.length > 0}
                   onChange={handleSelectAll}
-                  className="w-5 h-5 border border-gray-600 dark:border-gray-400 accent-[#08994A] dark:accent-[#0EFF7B]"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white  dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                 />
               </th>
               <th className="p-3 cursor-pointer" onClick={() => handleSort("name")}>
@@ -327,14 +360,14 @@ const UserSettings = () => {
             {users.map((u, i) => (
               <tr
                 key={i}
-                className="border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition"
+                className="border-b h-[22px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
               >
                 <td className="p-3">
                   <input
                     type="checkbox"
                     checked={selectedUsers.includes(u)}
                     onChange={() => handleUserCheckboxChange(u)}
-                    className="w-5 h-5 border border-gray-600 dark:border-gray-400 accent-[#08994A] dark:accent-[#0EFF7B]"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white  dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                   />
                 </td>
                 <td className="p-3">
@@ -371,7 +404,7 @@ const UserSettings = () => {
             ))}
           </tbody>
         </table>
-        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4">
+        <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4">
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{userPage}</span> of {totalUserPages} (
             {(userPage - 1) * rowsPerPage + 1} to{" "}
@@ -406,41 +439,59 @@ const UserSettings = () => {
       </div>
 
       {/* Popups */}
-      {showEditUserPopup && (
-        <EditUserPopup data={editUser} onClose={() => setShowEditUserPopup(false)} />
-      )}
       {showDeleteUserPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#000000] border-2 border-[#0EFF7B] dark:border-[#0D0D0D] rounded-xl p-6 w-[400px]">
-            <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-[#0EFF7B33] pb-3">
-              <h3 className="text-lg font-semibold text-[#08994A] dark:text-[#0EFF7B]">Delete User</h3>
-              <button
-                onClick={() => setShowDeleteUserPopup(false)}
-                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968] p-1 rounded-full hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <p className="text-black dark:text-white mb-6">
-              Are you sure you want to delete {deleteUser ? deleteUser.name : selectedUsers.length} user(s)?
-            </p>
-            <div className="flex justify-end gap-4">
-              <button
-                onClick={() => setShowDeleteUserPopup(false)}
-                className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDeleteUsers}
-                className="bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-red-700 dark:hover:bg-red-400 transition"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+  <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div className="relative bg-white dark:bg-[#000000] rounded-[20px] p-6 w-[400px]">
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
+      
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="flex justify-between items-center mb-4 border-b border-gray-300 dark:border-[#0EFF7B33] pb-3">
+          <h3 className="text-lg font-semibold text-[#08994A] dark:text-[#0EFF7B]">Delete User</h3>
+          <button
+            onClick={() => setShowDeleteUserPopup(false)}
+            className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968] p-1 rounded-full hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-      )}
+        <p className="text-black dark:text-white mb-6">
+          Are you sure you want to delete {deleteUser ? deleteUser.name : selectedUsers.length} user(s)?
+        </p>
+        <div className="flex justify-end gap-4">
+          <button
+            onClick={() => setShowDeleteUserPopup(false)}
+            className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-[8px] font-semibold hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmDeleteUsers}
+            className="bg-red-600 dark:bg-red-700 text-white px-4 py-2 rounded-[8px] font-semibold hover:bg-red-700 dark:hover:bg-red-800 transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

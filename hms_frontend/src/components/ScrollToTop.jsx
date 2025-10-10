@@ -13,7 +13,7 @@ const ScrollToTop = ({ contentRef }) => {
     const resetScroll = () => {
       if (contentRef?.current) {
         contentRef.current.scrollTop = 0;
-        console.log("ScrollToTop: contentRef scrollTop set to 0");
+        // console.log("ScrollToTop: contentRef scrollTop set to 0");
       }
     };
 

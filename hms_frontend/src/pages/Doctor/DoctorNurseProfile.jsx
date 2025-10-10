@@ -274,7 +274,7 @@ const ProfileSection = () => {
         }}
       ></div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mt-4 mb-6">
         <h2 className="text-xl font-semibold text-black dark:text-white">Doctor/Nurse Profiles</h2>
         <button
           onClick={() => navigate("/Doctors-Nurse/AddDoctorNurse")}

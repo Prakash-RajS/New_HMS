@@ -21,7 +21,10 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
       <div className="w-[400px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 shadow-[0px_0px_2px_0px_#A0A0A040]">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+          <h2
+            className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
             Confirm Deletion
           </h2>
           <button
@@ -31,19 +34,26 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
             <X size={16} className="text-[#08994A] dark:text-white" />
           </button>
         </div>
-        <p className="text-sm text-black dark:text-white mb-6">
+        <p
+          className="text-sm text-black dark:text-white mb-6"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+        >
           Are you sure you want to delete {itemsToDelete.length} item(s)?
         </p>
         <div className="flex justify-center gap-4">
           <button
             onClick={onCancel}
-            className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
+            className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+            className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center 
+     bg-gradient-to-r from-[#FF4D4D] to-[#B30000]
+     text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition shadow-[0_2px_12px_0px_#00000040]"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             Delete
           </button>
@@ -63,6 +73,8 @@ const StockInventory = () => {
   const [customDate, setCustomDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [year, setYear] = useState("2025");
+  const [month, setMonth] = useState("Aug");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [sortColumn, setSortColumn] = useState(null);
@@ -158,13 +170,23 @@ const StockInventory = () => {
     },
   ]);
 
-  const categories = ["Local Anesthesia", "Antiseptics", "Antibiotics", "Anti-inflammatory", "Analgesics", "Steroid", "Antifungal"];
+  const categories = [
+    "Local Anesthesia",
+    "Antiseptics",
+    "Antibiotics",
+    "Anti-inflammatory",
+    "Analgesics",
+    "Steroid",
+    "Antifungal",
+  ];
   const itemsPerPage = 9;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (openDropdownId && !dropdownRefs.current[openDropdownId]?.contains(event.target)) {
+      if (
+        openDropdownId &&
+        !dropdownRefs.current[openDropdownId]?.contains(event.target)
+      ) {
         setOpenDropdownId(null);
       }
     };
@@ -174,14 +196,15 @@ const StockInventory = () => {
     };
   }, [openDropdownId]);
 
-  // Updated filter logic to include status and category
   const filteredData = inventoryData.filter((item) => {
     const matchesSearch = Object.values(item)
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "All" || item.status === filterStatus;
-    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    const matchesStatus =
+      filterStatus === "All" || item.status === filterStatus;
+    const matchesCategory =
+      selectedCategory === "All" || item.category === selectedCategory;
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
@@ -196,7 +219,9 @@ const StockInventory = () => {
     const valA = a[sortColumn];
     const valB = b[sortColumn];
     if (typeof valA === "string") {
-      return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      return sortOrder === "asc"
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
     } else {
       return sortOrder === "asc" ? valA - valB : valB - valA;
     }
@@ -228,7 +253,9 @@ const StockInventory = () => {
   };
 
   const handleDeleteSelected = () => {
-    setInventoryData(inventoryData.filter((item) => !selectedRows.includes(item.id)));
+    setInventoryData(
+      inventoryData.filter((item) => !selectedRows.includes(item.id))
+    );
     setSelectedRows([]);
     setSelectAll(false);
     setShowDeletePopup(false);
@@ -263,7 +290,9 @@ const StockInventory = () => {
     e.preventDefault();
     setInventoryData(
       inventoryData.map((item) =>
-        item.id === editStockId ? { ...item, ...newStock, stock: parseInt(newStock.stock) || 0 } : item
+        item.id === editStockId
+          ? { ...item, ...newStock, stock: parseInt(newStock.stock) || 0 }
+          : item
       )
     );
     setShowEditStockPopup(false);
@@ -302,27 +331,60 @@ const StockInventory = () => {
     }
   };
 
+  const years = ["2023", "2024", "2025", "2026"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+
   const Dropdown = ({ label, value, onChange, options }) => (
     <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label
+        className="text-sm text-black dark:text-white"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        {label}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+          <Listbox.Button
+            className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+        bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
             {value || "Select Option"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+              <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+
+          <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-white dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                  } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                  `cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] ${
+                    active
+                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "text-black dark:text-white"
+                  } ${
+                    selected
+                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                      : ""
+                  }`
                 }
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {option}
               </Listbox.Option>
@@ -334,66 +396,136 @@ const StockInventory = () => {
   );
 
   return (
-    <div className="w-full min-h-screen mt-[60px] bg-white dark:bg-black text-black dark:text-white p-3">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6 w-full">
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
+
+      <div className="flex justify-between items-center mb-6 mt-4 w-full">
         <div>
-          <h1 className="text-[20px] font-medium text-black dark:text-white">Stock & Inventory</h1>
-          <p className="text-[14px] mt-2 text-gray-600 dark:text-gray-400">
-            Manage staff profiles, departments, roles, attendance, and payroll in one place.
+          <h1
+            className="text-[20px] font-medium text-black dark:text-white"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            Stock & Inventory
+          </h1>
+          <p
+            className="text-[14px] mt-2 text-gray-600 dark:text-gray-400"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            Manage staff profiles, departments, roles, attendance, and payroll
+            in one place.
           </p>
         </div>
         <button
           onClick={() => setShowAddStockPopup(true)}
           className="w-[200px] h-[40px] flex items-center justify-center gap-2 rounded-full border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] shadow-[0px_2px_12px_0px_#0EFF7B40] text-sm font-semibold text-white px-3 py-2 hover:scale-105 transition"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           + Add Stock
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-6 mb-6 pb-2 text-sm relative">
-        {["Today", "Week", "Month", "Year"].map((f) => (
-          <button
-            key={f}
-            onClick={() => {
-              setActiveFilter(f);
-              setShowCalendar(false);
-            }}
-            className={`hover:text-black dark:hover:text-white ${
-              f === activeFilter
-                ? "text-black dark:text-white border-b-2 border-[#08994A] dark:border-white"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-        <button
-          onClick={() => {
-            setActiveFilter("Custom");
-            setShowCalendar(!showCalendar);
-          }}
-          className={`flex items-center gap-1 hover:text-black dark:hover:text-white ${
-            activeFilter === "Custom" ? "text-black dark:text-white" : "text-gray-600 dark:text-gray-400"
-          }`}
-        >
-          Custom
-          <ChevronDown size={14} />
-        </button>
-        {showCalendar && (
-          <div className="absolute top-10 left-[15%] bg-white dark:bg-[#1E1E1E] p-3 rounded-lg shadow-lg border border-[#0EFF7B] dark:border-gray-600 z-50">
-            <input
-              type="date"
-              value={customDate}
-              onChange={(e) => setCustomDate(e.target.value)}
-              className="bg-white dark:bg-transparent text-black dark:text-white text-sm border border-[#0EFF7B] dark:border-gray-600 rounded-md p-1 focus:outline-none"
-            />
+      <div className="flex items-center justify-between w-full mb-6 text-sm">
+        <div className="flex gap-4">
+          {["Today", "Week", "Month", "Year"].map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`px-6 py-2 rounded-md transition-all duration-300 ${
+                activeFilter === filter
+                  ? "bg-[#08994A] text-white"
+                  : "bg-[#1B1B1B] text-gray-300 hover:bg-[#08994A]/30"
+              }`}
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-gray-400"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Year
+            </span>
+            <div className="relative">
+              <select
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
+              />
+            </div>
           </div>
-        )}
+
+          <div className="flex items-center gap-2">
+            <span
+              className="text-gray-400"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Month
+            </span>
+            <div className="relative">
+              <select
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                {months.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Top Stats */}
       <div className="bg-gray-100 dark:bg-[#0D0D0D] px-6 py-6 w-full h-[102px] rounded-2xl mb-6">
         <div className="grid grid-cols-4 gap-6 text-sm">
           {[
@@ -429,10 +561,16 @@ const StockInventory = () => {
                 {stat.icon}
               </div>
               <div>
-                <p className="font-Inter font-normal text-[12px] leading-[100%] tracking-normal text-black dark:text-white mb-3">
+                <p
+                  className="font-normal text-[12px] leading-[100%] tracking-normal text-black dark:text-white mb-3"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
                   {stat.label}
                 </p>
-                <p className="font-Inter font-bold text-[16px] leading-[100%] tracking-normal text-black dark:text-white">
+                <p
+                  className="font-bold text-[16px] leading-[100%] tracking-normal text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
                   {stat.value}
                 </p>
               </div>
@@ -441,11 +579,12 @@ const StockInventory = () => {
         </div>
       </div>
 
-      {/* Department Stocks & Upcoming/Expiring */}
       <div className="flex flex-wrap w-full gap-4 mb-6">
-        {/* Department Stocks */}
         <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
-          <h3 className="text-[#08994A] dark:text-[#0EFF7B] text-[14px] font-semibold mb-1">
+          <h3
+            className="text-[#08994A] dark:text-[#0EFF7B] text-[14px] font-semibold mb-1"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
             DEPARTMENT STOCKS
           </h3>
           <hr className="border-gray-300 dark:border-[#333] mb-6" />
@@ -453,575 +592,975 @@ const StockInventory = () => {
             <div className="flex flex-col gap-5 mr-6">
               <div className="flex items-center gap-3">
                 <span className="min-w-[14px] h-[14px] rounded-full bg-[#0EFF7B] inline-block"></span>
-                <span className="font-inter text-sm text-black dark:text-white">Medical Dept</span>
-                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">60%</span>
+                <span
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Medical Dept
+                </span>
+                <span
+                  className="text-gray-600 dark:text-[#A0A0A0] text-sm"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  60%
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="min-w-[14px] h-[14px] rounded-full bg-[#0A7239] inline-block"></span>
-                <span className="font-inter text-sm text-black dark:text-white">Surgical Dept</span>
-                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">30%</span>
+                <span
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Surgical Dept
+                </span>
+                <span
+                  className="text-gray-600 dark:text-[#A0A0A0] text-sm"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  30%
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="min-w-[14px] h-[14px] rounded-full bg-[#D7FDE8] inline-block"></span>
-                <span className="font-inter text-sm text-black dark:text-white">
+                <span
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
                   Supportive &<br /> Diagnostic Dept
                 </span>
-                <span className="text-gray-600 dark:text-[#A0A0A0] text-sm">10%</span>
+                <span
+                  className="text-gray-600 dark:text-[#A0A0A0] text-sm"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  10%
+                </span>
               </div>
             </div>
             <svg viewBox="0 0 36 36" width="100" height="100">
-              <circle cx="18" cy="18" r="16" fill="none" stroke="gray-200 dark:stroke-[#242424]" strokeWidth="4" />
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#18FF96" strokeWidth="4" strokeDasharray="60 100" strokeDashoffset="0" strokeLinecap="round" />
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#1AB873" strokeWidth="4" strokeDasharray="30 100" strokeDashoffset="60" strokeLinecap="round" />
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#C9FFE1" strokeWidth="4" strokeDasharray="10 100" strokeDashoffset="90" strokeLinecap="round" />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="gray-200 dark:stroke-[#242424]"
+                strokeWidth="4"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="#18FF96"
+                strokeWidth="4"
+                strokeDasharray="60 100"
+                strokeDashoffset="0"
+                strokeLinecap="round"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="#1AB873"
+                strokeWidth="4"
+                strokeDasharray="30 100"
+                strokeDashoffset="60"
+                strokeLinecap="round"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="16"
+                fill="none"
+                stroke="#C9FFE1"
+                strokeWidth="4"
+                strokeDasharray="10 100"
+                strokeDashoffset="90"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
         </div>
 
-        {/* Upcoming Stocks */}
         <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-            <span className="text-[#6E92FF] dark:text-[#6E92FF] text-[14px] uppercase flex items-center gap-1">
+            <span
+              className="text-[#6E92FF] dark:text-[#6E92FF] text-[14px] uppercase flex items-center gap-1"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               <span>○</span> UPCOMING STOCKS
             </span>
-            <span className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer">View all (80)</span>
+            <span
+              className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              View all (80)
+            </span>
           </h3>
           <hr className="border-gray-300 dark:border-[#222] mb-6" />
           <ul className="space-y-3 text-sm">
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Ibuprofen</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Ibuprofen
+              </span>
               <div className="flex gap-x-2">
-                <span className="text-[#08994A] dark:text-[#0EFF7B]">+145</span>
-                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+                <span
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  +145
+                </span>
+                <span
+                  className="text-gray-600 dark:text-gray-400 text-xs"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  29 Aug 25
+                </span>
               </div>
             </li>
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Amoxicillin</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Amoxicillin
+              </span>
               <div className="flex gap-x-2">
-                <span className="text-[#08994A] dark:text-[#0EFF7B]">+120</span>
-                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+                <span
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  +120
+                </span>
+                <span
+                  className="text-gray-600 dark:text-gray-400 text-xs"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  29 Aug 25
+                </span>
               </div>
             </li>
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Disinfectant skin antiseptic</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Disinfectant skin antiseptic
+              </span>
               <div className="flex gap-x-2">
-                <span className="text-[#08994A] dark:text-[#0EFF7B]">+200</span>
-                <span className="text-gray-600 dark:text-gray-400 text-xs">29 Aug 25</span>
+                <span
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  +200
+                </span>
+                <span
+                  className="text-gray-600 dark:text-gray-400 text-xs"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  29 Aug 25
+                </span>
               </div>
             </li>
           </ul>
         </div>
 
-        {/* Expiring Stocks */}
         <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
-            <span className="text-[#FF2424] dark:text-[#FF2424] text-[14px] uppercase flex items-center gap-1">
+            <span
+              className="text-[#FF2424] dark:text-[#FF2424] text-[14px] uppercase flex items-center gap-1"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               <span>○</span> EXPIRING STOCKS
             </span>
-            <span className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer">View all (150)</span>
+            <span
+              className="text-[#08994A] dark:text-[#0EFF7B] text-[12px] cursor-pointer"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              View all (150)
+            </span>
           </h3>
           <hr className="border-gray-300 dark:border-[#222] mb-4" />
           <ul className="space-y-3 text-sm">
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Mask 4-layered</span>
-              <span className="text-gray-600 dark:text-gray-400 text-xs">30 available</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Mask 4-layered
+              </span>
+              <span
+                className="text-gray-600 dark:text-gray-400 text-xs"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                30 available
+              </span>
             </li>
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Disinfectant chlorhexidine bigluconate 0.05%</span>
-              <span className="text-gray-600 dark:text-gray-400 text-xs">100 available</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Disinfectant chlorhexidine bigluconate 0.05%
+              </span>
+              <span
+                className="text-gray-600 dark:text-gray-400 text-xs"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                100 available
+              </span>
             </li>
             <li className="flex justify-between">
-              <span className="text-black dark:text-white">Disinfectant skin antiseptic</span>
-              <span className="text-gray-600 dark:text-gray-400 text-xs">150 available</span>
+              <span
+                className="text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Disinfectant skin antiseptic
+              </span>
+              <span
+                className="text-gray-600 dark:text-gray-400 text-xs"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                150 available
+              </span>
             </li>
           </ul>
         </div>
       </div>
 
-      {/* Inventory List */}
-      <h3 className="w-full h-[22px] font-inter font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-4">
+      <h3
+        className="w-full h-[22px] font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-4"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
         Inventory list
       </h3>
+      <div className="w-full bg-[#ffffff] dark:bg-[#1E1E1E] border border-[#3C3C3C] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
+        <div className="flex justify-between items-center w-full">
+          <div className="relative">
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="w-[139px] h-[32px] flex justify-between items-center px-3 py-1.5 rounded-[20px] bg-[#000000] border border-[#3C3C3C] text-white text-[12px] font-medium"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              {selectedCategory || "All"}{" "}
+              <ChevronDown
+                size={16}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
+            </button>
 
-      <div className="mb-4 w-full flex justify-between items-center relative">
-        <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[315px] max-w-md">
-          <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
-          <input
-            type="text"
-            placeholder="Search by name, category, batch, vendor, or code"
-            className="bg-transparent outline-none text-sm text-[#08994A] dark:text-white w-full"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+            {showCategoryDropdown && (
+              <div className="absolute top-full mt-2 left-0 w-[150px] bg-white dark:bg-[#000000E5] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-50">
+                <ul className="text-black dark:text-white text-sm">
+                  {["All", ...categories].map((cat) => (
+                    <li
+                      key={cat}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        setShowCategoryDropdown(false);
+                      }}
+                      className="px-4 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {cat}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[229px] max-w-md">
+              <Search
+                size={16}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
+              <input
+                type="text"
+                placeholder="Search Product Name.."
+                className="bg-transparent outline-none text-sm text-[#08994A] dark:text-white w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              />
+            </div>
+
+            <div className="relative">
+              <button
+                onClick={() => setShowFilterPopup(!showFilterPopup)}
+                className="bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
+              >
+                <Filter size={16} />
+              </button>
+
+              {showFilterPopup && (
+                <div className="absolute top-full mt-4 left-[-110px] w-[188px] h-[119px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
+                  <button
+                    onClick={() => setFilterStatus("IN STOCK")}
+                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+                      filterStatus === "IN STOCK"
+                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B]"
+                        : "bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B]"
+                    }`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B] inline-block mr-2"></span>
+                    IN STOCK
+                  </button>
+
+                  <button
+                    onClick={() => setFilterStatus("LOW STOCK")}
+                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+                      filterStatus === "LOW STOCK"
+                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF930E] dark:text-[#FF930E]"
+                        : "bg-white dark:bg-[#000000] text-[#FF930E] dark:text-[#FF930E]"
+                    }`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className="w-[8px] h-[8px] rounded-full bg-[#FF930E] inline-block mr-2"></span>
+                    LOW STOCK
+                  </button>
+
+                  <button
+                    onClick={() => setFilterStatus("OUT OF STOCK")}
+                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+                      filterStatus === "OUT OF STOCK"
+                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF2424] dark:text-[#FF2424]"
+                        : "bg-white dark:bg-[#000000] text-[#FF2424] dark:text-[#FF2424]"
+                    }`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className="w-[8px] h-[8px] rounded-full bg-[#FF2424] inline-block mr-2"></span>
+                    OUT OF STOCK
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() =>
+                selectedRows.length > 0 && setShowDeletePopup(true)
+              }
+              disabled={selectedRows.length === 0}
+              className={`
+    flex items-center justify-center
+    w-[32px] h-[32px]
+    rounded-[20px]
+    bg-gray-100 dark:bg-[#0EFF7B1A]
+    text-[#08994A] dark:text-white
+    ${selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}
+  `}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-3 relative">
-          <span>
-            Page <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span> of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length})
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
+            <thead className="bg-gray-100 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+              <tr className="h-[52px] bg-gray-100 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] border border-[#000000] dark:border-black">
+                <th className="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    checked={
+                      displayedData.length > 0 &&
+                      selectedRows.length === displayedData.length
+                    }
+                    onChange={handleSelectAll}
+                  />
+                </th>
+                {[
+                  { label: "Name", key: "name" },
+                  { label: "Categories", key: "category" },
+                  { label: "Batch number", key: "batch" },
+                  { label: "Vendor", key: "vendor" },
+                  { label: "Available stocks", key: "stock" },
+                  { label: "Status", key: "status" },
+                  { label: "Action", key: "action" },
+                ].map((col) => (
+                  <th
+                    key={col.key}
+                    className={`px-3 py-3 font-medium ${
+                      col.key !== "action" ? "cursor-pointer select-none" : ""
+                    }`}
+                    onClick={
+                      col.key !== "action"
+                        ? () => handleSort(col.key)
+                        : undefined
+                    }
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    {col.key !== "action" ? (
+                      <div className="flex items-center gap-1">
+                        {col.label}
+                        <div className="flex flex-col ml-1">
+                          <svg
+                            className={`w-3 h-3 ${
+                              sortColumn === col.key && sortOrder === "asc"
+                                ? "stroke-[#08994A] dark:stroke-[#0EFF7B]"
+                                : "stroke-gray-500"
+                            }`}
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path
+                              d="M10 4 L16 10 L4 10 Z"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <svg
+                            className={`w-3 h-3 ${
+                              sortColumn === col.key && sortOrder === "desc"
+                                ? "stroke-[#0EFF7B] dark:stroke-[#0EFF7B]"
+                                : "stroke-gray-500"
+                            }`}
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path
+                              d="M10 16 L16 10 L4 10 Z"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+                    ) : (
+                      col.label
+                    )}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="text-sm bg-white dark:bg-[#1E1E1E]">
+              {sortedData.length > 0 ? (
+                sortedData.map((row, index) => (
+                  <tr
+                    key={row.id}
+                    className="w-full h-[62px] bg-white dark:bg-[#1E1E1E] px-[12px] py-[12px] border-b border-[#1E1E1E] dark:border-[#1E1E1E] relative"
+                  >
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        checked={selectedRows.includes(row.id)}
+                        onChange={() => handleRowSelect(row.id)}
+                      />
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.name}
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.category}
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.batch}
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.vendor}{" "}
+                      <span className="text-gray-500 ml-1">
+                        ({row.vendorCode})
+                      </span>
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.stock}
+                    </td>
+                    <td className="px-3 py-3 font-medium">
+                      <span
+                        className={`${
+                          row.status === "IN STOCK"
+                            ? "text-green-500"
+                            : row.status === "LOW STOCK"
+                            ? "text-yellow-500"
+                            : "text-red-500"
+                        }`}
+                        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                      >
+                        • {row.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 relative">
+                      <button
+                        className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+                        onClick={() =>
+                          setOpenDropdownId(
+                            openDropdownId === row.id ? null : row.id
+                          )
+                        }
+                      >
+                        <MoreVertical size={16} />
+                      </button>
+                      <div
+                        ref={(el) => (dropdownRefs.current[row.id] = el)}
+                        id={`dropdown-${row.id}`}
+                        className={`absolute z-50 bg-white dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-2 ${
+                          openDropdownId === row.id ? "block" : "hidden"
+                        } ${
+                          index >= sortedData.length - 3
+                            ? "bottom-full mb-0 ml-[-50px]"
+                            : "top-full mt-2 ml-[-50px]"
+                        }`}
+                        style={{ left: 0 }}
+                      >
+                        <button
+                          onClick={() => {
+                            openEditPopup(row);
+                            setOpenDropdownId(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          <Edit2
+                            size={14}
+                            className="text-[#08994A] dark:text-[#0EFF7B]"
+                          />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSingleDeleteId(row.id);
+                            setShowSingleDeletePopup(true);
+                            setOpenDropdownId(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          <Trash2 size={14} className="text-red-500" />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr className="h-[62px] bg-white dark:bg-black">
+                  <td
+                    colSpan="8"
+                    className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    No inventory found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+          <span style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
+            Page{" "}
+            <span className="text-[#08994A] dark:text-[#0EFF7B]">
+              {currentPage}
+            </span>{" "}
+            of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
+            {Math.min(currentPage * itemsPerPage, filteredData.length)} of{" "}
+            {filteredData.length})
           </span>
           <button
             onClick={handlePrevPage}
-            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${currentPage === 1 ? "opacity-50" : ""}`}
+            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${
+              currentPage === 1 ? "opacity-50" : ""
+            }`}
             disabled={currentPage === 1}
           >
             <ChevronLeft size={16} />
           </button>
           <button
             onClick={handleNextPage}
-            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${currentPage === totalPages ? "opacity-50" : ""}`}
+            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${
+              currentPage === totalPages ? "opacity-50" : ""
+            }`}
             disabled={currentPage === totalPages}
           >
             <ChevronRight size={16} />
           </button>
-          <button
-            onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-            className="bg-[#08994A] dark:bg-[#0EFF7B] text-white dark:text-black rounded-full px-4 py-1 flex items-center text-sm font-medium"
-          >
-            {selectedCategory || "All"} <ChevronDown size={16} className="ml-2" />
-          </button>
-          {showCategoryDropdown && (
-            <div className="absolute top-full mt-2 right-0 w-[150px] bg-white dark:bg-[#000000E5] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-50">
-              <ul className="text-black dark:text-white text-sm">
-                {["All", ...categories].map((cat) => (
-                  <li
-                    key={cat}
-                    onClick={() => {
-                      setSelectedCategory(cat);
-                      setShowCategoryDropdown(false);
-                    }}
-                    className="px-4 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
-                  >
-                    {cat}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          <button
-            onClick={() => setShowFilterPopup(!showFilterPopup)}
-            className="bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]"
-          >
-            <Filter size={16} />
-          </button>
-          {showFilterPopup && (
-            <div className="absolute top-full mt-2 right-0 w-[188px] h-[119px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
-              <div className="flex flex-col justify-start items-start space-y-[8px]">
-                <button
-                  onClick={() => setFilterStatus("IN STOCK")}
-                  className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
-                    filterStatus === "IN STOCK"
-                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B]"
-                      : "bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B]"
-                  }`}
-                >
-                  <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B] inline-block mr-2"></span>
-                  IN STOCK
-                </button>
-                <button
-                  onClick={() => setFilterStatus("LOW STOCK")}
-                  className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
-                    filterStatus === "LOW STOCK"
-                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF930E] dark:text-[#FF930E]"
-                      : "bg-white dark:bg-[#000000] text-[#FF930E] dark:text-[#FF930E]"
-                  }`}
-                >
-                  <span className="w-[8px] h-[8px] rounded-full bg-[#FF930E] inline-block mr-2"></span>
-                  LOW STOCK
-                </button>
-                <button
-                  onClick={() => setFilterStatus("OUT OF STOCK")}
-                  className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-inter font-normal ${
-                    filterStatus === "OUT OF STOCK"
-                      ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF2424] dark:text-[#FF2424]"
-                      : "bg-white dark:bg-[#000000] text-[#FF2424] dark:text-[#FF2424]"
-                  }`}
-                >
-                  <span className="w-[8px] h-[8px] rounded-full bg-[#FF2424] inline-block mr-2"></span>
-                  OUT OF STOCK
-                </button>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => selectedRows.length > 0 && setShowDeletePopup(true)}
-            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-500 ${selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-            disabled={selectedRows.length === 0}
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <table className="w-full border-collapse border border-[#0EFF7B] dark:border-black rounded-[8px] min-w-[800px]">
-        <thead className="bg-gray-100 dark:bg-[#1E1E1E] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
-          <tr className="h-[52px] bg-gray-100 dark:bg-[#1E1E1E] text-left text-sm text-[#08994A] dark:text-white rounded-[8px] border border-[#0EFF7B] dark:border-black">
-            <th className="px-3 py-3">
-              <input
-                type="checkbox"
-                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                checked={displayedData.length > 0 && selectedRows.length === displayedData.length}
-                onChange={handleSelectAll}
-              />
-            </th>
-            {[
-              { label: "Name", key: "name" },
-              { label: "Categories", key: "category" },
-              { label: "Batch number", key: "batch" },
-              { label: "Vendor", key: "vendor" },
-              { label: "Available stocks", key: "stock" },
-              { label: "Status", key: "status" },
-              { label: "Action", key: "action" },
-            ].map((col) => (
-              <th
-                key={col.key}
-                className={`px-3 py-3 font-medium ${col.key !== "action" ? "cursor-pointer select-none" : ""}`}
-                onClick={col.key !== "action" ? () => handleSort(col.key) : undefined}
-              >
-                {col.key !== "action" ? (
-                  <div className="flex items-center gap-1">
-                    {col.label}
-                    <div className="flex flex-col ml-1">
-                      <svg
-                        className={`w-3 h-3 ${sortColumn === col.key && sortOrder === "asc" ? "stroke-[#08994A] dark:stroke-[#0EFF7B]" : "stroke-gray-500"}`}
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        strokeWidth="2"
-                      >
-                        <path d="M10 4 L16 10 L4 10 Z" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <svg
-                        className={`w-3 h-3 ${sortColumn === col.key && sortOrder === "desc" ? "stroke-[#08994A] dark:stroke-[#0EFF7B]" : "stroke-gray-500"}`}
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        strokeWidth="2"
-                      >
-                        <path d="M10 16 L16 10 L4 10 Z" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                ) : (
-                  col.label
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="text-sm bg-white dark:bg-black">
-          {sortedData.length > 0 ? (
-            sortedData.map((row, index) => (
-              <tr
-                key={row.id}
-                className="w-full h-[62px] bg-white dark:bg-black px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E] relative"
-              >
-                <td className="px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                    checked={selectedRows.includes(row.id)}
-                    onChange={() => handleRowSelect(row.id)}
-                  />
-                </td>
-                <td className="px-3 py-3 text-black dark:text-white">{row.name}</td>
-                <td className="px-3 py-3 text-black dark:text-white">{row.category}</td>
-                <td className="px-3 py-3 text-black dark:text-white">{row.batch}</td>
-                <td className="px-3 py-3 text-black dark:text-white">
-                  {row.vendor} <span className="text-gray-500 ml-1">({row.vendorCode})</span>
-                </td>
-                <td className="px-3 py-3 text-black dark:text-white">{row.stock}</td>
-                <td className="px-3 py-3 font-medium">
-                  <span
-                    className={`${
-                      row.status === "IN STOCK"
-                        ? "text-green-500"
-                        : row.status === "LOW STOCK"
-                        ? "text-yellow-500"
-                        : "text-red-500"
-                    }`}
-                  >
-                    • {row.status}
-                  </span>
-                </td>
-                <td className="px-3 py-3 relative">
-                  <button
-                    className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
-                    onClick={() => setOpenDropdownId(openDropdownId === row.id ? null : row.id)}
-                  >
-                    <MoreVertical size={16} />
-                  </button>
-                  <div
-                    ref={(el) => (dropdownRefs.current[row.id] = el)}
-                    id={`dropdown-${row.id}`}
-                    className={`absolute z-50 bg-white dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-2 ${
-                      openDropdownId === row.id ? "block" : "hidden"
-                    } ${index >= sortedData.length - 3 ? "bottom-full mb-0 ml-[-50px]" : "top-full mt-2 ml-[-50px]"}`}
-                    style={{ left: 0 }}
-                  >
-                    <button
-                      onClick={() => {
-                        openEditPopup(row);
-                        setOpenDropdownId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
-                    >
-                      <Edit2 size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSingleDeleteId(row.id);
-                        setShowSingleDeletePopup(true);
-                        setOpenDropdownId(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
-                    >
-                      <Trash2 size={14} className="text-red-500" />
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr className="h-[62px] bg-white dark:bg-black">
-              <td colSpan="8" className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No inventory found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* Add Stock Popup */}
       {showAddStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] h-[463px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 gap-8 shadow-[0px_0px_2px_0px_#A0A0A040] relative">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-                Add New Stock
-              </h2>
-              <button
-                onClick={() => setShowAddStockPopup(false)}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
-              >
-                <X size={16} className="text-[#08994A] dark:text-white" />
-              </button>
-            </div>
-            <form onSubmit={handleAddStock} className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm text-black dark:text-white">Product Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter product name"
-                  value={newStock.name}
-                  onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
+          <div
+            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
+        bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+          >
+            <div
+              className="w-[505px] h-[484px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              <div className="flex justify-between items-center pb-3 mb-4">
+                <h2
+                  className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Add New Stock
+                </h2>
+                <button
+                  onClick={() => setShowAddStockPopup(false)}
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                >
+                  <X size={16} className="text-black dark:text-white" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Product Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter product name"
+                    value={newStock.name}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, name: e.target.value })
+                    }
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <Dropdown
+                  label="Category"
+                  value={newStock.category}
+                  onChange={(val) =>
+                    setNewStock({ ...newStock, category: val })
+                  }
+                  options={categories}
+                  className="w-[228px] h-[32px] mt-1"
+                />
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Batch Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Batch Number"
+                    value={newStock.batch}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, batch: e.target.value })
+                    }
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Vendor
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Vendor"
+                    value={newStock.vendor}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, vendor: e.target.value })
+                    }
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    No Of Stocks
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Stock Quantity"
+                    value={newStock.stock}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, stock: e.target.value })
+                    }
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Vendor ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Vendor ID"
+                    value={newStock.vendorCode}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, vendorCode: e.target.value })
+                    }
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <Dropdown
+                  label="Status"
+                  value={newStock.status}
+                  onChange={(val) => setNewStock({ ...newStock, status: val })}
+                  options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
+                  className="w-[228px] h-[32px] mt-1"
                 />
               </div>
-              <Dropdown
-                label="Category"
-                value={newStock.category}
-                onChange={(val) => setNewStock({ ...newStock, category: val })}
-                options={categories}
-              />
-              <div>
-                <label className="text-sm text-black dark:text-white">Batch Number</label>
-                <input
-                  type="text"
-                  placeholder="Enter Batch Number"
-                  value={newStock.batch}
-                  onChange={(e) => setNewStock({ ...newStock, batch: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
+
+              <div className="flex justify-center gap-4 mt-8">
+                <button
+                  onClick={() => setShowAddStockPopup(false)}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  onClick={handleAddStock}
+                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Add Stock
+                </button>
               </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">Vendor</label>
-                <input
-                  type="text"
-                  placeholder="Enter Vendor"
-                  value={newStock.vendor}
-                  onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">No Of Stocks</label>
-                <input
-                  type="number"
-                  placeholder="Stock Quantity"
-                  value={newStock.stock}
-                  onChange={(e) => setNewStock({ ...newStock, stock: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">Vendor ID</label>
-                <input
-                  type="text"
-                  placeholder="Enter Vendor ID"
-                  value={newStock.vendorCode}
-                  onChange={(e) => setNewStock({ ...newStock, vendorCode: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <Dropdown
-                label="Status"
-                value={newStock.status}
-                onChange={(val) => setNewStock({ ...newStock, status: val })}
-                options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-              />
-            </form>
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                onClick={() => setShowAddStockPopup(false)}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                onClick={handleAddStock}
-                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-              >
-                Add Stock
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Stock Popup */}
       {showEditStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] h-[463px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 gap-8 shadow-[0px_0px_2px_0px_#A0A0A040] relative">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-                Edit Stock
-              </h2>
-              <button
-                onClick={() => {
-                  setShowEditStockPopup(false);
-                  setNewStock({
-                    name: "",
-                    category: "",
-                    batch: "",
-                    vendor: "",
-                    vendorCode: "",
-                    stock: "",
-                    status: "IN STOCK",
-                  });
-                  setEditStockId(null);
-                }}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
-              >
-                <X size={16} className="text-[#08994A] dark:text-white" />
-              </button>
-            </div>
-            <form onSubmit={handleEditStock} className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm text-black dark:text-white">Product Name</label>
-                <input
-                  type="text"
-                  placeholder="Enter product name"
-                  value={newStock.name}
-                  onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
+          <div
+            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
+        bg-gradient-to-r
+        from-green-400/70 via-gray-300/30 to-green-400/70
+        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+          >
+            <div
+              className="w-[504px] h-[463px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 gap-8 relative"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2
+                  className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Edit Stock
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowEditStockPopup(false);
+                    setNewStock({
+                      name: "",
+                      category: "",
+                      batch: "",
+                      vendor: "",
+                      vendorCode: "",
+                      stock: "",
+                      status: "IN STOCK",
+                    });
+                    setEditStockId(null);
+                  }}
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center shadow"
+                >
+                  <X size={16} className="text-black dark:text-white" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Product Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter product name"
+                    value={newStock.name}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, name: e.target.value })
+                    }
+                    className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <Dropdown
+                  label="Category"
+                  value={newStock.category}
+                  onChange={(val) =>
+                    setNewStock({ ...newStock, category: val })
+                  }
+                  options={categories}
+                />
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Batch Number
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Batch Number"
+                    value={newStock.batch}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, batch: e.target.value })
+                    }
+                    className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Vendor
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Vendor"
+                    value={newStock.vendor}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, vendor: e.target.value })
+                    }
+                    className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Add Stock
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Stock Quantity"
+                    value={newStock.stock}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, stock: e.target.value })
+                    }
+                    className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Vendor ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Vendor ID"
+                    value={newStock.vendorCode}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, vendorCode: e.target.value })
+                    }
+                    className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    required
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <Dropdown
+                  label="Status"
+                  value={newStock.status}
+                  onChange={(val) => setNewStock({ ...newStock, status: val })}
+                  options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
                 />
               </div>
-              <Dropdown
-                label="Category"
-                value={newStock.category}
-                onChange={(val) => setNewStock({ ...newStock, category: val })}
-                options={categories}
-              />
-              <div>
-                <label className="text-sm text-black dark:text-white">Batch Number</label>
-                <input
-                  type="text"
-                  placeholder="Enter Batch Number"
-                  value={newStock.batch}
-                  onChange={(e) => setNewStock({ ...newStock, batch: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
+
+              <div className="flex justify-center gap-4 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditStockPopup(false);
+                    setNewStock({
+                      name: "",
+                      category: "",
+                      batch: "",
+                      vendor: "",
+                      vendorCode: "",
+                      stock: "",
+                      status: "IN STOCK",
+                    });
+                    setEditStockId(null);
+                  }}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  onClick={handleEditStock}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Update Stock
+                </button>
               </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">Vendor</label>
-                <input
-                  type="text"
-                  placeholder="Enter Vendor"
-                  value={newStock.vendor}
-                  onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">Add Stock</label>
-                <input
-                  type="number"
-                  placeholder="Stock Quantity"
-                  value={newStock.stock}
-                  onChange={(e) => setNewStock({ ...newStock, stock: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm text-black dark:text-white">Vendor ID</label>
-                <input
-                  type="text"
-                  placeholder="Enter Vendor ID"
-                  value={newStock.vendorCode}
-                  onChange={(e) => setNewStock({ ...newStock, vendorCode: e.target.value })}
-                  className="w-full h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
-                  required
-                />
-              </div>
-              <Dropdown
-                label="Status"
-                value={newStock.status}
-                onChange={(val) => setNewStock({ ...newStock, status: val })}
-                options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-              />
-            </form>
-            <div className="flex justify-center gap-4 mt-6">
-              <button
-                onClick={() => {
-                  setShowEditStockPopup(false);
-                  setNewStock({
-                    name: "",
-                    category: "",
-                    batch: "",
-                    vendor: "",
-                    vendorCode: "",
-                    stock: "",
-                    status: "IN STOCK",
-                  });
-                  setEditStockId(null);
-                }}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px]"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                onClick={handleEditStock}
-                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-              >
-                Update Stock
-              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Bulk Delete Popup */}
       {showDeletePopup && (
         <DeleteStockList
           itemsToDelete={selectedRows}
@@ -1030,7 +1569,6 @@ const StockInventory = () => {
         />
       )}
 
-      {/* Single Delete Popup */}
       {showSingleDeletePopup && (
         <DeleteStockList
           itemsToDelete={[singleDeleteId]}

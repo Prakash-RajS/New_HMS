@@ -47,7 +47,7 @@ const DoctorProfile = () => {
   return (
     // <div className="min-h-screen mt-[60px] bg-white dark:bg-black text-black dark:text-white p-6">
       <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -463,15 +463,17 @@ const DoctorProfile = () => {
           </div>
         </div>
       )}
-      <style jsx>{`
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .no-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
+      <style>
+  {`
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  `}
+</style>
     </div>
   );
 };

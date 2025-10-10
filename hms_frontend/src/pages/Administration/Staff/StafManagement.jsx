@@ -489,7 +489,7 @@ const StaffManagement = () => {
         }}
       ></div>
       {/* Header */}
-      <div className="mb-6">
+      <div className="mt-4 mb-6">
         <h1 className="text-[20px] font-medium text-black dark:text-white">
           Staff Management
         </h1>

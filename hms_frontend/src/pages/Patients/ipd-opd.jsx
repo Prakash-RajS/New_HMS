@@ -137,7 +137,9 @@ const AppointmentListIPD = () => {
   const handleCheckboxChange = (index) => {
     const globalIndex = (currentPage - 1) * itemsPerPage + index;
     if (selectedAppointments.includes(globalIndex)) {
-      setSelectedAppointments(selectedAppointments.filter((idx) => idx !== globalIndex));
+      setSelectedAppointments(
+        selectedAppointments.filter((idx) => idx !== globalIndex)
+      );
     } else {
       setSelectedAppointments([...selectedAppointments, globalIndex]);
     }
@@ -168,9 +170,6 @@ const AppointmentListIPD = () => {
       patientId: "",
       department: "",
       doctor: "",
-      room: "",
-      treatment: "",
-      discharge: "",
       status: "",
       date: "",
     });
@@ -179,25 +178,38 @@ const AppointmentListIPD = () => {
 
   const Dropdown = ({ label, value, onChange, options }) => (
     <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label
+        className="text-sm text-black dark:text-white"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        {label}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+          <Listbox.Button
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                  ${active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
-                  ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+              ${
+                active
+                  ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                  : "text-black dark:text-white"
+              }
+              ${selected ? "font-medium text-[#0EFF7B]" : ""}`
                 }
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {option}
               </Listbox.Option>
@@ -209,67 +221,121 @@ const AppointmentListIPD = () => {
   );
 
   return (
-    <div className="mt-[60px] h-auto mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-black dark:text-white">IPD - Patient Lists</h2>
-         <button
-                  onClick={() => navigate("/patients/new-registration")}
-                  className="flex items-center gap-2 bg-[#08994A] hover:text-[#08994A] dark:hover:text-white dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 px-4 py-2 rounded-full text-white font-semibold"
-                >
-                  <Plus size={18} className="text-White dark:text-white" /> Add Patients
-                </button>
+     <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient overlay for dark mode */}
+      {/* <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div> */}
+
+      {/* Header */}
+      <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
+        <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
+          IPD - Patient Lists
+        </h2>
+        <button
+          onClick={() => navigate("/patients/new-registration")}
+          className="flex items-center gap-2 
+        bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+        border border-[#0EFF7B]
+        shadow-[0px_2px_12px_0px_#00000040]
+        hover:opacity-90
+        text-white font-semibold 
+        px-4 py-2 rounded-[8px] 
+        transition duration-300 ease-in-out"
+        >
+          <Plus size={18} className="text-white font-[Helvetica]" /> Add
+          Patients
+        </button>
       </div>
-      <div className="mb-3 w-[800px]">
+
+      {/* Today's Total Section */}
+      <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           {/* Today's Total */}
           <div className="flex items-center gap-3">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Today's Total
             </span>
-            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#0EFF7B66] p-1 text-xs font-normal text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A]">
+            <span className="w-6 h-6 flex items-center font-[Helvetica] text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#0D2016] dark:bg-[#14DC6F]">
               150
             </span>
           </div>
 
-          {/* Divider */}
-          <div className="h-8 w-px bg-gray-700"></div>
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Visited */}
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
               In-Patients
             </span>
-            <span className="w-6 h-6 flex items-center text-[12px] text-[#000000] justify-center gap-1 opacity-100 rounded-[20px] border border-[#2231FF] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#6E92FF] to-[#425899]">
+            <span className="w-6 h-6 flex items-center text-[12px] font-[Helvetica] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#080C4C] dark:bg-[#0D7F41]">
               47
             </span>
           </div>
 
-          <div className="h-8 w-px bg-gray-700"></div>
+          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
 
           {/* Waiting */}
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-[#A0A0A0]">
+            <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Out-Patients
             </span>
-            <span className="w-6 h-6 flex items-center justify-center text-[12px] text-[#000000] gap-1 opacity-100 rounded-[20px] border border-[#FF930E] p-1 text-xs font-normal text-white bg-gradient-to-b from-[#FF930E] to-[#995808]">
+            <span className="w-6 h-6 flex items-center font-[Helvetica] justify-center text-[12px] text-white gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#7D3737] dark:bg-[#D97706]">
               12
             </span>
           </div>
-
-          <div className="h-8 w-px bg-gray-700"></div>
         </div>
       </div>
 
-      <div className="flex justify-between items-center mb-4">
+      {/* Tabs */}
+      <div className="flex justify-between items-center mb-4 relative z-10">
         <div className="flex gap-4">
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`w-[104px] h-[35px] rounded-[20px] border border-[#0EFF7B] dark:border-gray-700 bg-white dark:bg-[#0D0D0D] text-black dark:text-gray-300 ${
-                activeMainTab === tab
-                  ? "border-[#0EFF7B] dark:border-green-500 text-[#08994A] dark:text-green-400 bg-[#0EFF7B1A] dark:bg-[#0D0D0D]"
-                  : "hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-              }`}
+              className={`min-w-[104px] h-[31px] 
+            hover:bg-[#0EFF7B1A] 
+            rounded-[4px] 
+            font-[Helvetica] text-[13px] font-normal 
+            transition duration-300 ease-in-out
+            ${
+              activeMainTab === tab
+                ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
+                : "bg-gray-100 text-gray-800 border-gray-300  font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+            }`}
               onClick={() =>
                 tab === "Out-Patients"
                   ? navigate("/patients/out-patients")
@@ -281,45 +347,68 @@ const AppointmentListIPD = () => {
           ))}
         </div>
 
+        {/* Search and Filter */}
         <div className="flex gap-4">
-          <div className="flex items-center bg-white dark:bg-[#0D0D0D] rounded-full px-3 py-1 border border-[#0EFF7B] dark:border-gray-700">
-            <Search size={18} className="text-[#08994A] dark:text-gray-400" />
+          <div className="flex items-center font-[Helvetica] w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 shadow dark:hidden">
+            <Search size={18} className="text-green-600" />
             <input
               type="text"
               placeholder="Search patient name or ID"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent px-2 text-sm outline-none text-black dark:text-white w-48"
+              className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black placeholder-gray-400 w-48 leading-none tracking-normal"
             />
           </div>
-          <button
-            onClick={() => setShowFilterPopup(true)}
-            className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] text-black dark:text-white px-4 py-2 rounded-full border border-[#0EFF7B] dark:border-gray-700 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-          >
-            <Filter size={18} className="text-[#08994A] dark:text-white" /> Filter
-          </button>
+          <div className="rounded-[8px] p-[1px] bg-gradient-to-b from-[#0EFF7B] to-[#08994A] shadow-[0_0_20px_0px_#00000066] dark:inline-block hidden dark:shadow-[0_0_20px_0_#FFFFFF33]">
+            <div className="h-[32px] w-[315px] rounded-[7px] bg-[#1E1E1E] flex items-center gap-2 px-4 py-1">
+              <Search size={18} className="text-green-400" />
+              <input
+                type="text"
+                placeholder="Search patient name or ID"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-white placeholder-[#00A048] w-48 leading-none tracking-normal"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 transition-colors duration-200 dark:hidden ">
+            <Filter size={18} className="text-green-600" />
+          </div>
+          <div className="rounded-[8px] p-[1px] bg-gradient-to-b from-[#0EFF7B] to-[#08994A] shadow-[0_0_20px_0px_#00000066] dark:inline-block hidden dark:shadow-[0_0_20px_0_#FFFFFF33]">
+            <button
+              onClick={() => setShowFilterPopup(true)}
+              className="h-[32px] w-[32px] rounded-[7px] bg-[#1E1E1E] hover:bg-green-900 transition-colors duration-200 flex items-center justify-center"
+            >
+              <Filter size={18} className="text-green-400" />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="w-full overflow-x-auto h-[57px] rounded-[40px] border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0D0D0D] flex items-center justify-between px-10 mb-4">
-        {filters.map((f) => (
-          <button
-            key={f}
-            className={`px-6 py-2 rounded-full ${
+      {/* Filters */}
+      <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
+        <div className="flex gap-3 min-w-full">
+          {filters.map((f) => (
+            <button
+              key={f}
+              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] gradient-border
+            ${
               activeFilter === f
-                ? "bg-[#08994A] dark:bg-green-900 text-white dark:text-green-400"
-                : "bg-white dark:bg-[#0D0D0D] text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
+                : "text-gray-800 hover:text-green-600 font-[Helvetica] dark:text-white dark:hover:text-white"
             }`}
-            onClick={() => setActiveFilter(f)}
-          >
-            {f}
-          </button>
-        ))}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {/* === TABLE === */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="text-[#08994A] dark:text-green-400 border-b border-gray-300 dark:border-gray-700">
+          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input
@@ -348,7 +437,10 @@ const AppointmentListIPD = () => {
               currentAppointments.map((appt, idx) => {
                 const globalIndex = (currentPage - 1) * itemsPerPage + idx;
                 return (
-                  <tr key={globalIndex} className="border-b border-gray-300 dark:border-gray-800">
+                  <tr
+                    key={globalIndex}
+                    className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
+                  >
                     <td className="px-2">
                       <input
                         type="checkbox"
@@ -358,15 +450,29 @@ const AppointmentListIPD = () => {
                       />
                     </td>
                     <td className="py-3">
-                      <div className="font-medium text-black dark:text-white">{appt.patient}</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">{appt.date}</div>
+                      <div className="font-medium text-black dark:text-white">
+                        {appt.patient}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {appt.date}
+                      </div>
                     </td>
-                    <td className="text-black dark:text-white">{appt.patientId}</td>
-                    <td className="text-black dark:text-white">{appt.department}</td>
-                    <td className="text-black dark:text-white">{appt.doctor}</td>
+                    <td className="text-black dark:text-white">
+                      {appt.patientId}
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {appt.department}
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {appt.doctor}
+                    </td>
                     <td className="text-black dark:text-white">{appt.room}</td>
-                    <td className="text-black dark:text-white">{appt.treatment}</td>
-                    <td className="text-black dark:text-white">{appt.discharge}</td>
+                    <td className="text-black dark:text-white">
+                      {appt.treatment}
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {appt.discharge}
+                    </td>
                     <td>
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
@@ -412,11 +518,14 @@ const AppointmentListIPD = () => {
           </tbody>
         </table>
       </div>
-
+      {/* Pagination */}
       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
-          Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{currentPage}</span> of {totalPages} (
-          {(currentPage - 1) * itemsPerPage + 1} to{" "}
+          Page{" "}
+          <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
+            {currentPage}
+          </span>{" "}
+          of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
           {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
           from {filteredAppointments.length} Patients)
         </div>
@@ -444,7 +553,10 @@ const AppointmentListIPD = () => {
                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronRight size={12} className="text-[#08994A] dark:text-black" />
+            <ChevronRight
+              size={12}
+              className="text-[#08994A] dark:text-black"
+            />
           </button>
         </div>
       </div>
@@ -452,130 +564,139 @@ const AppointmentListIPD = () => {
       {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative">
-            <div className="flex justify-between items-center pb-3 mb-4">
-              <h3 className="text-black dark:text-white font-medium text-[16px]">
-                Filter Appointment
-              </h3>
-              <button
-                onClick={() => setShowFilterPopup(false)}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-              >
-                <X size={16} className="text-[#08994A] dark:text-white" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="text-sm text-black dark:text-white">Patient Name</label>
-                <input
-                  name="patientName"
-                  value={filtersData.patientName}
-                  onChange={handleFilterChange}
-                  placeholder="enter patient name"
-                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
-                />
+          {/* Outer wrapper: 1px gradient border with light/dark mode */}
+          <div
+            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
+        bg-gradient-to-r
+        from-green-400/70 via-gray-300/30 to-green-400/70
+        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+          >
+            <div
+              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              <div className="flex justify-between items-center pb-3 mb-4">
+                <h3
+                  className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Filter Appointment
+                </h3>
+                <button
+                  onClick={() => setShowFilterPopup(false)}
+                  className="w-6 h-6 rounded-full 
+              border border-gray-300 dark:border-[#0EFF7B1A] 
+              bg-white dark:bg-[#0EFF7B1A] 
+              shadow flex items-center justify-center"
+                >
+                  <X size={16} className="text-black dark:text-white" />
+                </button>
               </div>
 
-              <div>
-                <label className="text-sm text-black dark:text-white">Patient ID</label>
-                <input
-                  name="patientId"
-                  value={filtersData.patientId}
-                  onChange={handleFilterChange}
-                  placeholder="enter patient ID"
-                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
+              {/* Filter Form */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Patient Name
+                  </label>
+                  <input
+                    name="patientName"
+                    value={filtersData.patientName}
+                    onChange={handleFilterChange}
+                    placeholder="enter patient name"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Patient ID
+                  </label>
+                  <input
+                    name="patientId"
+                    value={filtersData.patientId}
+                    onChange={handleFilterChange}
+                    placeholder="enter patient ID"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                </div>
+
+                <Dropdown
+                  label="Department"
+                  value={filtersData.department}
+                  onChange={(val) =>
+                    setFiltersData({ ...filtersData, department: val })
+                  }
+                  options={["Orthopedics", "Cardiology", "Neurology"]}
                 />
+                <Dropdown
+                  label="Status"
+                  value={filtersData.status}
+                  onChange={(val) =>
+                    setFiltersData({ ...filtersData, status: val })
+                  }
+                  options={["Completed", "Severe", "Normal", "Cancelled"]}
+                />
+                <Dropdown
+                  label="Doctor"
+                  value={filtersData.doctor}
+                  onChange={(val) =>
+                    setFiltersData({ ...filtersData, doctor: val })
+                  }
+                  options={[
+                    "Dr.Sravan",
+                    "Dr.Ramesh",
+                    "Dr.Naveen",
+                    "Dr.Prakash",
+                  ]}
+                />
+
+                {/* Date with Calendar Icon */}
+                <div>
+                  <label
+                    className="text-sm text-black dark:text-white"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Date
+                  </label>
+                  <div className="relative mt-1">
+                    <input
+                      type="date"
+                      name="date"
+                      value={filtersData.date}
+                      onChange={handleFilterChange}
+                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                  </div>
+                </div>
               </div>
 
-              <Dropdown
-                label="Department"
-                value={filtersData.department}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, department: val })
-                }
-                options={["Orthopedics", "Cardiology", "Neurology"]}
-              />
-
-              <Dropdown
-                label="Doctor"
-                value={filtersData.doctor}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, doctor: val })
-                }
-                options={["Dr.Sravan", "Dr.Ramesh", "Dr.Naveen", "Dr.Prakash"]}
-              />
-
-              <div>
-                <label className="text-sm text-black dark:text-white">Room No</label>
-                <input
-                  name="room"
-                  value={filtersData.room}
-                  onChange={handleFilterChange}
-                  placeholder="enter room number"
-                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
-                />
+              {/* Buttons */}
+              <div className="flex justify-center gap-2 mt-8">
+                <button
+                  onClick={handleClearFilters}
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setShowFilterPopup(false)}
+                  className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Filter
+                </button>
               </div>
-
-              <div>
-                <label className="text-sm text-black dark:text-white">Treatment Type</label>
-                <input
-                  name="treatment"
-                  value={filtersData.treatment}
-                  onChange={handleFilterChange}
-                  placeholder="enter treatment type"
-                  className="w-[250px] h-[33px] mt-1 px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none"
-                />
-              </div>
-
-              <Dropdown
-                label="Discharge Status"
-                value={filtersData.discharge}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, discharge: val })
-                }
-                options={["Pending", "In-progress", "Done"]}
-              />
-
-              <Dropdown
-                label="Status"
-                value={filtersData.status}
-                onChange={(val) =>
-                  setFiltersData({ ...filtersData, status: val })
-                }
-                options={["Completed", "Severe", "Normal", "Cancelled"]}
-              />
-
-              <div className="relative">
-  <label className="text-sm text-black dark:text-white">Date</label>
-  <input
-    type="date"
-    name="date"
-    value={filtersData.date}
-    onChange={handleFilterChange}
-    className="w-[250px] h-[33px] mt-1 pl-3 rounded-full border 
-               border-[#0EFF7B] dark:border-[#3A3A3A] 
-               bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
-               outline-none appearance-none"
-  />
-  {/* ✅ Fix: icon is centered inside input */}
-  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#08994A] dark:text-[#0EFF7B] w-4 h-4 pointer-events-none" />
-</div>
-            </div>
-
-            <div className="flex justify-center gap-6 mt-8">
-              <button
-                onClick={handleClearFilters}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => setShowFilterPopup(false)}
-                className="w-[144px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0EFF7B66] bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
-              >
-                Filter
-              </button>
             </div>
           </div>
         </div>

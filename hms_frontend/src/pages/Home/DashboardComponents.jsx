@@ -12,12 +12,34 @@ const DashboardComponents = () => {
     <div className="relative">
       {/* Main Container with exact dimensions and overflow control */}
       <div
-        className="flex-1 min-h-[750px] bg-white dark:bg-black mt-[70px] mb-4 pt-2 text-black dark:text-white rounded-[12px]"
-        style={{
-          width: "100%",
-          maxWidth: "2140px",
-        }}
+        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
       >
+        <div
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+            zIndex: 0,
+          }}
+        ></div>
+        {/* Gradient Border */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
         {/* Top Navigation Bar */}
         <div className="bg-white dark:bg-black mt-[-8px] flex gap-[97px] text-[14px] mb-2 overflow-x-hidden font-helvetica">
           {["Dashboard"].map((tab) => (
@@ -42,33 +64,34 @@ const DashboardComponents = () => {
         {/* Content with Sub-Navigation and Grid */}
         <div className="h-[306px] rounded-[12px]">
           {activeTab === "Dashboard" && (
-            <div className="relative p-[26px_16px] rounded-[8px] min-w-[1092px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden">
-  {/* Dark mode gradient */}
-  <div
-    className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-    style={{
-      background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
-      zIndex: 0,
-    }}
-  ></div>
-  {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: "-1px",
-      borderRadius: "8px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-    }}
-  ></div>
+            <div className="relative p-[26px_16px] rounded-[8px] min-w-[972px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden">
+              {/* Dark mode gradient */}
+              <div
+                className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+                style={{
+                  background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
+                  zIndex: 0,
+                }}
+              ></div>
+              {/* Gradient Border */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: "-1px",
+                  borderRadius: "8px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                }}
+              ></div>
+
               {/* Sub-Navigation Bar */}
-              <div className="max-w-[1005px] flex gap-[24px] pl-[70px] text-[20px] mb-6 overflow-x-hidden">
+              <div className="min-w-[975px] flex gap-[24px] pl-[17px] text-[20px] mb-6 overflow-x-hidden">
                 {["Patient Record", "Surgery Record", "Revenue Summary"].map(
                   (subTab) => (
                     <button
@@ -91,6 +114,7 @@ const DashboardComponents = () => {
                   )
                 )}
               </div>
+
               {/* Grid Content */}
               <div style={{ minHeight: "193px" }}>
                 {activeSubTab === "Patient Record" && (
@@ -122,7 +146,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -132,10 +156,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -147,7 +169,7 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Active Patients Card */}
+                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
@@ -174,7 +196,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -184,10 +206,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -199,7 +219,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Admissions Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
@@ -226,7 +245,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -236,10 +255,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -251,7 +268,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Priority Care Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
@@ -278,7 +294,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -288,10 +304,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -305,6 +319,7 @@ const DashboardComponents = () => {
                   </div>
                 )}
 
+                {/* Similar content for other sub-tabs */}
                 {activeSubTab === "Revenue Summary" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
                     {/* Total Patients Card */}
@@ -334,7 +349,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -344,10 +359,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -359,7 +372,7 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Active Patients Card */}
+                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
@@ -386,7 +399,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -396,10 +409,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -411,7 +422,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Admissions Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
@@ -438,7 +448,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -448,10 +458,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -463,7 +471,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Priority Care Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
@@ -490,7 +497,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -500,10 +507,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -516,6 +521,7 @@ const DashboardComponents = () => {
                     </div>
                   </div>
                 )}
+
                 {activeSubTab === "Surgery Record" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
                     {/* Total Patients Card */}
@@ -545,7 +551,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -555,10 +561,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -570,7 +574,7 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Active Patients Card */}
+                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
@@ -597,7 +601,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -607,10 +611,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -622,7 +624,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Admissions Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
@@ -649,7 +650,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -659,10 +660,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -674,7 +673,6 @@ const DashboardComponents = () => {
                       </div>
                     </div>
 
-                    {/* Priority Care Card */}
                     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
@@ -701,7 +699,7 @@ const DashboardComponents = () => {
                             borderBottom: "2px solid #0EFF7B",
                             boxShadow: "0px 2px 12px 0px #00000040",
                             cursor: "pointer",
-                            paddingRight: "30px", // space for arrow
+                            paddingRight: "30px",
                           }}
                         >
                           <option value="This Week">This Week</option>
@@ -711,10 +709,8 @@ const DashboardComponents = () => {
                             </option>
                           ))}
                         </select>
-
-                        {/* Custom arrow */}
                         <span
-                          className="absolute right-10 top-1/4  transform -translate-y-1/2 pointer-events-none"
+                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
                           style={{
                             width: "12px",
                             height: "12px",
@@ -731,22 +727,20 @@ const DashboardComponents = () => {
             </div>
           )}
         </div>
+
         {/* Additional Content Below */}
-        <div
-          className="flex mt-[70px] gap-6 flex-wrap justify-between"
-          style={{ minWidth: "692px",  maxWidth: "1310px" }}
-        >
-          {/* Left Column */}
-          <div className="flex flex-col gap-6 flex-1 min-w-[619px]">
+        <div className="flex mt-[70px] gap-6 w-full">
+          {/* Left Column - Emergency Cases and Consultation */}
+          <div className="flex flex-col gap-6 flex-1 min-w-0">
             {/* Emergency Cases */}
-            <div className="relative rounded-[20px] ml-5 p-5 min-w-[619px] h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
-                <div
-    className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
-    style={{
-      background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
-      zIndex: 0,
-    }}
-  ></div>
+            <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
+              <div
+                className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
+                style={{
+                  background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
+                  zIndex: 0,
+                }}
+              ></div>
               {/* Gradient Border */}
               <div
                 style={{
@@ -788,15 +782,15 @@ const DashboardComponents = () => {
             </div>
 
             {/* Consultation */}
-            <div className="relative rounded-[20px] ml-5 p-5 min-w-[619px] h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
-                <div
-    className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
-    style={{
-      background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
-      zIndex: 0,
-    }}
-  ></div>
-  {/* Gradient Border */}
+            <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
+              <div
+                className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
+                style={{
+                  background: "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
+                  zIndex: 0,
+                }}
+              ></div>
+              {/* Gradient Border */}
               <div
                 style={{
                   position: "absolute",
@@ -938,14 +932,12 @@ const DashboardComponents = () => {
 
                   {/* hover pop-up tooltip */}
                   <div className="absolute hidden group-hover:flex flex-col items-center left-1/2 bottom-[100%] -translate-x-1/2 mt-2 z-20">
-                    {/* tooltip box */}
                     <div className="bg-[#0A0A0A] border border-dashed border-[#0EFF7B] text-white text-xs px-3 py-2 rounded-md shadow-[0_0_6px_#0EFF7B66] whitespace-nowrap mt-1">
                       <div className="text-[#0EFF7B] font-semibold">
                         General Physician
                       </div>
                       <div className="text-gray-300">15–20 / per day (Low)</div>
                     </div>
-                    {/* dashed connector */}
                     <div className="w-[1px] h-[24px] border-l border-dashed border-[#0EFF7B] bg-transparent"></div>
                   </div>
 
@@ -958,76 +950,88 @@ const DashboardComponents = () => {
             </div>
           </div>
 
-          {/* Notifications */}
-          <div className="relative rounded-[20px] mr-[20px] p-7 min-w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
-  {/* Background Gradient for Dark Mode */}
-  <div
-    className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-    style={{
-      background: "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-      zIndex: 0,
-    }}
-  ></div>
-  
-  {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: "-1px",
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-    }}
-  ></div>
+          {/* Right Column - Notifications */}
+          <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform flex-shrink-0">
+            {/* Background Gradient for Dark Mode */}
+            <div
+              className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+              style={{
+                background: "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+                zIndex: 0,
+              }}
+            ></div>
+            
+            {/* Gradient Border */}
+            <div
+              style={{
+                position: "absolute",
+                inset: "-1px",
+                borderRadius: "20px",
+                padding: "2px",
+                background:
+                  "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                WebkitMask:
+                  "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+              }}
+            ></div>
 
-  {/* Header */}
-  <div className="relative z-10 flex justify-between items-center mb-6">
-    <h3 className="text-xl text-black dark:text-white font-semibold flex items-center">
-      <span className="w-8 h-8 bg-[#0EFF7B] rounded-full flex items-center justify-center mr-3">
-        <span className="text-black text-sm">🔔</span>
-      </span>
-      Notifications & Alerts
-      <span className="ml-3 bg-[#08994A] text-white text-xs px-2 py-1 rounded-full">
-        5 new
-      </span>
-    </h3>
-    <button className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline font-medium">
-      View all
-    </button>
-  </div>
+            {/* Header */}
+            <div className="relative z-10 flex justify-between items-center mb-6">
+              <h3 className="text-xl text-black dark:text-white font-semibold flex items-center">
+                <span className="w-8 h-8 bg-[#0EFF7B] rounded-full flex items-center justify-center mr-3">
+                  <span className="text-black text-sm">🔔</span>
+                </span>
+                Notifications & Alerts
+                <span className="ml-3 bg-[#08994A] text-white text-xs px-2 py-1 rounded-full">
+                  5 new
+                </span>
+              </h3>
+              <button className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline font-medium">
+                View all
+              </button>
+            </div>
 
-  {/* Modern Notifications List - Scrollbar Hidden */}
-  <div 
-    className="relative z-10 overflow-y-auto max-h-[420px] pr-2 "
-    style={{
-      scrollbarWidth: 'none',
-      msOverflowStyle: 'none'
-    }}
-  >
-    <ul className="space-y-3">
-      {/* Notification 1 */}
-      <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+            {/* Modern Notifications List - Scrollbar Hidden */}
+            <div 
+              className="relative z-10 overflow-y-auto max-h-[420px] pr-2 custom-scrollbar"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
+            >
+              <ul className="space-y-3">
+                {/* Notification items */}
+                <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        4 new patients admitted from cardiology
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#08994A] dark:text-[#0EFF7B] font-medium">Just now</span>
+                        <span className="text-xs bg-[#08994A] text-white px-2 py-1 rounded-full">New</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
         <div className="flex items-start gap-3">
           <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
           <div className="flex-1">
             <p className="text-sm text-gray-800 dark:text-white font-medium">
-              4 new patients admitted from cardiology
+              3 patients discharged successfully
             </p>
             <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#08994A] dark:text-[#0EFF7B] font-medium">Just now</span>
-              <span className="text-xs bg-[#08994A] text-white px-2 py-1 rounded-full">New</span>
+              <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">1 hour ago</span>
+              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full">Completed</span>
             </div>
           </div>
         </div>
-      </li>
-
-      {/* Notification 2 */}
+      </li>{/* Notification 2 */}
       <li className="bg-[#FFF5F5] dark:bg-[#1F0A0A] border border-[#FF444433] dark:border-[#FF444433] rounded-xl p-4 hover:shadow-md transition-all duration-200">
         <div className="flex items-start gap-3">
           <div className="min-w-2 h-2 bg-[#FF4444] rounded-full mt-2 flex-shrink-0"></div>
@@ -1106,21 +1110,9 @@ const DashboardComponents = () => {
           </div>
         </div>
       </li>
-    </ul>
-  </div>
-
-  {/* CSS to hide scrollbar for Webkit browsers */}
- <style jsx>{`
-  .custom-scrollbar::-webkit-scrollbar {
-    display: none; /* hides scrollbar in WebKit browsers */
-  }
-
-  .custom-scrollbar {
-    -ms-overflow-style: none; /* hides scrollbar in IE/Edge */
-    scrollbar-width: none; /* hides scrollbar in Firefox */
-  }
-`}</style>
-</div>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
       <Outlet />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Listbox } from "@headlessui/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ✅ Photo Upload Component
@@ -23,9 +23,9 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
       />
       <label
         htmlFor="photoUpload"
-        className="border-2 mr-12 border-dashed border-[#0EFF7B] dark:border-gray-600 w-24 h-24 md:w-32 md:h-32 
-        flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer 
-        rounded-lg overflow-hidden hover:border-[#08994A] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+        className="border border-dashed border-[#0EFF7B] mr-12 w-24 h-24 md:w-32 md:h-32 
+    flex items-center justify-center text-gray-600 cursor-pointer 
+    rounded-lg overflow-hidden bg-[#0EFF7B1A] hover:border-[#08994A] hover:text-[#08994A]"
       >
         {photo ? (
           <img
@@ -44,21 +44,27 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
 // ✅ Reusable Dropdown
 const Dropdown = ({ label, value, onChange, options }) => (
   <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">{label}</label>
+    <label
+      className="text-sm text-black dark:text-white"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      {label}
+    </label>
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
         <Listbox.Button
-          className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A]
-          bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]"
+          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+          bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
           </span>
         </Listbox.Button>
         <Listbox.Options
           className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 
-          border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
+          border border-gray-300 dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-y-auto"
         >
           {options.map((option, idx) => (
             <Listbox.Option
@@ -66,9 +72,14 @@ const Dropdown = ({ label, value, onChange, options }) => (
               value={option}
               className={({ active, selected }) =>
                 `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                ${active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"}
-                ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                ${
+                  active
+                    ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                    : "text-black dark:text-white"
+                }
+                ${selected ? "font-medium text-[#0EFF7B]" : ""}`
               }
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               {option}
             </Listbox.Option>
@@ -80,17 +91,30 @@ const Dropdown = ({ label, value, onChange, options }) => (
 );
 
 // ✅ Reusable Input
-const InputField = ({ label, name, value, onChange, placeholder, type = "text" }) => (
+const InputField = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}) => (
   <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">{label}</label>
+    <label
+      className="text-sm text-black dark:text-white"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      {label}
+    </label>
     <input
       type={type}
       name={name}
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full h-10 md:h-[42px] px-3 rounded-full border border-[#0EFF7B] dark:border-[#3A3A3A] 
-      bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none text-sm md:text-[14px]"
+      className="w-full h-[33px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
+      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[14px]"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
   </div>
 );
@@ -114,12 +138,45 @@ export default function NewRegistration({ isSidebarOpen }) {
     console.log("Submitted Data:", { ...formData, photo });
   };
 
+  const openDatePicker = (e) => {
+    e.currentTarget.showPicker();
+  };
+
   return (
-    <div className="mt-[60px] mb-4 bg-white dark:bg-black text-black dark:text-white  dark:border-[#1E1E1E] rounded-xl p-6 w-full">
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Back Button */}
-      <div className="mb-6">
-        <button 
-          className="px-6 py-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white"
+      <div className="mt-4 mb-6">
+        <button
+          className="w-[92px] h-[40px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           onClick={() => navigate(-1)}
         >
           ← Back
@@ -129,19 +186,35 @@ export default function NewRegistration({ isSidebarOpen }) {
       <div className="grid grid-cols-1 gap-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div className="space-y-2">
-            <h2 className="text-xl md:text-2xl font-bold text-black dark:text-white">New Registration</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+            <h2
+              className="text-xl md:text-2xl font-bold text-black dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              New Registration
+            </h2>
+            <p
+              className="text-gray-600 dark:text-gray-400 text-sm md:text-base"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               Input new patient details carefully
             </p>
           </div>
           <PhotoUploadBox photo={photo} setPhoto={setPhoto} />
         </div>
-        
+
         <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full">
           {/* General Info */}
           <div>
-            <h3 className="text-lg font-medium mb-1 md:mb-2 text-black dark:text-white">General Info</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4 md:mb-6 text-sm md:text-base">
+            <h3
+              className="text-lg font-medium mb-1 md:mb-2 text-black dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              General Info
+            </h3>
+            <p
+              className="text-gray-600 dark:text-gray-400 mb-4 md:mb-6 text-sm md:text-base"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               Input new patient details carefully
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -154,16 +227,32 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter full name"
               />
-              <InputField
-                label="Date of Birth"
-                name="dob"
-                type="date"
-                value={formData.dob || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, dob: e.target.value })
-                }
-                placeholder="DD/MM/YYYY"
-              />
+              <div className="space-y-1 w-full">
+                <label
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Date of Birth
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="dob"
+                    value={formData.dob || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dob: e.target.value })
+                    }
+                    onClick={openDatePicker}
+                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                  />
+                </div>
+              </div>
               <Dropdown
                 label="Gender"
                 value={formData.gender}
@@ -244,16 +333,32 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Country"
               />
-              <InputField
-                label="Date of Registration"
-                name="dor"
-                type="date"
-                value={formData.dor || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, dor: e.target.value })
-                }
-                placeholder="DD/MM/YYYY"
-              />
+              <div className="space-y-1 w-full">
+                <label
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Date of Registration
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="dor"
+                    value={formData.dor || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, dor: e.target.value })
+                    }
+                    onClick={openDatePicker}
+                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                  />
+                </div>
+              </div>
               <InputField
                 label="Occupation"
                 name="occupation"
@@ -286,10 +391,18 @@ export default function NewRegistration({ isSidebarOpen }) {
             </div>
           </div>
 
-          {/* /* Medical Info */ }
+          {/* /* Medical Info */}
           <div>
-            <h3 className="text-lg font-medium mb-2 md:mb-4 text-black dark:text-white">Medical Info</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4 md:mb-6 text-sm md:text-base">
+            <h3
+              className="text-lg font-medium mb-2 md:mb-4 text-black dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Medical Info
+            </h3>
+            <p
+              className="text-gray-600 dark:text-gray-400 mb-4 md:mb-6 text-sm md:text-base"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               Input new patient details carefully
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -354,21 +467,35 @@ export default function NewRegistration({ isSidebarOpen }) {
               <Dropdown
                 label="Appointment Type"
                 value={formData.apptType}
-                onChange={(val) =>
-                  setFormData({ ...formData, apptType: val })
-                }
+                onChange={(val) => setFormData({ ...formData, apptType: val })}
                 options={appointmentTypes}
               />
-              <InputField
-                label="Admit Date"
-                name="admitDate"
-                type="date"
-                value={formData.admitDate || ""}
-                onChange={(e) =>
-                  setFormData({ ...formData, admitDate: e.target.value })
-                }
-                placeholder="DD/MM/YYYY"
-              />
+              <div className="space-y-1 w-full">
+                <label
+                  className="text-sm text-black dark:text-white"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  Admit Date
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    name="admitDate"
+                    value={formData.admitDate || ""}
+                    onChange={(e) =>
+                      setFormData({ ...formData, admitDate: e.target.value })
+                    }
+                    onClick={openDatePicker}
+                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                  />
+                </div>
+              </div>
               <InputField
                 label="Room No"
                 name="roomNo"
@@ -390,15 +517,18 @@ export default function NewRegistration({ isSidebarOpen }) {
               <Dropdown
                 label="Casualty"
                 value={formData.casualty}
-                onChange={(val) =>
-                  setFormData({ ...formData, casualty: val })
-                }
+                onChange={(val) => setFormData({ ...formData, casualty: val })}
                 options={casualtyTypes}
               />
             </div>
 
             <div className="mt-4">
-              <label className="text-sm text-black dark:text-white">Reason for Visit</label>
+              <label
+                className="text-sm text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Reason for Visit
+              </label>
               <textarea
                 name="reason"
                 value={formData.reason || ""}
@@ -406,32 +536,35 @@ export default function NewRegistration({ isSidebarOpen }) {
                   setFormData({ ...formData, reason: e.target.value })
                 }
                 placeholder="Describe the symptoms"
-                className="w-full h-20 mt-1 px-3 py-2 rounded-lg border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none text-sm md:text-[14px]"
+                className="w-full h-20 mt-1 px-3 py-2 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[14px]"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
+          <div className="flex justify-end gap-2 mt-8">
             <button
               type="reset"
-              className="px-4 py-2 md:px-6 md:py-2 rounded-lg border border-[#0EFF7B] dark:border-gray-600 bg-white dark:bg-transparent text-gray-600 dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white text-sm md:text-base"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               onClick={() => {
                 setFormData({});
                 setPhoto(null);
               }}
             >
-              ✕ Clear
+              Clear
             </button>
             <button
               type="submit"
-              className="px-4 py-2 md:px-6 md:py-2 bg-[#08994A] dark:bg-green-500 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white text-sm md:text-base"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              + Add Patient
+              Add Patient
             </button>
           </div>
         </form>
       </div>
-    </div>  
+    </div>
   );
 }
