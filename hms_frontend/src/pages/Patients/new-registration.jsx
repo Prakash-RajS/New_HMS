@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Listbox } from "@headlessui/react";
-import { ChevronDown, Calendar } from "lucide-react";
+import { ChevronDown, Calendar,ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ✅ Photo Upload Component
@@ -160,7 +160,7 @@ export default function NewRegistration({ isSidebarOpen }) {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -175,12 +175,14 @@ export default function NewRegistration({ isSidebarOpen }) {
       {/* Back Button */}
       <div className="mt-4 mb-6">
         <button
-          className="w-[92px] h-[40px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          onClick={() => navigate(-1)}
-        >
-          ← Back
-        </button>
+            className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
+            onClick={() => navigate(-1)}
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+          >
+            <ArrowLeft size={18} /> Back
+          </button>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -249,7 +251,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   />
                   <Calendar
                     size={18}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
                   />
                 </div>
               </div>
@@ -355,7 +357,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   />
                   <Calendar
                     size={18}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
                   />
                 </div>
               </div>
@@ -492,7 +494,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   />
                   <Calendar
                     size={18}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none"
+                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
                   />
                 </div>
               </div>
@@ -546,7 +548,7 @@ export default function NewRegistration({ isSidebarOpen }) {
           <div className="flex justify-end gap-2 mt-8">
             <button
               type="reset"
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3C3C3C] text-black font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-[#0EFF7B1A] dark:bg-transparent dark:text-white"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               onClick={() => {
                 setFormData({});
@@ -557,7 +559,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             </button>
             <button
               type="submit"
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Add Patient

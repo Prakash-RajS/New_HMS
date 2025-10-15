@@ -11,6 +11,7 @@ import {
   TestTube2,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function ViewPatientProfile() {
@@ -129,35 +130,64 @@ export default function ViewPatientProfile() {
 
   return (
     <div
-      className="mt-[60px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full max-w-[1400px] mx-auto"
-      style={{ fontFamily: "Helvetica, sans-serif" }}
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
     >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "10px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Back Button */}
       <button
-        onClick={() => {
-          if (window.history.state && window.history.state.idx > 0) {
-            navigate(-1);
-          } else {
-            navigate("/patients");
-          }
-        }}
-        className="w-[92px] h-[40px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition mb-6"
-      >
-        ← Back
-      </button>
+  onClick={() => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/patients");
+    }
+  }}
+  className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
+  style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
+>
+  <ArrowLeft size={18} />
+  Back
+</button>
+
       {/* Profile Card */}
-      <div
-        className="relative mb-8 w-[1097px] h-[255px] flex flex-col md:flex-row items-center md:items-start text-black dark:text-white rounded-[12px] p-[24px] md:px-[45px] shadow-[0_0_4px_0_#FFFFFF1F] bg-white dark:bg-[#0D0D0D] overflow-hidden"
+<div
+  className="relative mb-8 w-[1057px] bg-white  dark:bg-transparent border border-[#0EFF7B]  dark:border-[#0EFF7B1A] mx-auto  flex flex-col md:flex-row items-center md:items-start text-black dark:text-white  rounded-[20px] p-6 md:p-[45px] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden"
+
+><div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
           background:
             "linear-gradient(180deg, rgba(3, 56, 27, 0.25) 0%, rgba(15, 15, 15, 0.25) 48.97%)",
-          border: "1px solid",
-          borderImageSource:
-            "linear-gradient(132.3deg, rgba(14, 255, 123, 0.7) 0%, rgba(30, 30, 30, 0.7) 49.68%, rgba(14, 255, 123, 0.7) 99.36%)",
-          borderImageSlice: 1,
-          backdropFilter: "blur(4px)",
+          zIndex: 0,
         }}
-      >
+      ></div>
         {" "}
         {/* Avatar Section */}{" "}
         <div className="w-[146px] h-[187px] flex-shrink-0 flex flex-col gap-[4px] items-center pr-2 md:mr-[65px] ml-3">
@@ -419,22 +449,22 @@ export default function ViewPatientProfile() {
       </div>
       {/* Tabs Section */}
       <div
-        className="border rounded-lg shadow p-4 text-black dark:text-white"
+      className="mt-[10px]  mb-4 bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B]  dark:border-[#0EFF7B1A] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
           background:
-            "linear-gradient(180deg, rgba(3, 56, 27, 0.25) 0%, rgba(15, 15, 15, 0.25) 48.97%)",
-          border: "1px solid",
-          borderImageSource:
-            "linear-gradient(132.3deg, rgba(14, 255, 123, 0.7) 0%, rgba(30, 30, 30, 0.7) 49.68%, rgba(14, 255, 123, 0.7) 99.36%)",
-          borderImageSlice: 1,
-          backdropFilter: "blur(4px)",
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
         }}
-      >
+      ></div>
         {/* Tabs */}
         <div className="w-full overflow-x-auto h-[50px] flex items-center justify-center mb-8 px-2 relative z-10">
           <div
-            className="flex justify-between gap-[111px] min-w-[1040px] mx-auto"
-            style={{ maxWidth: "1040px" }}
+            className="flex justify-between gap-[91px] min-w-[640px] mx-auto"
+            style={{ maxWidth: "1440px" }}
           >
             {[
               { name: "Diagnosis", icon: ClipboardList },
@@ -443,25 +473,26 @@ export default function ViewPatientProfile() {
               { name: "Test Reports", icon: TestTube2 },
             ].map(({ name, icon: Icon }) => (
               <button
-                key={name}
-                onClick={() => setActiveTab(name)}
-                className={`relative w-[180px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] gradient-border
-                ${
-                  activeTab === name
-                    ? "bg-[#08994A] text-white"
-                    : "text-gray-800 hover:text-green-600 dark:text-white"
-                }`}
-              >
-                <Icon
-                  size={18}
-                  className={`${
-                    activeTab === name
-                      ? "text-white"
-                      : "text-gray-700 dark:text-white"
-                  }`}
-                />
-                {name}
-              </button>
+  key={name}
+  onClick={() => setActiveTab(name)}
+  className={`relative min-w-[180px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-all
+    ${activeTab === name ? "bg-[#0EFF7B14] text-[#0EFF7B]" : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"}
+  `}
+  style={{
+    borderBottom: "1px solid",
+    borderImageSlice: 1,
+    borderImageSource: "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
+  }}
+>
+  <Icon
+    size={18}
+    className={`${
+      activeTab === name ? "text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"
+    }`}
+  />
+  {name}
+</button>
+
             ))}
           </div>
         </div>

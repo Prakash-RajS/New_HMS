@@ -242,7 +242,7 @@ const BloodBank = () => {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -255,7 +255,7 @@ const BloodBank = () => {
         }}
       ></div>
       {/* Header */}
-      <div className="mt-[10px] mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative p-6">
+      <div className="mt-[4px] mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)]  overflow-hidden relative ">
         {/* Gradient overlay for dark mode */}
         {/* <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -274,9 +274,9 @@ const BloodBank = () => {
             </h2>
             <button
               onClick={() => setShowAddPopup(true)}
-              className="flex items-center gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition px-8 py-2"
+              className="flex items-center gap-2 w-[200px] h-[40px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px]  hover:scale-105 transition px-8 py-2"
             >
-              <Plus size={18} className="text-black dark:text-white" />
+              <Plus size={18} className="text-white dark:text-white" />
               Add blood group
             </button>
           </div>
@@ -296,11 +296,11 @@ const BloodBank = () => {
                   value={selectedBloodType}
                   onChange={setSelectedBloodType}
                 >
-                  <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-black text-white text-sm px-3 py-1 rounded-[8px] border border-[#3C3C3C] shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
+                  <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] text-sm px-3 py-1 rounded-[8px]  shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
                     {selectedBloodType || "Blood Type"}
                     <ChevronDown className="w-4 h-4 text-[#0EFF7B]" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-[139px] bg-black rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto border border-[#3C3C3C] text-white">
+                  <Listbox.Options className="absolute mt-1 w-[139px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] text-black dark:text-white rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto">
                     {bloodTypesOptions.map((type, idx) => (
                       <Listbox.Option
                         key={idx}
@@ -321,11 +321,11 @@ const BloodBank = () => {
               {/* Status Dropdown */}
               <div className="relative">
                 <Listbox value={selectedStatus} onChange={setSelectedStatus}>
-                  <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-black text-white text-sm px-3 py-1 rounded-[8px] border border-[#3C3C3C] shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
+                  <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] text-sm px-3 py-1 rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
                     {selectedStatus || "Status"}
                     <ChevronDown className="w-4 h-4 text-[#0EFF7B]" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-[139px] bg-black rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto border border-[#3C3C3C] text-white">
+                  <Listbox.Options className="absolute mt-1 w-[139px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] text-black dark:text-white rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto ">
                     {statusOptions.map((status, idx) => (
                       <Listbox.Option
                         key={idx}
@@ -354,7 +354,7 @@ const BloodBank = () => {
                     placeholder="Search blood types..."
                     value={bloodSearch}
                     onChange={(e) => setBloodSearch(e.target.value)}
-                    className="w-full bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] text-[#08994A] text-sm focus:outline-none"
+                    className="w-full bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-[#5CD592] rounded-[40px] border-[1px] border-[#0EFF7B1A] text-[#08994A] text-sm focus:outline-none"
                   />
                 </div>
               )}
@@ -388,7 +388,7 @@ const BloodBank = () => {
                       bloodTypes.length > 0
                     }
                     onChange={handleSelectAllBloodTypes}
-                    className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="p-3">Blood Types</th>
@@ -401,14 +401,14 @@ const BloodBank = () => {
               {bloodTypes.map((b, i) => (
                 <tr
                   key={i}
-                  className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] transition"
+                  className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
                 >
                   <td className="p-3">
                     <input
                       type="checkbox"
                       checked={selectedBloodTypes.includes(b)}
                       onChange={() => handleBloodTypeCheckboxChange(b)}
-                      className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     />
                   </td>
                   <td className="p-3 text-black dark:text-white">{b.type}</td>
@@ -464,7 +464,7 @@ const BloodBank = () => {
           )}
 
           {/* Pagination */}
-          <div className="flex items-center mt-4 bg-white dark:bg-[#000000] rounded gap-x-4 p-4">
+          <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 p-4">
             <div className="text-sm text-gray-600 dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -506,14 +506,14 @@ const BloodBank = () => {
 
       <div className="mt-[30px] mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative p-6">
         {/* Gradient overlay for dark mode */}
-        {/* <div
+        <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
             background:
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
             zIndex: 0,
           }}
-        ></div> */}
+        ></div>
 
         {/* Header */}
         <div className="p-6 relative z-10 flex flex-col gap-4">
@@ -522,12 +522,13 @@ const BloodBank = () => {
               Donor List
             </h2>
             <button
-              onClick={() => setShowAddDonorPopup(true)}
-              className="flex items-center gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition px-8 py-2"
-            >
-              <Plus size={18} className="text-black dark:text-white" />
-              Add Donor
-            </button>
+  onClick={() => setShowAddDonorPopup(true)}
+  className="flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition"
+>
+  <Plus size={18} className="text-white" />
+  <span className="leading-none">Add Donor</span>
+</button>
+
           </div>
           <p className="text-gray-600 dark:text-gray-400">
             Registered Donors and Blood Type Information
@@ -546,11 +547,11 @@ const BloodBank = () => {
                   setDonorFilters((prev) => ({ ...prev, bloodType: value }))
                 }
               >
-                <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-black text-white text-sm px-3 py-1 rounded-[8px] border border-[#3C3C3C] shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
+                <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] text-sm px-3 py-1 rounded-[8px]  shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
                   {donorFilters.bloodType || "Blood Type"}
                   <ChevronDown className="w-4 h-4 text-[#0EFF7B]" />
                 </Listbox.Button>
-                <Listbox.Options className="absolute mt-1 w-[139px] bg-black rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto border border-[#3C3C3C] text-white">
+                <Listbox.Options className="absolute mt-1 w-[139px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] text-black dark:text-white rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto ">
                   {bloodTypesOptions.map((type, idx) => (
                     <Listbox.Option
                       key={idx}
@@ -576,11 +577,11 @@ const BloodBank = () => {
                   setDonorFilters((prev) => ({ ...prev, gender: value }))
                 }
               >
-                <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-black text-white text-sm px-3 py-1 rounded-[8px] border border-[#3C3C3C] shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
+                <Listbox.Button className="w-[139px] h-[32px] flex justify-between items-center bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] text-sm px-3 py-1 rounded-[8px]  shadow-[0_0_4px_0_#0EFF7B] focus:outline-none">
                   {donorFilters.gender || "Gender"}
                   <ChevronDown className="w-4 h-4 text-[#0EFF7B]" />
                 </Listbox.Button>
-                <Listbox.Options className="absolute mt-1 w-[139px] bg-black rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto border border-[#3C3C3C] text-white">
+                <Listbox.Options className="absolute mt-1 w-[139px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] text-black dark:text-white rounded-[8px] shadow-[0_0_4px_0_#0EFF7B] z-[50] max-h-60 overflow-y-auto ">
                   {["All", "Male", "Female", "Other"].map((gender, idx) => (
                     <Listbox.Option
                       key={idx}
@@ -658,7 +659,7 @@ const BloodBank = () => {
                       donors.length > 0
                     }
                     onChange={handleSelectAllDonors}
-                    className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="p-3">Donor</th>
@@ -674,14 +675,14 @@ const BloodBank = () => {
               {donors.map((d, i) => (
                 <tr
                   key={i}
-                  className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] transition"
+                  className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
                 >
                   <td className="p-3">
                     <input
                       type="checkbox"
                       checked={selectedDonors.includes(d)}
                       onChange={() => handleDonorCheckboxChange(d)}
-                      className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     />
                   </td>
                   <td className="p-3 text-black dark:text-white">{d.name}</td>
@@ -734,7 +735,7 @@ const BloodBank = () => {
           )}
 
           {/* Pagination */}
-          <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4 p-4">
+          <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 p-4">
             <div className="text-sm text-gray-600 dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -808,10 +809,27 @@ const BloodBank = () => {
       )}
       {showDeleteDonorPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+          <div className="rounded-[20px] p-[1px] ">
             <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+              {/* Gradient Border */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "20px",
+                        padding: "2px",
+                        background:
+                          "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                        WebkitMask:
+                          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        pointerEvents: "none",
+                        zIndex: 0,
+                      }}
+                    ></div>{/* Header */}
+              
+              <div className="flex justify-between items-center pb-3 mb-4 ">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   {deleteDonor ? "Delete Donor" : "Delete Donors"}
                 </h3>
@@ -864,10 +882,26 @@ const BloodBank = () => {
 
       {showBloodFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+          <div className="rounded-[20px] p-[1px]">
             <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+             {/* Gradient Border */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "20px",
+                        padding: "2px",
+                        background:
+                          "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                        WebkitMask:
+                          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        pointerEvents: "none",
+                        zIndex: 0,
+                      }}
+                    ></div> {/* Header */}
+              <div className="flex justify-between items-center pb-3 mb-4 ">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   Filter Blood Types
                 </h3>
@@ -898,7 +932,11 @@ const BloodBank = () => {
                       {tempBloodFilters.status}
                       <ChevronDown className="absolute right-3 top-2 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
                     </Listbox.Button>
-                    <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-[#1A1A1A] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                    <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}>
                       {statusOptions.map((status) => (
                         <Listbox.Option
                           key={status}
@@ -936,7 +974,7 @@ const BloodBank = () => {
                     setBloodFilters(tempBloodFilters);
                     setShowBloodFilterPopup(false);
                   }}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition"
+                  className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition"
                 >
                   Apply Filters
                 </button>
@@ -948,10 +986,26 @@ const BloodBank = () => {
 
       {showDonorFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+          <div className="rounded-[20px] p-[1px] ">
             <div className="w-[700px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+              {/* Gradient Border */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        borderRadius: "20px",
+                        padding: "2px",
+                        background:
+                          "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                        WebkitMask:
+                          "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                        WebkitMaskComposite: "xor",
+                        maskComposite: "exclude",
+                        pointerEvents: "none",
+                        zIndex: 0,
+                      }}
+                    ></div> {/* Header */}
+              <div className="flex justify-between items-center pb-3 mb-4 ">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   Filter Donor
                 </h3>
@@ -985,7 +1039,11 @@ const BloodBank = () => {
                           : tempDonorFilters.bloodType}
                         <ChevronDown className="absolute right-3 top-2 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
                       </Listbox.Button>
-                      <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-[#1A1A1A] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                      <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
+                      style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}>
                         <Listbox.Option
                           value="All"
                           className={({ active }) =>
@@ -1052,7 +1110,7 @@ const BloodBank = () => {
                     setDonorFilters(tempDonorFilters);
                     setShowDonorFilterPopup(false);
                   }}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition"
+                  className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition"
                 >
                   Apply Filters
                 </button>

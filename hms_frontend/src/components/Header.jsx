@@ -481,7 +481,7 @@ const Header = ({ isCollapsed }) => {
       >
         <div className="w-[394px]"></div>
 
-        <div className="relative w-[394px] h-[42px] mr-12">
+        <div className="relative w-[394px] h-[42px] mr-2">
           <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
             <svg
               width="18"
@@ -509,18 +509,18 @@ const Header = ({ isCollapsed }) => {
           <input
             type="text"
             placeholder="Search"
-            className="w-full h-full rounded-[40px] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0EFF7B1A] pl-12 pr-4 py-1 
-            text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-emerald-500 transition-all"
+            className="min-w-[393px] h-full rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] pl-12 pr-4 py-1 
+            text-black dark:text-white placeholder-[#00A048] dark:placeholder-[#00A048] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-emerald-500 transition-all"
           />
         </div>
 
         <div className="flex items-center gap-[20px]">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
+            className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
           >
             {theme === "dark" ? (
-              <Sun size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
+              <Sun size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
             ) : (
               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
             )}
@@ -528,7 +528,7 @@ const Header = ({ isCollapsed }) => {
 
           <button 
             onClick={() => navigate("/security")}
-            className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
+            className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -540,7 +540,7 @@ const Header = ({ isCollapsed }) => {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="dark:stroke-[#E4E4E7]"
+              className="dark:stroke-[#0EFF7B]"
             >
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 
@@ -568,7 +568,7 @@ const Header = ({ isCollapsed }) => {
           <div className="relative" ref={notificationRef}>
             <button 
               onClick={toggleNotification}
-              className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
+              className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
             >
               <svg
                 width="20"
@@ -587,7 +587,7 @@ const Header = ({ isCollapsed }) => {
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="dark:stroke-[#E4E4E7]"
+                  className="dark:stroke-[#0EFF7B]"
                 />
                 <path
                   d="M11.73 15C11.5542 15.3031 11.3019 
@@ -600,7 +600,7 @@ const Header = ({ isCollapsed }) => {
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="dark:stroke-[#E4E4E7]"
+                  className="dark:stroke-[#0EFF7B]"
                 />
               </svg>
               {unreadNotificationsCount > 0 && (
@@ -692,7 +692,7 @@ const Header = ({ isCollapsed }) => {
           <div className="relative" ref={mailRef}>
             <button 
               onClick={toggleMail}
-              className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
+              className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
             >
               <svg
                 width="20"
@@ -710,7 +710,7 @@ const Header = ({ isCollapsed }) => {
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="dark:stroke-[#E4E4E7]"
+                  className="dark:stroke-[#0EFF7B]"
                 />
                 <path
                   d="M18 6L10 11L2 6"
@@ -718,7 +718,7 @@ const Header = ({ isCollapsed }) => {
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="dark:stroke-[#E4E4E7]"
+                  className="dark:stroke-[#0EFF7B]"
                 />
               </svg>
               {unreadMailsCount > 0 && (

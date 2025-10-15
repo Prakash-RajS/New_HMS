@@ -36,8 +36,11 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
         </Listbox.Button>
         <Listbox.Options
           className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black 
-          shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]"
-        >
+          shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scroll"
+        style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}>
           {options.map((option, idx) => (
             <Listbox.Option
               key={idx}
@@ -382,7 +385,7 @@ const LabReport = () => {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -407,10 +410,16 @@ const LabReport = () => {
         </div>
         <button
           onClick={() => setShowCreatePopup(true)}
-          className="flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[20px] text-white font-medium shadow-md 
-          bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] 
-          border border-[#0EFF7B66] dark:border-[#0EFF7B66] hover:scale-105 transition"
-        >
+          className="w-[200px] h-[40px] flex items-center justify-center
+    bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+    border-b-[2px] border-[#0EFF7B]
+    shadow-[0px_2px_12px_0px_#00000040]
+    hover:opacity-90
+    text-white font-semibold
+    px-4 py-2 rounded-[8px]
+    transition duration-300 ease-in-out"
+  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+>
           <Plus className="w-4 h-4 text-black dark:text-black" />
           Create test order
         </button>
@@ -422,33 +431,33 @@ const LabReport = () => {
           <button
             className="flex items-center justify-center gap-2 min-w-[164px] h-[32px] 
             px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B1A] dark:bg-[#1E1E1E] 
-            text-white text-sm 
+            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
+            text-black dark:text-white text-sm 
             shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] 
-            transition"
+            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
+            transition relative"
           >
             Fetch Previous Report
           </button>
           <button
             className="flex items-center justify-center gap-2 min-w-[121px] h-[32px] 
             px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B1A] dark:bg-[#1E1E1E] 
-            text-white text-sm 
+            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
+            text-black dark:text-white text-sm 
             shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] 
-            transition"
+            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
+            transition relative"
           >
             Integrate PACS
           </button>
           <button
             className="flex items-center justify-center gap-2 min-w-[149px] h-[32px] 
             px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B1A] dark:bg-[#1E1E1E] 
-            text-white text-sm 
+            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
+            text-black dark:text-white text-sm 
             shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] 
-            transition"
+            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
+            transition relative"
           >
             Test Type Validation
           </button>
@@ -465,7 +474,7 @@ const LabReport = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {years.map((y) => (
@@ -491,7 +500,7 @@ const LabReport = () => {
               <select
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {months.map((m) => (
@@ -542,11 +551,11 @@ const LabReport = () => {
                 setCurrentPage(1);
               }}
             >
-              <Listbox.Button className="appearance-none bg-[#0EFF7B1A] dark:bg-[#000000] px-4 py-2 rounded-[20px] flex items-center border border-[#3C3C3C] text-[#08994A] dark:text-[#5CD592] text-sm pr-8 focus:outline-none">
-                {filterCategory === "All" ? "Categories" : filterCategory}
+              <Listbox.Button className="min-w-[180px]  appearance-none bg-[#0EFF7B1A] dark:bg-[#000000] px-4 py-2 rounded-[8px] flex items-center border border-[#3C3C3C] text-[#08994A] dark:text-[#5CD592] text-sm pr-8 focus:outline-none">
+                {filterCategory === "All" ? "Departments" : filterCategory}
                 <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
               </Listbox.Button>
-              <Listbox.Options className="absolute mt-1 min-w-[150px] rounded-[12px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
+              <Listbox.Options className="absolute mt-1 min-w-[180px] rounded-[8px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
                 <Listbox.Option
                   value="All"
                   className={({ active, selected }) =>
@@ -561,7 +570,7 @@ const LabReport = () => {
                     }`
                   }
                 >
-                  Categories
+                  All
                 </Listbox.Option>
                 {departments.map((dept, index) => (
                   <Listbox.Option
@@ -596,7 +605,7 @@ const LabReport = () => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
+                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
               />
             </div>
             <button
@@ -605,7 +614,7 @@ const LabReport = () => {
             >
               <Filter
                 size={18}
-                className="text-[#ffffff] dark:text-[#ffffff]"
+                className="text-[#0EFF7B] dark:text-[#0EFF7B]"
               />
             </button>
           </div>
@@ -624,7 +633,7 @@ const LabReport = () => {
                       displayedData.length > 0
                     }
                     onChange={toggleSelectAll}
-                    className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="py-3 px-4 text-left">Order ID</th>
@@ -639,14 +648,14 @@ const LabReport = () => {
               {displayedData.map((order, idx) => (
                 <tr
                   key={idx}
-                  className="border-b border-gray-300 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/50 relative"
+                  className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] relative"
                 >
                   <td className="py-3 px-4">
                     <input
                       type="checkbox"
                       checked={selectedOrders.includes(order.id)}
                       onChange={() => toggleSelectOrder(order.id)}
-                      className="accent-[#08994A] dark:accent-[#0EFF7B]"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     />
                   </td>
                   <td className="py-3 px-4 text-gray-800 dark:text-white">

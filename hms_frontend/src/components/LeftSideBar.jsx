@@ -135,7 +135,7 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
         <>
           <div
             onClick={() => setIsOpen(!isOpen)}
-            className={`w-full h-[40px] rounded-[16px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
+            className={`w-full h-[40px] rounded-[8px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
               ${isExactActive || isParentActive
                 ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
                 : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
@@ -173,7 +173,7 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
             const active = item.paths
               ? item.paths.includes(location.pathname)
               : location.pathname === item.path;
-            return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[12px]
+            return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[8px]
               ${level === 0
                 ? active
                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
@@ -198,14 +198,36 @@ const MenuItem = ({ item, level = 0, isCollapsed }) => {
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   return (
     <div
-      className={`mt-[20px] ml-[15px] mb-4 rounded-[20px] border border-[#08994A] dark:border-[#1E1E1E] bg-white dark:bg-[#0D0D0D] shadow-[0px_0px_12px_0px_#08994A1F] dark:shadow-[0px_0px_12px_0px_#FFFFFF1F] flex flex-col fixed left-0 top-0 transition-all duration-300`}
+      className={`mt-[20px] ml-[15px] mb-4 rounded-[8px]  bg-white dark:bg-[#0D0D0D]  flex flex-col fixed left-0 top-0 transition-all duration-300`}
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
         minHeight: "590px",
         maxHeight: "1860px",
       }}
-    >
+    > {/* Border gradient layer */}
+  <div
+    className="absolute inset-0 rounded-[8px] p-[1.5px] pointer-events-none"
+    style={{
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      zIndex: 1,
+    }}
+  ></div>
+
+  {/* Dark overlay for dark mode */}
+  <div
+    className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+    style={{
+      background:
+        "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+      zIndex: 0,
+    }}
+  ></div>
       {/* Header */}
       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4">
         <button

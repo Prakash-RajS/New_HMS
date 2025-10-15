@@ -471,7 +471,7 @@ const handleDeleteClick = (index) => {
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: "20px",
+            borderRadius: "10px",
             padding: "2px",
             background:
               "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",

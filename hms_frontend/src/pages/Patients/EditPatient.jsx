@@ -28,7 +28,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             {value || "Select"}
@@ -83,7 +83,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full 
-              border border-gray-300 dark:border-[#0EFF7B1A] 
+              border border-[#0EFF7B] dark:border-[#0EFF7B1A] 
               bg-white dark:bg-[#0EFF7B1A] 
               shadow flex items-center justify-center"
             >
@@ -108,7 +108,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                   setFormData({ ...formData, patient: e.target.value })
                 }
                 placeholder="Enter name"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
             </div>
@@ -128,7 +128,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                   setFormData({ ...formData, patientId: e.target.value })
                 }
                 placeholder="Enter patient ID"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
             </div>
@@ -160,10 +160,10 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                       appointmentDate: e.target.value,
                     })
                   }
-                  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 />
-                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
               </div>
             </div>
 
@@ -200,7 +200,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                 }
                 placeholder="Enter phone number"
                 maxLength="10"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
             </div>
@@ -218,14 +218,14 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
           <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent dark:text-white"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Update

@@ -26,7 +26,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
@@ -36,7 +36,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
             </span>
           </Listbox.Button>
 
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -72,7 +72,23 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
         <div
           className="w-[504px] h-[485px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
+        >{/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h3
@@ -107,7 +123,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                   setFormData({ ...formData, patient: e.target.value })
                 }
                 placeholder="Enter name"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                   bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
@@ -128,7 +144,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                   setFormData({ ...formData, patientId: e.target.value })
                 }
                 placeholder="Enter patient ID"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                   bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
@@ -161,7 +177,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                       appointmentDate: e.target.value,
                     })
                   }
-                  className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                  className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 />
@@ -205,7 +221,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                 }
                 placeholder="Enter phone number"
                 maxLength="10"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                   bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
@@ -224,14 +240,14 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
           <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600 text-gray-600 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Update

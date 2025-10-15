@@ -59,9 +59,12 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
             </span>
           </Listbox.Button>
           <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-[#1A1A1A]
-            shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
-          >
+            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black
+            shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
+          style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}>
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -229,7 +232,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
             </button>
             <button
               onClick={handleAdd}
-              className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
+              className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
               text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
             >
               Add Donor

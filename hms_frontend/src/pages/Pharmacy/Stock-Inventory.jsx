@@ -19,7 +19,28 @@ import {
 const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-      <div className="w-[400px] bg-white dark:bg-[#000000E5] border-2 border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[20px] p-5 shadow-[0px_0px_2px_0px_#A0A0A040]">
+  {/* Outer wrapper with gradient border */}
+  <div className="rounded-[20px] p-[1px] backdrop-blur-md ">
+    <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-5 relative">
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
+      
+      <div className="relative z-10">
         <div className="flex justify-between items-center mb-4">
           <h2
             className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
@@ -60,6 +81,8 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
         </div>
       </div>
     </div>
+  </div>
+</div>
   );
 };
 
@@ -167,6 +190,45 @@ const StockInventory = () => {
       vendorCode: "BAR12345",
       stock: 0,
       status: "OUT OF STOCK",
+    },{
+      id: 8,
+      name: "Septodont",
+      category: "Local Anesthesia",
+      batch: "SHY09835",
+      vendor: "Barone LLC",
+      vendorCode: "BAR12345",
+      stock: 124,
+      status: "IN STOCK",
+    },
+    {
+      id: 9,
+      name: "Chlorhexidine gluconate",
+      category: "Antiseptics",
+      batch: "SHM09886",
+      vendor: "Acme Co.",
+      vendorCode: "ACM12345",
+      stock: 10,
+      status: "LOW STOCK",
+    },
+    {
+      id: 10,
+      name: "Amoxicillin",
+      category: "Antibiotics",
+      batch: "SHY07635",
+      vendor: "Manish Ltd.",
+      vendorCode: "MAN12345",
+      stock: 0,
+      status: "OUT OF STOCK",
+    },
+    {
+      id: 11,
+      name: "Ibuprofen",
+      category: "Anti-inflammatory",
+      batch: "SHA09435",
+      vendor: "Manish Ltd.",
+      vendorCode: "MAN12345",
+      stock: 178,
+      status: "IN STOCK",
     },
   ]);
 
@@ -197,16 +259,16 @@ const StockInventory = () => {
   }, [openDropdownId]);
 
   const filteredData = inventoryData.filter((item) => {
-    const matchesSearch = Object.values(item)
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      filterStatus === "All" || item.status === filterStatus;
-    const matchesCategory =
-      selectedCategory === "All" || item.category === selectedCategory;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const matchesSearch = Object.values(item)
+    .join(" ")
+    .toLowerCase()
+    .includes(searchTerm.toLowerCase());
+  const matchesStatus =
+    filterStatus === "All" || item.status === filterStatus;
+  const matchesCategory =
+    selectedCategory === "All" || item.category === selectedCategory;
+  return matchesSearch && matchesStatus && matchesCategory;
+});
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const displayedData = filteredData.slice(
@@ -397,7 +459,7 @@ const StockInventory = () => {
 
   return (
     <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[1400px] mx-auto flex flex-col  
      bg-white dark:bg-transparent overflow-hidden relative"
     >
       <div
@@ -413,7 +475,7 @@ const StockInventory = () => {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -442,13 +504,21 @@ const StockInventory = () => {
             in one place.
           </p>
         </div>
-        <button
-          onClick={() => setShowAddStockPopup(true)}
-          className="w-[200px] h-[40px] flex items-center justify-center gap-2 rounded-full border border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] shadow-[0px_2px_12px_0px_#0EFF7B40] text-sm font-semibold text-white px-3 py-2 hover:scale-105 transition"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
-          + Add Stock
-        </button>
+       <button
+  onClick={() => setShowAddStockPopup(true)}
+  className="w-[200px] h-[40px] flex items-center justify-center
+    bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+    border-b-[2px] border-[#0EFF7B]
+    shadow-[0px_2px_12px_0px_#00000040]
+    hover:opacity-90
+    text-white font-semibold
+    px-4 py-2 rounded-[8px]
+    transition duration-300 ease-in-out"
+  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+>
+  + Add Stock
+</button>
+
       </div>
 
       <div className="flex items-center justify-between w-full mb-6 text-sm">
@@ -459,8 +529,8 @@ const StockInventory = () => {
               onClick={() => setActiveFilter(filter)}
               className={`px-6 py-2 rounded-md transition-all duration-300 ${
                 activeFilter === filter
-                  ? "bg-[#08994A] text-white"
-                  : "bg-[#1B1B1B] text-gray-300 hover:bg-[#08994A]/30"
+                  ? "bg-[#025126] text-white shadow-[0px_2px_12px_0px_#0EFF7B40]"
+                  : "bg-gray-300 dark:bg-[#1E1E1E] text-black dark:text-gray-300 hover:bg-[#08994A]/30"
               }`}
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
@@ -481,7 +551,7 @@ const StockInventory = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-white dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {years.map((y) => (
@@ -508,7 +578,7 @@ const StockInventory = () => {
               <select
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-[#0D0D0D] text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-white dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {months.map((m) => (
@@ -832,46 +902,54 @@ const StockInventory = () => {
       </div>
 
       <h3
-        className="w-full h-[22px] font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-4"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
-        Inventory list
-      </h3>
-      <div className="w-full bg-[#ffffff] dark:bg-[#1E1E1E] border border-[#3C3C3C] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
+  className="w-full h-[22px] font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-1"
+  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+>
+  Stock list
+</h3>
+<p
+  className="text-[14px] leading-[18px] text-[#A0A0A0] mt-3 mb-4"
+  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+>
+  List of all 
+</p>
+      <div className="w-full bg-[#ffffff] dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
         <div className="flex justify-between items-center w-full">
           <div className="relative">
-            <button
-              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="w-[139px] h-[32px] flex justify-between items-center px-3 py-1.5 rounded-[20px] bg-[#000000] border border-[#3C3C3C] text-white text-[12px] font-medium"
+  <button
+    onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+    className="w-[180px] h-[32px] flex justify-between items-center px-3 py-1.5 rounded-[20px] bg-white dark:bg-black shadow-[0_0_4px_0_#0EFF7B] border border-[#08994A] text-black dark:text-white text-[12px] font-medium"
+    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+  >
+    {selectedCategory || "All"}{" "}
+    <ChevronDown
+      size={16}
+      className="text-[#08994A] dark:text-[#0EFF7B]"
+    />
+  </button>
+
+  {showCategoryDropdown && (
+    <div className="absolute top-full mt-2 left-0 w-[180px] bg-white dark:bg-[#000000] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-10">
+      <div className="max-h-36  overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <ul className=" text-black dark:text-white text-sm">
+          {["All", ...categories].map((cat) => (
+            <li
+              key={cat}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setShowCategoryDropdown(false);
+              }}
+              className="px-4 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              {selectedCategory || "All"}{" "}
-              <ChevronDown
-                size={16}
-                className="text-[#08994A] dark:text-[#0EFF7B]"
-              />
-            </button>
-
-            {showCategoryDropdown && (
-              <div className="absolute top-full mt-2 left-0 w-[150px] bg-white dark:bg-[#000000E5] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-50">
-                <ul className="text-black dark:text-white text-sm">
-                  {["All", ...categories].map((cat) => (
-                    <li
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        setShowCategoryDropdown(false);
-                      }}
-                      className="px-4 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] rounded-[4px] cursor-pointer"
-                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                    >
-                      {cat}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+              {cat}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )}
+</div>
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[229px] max-w-md">
@@ -882,7 +960,7 @@ const StockInventory = () => {
               <input
                 type="text"
                 placeholder="Search Product Name.."
-                className="bg-transparent outline-none text-sm text-[#08994A] dark:text-white w-full"
+                className="bg-transparent outline-none text-sm text-[#08994A] placeholder-[#5CD592] dark:text-white w-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -894,51 +972,69 @@ const StockInventory = () => {
                 onClick={() => setShowFilterPopup(!showFilterPopup)}
                 className="bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
               >
-                <Filter size={16} />
+                <Filter size={16} className="text-[#0EFF7B]" />
               </button>
 
               {showFilterPopup && (
-                <div className="absolute top-full mt-4 left-[-110px] w-[188px] h-[119px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
-                  <button
-                    onClick={() => setFilterStatus("IN STOCK")}
-                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
-                      filterStatus === "IN STOCK"
-                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B]"
-                        : "bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B]"
-                    }`}
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B] inline-block mr-2"></span>
-                    IN STOCK
-                  </button>
+  <div className="absolute top-full mt-4 left-[-110px] w-[188px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
+    {/* Filter Options */}
+    <button
+      onClick={() => setFilterStatus("IN STOCK")}
+      className={`w-full h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+        filterStatus === "IN STOCK"
+          ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B]"
+          : "bg-transparent text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B] inline-block mr-2"></span>
+      IN STOCK
+    </button>
 
-                  <button
-                    onClick={() => setFilterStatus("LOW STOCK")}
-                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
-                      filterStatus === "LOW STOCK"
-                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF930E] dark:text-[#FF930E]"
-                        : "bg-white dark:bg-[#000000] text-[#FF930E] dark:text-[#FF930E]"
-                    }`}
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    <span className="w-[8px] h-[8px] rounded-full bg-[#FF930E] inline-block mr-2"></span>
-                    LOW STOCK
-                  </button>
+    <button
+      onClick={() => setFilterStatus("LOW STOCK")}
+      className={`w-full h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+        filterStatus === "LOW STOCK"
+          ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF930E] dark:text-[#FF930E]"
+          : "bg-transparent text-[#FF930E] dark:text-[#FF930E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      <span className="w-[8px] h-[8px] rounded-full bg-[#FF930E] inline-block mr-2"></span>
+      LOW STOCK
+    </button>
 
-                  <button
-                    onClick={() => setFilterStatus("OUT OF STOCK")}
-                    className={`w-[140px] h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
-                      filterStatus === "OUT OF STOCK"
-                        ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF2424] dark:text-[#FF2424]"
-                        : "bg-white dark:bg-[#000000] text-[#FF2424] dark:text-[#FF2424]"
-                    }`}
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    <span className="w-[8px] h-[8px] rounded-full bg-[#FF2424] inline-block mr-2"></span>
-                    OUT OF STOCK
-                  </button>
-                </div>
-              )}
+    <button
+      onClick={() => setFilterStatus("OUT OF STOCK")}
+      className={`w-full h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
+        filterStatus === "OUT OF STOCK"
+          ? "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] text-[#FF2424] dark:text-[#FF2424]"
+          : "bg-transparent text-[#FF2424] dark:text-[#FF2424] hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      <span className="w-[8px] h-[8px] rounded-full bg-[#FF2424] inline-block mr-2"></span>
+      OUT OF STOCK
+    </button>
+
+    {/* Divider */}
+    <div className="h-px bg-gray-300 dark:bg-[#3A3A3A] my-1"></div>
+
+    {/* Reset Button */}
+    <button
+  onClick={() => {
+    setFilterStatus("All"); // Changed from "ALL" to "All"
+    setShowFilterPopup(false);
+  }}
+  className="w-full h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal bg-transparent text-gray-600 dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+>
+  <span className="w-[8px] h-[8px] rounded-full bg-gray-400 dark:bg-gray-600 inline-block mr-2"></span>
+  RESET
+</button>
+  </div>
+)}
+
             </div>
 
             <button
@@ -955,15 +1051,15 @@ const StockInventory = () => {
     ${selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""}
   `}
             >
-              <Trash2 size={16} />
+              <Trash2 size={16} className="text-[#0EFF7B]" />
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-hidden">
           <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
-            <thead className="bg-gray-100 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
-              <tr className="h-[52px] bg-gray-100 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] border border-[#000000] dark:border-black">
+            <thead className="border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+              <tr className="h-[52px] bg-gray-100 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] ">
                 <th className="px-3 py-3">
                   <input
                     type="checkbox"
@@ -1041,12 +1137,12 @@ const StockInventory = () => {
                 ))}
               </tr>
             </thead>
-            <tbody className="text-sm bg-white dark:bg-[#1E1E1E]">
+            <tbody className="text-sm bg-white dark:bg-transparent">
               {sortedData.length > 0 ? (
                 sortedData.map((row, index) => (
                   <tr
                     key={row.id}
-                    className="w-full h-[62px] bg-white dark:bg-[#1E1E1E] px-[12px] py-[12px] border-b border-[#1E1E1E] dark:border-[#1E1E1E] relative"
+                    className="w-full h-[62px] bg-white dark:bg-transparent px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E] relative hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                   >
                     <td className="px-3 py-3">
                       <input
@@ -1131,7 +1227,7 @@ const StockInventory = () => {
                             openEditPopup(row);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                         >
                           <Edit2
@@ -1146,7 +1242,7 @@ const StockInventory = () => {
                             setShowSingleDeletePopup(true);
                             setOpenDropdownId(null);
                           }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                         >
                           <Trash2 size={14} className="text-red-500" />
@@ -1183,21 +1279,33 @@ const StockInventory = () => {
           </span>
           <button
             onClick={handlePrevPage}
-            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${
-              currentPage === 1 ? "opacity-50" : ""
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                              currentPage === 1
+                                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                                : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                            }`}
+                          
+                            
             disabled={currentPage === 1}
           >
-            <ChevronLeft size={16} />
+           <ChevronLeft
+                              size={12}
+                              className="text-[#08994A] dark:text-white"
+                            />
           </button>
           <button
             onClick={handleNextPage}
-            className={`bg-gray-100 dark:bg-[#1E1E1E] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] ${
-              currentPage === totalPages ? "opacity-50" : ""
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                  currentPage === totalPages
+                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                    : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                }`}
             disabled={currentPage === totalPages}
           >
-            <ChevronRight size={16} />
+            <ChevronRight
+                              size={12}
+                              className="text-[#08994A] dark:text-white"
+                            />
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Listbox } from "@headlessui/react";
 import {
   Search,
   ChevronDown,
@@ -119,6 +120,110 @@ const AmbulanceManagement = () => {
       mileage: "-",
       status: "Standby",
     },
+    {
+      tripId: "T-7755",
+      dispatchId: "D-10241",
+      unit: "AMB-09",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "45 Elm St.",
+      destination: "General Hospital",
+      startTime: "10:05 AM",
+      endTime: "10:30 AM",
+      mileage: "7 min",
+      status: "Completed",
+    },
+    {
+      tripId: "T-7756",
+      dispatchId: "D-10242",
+      unit: "AMB-08",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "City ER",
+      destination: "General Hospital",
+      startTime: "09:45 AM",
+      endTime: "9:55 AM",
+      mileage: "10 min",
+      status: "Completed",
+    },
+    {
+      tripId: "T-7757",
+      dispatchId: "D-10243",
+      unit: "AMB-07",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "98 Pine Ave.",
+      destination: "City ER",
+      startTime: "09:25 AM",
+      endTime: "-",
+      mileage: "-",
+      status: "En Route",
+    },
+    {
+      tripId: "T-7758",
+      dispatchId: "D-10244",
+      unit: "AMB-06",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "210 Oak Blvd.",
+      destination: "General Hospital",
+      startTime: "09:15 AM",
+      endTime: "-",
+      mileage: "-",
+      status: "Standby",
+    },
+    {
+      tripId: "T-7759",
+      dispatchId: "D-10241",
+      unit: "AMB-09",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "45 Elm St.",
+      destination: "General Hospital",
+      startTime: "10:05 AM",
+      endTime: "10:30 AM",
+      mileage: "7 min",
+      status: "Completed",
+    },
+    {
+      tripId: "T-7760",
+      dispatchId: "D-10242",
+      unit: "AMB-08",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "City ER",
+      destination: "General Hospital",
+      startTime: "09:45 AM",
+      endTime: "9:55 AM",
+      mileage: "10 min",
+      status: "Completed",
+    },
+    {
+      tripId: "T-7761",
+      dispatchId: "D-10243",
+      unit: "AMB-07",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "98 Pine Ave.",
+      destination: "City ER",
+      startTime: "09:25 AM",
+      endTime: "-",
+      mileage: "-",
+      status: "En Route",
+    },
+    {
+      tripId: "T-7762",
+      dispatchId: "D-10244",
+      unit: "AMB-06",
+      crew: "Paramedic Lewis, EMT Clark",
+      patientId: "P-45120",
+      pickupLocation: "210 Oak Blvd.",
+      destination: "General Hospital",
+      startTime: "09:15 AM",
+      endTime: "-",
+      mileage: "-",
+      status: "Standby",
+    },
   ];
 
   const itemsPerPage = 10;
@@ -191,11 +296,15 @@ const AmbulanceManagement = () => {
   };
 
   const confirmDelete = () => {
-    console.log(
-      `Deleting ${activeTab === "Dispatch Log" ? "dispatch" : "trip"}: ${
-        selectedItem?.id || selectedItem?.tripId
-      }`
-    );
+    if (selectedItem) {
+      console.log(
+        `Deleting ${activeTab === "Dispatch Log" ? "dispatch" : "trip"}: ${
+          selectedItem?.id || selectedItem?.tripId
+        }`
+      );
+    } else if (selectedRows.size > 0) {
+      handleBulkDelete();
+    }
     setIsDeleteOpen(false);
     setSelectedItem(null);
   };
@@ -248,9 +357,9 @@ const AmbulanceManagement = () => {
 
   return (
     <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
-    ><div
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
           background:
@@ -263,7 +372,7 @@ const AmbulanceManagement = () => {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -275,15 +384,6 @@ const AmbulanceManagement = () => {
           zIndex: 0,
         }}
       ></div>
-      {/* Gradient overlay for dark mode */}
-      {/* <div
-        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-          zIndex: 0,
-        }}
-      ></div> */}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6 mt-4 relative z-10">
@@ -442,7 +542,7 @@ const AmbulanceManagement = () => {
             className={`w-[140px] h-[34px] rounded-[4px] px-3 py-2 flex items-center justify-center text-sm font-medium transition-all ${
               activeTab === "Dispatch Log"
                 ? "bg-[#025126] border-t border-r border-b-2 border-l border-[#025126] shadow-[0_0_20px_0_#0EFF7B40] text-white"
-                : "bg-[#1E1E1E] border border-[#1E1E1E] shadow-[0_0_20px_0_#00000066] text-gray-400"
+                : "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#1E1E1E]  text-black dark:text-gray-400"
             }`}
           >
             Dispatch Log
@@ -456,7 +556,7 @@ const AmbulanceManagement = () => {
             className={`w-[140px] h-[34px] rounded-[4px] px-3 py-2 flex items-center justify-center text-sm font-medium transition-all ${
               activeTab === "Trip Log"
                 ? "bg-[#025126] border-t border-r border-b-2 border-l border-[#025126] shadow-[0_0_20px_0_#0EFF7B40] text-white"
-                : "bg-[#1E1E1E] border border-[#1E1E1E] shadow-[0_0_20px_0_#00000066] text-gray-400"
+                : "bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#1E1E1E]  text-black dark:text-gray-400"
             }`}
           >
             Trip Log
@@ -465,7 +565,7 @@ const AmbulanceManagement = () => {
       </div>
 
       {/* Table */}
-      <div className="relative z-10 border border-[#0EFF7B] dark:border-[#0D0D0D] rounded-[12px] p-4 bg-white dark:bg-[#0D0D0D]">
+      <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 bg-white dark:bg-transparent">
         {/* Header */}
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
           <h2 className="text-black dark:text-white text-lg font-semibold">
@@ -480,7 +580,7 @@ const AmbulanceManagement = () => {
               <input
                 type="text"
                 placeholder="Search by ID, unit, dispatcher, etc."
-                className="bg-transparent outline-none text-sm w-full text-black dark:text-white placeholder-gray-600 dark:placeholder-gray-400 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                className="bg-transparent outline-none text-sm w-full text-black dark:text-white placeholder-[#5CD592] dark:placeholder-[#5CD592] focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -489,89 +589,137 @@ const AmbulanceManagement = () => {
               onClick={handleFilter}
               className="w-8 h-8 flex items-center justify-center rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] dark:border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-[#0EFF7B] transition"
             >
-              <Filter size={18} />
+              <Filter size={18} className="text-[#0EFF7B]" />
             </button>
 
             <button
-              onClick={() =>
-                selectedRows.size > 0 ? handleBulkDelete() : handleDelete(null)
-              }
+              onClick={() => {
+                if (selectedRows.size > 0) {
+                  setSelectedItem(null); // Clear selectedItem for bulk delete
+                  setIsDeleteOpen(true);
+                }
+              }}
               className={`w-8 h-8 flex items-center justify-center rounded-[20px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] dark:border-[#0EFF7B1A] shadow-[0_0_4px_0_#0EFF7B1A] transition ${
                 selectedRows.size > 0
                   ? "text-red-600 dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-900"
-                  : "text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500"
+                  : "text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-red-600 dark:hover:text-red-500"
               }`}
+              disabled={selectedRows.size === 0}
             >
               <Trash2 size={18} />
             </button>
           </div>
         </div>
 
-        {/* Filter Popup */}
         {isFilterOpen && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-helvetica">
-            <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
-              <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
-                {/* Header */}
-                <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
-                  <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
-                    Filter {activeTab}
-                  </h3>
-                  <button
-                    onClick={() => setIsFilterOpen(false)}
-                    className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-helvetica">
+    <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+      <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+        {/* Header */}
+        <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
+          <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+            Filter {activeTab}
+          </h3>
+          <button
+            onClick={() => setIsFilterOpen(false)}
+            className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-                {/* Status Dropdown */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2 text-black dark:text-white">
-                    Status
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full h-[32px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] font-helvetica"
+        {/* Status Dropdown */}
+        <div className="mb-4">
+          <label
+            className="block text-sm font-medium mb-2 text-black dark:text-white"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            Status
+          </label>
+          <Listbox value={filterStatus} onChange={setFilterStatus}>
+            <div className="relative mt-1 w-full">
+              <Listbox.Button
+                className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none"
+              >
+                {filterStatus || "All Statuses"}
+                <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
+                </span>
+              </Listbox.Button>
+              <Listbox.Options
+                className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
+                style={{
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                {["All Statuses", "Completed", "En Route", "Standby"].map(
+                  (option, idx) => (
+                    <Listbox.Option
+                      key={idx}
+                      value={option === "All Statuses" ? "" : option}
+                      className={({ active, selected }) =>
+                        `cursor-pointer select-none py-2 px-3 text-sm rounded-md ${
+                          active
+                            ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                      }
                     >
-                      <option value="">All Statuses</option>
-                      <option value="Completed">Completed</option>
-                      <option value="En Route">En Route</option>
-                      <option value="Standby">Standby</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex justify-end gap-4 mt-6">
-                  <button
-                    onClick={clearFilter}
-                    className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] font-helvetica"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={() => {
-                      applyFilter(filterStatus);
-                      setIsFilterOpen(false);
-                    }}
-                    className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition font-helvetica"
-                  >
-                    Apply Filters
-                  </button>
-                </div>
-              </div>
+                      {option}
+                    </Listbox.Option>
+                  )
+                )}
+              </Listbox.Options>
             </div>
-          </div>
-        )}
+          </Listbox>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-4 mt-6">
+          <button
+            onClick={clearFilter}
+            className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] font-helvetica"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => {
+              applyFilter(filterStatus);
+              setIsFilterOpen(false);
+            }}
+            className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition font-helvetica"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Delete Confirmation Popup */}
         {isDeleteOpen && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-helvetica">
-            <div className="rounded-[20px] p-[1px] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
+            <div className="rounded-[20px] p-[1px]">
               <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+                {/* Gradient Border */}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "20px",
+                    padding: "2px",
+                    background:
+                      "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                    WebkitMask:
+                      "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                    pointerEvents: "none",
+                    zIndex: 0,
+                  }}
+                ></div>
                 {/* Header */}
                 <div className="flex justify-between items-center pb-3 mb-4 border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]">
                   <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
@@ -607,7 +755,7 @@ const AmbulanceManagement = () => {
                     Cancel
                   </button>
                   <button
-                    onClick={selectedItem ? confirmDelete : handleBulkDelete}
+                    onClick={confirmDelete}
                     className="w-[144px] h-[32px] rounded-[8px] bg-red-600 dark:bg-red-500 text-white font-medium hover:bg-red-700 dark:hover:bg-red-600 font-helvetica"
                   >
                     Delete
@@ -630,7 +778,7 @@ const AmbulanceManagement = () => {
                       type="checkbox"
                       checked={selectAll}
                       onChange={handleSelectAll}
-                      className="w-4 h-4 text-[#0EFF7B] bg-gray-100 border-gray-300 rounded focus:ring-[#0EFF7B] dark:focus:ring-[#0EFF7B] dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     />
                   </div>
                 </th>
@@ -794,7 +942,7 @@ const AmbulanceManagement = () => {
                 return (
                   <tr
                     key={rowId}
-                    className="text-center border-b border-gray-300 dark:border-[#3C3C3C] hover:bg-gray-100 dark:hover:bg-[#000000CC] h-[62px]"
+                    className="text-center border-b border-gray-300 dark:border-[#3C3C3C] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] h-[62px]"
                   >
                     {/* Checkbox for row selection */}
                     <td className="px-3 py-3">
@@ -803,7 +951,7 @@ const AmbulanceManagement = () => {
                           type="checkbox"
                           checked={isRowSelected(rowId)}
                           onChange={() => handleRowSelect(rowId)}
-                          className="w-4 h-4 text-[#0EFF7B] bg-gray-100 border-gray-300 rounded focus:ring-[#0EFF7B] dark:focus:ring-[#0EFF7B] dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                         />
                       </div>
                     </td>
@@ -908,36 +1056,44 @@ const AmbulanceManagement = () => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center mt-4 bg-white dark:bg-[#0D0D0D] rounded gap-x-4 p-4 font-helvetica">
-          <div className="text-sm text-gray-600 dark:text-white">
+        <div className="flex items-center h-full mt-4 bg-white dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="text-sm text-black dark:text-white">
             Page{" "}
             <span className="text-[#08994A] dark:text-[#0EFF7B]">
               {currentPage}
             </span>{" "}
-            of {totalPages}
+            of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
+            {Math.min(currentPage * itemsPerPage, filteredData.length)} from{" "}
+            {filteredData.length} {activeTab === "Dispatch Log" ? "Dispatches" : "Trips"})
           </div>
           <div className="flex items-center gap-x-2">
             <button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
                 currentPage === 1
-                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
-                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               }`}
             >
-              <ChevronLeft size={12} />
+              <ChevronLeft
+                size={12}
+                className="text-[#08994A] dark:text-white"
+              />
             </button>
             <button
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
                 currentPage === totalPages
-                  ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
-                  : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               }`}
             >
-              <ChevronRight size={12} />
+              <ChevronRight
+                size={12}
+                className="text-[#08994A] dark:text-white"
+              />
             </button>
           </div>
         </div>

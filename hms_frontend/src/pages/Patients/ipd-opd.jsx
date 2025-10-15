@@ -174,6 +174,7 @@ const AppointmentListIPD = () => {
       date: "",
     });
     setActiveFilter("All");
+    setShowFilterPopup(false); // Close popup after clearing filters
   };
 
   const Dropdown = ({ label, value, onChange, options }) => (
@@ -187,7 +188,7 @@ const AppointmentListIPD = () => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             {value || "Select"}
@@ -221,9 +222,8 @@ const AppointmentListIPD = () => {
   );
 
   return (
-     <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
+    <div
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -238,7 +238,7 @@ const AppointmentListIPD = () => {
         style={{
           position: "absolute",
           inset: 0,
-          borderRadius: "20px",
+          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -250,15 +250,6 @@ const AppointmentListIPD = () => {
           zIndex: 0,
         }}
       ></div>
-      {/* Gradient overlay for dark mode */}
-      {/* <div
-        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-          zIndex: 0,
-        }}
-      ></div> */}
 
       {/* Header */}
       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
@@ -267,24 +258,15 @@ const AppointmentListIPD = () => {
         </h2>
         <button
           onClick={() => navigate("/patients/new-registration")}
-          className="flex items-center gap-2 
-        bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
-        border border-[#0EFF7B]
-        shadow-[0px_2px_12px_0px_#00000040]
-        hover:opacity-90
-        text-white font-semibold 
-        px-4 py-2 rounded-[8px] 
-        transition duration-300 ease-in-out"
+          className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
         >
-          <Plus size={18} className="text-white font-[Helvetica]" /> Add
-          Patients
+          <Plus size={18} className="text-white font-[Helvetica]" /> Add Patients
         </button>
       </div>
 
       {/* Today's Total Section */}
       <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
-          {/* Today's Total */}
           <div className="flex items-center gap-3">
             <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Today's Total
@@ -293,10 +275,7 @@ const AppointmentListIPD = () => {
               150
             </span>
           </div>
-
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
-
-          {/* Visited */}
           <div className="flex items-center gap-2">
             <span className="font-inter font-normal text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
               In-Patients
@@ -305,10 +284,7 @@ const AppointmentListIPD = () => {
               47
             </span>
           </div>
-
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
-
-          {/* Waiting */}
           <div className="flex items-center gap-2">
             <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Out-Patients
@@ -326,16 +302,12 @@ const AppointmentListIPD = () => {
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`min-w-[104px] h-[31px] 
-            hover:bg-[#0EFF7B1A] 
-            rounded-[4px] 
-            font-[Helvetica] text-[13px] font-normal 
-            transition duration-300 ease-in-out
-            ${
-              activeMainTab === tab
-                ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
-                : "bg-gray-100 text-gray-800 border-gray-300  font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
-            }`}
+              className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
+                ${
+                  activeMainTab === tab
+                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
+                    : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                }`}
               onClick={() =>
                 tab === "Out-Patients"
                   ? navigate("/patients/out-patients")
@@ -349,39 +321,22 @@ const AppointmentListIPD = () => {
 
         {/* Search and Filter */}
         <div className="flex gap-4">
-          <div className="flex items-center font-[Helvetica] w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 shadow dark:hidden">
-            <Search size={18} className="text-green-600" />
+          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
+            <Search size={18} className="text-green-600 dark:text-green-400" />
             <input
               type="text"
               placeholder="Search patient name or ID"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black placeholder-gray-400 w-48 leading-none tracking-normal"
+              className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-48 leading-none tracking-normal"
             />
           </div>
-          <div className="rounded-[8px] p-[1px] bg-gradient-to-b from-[#0EFF7B] to-[#08994A] shadow-[0_0_20px_0px_#00000066] dark:inline-block hidden dark:shadow-[0_0_20px_0_#FFFFFF33]">
-            <div className="h-[32px] w-[315px] rounded-[7px] bg-[#1E1E1E] flex items-center gap-2 px-4 py-1">
-              <Search size={18} className="text-green-400" />
-              <input
-                type="text"
-                placeholder="Search patient name or ID"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-white placeholder-[#00A048] w-48 leading-none tracking-normal"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 transition-colors duration-200 dark:hidden ">
-            <Filter size={18} className="text-green-600" />
-          </div>
-          <div className="rounded-[8px] p-[1px] bg-gradient-to-b from-[#0EFF7B] to-[#08994A] shadow-[0_0_20px_0px_#00000066] dark:inline-block hidden dark:shadow-[0_0_20px_0_#FFFFFF33]">
-            <button
-              onClick={() => setShowFilterPopup(true)}
-              className="h-[32px] w-[32px] rounded-[7px] bg-[#1E1E1E] hover:bg-green-900 transition-colors duration-200 flex items-center justify-center"
-            >
-              <Filter size={18} className="text-green-400" />
-            </button>
-          </div>
+          <button
+            onClick={() => setShowFilterPopup(true)}
+            className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
+          >
+            <Filter size={18} className="text-green-600 dark:text-green-400" />
+          </button>
         </div>
       </div>
 
@@ -391,12 +346,12 @@ const AppointmentListIPD = () => {
           {filters.map((f) => (
             <button
               key={f}
-              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] gradient-border
-            ${
-              activeFilter === f
-                ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
-                : "text-gray-800 hover:text-green-600 font-[Helvetica] dark:text-white dark:hover:text-white"
-            }`}
+              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                ${
+                  activeFilter === f
+                    ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
+                    : "text-gray-800 hover:text-green-600 font-[Helvetica] dark:text-white dark:hover:text-white"
+                }`}
               onClick={() => setActiveFilter(f)}
             >
               {f}
@@ -463,9 +418,7 @@ const AppointmentListIPD = () => {
                     <td className="text-black dark:text-white">
                       {appt.department}
                     </td>
-                    <td className="text-black dark:text-white">
-                      {appt.doctor}
-                    </td>
+                    <td className="text-black dark:text-white">{appt.doctor}</td>
                     <td className="text-black dark:text-white">{appt.room}</td>
                     <td className="text-black dark:text-white">
                       {appt.treatment}
@@ -508,7 +461,7 @@ const AppointmentListIPD = () => {
             ) : (
               <tr>
                 <td
-                  colSpan="11"
+                  colSpan="10"
                   className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                 >
                   No appointments found
@@ -518,6 +471,7 @@ const AppointmentListIPD = () => {
           </tbody>
         </table>
       </div>
+
       {/* Pagination */}
       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
@@ -529,7 +483,6 @@ const AppointmentListIPD = () => {
           {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
           from {filteredAppointments.length} Patients)
         </div>
-
         <div className="flex items-center gap-x-2">
           <button
             onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -540,7 +493,7 @@ const AppointmentListIPD = () => {
                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronLeft size={12} className="text-[#08994A] dark:text-black" />
+            <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() =>
@@ -555,7 +508,7 @@ const AppointmentListIPD = () => {
           >
             <ChevronRight
               size={12}
-              className="text-[#08994A] dark:text-black"
+              className="text-[#08994A] dark:text-white"
             />
           </button>
         </div>
@@ -564,17 +517,29 @@ const AppointmentListIPD = () => {
       {/* === FILTER POPUP === */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          {/* Outer wrapper: 1px gradient border with light/dark mode */}
           <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-        bg-gradient-to-r
-        from-green-400/70 via-gray-300/30 to-green-400/70
-        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
               className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
+            > {/* Gradient Border */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3
                   className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
@@ -584,10 +549,7 @@ const AppointmentListIPD = () => {
                 </h3>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full 
-              border border-gray-300 dark:border-[#0EFF7B1A] 
-              bg-white dark:bg-[#0EFF7B1A] 
-              shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -607,7 +569,7 @@ const AppointmentListIPD = () => {
                     value={filtersData.patientName}
                     onChange={handleFilterChange}
                     placeholder="enter patient name"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
@@ -623,11 +585,10 @@ const AppointmentListIPD = () => {
                     value={filtersData.patientId}
                     onChange={handleFilterChange}
                     placeholder="enter patient ID"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
-
                 <Dropdown
                   label="Department"
                   value={filtersData.department}
@@ -650,15 +611,8 @@ const AppointmentListIPD = () => {
                   onChange={(val) =>
                     setFiltersData({ ...filtersData, doctor: val })
                   }
-                  options={[
-                    "Dr.Sravan",
-                    "Dr.Ramesh",
-                    "Dr.Naveen",
-                    "Dr.Prakash",
-                  ]}
+                  options={["Dr.Sravan", "Dr.Ramesh", "Dr.Naveen", "Dr.Prakash"]}
                 />
-
-                {/* Date with Calendar Icon */}
                 <div>
                   <label
                     className="text-sm text-black dark:text-white"
@@ -672,10 +626,12 @@ const AppointmentListIPD = () => {
                       name="date"
                       value={filtersData.date}
                       onChange={handleFilterChange}
-                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                     />
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-black dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                    <Calendar
+                      className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4"
+                    />
                   </div>
                 </div>
               </div>
@@ -684,14 +640,14 @@ const AppointmentListIPD = () => {
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 drak:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent dark:text-white"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Clear
                 </button>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+                  className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Filter
