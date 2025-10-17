@@ -1,299 +1,4 @@
-// import React, { useState, useEffect, useRef, useContext } from "react";
-// import { Moon, Sun } from "lucide-react";
-// import { ThemeContext } from "./ThemeContext.jsx";
-// import { useNavigate } from "react-router-dom";
-// import { successToast, errorToast } from "./Toast.jsx";
 
-
-// const Header = ({ isCollapsed }) => {
-//   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-//   const dropdownRef = useRef(null);
-//   const { theme, toggleTheme } = useContext(ThemeContext);
-//   const navigate = useNavigate();
-
-//   // Toggle dropdown and manage body class
-//   const toggleDropdown = () => {
-//     setIsDropdownOpen(!isDropdownOpen);
-//     document.body.classList.toggle("dropdown-open", !isDropdownOpen);
-//   };
-
-  
-//   const handleLogout = () => {
-//   try {
-//     // Clear user session / localStorage
-//     localStorage.removeItem("token");
-//     localStorage.removeItem("user_id");
-//     localStorage.removeItem("role");
-
-//     // ✅ Show success toast
-//     successToast("Logged out successfully!");
-
-//     // Optionally, navigate to login page
-//     navigate("/"); 
-//   } catch (err) {
-//     console.error(err);
-//     // ✅ Show error toast if something goes wrong
-//     errorToast("Logout failed. Please try again.");
-//   }
-// };
-//   // Close dropdown when clicking outside
-//   useEffect(() => {
-//     const handleClickOutside = (event) => {
-//       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-//         setIsDropdownOpen(false);
-//         document.body.classList.remove("dropdown-open");
-//       }
-//     };
-
-//     if (isDropdownOpen) {
-//       document.addEventListener("mousedown", handleClickOutside);
-//     }
-
-//     return () => {
-//       document.removeEventListener("mousedown", handleClickOutside);
-//     };
-//   }, [isDropdownOpen]);
-
-//   return (
-//     <div className="w-full">
-//       <header
-//         className="flex items-center justify-between p-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
-//         style={{
-//           width: `calc(100% - ${isCollapsed ? "120px" : "270px"})`,
-//           maxWidth: "1580px",
-//           position: "fixed",
-//           left: isCollapsed ? "100px" : "247px",
-//           zIndex: 40,
-//           transitionProperty: "width, left",
-//           transitionDuration: "300ms",
-//           transitionTimingFunction: "ease-in-out",
-//         }}
-//       >
-//         {/* Spacer for left side */}
-//         <div className="w-[394px]"></div>
-
-//         {/* Search Bar */}
-//         <div className="relative w-[394px] h-[42px] mr-12">
-//           <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-//             <svg
-//               width="18"
-//               height="18"
-//               viewBox="0 0 20 20"
-//               fill="none"
-//               xmlns="http://www.w3.org/2000/svg"
-//             >
-//               <path
-//                 d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-//                 stroke="#08994A"
-//                 strokeWidth="2"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//               />
-//               <path
-//                 d="M17.5 17.5L13.875 13.875"
-//                 stroke="#08994A"
-//                 strokeWidth="2"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//               />
-//             </svg>
-//           </div>
-//           <input
-//             type="text"
-//             placeholder="Search"
-//             className="w-full h-full rounded-[40px] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0EFF7B1A] pl-12 pr-4 py-1 
-//             text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-emerald-500 transition-all"
-//           />
-//         </div>
-
-//         {/* Right Section */}
-//         <div className="flex items-center gap-[20px]">
-//           {/* Dark Mode Toggle Icon */}
-//           <button
-//             onClick={toggleTheme}
-//             className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
-//           >
-//             {theme === "dark" ? (
-//               <Sun size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
-//             ) : (
-//               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
-//             )}
-//           </button>
-
-//           {/* Settings Icon */}
-//           <button 
-//           onClick={() => navigate("/security")}
-//           className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors">
-//             <svg
-//               xmlns="http://www.w3.org/2000/svg"
-//               width="20"
-//               height="20"
-//               viewBox="0 0 24 24"
-//               fill="none"
-//               stroke="#08994A"
-//               strokeWidth="2"
-//               strokeLinecap="round"
-//               strokeLinejoin="round"
-//               className="dark:stroke-[#E4E4E7]"
-//             >
-//               <circle cx="12" cy="12" r="3" />
-//               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 
-//               2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 
-//               0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 
-//               2 0 0 1-4 0v-.09a1.65 1.65 0 
-//               0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 
-//               2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 
-//               0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 
-//               2 0 0 1 0-4h.09c.7 0 1.32-.4 
-//               1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 
-//               2 0 0 1 2.83-2.83l.06.06a1.65 1.65 
-//               0 0 0 1.82.33H9a1.65 1.65 0 
-//               0 0 1-1.51V3a2 2 0 0 1 4 
-//               0v.09c0 .7.4 1.32 1 
-//               1.51a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 
-//               2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 
-//               0 0 0-.33 1.82V9c0 .7.4 1.32 
-//               1 1.51H21a2 2 0 0 1 0 4h-.09c-.7 
-//               0-1.32.4-1.51 1z" />
-//             </svg>
-//           </button>
-
-//           {/* Bell Icon */}
-//           <button className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative">
-//             <svg
-//               width="20"
-//               height="20"
-//               viewBox="0 0 20 20"
-//               fill="none"
-//               xmlns="http://www.w3.org/2000/svg"
-//             >
-//               <path
-//                 d="M16 7C16 5.4087 15.3679 3.88258 14.2426 
-//                 2.75736C13.1174 1.63214 11.5913 1 
-//                 10 1C8.4087 1 6.88258 1.63214 
-//                 5.75736 2.75736C4.63214 3.88258 4 5.4087 
-//                 4 7C4 12 1 14 1 14H19C19 14 16 12 16 7Z"
-//                 stroke="#08994A"
-//                 strokeWidth="1.5"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 className="dark:stroke-[#E4E4E7]"
-//               />
-//               <path
-//                 d="M11.73 15C11.5542 15.3031 11.3019 
-//                 15.5547 10.9982 15.7295C10.6946 15.9044 
-//                 10.3504 15.9965 10 15.9965C9.6496 
-//                 15.9965 9.3054 15.9044 9.0018 
-//                 15.7295C8.6982 15.5547 8.4458 15.3031 
-//                 8.27 15"
-//                 stroke="#08994A"
-//                 strokeWidth="1.5"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 className="dark:stroke-[#E4E4E7]"
-//               />
-//             </svg>
-//             <span className="absolute top-1 right-1 w-2 h-2 bg-[#08994A] dark:bg-emerald-500 rounded-full"></span>
-//           </button>
-
-//           {/* Mail Icon */}
-//           <button className="p-2 rounded-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative">
-//             <svg
-//               width="20"
-//               height="20"
-//               viewBox="0 0 20 20"
-//               fill="none"
-//               xmlns="http://www.w3.org/2000/svg"
-//             >
-//               <path
-//                 d="M18 4C18 2.9 17.1 2 16 2H4C2.9 2 2 
-//                 2.9 2 4V16C2 17.1 2.9 18 4 
-//                 18H16C17.1 18 18 17.1 18 
-//                 16V4Z"
-//                 stroke="#08994A"
-//                 strokeWidth="1.5"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 className="dark:stroke-[#E4E4E7]"
-//               />
-//               <path
-//                 d="M18 6L10 11L2 6"
-//                 stroke="#08994A"
-//                 strokeWidth="1.5"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//                 className="dark:stroke-[#E4E4E7]"
-//               />
-//             </svg>
-//             <span className="absolute top-1 right-1 w-2 h-2 bg-[#08994A] dark:bg-emerald-500 rounded-full"></span>
-//           </button>
-
-//           {/* Divider */}
-//           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
-
-//           {/* Profile Dropdown */}
-//           <div className="relative" ref={dropdownRef}>
-//             <div
-//               className="flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
-//               onClick={toggleDropdown}
-//             >
-//               <div className="w-8 h-8 min-w-8 min-h-8 rounded-full bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0">
-//                 JD
-//               </div>
-//               <div className="flex flex-col">
-//                 <span className="text-sm font-medium whitespace-nowrap text-ellipsis group-hover:text-[#08994A] dark:group-hover:text-emerald-400 text-black dark:text-white transition-colors">
-//                   John Doe
-//                 </span>
-//                 <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-//                   Admin
-//                 </span>
-//               </div>
-//               <svg
-//                 width="16"
-//                 height="16"
-//                 viewBox="0 0 24 24"
-//                 fill="none"
-//                 xmlns="http://www.w3.org/2000/svg"
-//                 className={`text-gray-600 dark:text-gray-400 group-hover:text-[#08994A] dark:group-hover:text-emerald-400 transition-colors shrink-0 ${
-//                   isDropdownOpen ? "rotate-180" : ""
-//                 }`}
-//               >
-//                 <path
-//                   d="M6 9L12 15L18 9"
-//                   stroke="currentColor"
-//                   strokeWidth="2"
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                 />
-//               </svg>
-//             </div>
-
-//             {isDropdownOpen && (
-//               <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-md shadow-lg py-2 z-50">
-//                 <ul>
-//                   <li className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
-//                     Profile
-//                   </li>
-//                   <li 
-//                   onClick={() => navigate("/UserSettings")}
-//                   className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer">
-//                     Settings
-//                   </li>
-//                   <li className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer"
-//                   onClick={handleLogout}>
-//                     Logout
-//                   </li>
-//                 </ul>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </header>
-//     </div>
-//   );
-// };
-
-// export default Header;
 import React, { useState, useEffect, useRef, useContext } from "react";
 import { Moon, Sun } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
@@ -419,17 +124,18 @@ const Header = ({ isCollapsed }) => {
   };
 
   const handleLogout = () => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("role");
-      successToast("Logged out successfully!");
-      navigate("/");
-    } catch (err) {
-      console.error(err);
-      errorToast("Logout failed. Please try again.");
-    }
-  };
+  setIsDropdownOpen(false); // ✅ ADD THIS LINE
+  try {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_id");
+    localStorage.removeItem("role");
+    successToast("Logged out successfully!");
+    navigate("/");
+  } catch (err) {
+    console.error(err);
+    errorToast("Logout failed. Please try again.");
+  }
+};
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -609,11 +315,11 @@ const Header = ({ isCollapsed }) => {
             </button>
 
             {isNotificationOpen && (
-              <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50">
                 {/* Arrow Indicator */}
-                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
+                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
                 
-                <div className="relative bg-white dark:bg-gray-800 rounded-lg">
+                <div className="relative bg-white dark:bg-[#1E1E1E] rounded-lg">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-800 dark:text-white">Notifications</h3>
                     {unreadNotificationsCount > 0 && (
@@ -727,11 +433,11 @@ const Header = ({ isCollapsed }) => {
             </button>
 
             {isMailOpen && (
-              <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-3 w-80 bg-white dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50">
                 {/* Arrow Indicator */}
-                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
+                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
                 
-                <div className="relative bg-white dark:bg-gray-800 rounded-lg">
+                <div className="relative bg-white dark:bg-[#1E1E1E] rounded-lg">
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 className="font-semibold text-gray-800 dark:text-white">Messages</h3>
                     {unreadMailsCount > 0 && (
@@ -823,69 +529,82 @@ const Header = ({ isCollapsed }) => {
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
           {/* Profile Dropdown with Arrow Indicator */}
-          <div className="relative" ref={dropdownRef}>
-            <div
-              className="flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
-              onClick={toggleDropdown}
-            >
-              <div className="w-8 h-8 min-w-8 min-h-8 rounded-full bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0">
-                JD
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium whitespace-nowrap text-ellipsis group-hover:text-[#08994A] dark:group-hover:text-emerald-400 text-black dark:text-white transition-colors">
-                  John Doe
-                </span>
-                <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                  Admin
-                </span>
-              </div>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className={`text-gray-600 dark:text-gray-400 group-hover:text-[#08994A] dark:group-hover:text-emerald-400 transition-colors shrink-0 ${
-                  isDropdownOpen ? "rotate-180" : ""
-                }`}
-              >
-                <path
-                  d="M6 9L12 15L18 9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+          {/* Profile Dropdown with Arrow Indicator */}
+<div className="relative" ref={dropdownRef}>
+  <div
+    className="flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
+    onClick={toggleDropdown}
+  >
+    <div className="w-8 h-8 min-w-8 min-h-8 rounded-full bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0">
+      JD
+    </div>
+    <div className="flex flex-col">
+      <span className="text-sm font-medium whitespace-nowrap text-ellipsis group-hover:text-[#08994A] dark:group-hover:text-emerald-400 text-black dark:text-white transition-colors">
+        John Doe
+      </span>
+      <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+        Admin
+      </span>
+    </div>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`text-gray-600 dark:text-gray-400 group-hover:text-[#08994A] dark:group-hover:text-emerald-400 transition-colors shrink-0 ${
+        isDropdownOpen ? "rotate-180" : ""
+      }`}
+    >
+      <path
+        d="M6 9L12 15L18 9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </div>
 
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-3 w-48 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
-                {/* Arrow Indicator */}
-                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
-                
-                <div className="relative bg-white dark:bg-gray-800 rounded-lg py-2">
-                  <ul>
-                    <li className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2">
-                      Profile
-                    </li>
-                    <li 
-                      onClick={() => navigate("/UserSettings")}
-                      className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
-                    >
-                      Settings
-                    </li>
-                    <li 
-                      className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer transition-colors rounded mx-2"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            )}
-          </div>
+  {isDropdownOpen && (
+    <div className="absolute right-0 top-full mt-3 w-48 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+      {/* Arrow Indicator */}
+      <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
+      
+      <div className="relative bg-white dark:bg-gray-800 rounded-lg py-2">
+        <ul>
+          <li 
+            onClick={() => {
+              setIsDropdownOpen(false);  // ✅ CLOSE DROPDOWN
+              navigate("/profile");
+            }}
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
+          >
+            Profile
+          </li>
+          <li 
+            onClick={() => {
+              setIsDropdownOpen(false);  // ✅ CLOSE DROPDOWN
+              navigate("/UserSettings");
+            }}
+            className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
+          >
+            Settings
+          </li>
+          <li 
+            className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer transition-colors rounded mx-2"
+            onClick={() => {
+              setIsDropdownOpen(false);  // ✅ CLOSE DROPDOWN
+              handleLogout();
+            }}
+          >
+            Logout
+          </li>
+        </ul>
+      </div>
+    </div>
+  )}
+</div>
         </div>
       </header>
     </div>

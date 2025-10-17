@@ -13,6 +13,7 @@ import { ToastProvider } from "./components/Toast.jsx";
 
 // Pages - Dashboard
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
+import Profile from "./pages/Home/Profile.jsx"; 
 
 
 // Pages - Appointments
@@ -78,6 +79,7 @@ function AppContent({ contentRef }) {
 
             {/* Dashboard */}
             <Route path="/dashboard" element={<DashboardComponents />} />
+            <Route path="/profile" element={<Profile />} />
               
 
 
