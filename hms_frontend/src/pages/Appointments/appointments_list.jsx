@@ -378,6 +378,17 @@ const AppointmentList = () => {
     <div
       className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
     >
+      {/* <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0 w-full flex justify-center items-center pointer-events-none select-none dark:hidden overflow-hidden">
+  <h1
+    className="leading-none font-bold whitespace-nowrap text-[80px] sm:text-[140px] md:text-[200px] lg:text-[173px]"
+    style={{
+      fontFamily: "Poppins, sans-serif",
+      color: "#00000020",
+    }}
+  >
+    Stackly Care
+  </h1>
+</div> */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{

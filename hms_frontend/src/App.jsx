@@ -50,6 +50,7 @@ import Billing from "./pages/Billing/Billing.jsx";
 import Ambulance from "./pages/Clinical_Resources/EmergencyService/AmbulanceManagement.jsx";
 import UserSettings from "./pages/Accounts/UserSettings.jsx";
 import Security from "./pages/Accounts/SecuritySettingsPage.jsx";
+import GlobalBackgroundText from "./components/GlobalBackgroundText.jsx";
 
 // ✅ Wrapper so we can consume theme
 function AppContent({ contentRef }) {
@@ -64,6 +65,8 @@ function AppContent({ contentRef }) {
       className={`flex min-h-screen transition-colors duration-300 
         ${theme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}
     >
+      <GlobalBackgroundText isCollapsed={isCollapsed} />
+
       {!isLoginPage && <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />}
       <div className="flex-1 flex flex-col">
         {!isLoginPage && <Header isCollapsed={isCollapsed} />}
