@@ -568,3 +568,32 @@ class Permission(models.Model):
 
     def __str__(self):
         return f"{self.role} - {self.module} ({'Enabled' if self.enabled else 'Disabled'})"
+    
+    
+class MedicineAllocation(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="medicine_allocations")
+    staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, related_name="medicine_allocations")
+    department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
+    lab_report = models.ForeignKey(
+        LabReport, 
+        on_delete=models.SET_NULL, 
+        related_name="medicine_allocations", 
+        null=True, 
+        blank=True
+    )
+    medicine_name = models.CharField(max_length=100)
+    dosage = models.CharField(max_length=50)
+    quantity = models.CharField(max_length=50, blank=True, null=True)
+    frequency = models.CharField(max_length=50, blank=True, null=True)
+    duration = models.CharField(max_length=50)
+    time = models.CharField(max_length=50, blank=True, null=True)
+    allocation_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "medicine_allocations"
+        ordering = ["-allocation_date"]
+
+    def __str__(self):
+        return f"{self.medicine_name} for {self.patient.full_name} ({self.allocation_date})"

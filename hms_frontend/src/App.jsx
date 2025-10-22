@@ -36,6 +36,7 @@ import SupportiveDept from "./pages/Administration/Staff/SupportiveDept.jsx";
 import AdministrativeDept from "./pages/Administration/Staff/AdministrativeDept.jsx";
 
 import StockInventory from "./pages/Pharmacy/Stock-Inventory.jsx";
+import PharmacyBill from "./pages/Pharmacy/Bill.jsx";
 
 // Doctor & Nurse
 import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx";
@@ -116,6 +117,7 @@ function AppContent({ contentRef }) {
             {/* Pharmacy */}
             <Route path="/Pharmacy">
               <Route path="Stock-Inventory" element={<StockInventory />} />
+              <Route path="Bill" element={<PharmacyBill />} /> 
             </Route>
 
             {/* Other Pages */}

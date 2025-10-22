@@ -73,6 +73,7 @@ const menuItems = [
     icon: Pill,
     dropdown: [
       { name: "Stock & Inventory", path: "/Pharmacy/Stock-Inventory", icon: Boxes },
+      { name: "Bill", path: "/Pharmacy/Bill", icon: DollarSign },
     ],
   },
 
