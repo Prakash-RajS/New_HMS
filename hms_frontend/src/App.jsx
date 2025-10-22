@@ -41,6 +41,7 @@ import StockInventory from "./pages/Pharmacy/Stock-Inventory.jsx";
 import AddDoctorNurse from "./pages/Doctor/AddDoctorNurse.jsx";
 import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx";
 import ViewProfile from "./pages/Doctor/ViewProfiles.jsx";
+import MedicineAllocation from "./pages/Doctor/MedicineAllocation.jsx"; 
 
 // Clinical_Resource/Lab
 import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx";
@@ -65,7 +66,8 @@ function AppContent({ contentRef }) {
       className={`flex min-h-screen transition-colors duration-300 
         ${theme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}
     >
-      <GlobalBackgroundText isCollapsed={isCollapsed} />
+      {!isLoginPage && <GlobalBackgroundText isCollapsed={isCollapsed} />}
+      
 
       {!isLoginPage && <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />}
       <div className="flex-1 flex flex-col">
@@ -120,6 +122,9 @@ function AppContent({ contentRef }) {
             <Route path="/Doctors-Nurse/AddDoctorNurse" element={<AddDoctorNurse />} />
             <Route path="/Doctors-Nurse/DoctorNurseProfile" element={<DoctorNurseProfile />} />
             <Route path="/Doctors-Nurse/ViewProfile" element={<ViewProfile />} />
+            <Route path="/Doctors-Nurse/MedicineAllocation" element={<MedicineAllocation />} />
+            
+             {/* Clinical Resources */}
             <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />} />
             <Route path="/ClinicalResources/ClinicalReports/BloodBank" element={<BloodBank />} />
             <Route path="/Billing" element={<Billing />} />

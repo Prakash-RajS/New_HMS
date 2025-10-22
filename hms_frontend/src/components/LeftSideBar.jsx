@@ -85,6 +85,7 @@ const menuItems = [
       { name: "Doctor / Nurse", path: "/Doctors-Nurse/DoctorNurseProfile",
         paths: ["/Doctors-Nurse/DoctorNurseProfile", "/Doctors-Nurse/ViewProfile"],
          icon: Users },
+         { name: "MedicineAllocation", path: "/Doctors-Nurse/MedicineAllocation", icon: Pill },
     ],
   },
 
