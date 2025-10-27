@@ -403,13 +403,19 @@ class Stock(models.Model):
     vendor = models.CharField(max_length=200)
     quantity = models.PositiveIntegerField(default=0)
     vendor_id = models.CharField(max_length=50)
-    
+
+    # ✅ New Fields
+    item_code = models.CharField(max_length=50, unique=True)
+    rack_no = models.CharField(max_length=50, blank=True, null=True)
+    shelf_no = models.CharField(max_length=50, blank=True, null=True)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
     STATUS_CHOICES = [
         ('available', 'Available'),
         ('outofstock', 'Out of Stock')
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='available')
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -418,7 +424,7 @@ class Stock(models.Model):
         unique_together = ('product_name', 'batch_number', 'vendor_id')
 
     def __str__(self):
-        return f"{self.product_name} - {self.batch_number} - {self.quantity}"
+        return f"{self.product_name} ({self.item_code}) - {self.batch_number} - {self.quantity}"
 
     def add_stock(self, amount: int):
         """Add stock quantity and update status automatically."""
@@ -430,6 +436,7 @@ class Stock(models.Model):
     def no_of_stocks(self):
         """Alias for total quantity of stock."""
         return self.quantity
+
     
 class AmbulanceUnit(models.Model):
     unit_number = models.CharField(max_length=50, unique=True)  # e.g. "AMB-09"

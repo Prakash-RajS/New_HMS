@@ -1,18 +1,38 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { Listbox } from "@headlessui/react";
 
 const DashboardComponents = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [activeSubTab, setActiveSubTab] = useState("Patient Record");
   const [selectedPeriod, setSelectedPeriod] = useState("This Week");
+  const [selectedDate, setSelectedDate] = useState("20 July 2025");
 
   const periods = ["Last Week", "This Month", "Last Month"];
 
   return (
     <div className="relative">
+      {/* Adding custom styles for option elements */}
+      <style>
+        {`
+          select option {
+            background-color: #0C1A12;
+            color: white;
+            padding: 8px;
+          }
+          select option:hover {
+            background-color: #08994A;
+          }
+          select option:checked {
+            background-color: #0EFF7B;
+            color: black;
+          }
+        `}
+      </style>
+
       {/* Main Container with exact dimensions and overflow control */}
       <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-visible relative"
       >
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -62,9 +82,9 @@ const DashboardComponents = () => {
         </div>
 
         {/* Content with Sub-Navigation and Grid */}
-        <div className="h-[306px] rounded-[12px]">
+        <div className="min-h-[306px] rounded-[12px] overflow-visible">
           {activeTab === "Dashboard" && (
-            <div className="relative p-[26px_16px] rounded-[8px] min-w-[972px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden">
+            <div className="relative p-[26px_16px] rounded-[8px] min-w-[972px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible">
               {/* Dark mode gradient */}
               <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -116,11 +136,11 @@ const DashboardComponents = () => {
               </div>
 
               {/* Grid Content */}
-              <div style={{ minHeight: "193px" }}>
+              <div className="relative overflow-visible" style={{ minHeight: "193px" }}>
                 {activeSubTab === "Patient Record" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
                     {/* Total Patients Card */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Total Patients
                       </h3>
@@ -136,41 +156,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Active Patients Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
                       </h3>
@@ -186,40 +229,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white "
+                            style={{ zIndex: 10 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Admissions Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
                       </h3>
@@ -235,40 +302,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Priority Care Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
                       </h3>
@@ -284,46 +375,69 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Similar content for other sub-tabs */}
+                {/* Revenue Summary */}
                 {activeSubTab === "Revenue Summary" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
                     {/* Total Patients Card */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Total Patients
                       </h3>
@@ -339,41 +453,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Active Patients Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
                       </h3>
@@ -389,40 +526,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Admissions Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
                       </h3>
@@ -438,40 +599,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Priority Care Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
                       </h3>
@@ -487,45 +672,69 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Surgery Record */}
                 {activeSubTab === "Surgery Record" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
                     {/* Total Patients Card */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Total Patients
                       </h3>
@@ -541,41 +750,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    {/* Repeat similar cards for Active Patients, Admissions, Priority Care */}
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Active Patients Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Active Patients
                       </h3>
@@ -591,40 +823,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Admissions Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Admissions
                       </h3>
@@ -640,40 +896,64 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
 
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg hover:scale-105 transition-transform">
+                    {/* Priority Care Card */}
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg ">
                       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
                         Priority Care
                       </h3>
@@ -689,36 +969,59 @@ const DashboardComponents = () => {
                         View details
                       </p>
                       <div className="relative w-full mt-4">
-                        <select
-                          value={selectedPeriod}
-                          onChange={(e) => setSelectedPeriod(e.target.value)}
-                          className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
-                          style={{
-                            background:
-                              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                            borderBottom: "2px solid #0EFF7B",
-                            boxShadow: "0px 2px 12px 0px #00000040",
-                            cursor: "pointer",
-                            paddingRight: "30px",
-                          }}
-                        >
-                          <option value="This Week">This Week</option>
-                          {periods.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                        <span
-                          className="absolute right-10 top-1/4 transform -translate-y-1/2 pointer-events-none"
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderLeft: "2px solid white",
-                            borderBottom: "2px solid white",
-                            transform: "rotate(-45deg)",
-                          }}
-                        ></span>
+                        <Listbox value={selectedPeriod} onChange={setSelectedPeriod}>
+                          <Listbox.Button
+                            className="px-4 py-2 text-white text-sm rounded-[8px] text-center w-full appearance-none"
+                            style={{
+                              background:
+                                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                              borderBottom: "2px solid #0EFF7B",
+                              boxShadow: "0px 2px 12px 0px #00000040",
+                              cursor: "pointer",
+                              paddingRight: "30px",
+                            }}
+                          >
+                            {selectedPeriod}
+                            <span
+                              className="absolute right-6 top-1/4 transform -translate-y-1/2 pointer-events-none"
+                              style={{
+                                width: "12px",
+                                height: "12px",
+                                borderLeft: "2px solid white",
+                                borderBottom: "2px solid white",
+                                transform: "rotate(-45deg)",
+                              }}
+                            ></span>
+                          </Listbox.Button>
+                          <Listbox.Options
+                            className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                            style={{ zIndex: 50 }}
+                          >
+                            <Listbox.Option
+                              value="This Week"
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                              }
+                            >
+                              This Week
+                            </Listbox.Option>
+                            {periods.map((period) => (
+                              <Listbox.Option
+                                key={period}
+                                value={period}
+                                className={({ active, selected }) =>
+                                  `cursor-pointer select-none py-2 px-4 text-sm rounded-md 
+                                  ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                                  ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                                }
+                              >
+                                {period}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
                     </div>
                   </div>
@@ -733,7 +1036,7 @@ const DashboardComponents = () => {
           {/* Left Column - Emergency Cases and Consultation */}
           <div className="flex flex-col gap-6 flex-1 min-w-0">
             {/* Emergency Cases */}
-            <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
+            <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform">
               <div
                 className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
                 style={{
@@ -762,11 +1065,44 @@ const DashboardComponents = () => {
                 <h3 className="text-xl text-black dark:text-white font-semibold">
                   Emergency Cases
                 </h3>
-                <select className="bg-transparent border border-[#0EFF7B80] text-[#0EFF7B] text-sm rounded-md px-2 py-1 outline-none">
-                  <option className="bg-[#0C1A12]">20 July 2025</option>
-                  <option className="bg-[#0C1A12]">21 July 2025</option>
-                  <option className="bg-[#0C1A12]">22 July 2025</option>
-                </select>
+                <div className="relative">
+                  <Listbox value={selectedDate} onChange={setSelectedDate}>
+                    <Listbox.Button className="bg-transparent border border-[#0EFF7B80] text-[#0EFF7B] text-sm rounded-md px-2 py-1 outline-none relative text-left pr-8">
+                      {selectedDate}
+                      <span
+                        className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none"
+                      >
+                        <div
+                          style={{
+                            width: "8px",
+                            height: "8px",
+                            borderLeft: "2px solid #0EFF7B",
+                            borderBottom: "2px solid #0EFF7B",
+                            transform: "rotate(-45deg)",
+                          }}
+                        ></div>
+                      </span>
+                    </Listbox.Button>
+                    <Listbox.Options
+                      className="absolute mt-1 w-full overflow-auto rounded-md bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+                      style={{ zIndex: 50 }}
+                    >
+                      {["20 July 2025", "21 July 2025", "22 July 2025"].map((date) => (
+                        <Listbox.Option
+                          key={date}
+                          value={date}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-4 text-sm 
+                            ${active ? "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white" : "text-black dark:text-white"}
+                            ${selected ? "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black font-medium" : ""}`
+                          }
+                        >
+                          {date}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </Listbox>
+                </div>
               </div>
 
               <div className="flex flex-col mt-3">
@@ -782,7 +1118,7 @@ const DashboardComponents = () => {
             </div>
 
             {/* Consultation */}
-            <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform">
+            <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform">
               <div
                 className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
                 style={{
@@ -858,7 +1194,6 @@ const DashboardComponents = () => {
                 {/* Multi-segment Circular Chart */}
                 <div className="relative min-w-[148px] h-[148px] rotate-[-7deg] flex-shrink-0 group">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    {/* background circle */}
                     <circle
                       cx="50"
                       cy="50"
@@ -867,7 +1202,6 @@ const DashboardComponents = () => {
                       strokeWidth="6"
                       fill="transparent"
                     />
-                    {/* multi color arcs */}
                     <circle
                       cx="50"
                       cy="50"
@@ -930,7 +1264,6 @@ const DashboardComponents = () => {
                     />
                   </svg>
 
-                  {/* hover pop-up tooltip */}
                   <div className="absolute hidden group-hover:flex flex-col items-center left-1/2 bottom-[100%] -translate-x-1/2 mt-2 z-20">
                     <div className="bg-[#0A0A0A] border border-dashed border-[#0EFF7B] text-white text-xs px-3 py-2 rounded-md shadow-[0_0_6px_#0EFF7B66] whitespace-nowrap mt-1">
                       <div className="text-[#0EFF7B] font-semibold">
@@ -941,7 +1274,6 @@ const DashboardComponents = () => {
                     <div className="w-[1px] h-[24px] border-l border-dashed border-[#0EFF7B] bg-transparent"></div>
                   </div>
 
-                  {/* center text */}
                   <div className="absolute inset-0 flex items-center justify-center text-[#0EFF7B] text-sm font-semibold opacity-80">
                     70%
                   </div>
@@ -951,8 +1283,7 @@ const DashboardComponents = () => {
           </div>
 
           {/* Right Column - Notifications */}
-          <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-hidden hover:scale-105 transition-transform flex-shrink-0">
-            {/* Background Gradient for Dark Mode */}
+          <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform flex-shrink-0">
             <div
               className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
               style={{
@@ -960,8 +1291,7 @@ const DashboardComponents = () => {
                 zIndex: 0,
               }}
             ></div>
-            
-            {/* Gradient Border */}
+
             <div
               style={{
                 position: "absolute",
@@ -978,7 +1308,6 @@ const DashboardComponents = () => {
               }}
             ></div>
 
-            {/* Header */}
             <div className="relative z-10 flex justify-between items-center mb-6">
               <h3 className="text-xl text-black dark:text-white font-semibold flex items-center">
                 <span className="w-8 h-8 bg-[#0EFF7B] rounded-full flex items-center justify-center mr-3">
@@ -994,8 +1323,7 @@ const DashboardComponents = () => {
               </button>
             </div>
 
-            {/* Modern Notifications List - Scrollbar Hidden */}
-            <div 
+            <div
               className="relative z-10 overflow-y-auto max-h-[420px] pr-2 custom-scrollbar"
               style={{
                 scrollbarWidth: 'none',
@@ -1003,7 +1331,6 @@ const DashboardComponents = () => {
               }}
             >
               <ul className="space-y-3">
-                {/* Notification items */}
                 <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
                   <div className="flex items-start gap-3">
                     <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
@@ -1019,97 +1346,89 @@ const DashboardComponents = () => {
                   </div>
                 </li>
                 <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              3 patients discharged successfully
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">1 hour ago</span>
-              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full">Completed</span>
-            </div>
-          </div>
-        </div>
-      </li>{/* Notification 2 */}
-      <li className="bg-[#FFF5F5] dark:bg-[#1F0A0A] border border-[#FF444433] dark:border-[#FF444433] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#FF4444] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              2 emergency cases reported
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#FF4444] font-medium">5 min ago</span>
-              <span className="text-xs bg-[#FF4444] text-white px-2 py-1 rounded-full">Urgent</span>
-            </div>
-          </div>
-        </div>
-      </li>
-
-      {/* Notification 3 */}
-      <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              3 patients discharged successfully
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">1 hour ago</span>
-              <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full">Completed</span>
-            </div>
-          </div>
-        </div>
-      </li>
-
-      {/* Notification 4 */}
-      <li className="bg-[#FFF5F5] dark:bg-[#1F0A0A] border border-[#FF444433] dark:border-[#FF444433] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#FF4444] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              1 operation delayed due to equipment
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#FF4444]">2 hours ago</span>
-              <span className="text-xs bg-[#FF4444] text-white px-2 py-1 rounded-full">Attention</span>
-            </div>
-          </div>
-        </div>
-      </li>
-
-      {/* Notification 5 */}
-      <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              All systems running normally
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">Today</span>
-              <span className="text-xs bg-[#08994A] text-white px-2 py-1 rounded-full">System</span>
-            </div>
-          </div>
-        </div>
-      </li>
-
-      {/* Notification 6 - Additional for better visual */}
-      <li className="bg-[#F0F9FF] dark:bg-[#0A1A1F] border border-[#0EA5E933] dark:border-[#0EA5E933] rounded-xl p-4 hover:shadow-md transition-all duration-200">
-        <div className="flex items-start gap-3">
-          <div className="min-w-2 h-2 bg-[#0EA5E9] rounded-full mt-2 flex-shrink-0"></div>
-          <div className="flex-1">
-            <p className="text-sm text-gray-800 dark:text-white font-medium">
-              New doctor joined neurology department
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-[#0EA5E9]">Yesterday</span>
-              <span className="text-xs bg-[#0EA5E9] text-white px-2 py-1 rounded-full">Info</span>
-            </div>
-          </div>
-        </div>
-      </li>
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        3 patients discharged successfully
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">1 hour ago</span>
+                        <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full">Completed</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#FFF5F5] dark:bg-[#1F0A0A] border border-[#FF444433] dark:border-[#FF444433] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#FF4444] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        2 emergency cases reported
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#FF4444] font-medium">5 min ago</span>
+                        <span className="text-xs bg-[#FF4444] text-white px-2 py-1 rounded-full">Urgent</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        3 patients discharged successfully
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">1 hour ago</span>
+                        <span className="text-xs bg-gray-500 text-white px-2 py-1 rounded-full">Completed</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#FFF5F5] dark:bg-[#1F0A0A] border border-[#FF444433] dark:border-[#FF444433] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#FF4444] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        1 operation delayed due to equipment
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#FF4444]">2 hours ago</span>
+                        <span className="text-xs bg-[#FF4444] text-white px-2 py-1 rounded-full">Attention</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#F8FFFB] dark:bg-[#0A1F14] border border-[#0EFF7B33] dark:border-[#0EFF7B33] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#0EFF7B] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        All systems running normally
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#08994A] dark:text-[#0EFF7B]">Today</span>
+                        <span className="text-xs bg-[#08994A] text-white px-2 py-1 rounded-full">System</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <li className="bg-[#F0F9FF] dark:bg-[#0A1A1F] border border-[#0EA5E933] dark:border-[#0EA5E933] rounded-xl p-4 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-2 h-2 bg-[#0EA5E9] rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-800 dark:text-white font-medium">
+                        New doctor joined neurology department
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-[#0EA5E9]">Yesterday</span>
+                        <span className="text-xs bg-[#0EA5E9] text-white px-2 py-1 rounded-full">Info</span>
+                      </div>
+                    </div>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>

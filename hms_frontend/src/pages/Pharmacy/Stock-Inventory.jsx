@@ -338,13 +338,17 @@ const StockInventory = () => {
     ]);
     setShowAddStockPopup(false);
     setNewStock({
-      name: "",
-      category: "",
-      batch: "",
-      vendor: "",
-      vendorCode: "",
-      stock: "",
-      status: "IN STOCK",
+     name: "",
+  category: "",
+  batch: "",
+  vendor: "",
+  vendorCode: "",
+  stock: "",
+  status: "IN STOCK",
+  itemCode: "",
+  rackNo: "",
+  quantity: "",
+  unitPrice: "",
     });
   };
 
@@ -1314,18 +1318,16 @@ const StockInventory = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div
             className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-        bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] h-[484px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              <div className="flex justify-between items-center pb-3 mb-4">
-                <h2
-                  className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
+              {/* Header */}
+              <div className="flex justify-between items-center pb-2 mb-3">
+                <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
                   Add New Stock
                 </h2>
                 <button
@@ -1336,12 +1338,11 @@ const StockInventory = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              {/* Form Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Product Name */}
                 <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
+                  <label className="text-sm text-black dark:text-white">
                     Product Name
                   </label>
                   <input
@@ -1351,27 +1352,25 @@ const StockInventory = () => {
                     onChange={(e) =>
                       setNewStock({ ...newStock, name: e.target.value })
                     }
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] 
+              placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     required
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
 
+                {/* Category */}
                 <Dropdown
                   label="Category"
                   value={newStock.category}
-                  onChange={(val) =>
-                    setNewStock({ ...newStock, category: val })
-                  }
+                  onChange={(val) => setNewStock({ ...newStock, category: val })}
                   options={categories}
-                  className="w-[228px] h-[32px] mt-1"
+                  className="w-[228px] h-[30px] mt-[2px]"
                 />
 
+                {/* Batch Number */}
                 <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
+                  <label className="text-sm text-black dark:text-white">
                     Batch Number
                   </label>
                   <input
@@ -1381,17 +1380,15 @@ const StockInventory = () => {
                     onChange={(e) =>
                       setNewStock({ ...newStock, batch: e.target.value })
                     }
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
                     required
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
 
+                {/* Vendor */}
                 <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
+                  <label className="text-sm text-black dark:text-white">
                     Vendor
                   </label>
                   <input
@@ -1401,17 +1398,15 @@ const StockInventory = () => {
                     onChange={(e) =>
                       setNewStock({ ...newStock, vendor: e.target.value })
                     }
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
                     required
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
 
+                {/* No Of Stocks */}
                 <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
+                  <label className="text-sm text-black dark:text-white">
                     No Of Stocks
                   </label>
                   <input
@@ -1421,17 +1416,15 @@ const StockInventory = () => {
                     onChange={(e) =>
                       setNewStock({ ...newStock, stock: e.target.value })
                     }
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
                     required
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
 
+                {/* Vendor ID */}
                 <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
+                  <label className="text-sm text-black dark:text-white">
                     Vendor ID
                   </label>
                   <input
@@ -1441,34 +1434,108 @@ const StockInventory = () => {
                     onChange={(e) =>
                       setNewStock({ ...newStock, vendorCode: e.target.value })
                     }
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
                     required
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                 </div>
 
+                {/* Item Code */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Item Code
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Item Code"
+                    value={newStock.itemCode || ""}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, itemCode: e.target.value })
+                    }
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                  />
+                </div>
+
+                {/* Rack No */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Rack No
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Rack No"
+                    value={newStock.rackNo || ""}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, rackNo: e.target.value })
+                    }
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                  />
+                </div>
+
+                {/* Shelf No */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Shelf No
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter Shelf Number"
+                    value={newStock.shelfNo || ""}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, shelfNo: e.target.value })
+                    }
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+                  dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                  />
+                </div>
+
+
+                {/* Unit Price */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Unit Price
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter Unit Price"
+                    value={newStock.unitPrice || ""}
+                    onChange={(e) =>
+                      setNewStock({ ...newStock, unitPrice: e.target.value })
+                    }
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                  />
+                </div>
+
+                {/* ✅ Status Dropdown (Last) */}
                 <Dropdown
                   label="Status"
                   value={newStock.status}
                   onChange={(val) => setNewStock({ ...newStock, status: val })}
                   options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-                  className="w-[228px] h-[32px] mt-1"
+                  className="w-[228px] h-[30px] mt-[2px]"
                 />
               </div>
 
-              <div className="flex justify-center gap-4 mt-8">
+              {/* Buttons */}
+              <div className="flex justify-center gap-4 mt-5">
                 <button
                   onClick={() => setShowAddStockPopup(false)}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 
+            dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
+            dark:text-white font-medium text-[14px] leading-[16px]"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   onClick={handleAddStock}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r 
+            from-[#025126] via-[#0D7F41] to-[#025126] text-white 
+            font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                 >
                   Add Stock
                 </button>
@@ -1477,6 +1544,8 @@ const StockInventory = () => {
           </div>
         </div>
       )}
+
+
 
       {showEditStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">

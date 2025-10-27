@@ -109,7 +109,12 @@ const menuItems = [
 
   { name: "Accounts", path: "/UserSettings",
     paths: ["/security", "/UserSettings"],
-     icon: UserCog },
+     icon: UserCog ,
+    //  dropdown: [
+    //   { name: "AccessManagement", path: "/UserSettings/AccessManagement", icon: User },
+      
+    // ],
+     }
 ];
 
 const MenuItem = ({ item, level = 0, isCollapsed }) => {

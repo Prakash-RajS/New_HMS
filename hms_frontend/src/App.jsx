@@ -52,6 +52,7 @@ import Billing from "./pages/Billing/Billing.jsx";
 import Ambulance from "./pages/Clinical_Resources/EmergencyService/AmbulanceManagement.jsx";
 import UserSettings from "./pages/Accounts/UserSettings.jsx";
 import Security from "./pages/Accounts/SecuritySettingsPage.jsx";
+// import AccessManagement from "./pages/Accounts/AccessManagement.jsx";
 import GlobalBackgroundText from "./components/GlobalBackgroundText.jsx";
 
 // ✅ Wrapper so we can consume theme
@@ -133,6 +134,7 @@ function AppContent({ contentRef }) {
             <Route path="/ClinicalResources/EmergencyServices/Ambulance" element={<Ambulance />} />
             <Route path="/UserSettings" element={<UserSettings />} />
             <Route path="/security" element={<Security />} />
+            {/* <Route path="/UserSettings/AccessManagement" element={<AccessManagement />} /> */}
           </Routes>
         </div>
       </div>

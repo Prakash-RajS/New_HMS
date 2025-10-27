@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Listbox } from "@headlessui/react";
+import { ChevronDown } from "lucide-react";
 
 export default function ViewPatientProfile() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -180,10 +182,98 @@ export default function ViewPatientProfile() {
       patient.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Reusable Listbox Dropdown Component
+  const Dropdown = ({ label, placeholder, value, onChange, options, name, index, type }) => (
+    <div>
+      <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+        {label}
+      </label>
+      <Listbox
+        value={value}
+        onChange={(val) => {
+          const fakeEvent = { target: { name, value: val } };
+          if (type === "medicine") handleInputChange(fakeEvent, index, "medicine");
+          else if (type === "labTest") handleInputChange(fakeEvent, index, "labTest");
+          else if (type === "patient") handleInputChange(fakeEvent, null, "patient");
+        }}
+      >
+        <div className="relative mt-1 w-full">
+          <Listbox.Button
+            className="
+              w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px] 
+              border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black 
+              text-black dark:text-white text-left text-sm 
+              shadow-[0_0_2.09px_#0EFF7B] outline-none 
+              focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] 
+              transition-all duration-300 font-helvetica
+            "
+          >
+            <span className="block truncate">{value || placeholder}</span>
+            <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+            </span>
+          </Listbox.Button>
+          <Listbox.Options
+            className="
+              absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] 
+              bg-white dark:bg-black shadow-lg z-[100] border border-gray-300 dark:border-[#3C3C3C]
+              scrollbar-hide
+            "
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {options.map((option) => (
+              <Listbox.Option
+                key={option}
+                value={option}
+                className={({ active, selected }) =>
+                  `
+                    cursor-pointer select-none py-2 px-3 text-sm rounded-md font-helvetica
+                    ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                    ${selected ? "font-medium text-[#0EFF7B]" : ""}
+                  `
+                }
+              >
+                {option}
+              </Listbox.Option>
+            ))}
+          </Listbox.Options>
+        </div>
+      </Listbox>
+    </div>
+  );
+
   return (
-    <div className="mt-16 p-4 sm:p-6 bg-white dark:bg-black text-black dark:text-white min-h-screen font-helvetica max-w-full">
+    <div
+      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
+     bg-white dark:bg-transparent overflow-hidden relative"
+    >
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "10px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Search Bar with Dropdowns */}
-      <div className="mb-6 flex flex-row justify-end items-center gap-2 flex-wrap max-w-full">
+      <div className="mb-6 mt-7 flex flex-row justify-end items-center gap-2 flex-wrap max-w-full">
         <div className="flex-1 min-w-[180px] max-w-[350px] lg:max-w-[400px]">
           <input
             type="text"
@@ -208,115 +298,27 @@ export default function ViewPatientProfile() {
           />
         </div>
         <div className="flex gap-2 items-center flex-wrap">
-          <div className="relative min-w-[120px] w-[160px] lg:w-[180px]">
-            <select
+          <div className="min-w-[120px] w-[160px] lg:w-[180px]">
+            <Dropdown
+              label=""
+              placeholder="Select Patient"
               value={patientInfo.patientName}
-              onChange={(e) => handleInputChange(e, null, "patient")}
+              onChange={() => {}}
+              options={filteredPatients.map(p => p.name)}
               name="patientName"
-              className="
-                w-full 
-                h-[33.5px]
-                rounded-[8.38px]
-                border-[1.05px] 
-                border-gray-300 dark:border-[#3C3C3C]
-                bg-white dark:bg-black 
-                text-black dark:text-white 
-                shadow-[0_0_2.09px_#0EFF7B]
-                outline-none
-                focus:border-[#0EFF7B]
-                focus:shadow-[0_0_4px_#0EFF7B]
-                transition-all
-                duration-300
-                appearance-none
-                px-3
-                pr-8
-                font-helvetica
-              "
-            >
-              {filteredPatients.map((patient) => (
-                <option
-                  key={patient.id}
-                  value={patient.name}
-                  className="
-                    bg-white dark:bg-[#0EFF7B0D] 
-                    text-black dark:text-white 
-                    hover:bg-gray-100 dark:hover:bg-[#025126] 
-                    font-helvetica
-                  "
-                >
-                  {patient.name}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 9l6 6 6-6"
-              />
-            </svg>
+              type="patient"
+            />
           </div>
-          <div className="relative min-w-[120px] w-[160px] lg:w-[180px]">
-            <select
+          <div className="min-w-[120px] w-[160px] lg:w-[180px]">
+            <Dropdown
+              label=""
+              placeholder="Select ID"
               value={patientInfo.patientID}
-              onChange={(e) => handleInputChange(e, null, "patient")}
+              onChange={() => {}}
+              options={filteredPatients.map(p => p.id)}
               name="patientID"
-              className="
-                w-full 
-                h-[33.5px]
-                rounded-[8.38px]
-                border-[1.05px] 
-                border-gray-300 dark:border-[#3C3C3C]
-                bg-white dark:bg-black 
-                text-black dark:text-white 
-                shadow-[0_0_2.09px_#0EFF7B]
-                outline-none
-                focus:border-[#0EFF7B]
-                focus:shadow-[0_0_4px_#0EFF7B]
-                transition-all
-                duration-300
-                appearance-none
-                px-3
-                pr-8
-                font-helvetica
-              "
-            >
-              {filteredPatients.map((patient) => (
-                <option
-                  key={patient.id}
-                  value={patient.id}
-                  className="
-                    bg-white dark:bg-[#0EFF7B0D] 
-                    text-black dark:text-white 
-                    hover:bg-gray-100 dark:hover:bg-[#025126] 
-                    font-helvetica
-                  "
-                >
-                  {patient.id}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 9l6 6 6-6"
-              />
-            </svg>
+              type="patient"
+            />
           </div>
           <button
             type="button"
@@ -458,8 +460,7 @@ export default function ViewPatientProfile() {
 
       {/* Medicine Allocation Form */}
       <div
-        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col overflow-hidden relative
-       bg-white dark:bg-black text-black dark:text-white"
+        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative overflow-visible bg-white dark:bg-black text-black dark:text-white z-10"
         style={{
           border: "1px solid #0EFF7B1A",
           backdropFilter: "blur(4px)",
@@ -467,7 +468,7 @@ export default function ViewPatientProfile() {
         }}
       >
         <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden z-[-1]"
           style={{
             background:
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
@@ -478,24 +479,34 @@ export default function ViewPatientProfile() {
         </h2>
         <form onSubmit={handleSubmit}>
           {/* Patient Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-            {["patientName", "patientID", "department"].map((field, idx) => (
-              <div key={idx} className="flex flex-col">
-                <label className="text-sm font-medium mb-1 capitalize">
-                  {field}
-                </label>
-                <input
-                  type="text"
-                  name={field}
-                  value={patientInfo[field]}
-                  onChange={(e) => handleInputChange(e, null, "patient")}
-                  className="border border-gray-400 rounded p-2 bg-transparent"
-                />
-              </div>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+            <Dropdown
+              label="Patient Name"
+              placeholder="Select patient"
+              value={patientInfo.patientName}
+              options={patients.map(p => p.name)}
+              name="patientName"
+              type="patient"
+            />
+            <Dropdown
+              label="Patient ID"
+              placeholder="Select ID"
+              value={patientInfo.patientID}
+              options={patients.map(p => p.id)}
+              name="patientID"
+              type="patient"
+            />
+            <Dropdown
+              label="Department"
+              placeholder="Select department"
+              value={patientInfo.department}
+              options={["Cardiology", "Neurology", "Orthopedics"]}
+              name="department"
+              type="patient"
+            />
           </div>
 
-          {/* Medicines Dynamic List */}
+          {/* Medicines List */}
           <div className="flex flex-col gap-5">
             {medicineData.map((med, index) => (
               <div
@@ -511,7 +522,7 @@ export default function ViewPatientProfile() {
                       <button
                         type="button"
                         onClick={addMedicineEntry}
-                        className="text-green-500 hover:text-green-600"
+                        className="text-green-500 hover:text-green-600 text-xl"
                       >
                         +
                       </button>
@@ -520,7 +531,7 @@ export default function ViewPatientProfile() {
                       <button
                         type="button"
                         onClick={() => removeMedicineEntry(med.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 text-xl"
                       >
                         ×
                       </button>
@@ -528,95 +539,53 @@ export default function ViewPatientProfile() {
                   </div>
                 </div>
 
+                {/* Medicine Dropdowns */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {[
-                    {
-                      label: "Medicine Name",
-                      name: "medicineName",
-                      options: [
-                        "Amoxicillin",
-                        "Paracetamol",
-                        "Cefixime",
-                        "Ibuprofen",
-                      ],
-                    },
-                    {
-                      label: "Dosage",
-                      name: "dosage",
-                      options: ["250 mg", "500 mg", "750 mg"],
-                    },
-                    {
-                      label: "Quantity",
-                      name: "quantity",
-                      options: ["10", "20", "30", "50"],
-                    },
-                    {
-                      label: "Frequency",
-                      name: "frequency",
-                      options: ["Morning", "Afternoon", "Evening", "Night"],
-                    },
-                    {
-                      label: "Duration",
-                      name: "duration",
-                      options: ["5 days", "10 days", "15 days", "30 days"],
-                    },
-                    {
-                      label: "Time",
-                      name: "time",
-                      options: ["8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM"],
-                    },
-                  ].map((field, i) => (
-                    <div key={i}>
-                      <label className="text-sm font-medium">
-                        {field.label}
-                      </label>
-                      <select
-                        name={field.name}
-                        value={med[field.name]}
-                        onChange={(e) =>
-                          handleInputChange(e, index, "medicine")
-                        }
-                        className="w-full border border-gray-400 rounded p-2 bg-transparent"
-                      >
-                        <option value="">Select {field.label}</option>
-                        {field.options.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    { label: "Medicine Name", name: "medicineName", options: ["Amoxicillin", "Paracetamol", "Cefixime", "Ibuprofen"] },
+                    { label: "Dosage", name: "dosage", options: ["250 mg", "500 mg", "750 mg"] },
+                    { label: "Quantity", name: "quantity", options: ["10", "20", "30", "50"] },
+                    { label: "Frequency", name: "frequency", options: ["Morning", "Afternoon", "Evening", "Night"] },
+                    { label: "Duration", name: "duration", options: ["5 days", "10 days", "15 days", "30 days"] },
+                    { label: "Time", name: "time", options: ["8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM"] },
+                  ].map((field) => (
+                    <Dropdown
+                      key={field.name}
+                      label={field.label}
+                      placeholder={`Select ${field.label.toLowerCase()}`}
+                      value={med[field.name]}
+                      options={field.options}
+                      name={field.name}
+                      index={index}
+                      type="medicine"
+                    />
                   ))}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Add Lab Tests */}
+          {/* Lab Tests */}
           <div className="mt-6">
             <h4 className="font-medium text-[#0EFF7B] mb-2">Lab Tests</h4>
             {labTests.map((test, index) => (
               <div key={test.id} className="flex items-center gap-3 mb-2">
-                <select
-                  name="labTest"
-                  value={test.labTest}
-                  onChange={(e) => handleInputChange(e, index, "labTest")}
-                  className="border border-gray-400 rounded p-2 w-full bg-transparent"
-                >
-                  <option value="">Select Lab Test</option>
-                  {["Blood Test", "Urine Test", "X-Ray", "MRI"].map(
-                    (option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    )
-                  )}
-                </select>
+                <div className="flex-1">
+                  <Dropdown
+                    label=""
+                    placeholder="Select Lab Test"
+                    value={test.labTest}
+                    options={["Blood Test", "Urine Test", "X-Ray", "MRI"]}
+                    name="labTest"
+                    index={index}
+                    type="labTest"
+                  />
+                </div>
                 {index === labTests.length - 1 && (
                   <button
                     type="button"
                     onClick={addLabTestEntry}
-                    className="text-green-500 hover:text-green-600"
+                    className="text-green-500 hover:text-green-600 text-xl"
                   >
                     +
                   </button>
@@ -625,7 +594,7 @@ export default function ViewPatientProfile() {
                   <button
                     type="button"
                     onClick={() => removeLabTestEntry(test.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 text-xl"
                   >
                     ×
                   </button>
@@ -655,8 +624,7 @@ export default function ViewPatientProfile() {
 
       {/* Medicine Allocation History */}
       <div
-        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col overflow-hidden relative
-       bg-white dark:bg-black text-black dark:text-white"
+        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative overflow-visible bg-white dark:bg-black text-black dark:text-white"
         style={{
           border: "1px solid #0EFF7B1A",
           backdropFilter: "blur(4px)",
@@ -664,7 +632,7 @@ export default function ViewPatientProfile() {
         }}
       >
         <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden z-[-1]"
           style={{
             background:
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
