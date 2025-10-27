@@ -1,6 +1,10 @@
 import React, { useState } from "react";
-import { X, Calendar, ChevronDown } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+
+/* NEW: Import react-datepicker */
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   const [formData, setFormData] = useState({ ...profile });
@@ -36,7 +40,9 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                    active
+                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "text-black dark:text-white"
                   } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
                 }
               >
@@ -54,22 +60,25 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
       <div
         className="w-[504px] h-[520px] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(0,0,0,0.12)] dark:shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative"
       >
+        {/* Gradient Border */}
         <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
+        {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="text-black dark:text-white font-inter font-medium text-[16px] leading-[19px]">
             Edit Doctor/Nurse
@@ -81,7 +90,10 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
             <X size={16} className="text-[#08994A] dark:text-white" />
           </button>
         </div>
+
+        {/* Form Fields */}
         <div className="grid grid-cols-2 gap-6">
+          {/* Full Name */}
           <div>
             <label className="text-sm text-black dark:text-white">Full Name</label>
             <input
@@ -93,18 +105,24 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
             />
           </div>
+
+          {/* Role */}
           <Dropdown
             label="Role"
             value={formData.type || "Select"}
             onChange={(val) => setFormData({ ...formData, type: val })}
             options={roles}
           />
+
+          {/* Department */}
           <Dropdown
             label="Department"
             value={formData.department || "Select"}
             onChange={(val) => setFormData({ ...formData, department: val })}
             options={departments}
           />
+
+          {/* Phone Number */}
           <div>
             <label className="text-sm text-black dark:text-white">Phone Number</label>
             <input
@@ -118,6 +136,8 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
             />
           </div>
+
+          {/* Email */}
           <div>
             <label className="text-sm text-black dark:text-white">Email</label>
             <input
@@ -130,23 +150,48 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none"
             />
           </div>
+
+          {/* Joining Date – react-datepicker */}
           <div>
             <label className="text-sm text-black dark:text-white">Joining Date</label>
             <div className="relative">
-              <input
-                type="date"
-                name="joinDate"
-                value={formData.joinDate || ""}
-                onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
-                required
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none"
+              <DatePicker
+                selected={formData.joinDate ? new Date(formData.joinDate) : null}
+                onChange={(date) => {
+                  const formatted = date
+                    ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+                        date.getDate()
+                      ).padStart(2, "0")}/${date.getFullYear()}`
+                    : "";
+                  setFormData({ ...formData, joinDate: formatted });
+                }}
+                dateFormat="MM/dd/yyyy"
+                placeholderText="MM/DD/YYYY"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none focus:ring-1 focus:ring-[#0EFF7B]"
+                wrapperClassName="w-full"
+                popperClassName="z-50"
               />
-              <Calendar
-                size={18}
-                className="absolute right-0 top-3 text-[#08994A] dark:text-white pointer-events-none"
-              />
+              {/* Calendar Icon */}
+              <div className="absolute right-3 top-2.5 pointer-events-none">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                >
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+              </div>
             </div>
           </div>
+
+          {/* Status */}
           <Dropdown
             label="Status"
             value={formData.status || "Select"}
@@ -154,6 +199,8 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
             options={statuses}
           />
         </div>
+
+        {/* Buttons */}
         <div className="flex justify-center gap-[18px] mt-8">
           <button
             onClick={onClose}
@@ -163,10 +210,12 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           </button>
           <button
             onClick={handleUpdate}
-            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66]  text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-          style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}>
+            style={{
+              background:
+                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+          >
             Update
           </button>
         </div>

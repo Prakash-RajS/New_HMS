@@ -1,6 +1,10 @@
 import React, { useState } from "react";
-import { X, Calendar, ChevronDown } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+
+/* NEW: Import react-datepicker */
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const AddDonorPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -8,7 +12,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     phone: "",
     gender: "",
     blood: "",
-    donationDate: "",
+    donationDate: "", // string: "MM/DD/YYYY"
   });
   const [errors, setErrors] = useState({});
 
@@ -61,10 +65,11 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
           <Listbox.Options
             className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black
             shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
-          style={{
-                      scrollbarWidth: "none",
-                      msOverflowStyle: "none",
-                    }}>
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -189,7 +194,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
               error={errors.blood}
             />
 
-            {/* Donation Date */}
+            {/* Donation Date – react-datepicker */}
             <div>
               <label
                 className="text-sm text-black dark:text-white"
@@ -198,26 +203,55 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 Donation Date
               </label>
               <div className="relative">
-                <input
-                  type="date"
-                  name="donationDate"
-                  value={formData.donationDate}
-                  onChange={(e) =>
-                    setFormData({ ...formData, donationDate: e.target.value })
+                <DatePicker
+                  selected={
+                    formData.donationDate
+                      ? new Date(formData.donationDate)
+                      : null
                   }
+                  onChange={(date) => {
+                    const formatted = date
+                      ? `${String(date.getMonth() + 1).padStart(
+                          2,
+                          "0"
+                        )}/${String(date.getDate()).padStart(
+                          2,
+                          "0"
+                        )}/${date.getFullYear()}`
+                      : "";
+                    setFormData({ ...formData, donationDate: formatted });
+                  }}
+                  dateFormat="MM/dd/yyyy"
+                  placeholderText="MM/DD/YYYY"
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                  bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                             focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  wrapperClassName="w-full"
+                  popperClassName="z-50"
                 />
-                <Calendar
-                  size={18}
-                  className="absolute right-3 top-3.5 text-gray-500 dark:text-[#0EFF7B] pointer-events-none"
-                />
-                {errors.donationDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.donationDate}
-                  </p>
-                )}
+                {/* Calendar Icon */}
+                <div className="absolute right-3 top-2.5 pointer-events-none">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="text-gray-500 dark:text-[#0EFF7B]"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </div>
               </div>
+              {errors.donationDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.donationDate}
+                </p>
+              )}
             </div>
           </div>
 

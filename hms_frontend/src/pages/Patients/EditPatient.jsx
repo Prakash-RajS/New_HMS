@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
@@ -36,19 +38,17 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
+          <Listbox.Options
+            className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]"
+          >
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-              ${
-                active
-                  ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                  : "text-black dark:text-white"
-              }
-              ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                   ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                   ${selected ? "font-medium text-[#0EFF7B]" : ""}`
                 }
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
@@ -61,12 +61,21 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
     </div>
   );
 
+  // Parse MM/DD/YYYY → Date
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [m, d, y] = dateStr.split("/").map(Number);
+    if (!m || !d || !y) return null;
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
       <div
         className="w-[505px] rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-        bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-        dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+                   bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+                   dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
       >
         <div
           className="rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
@@ -83,9 +92,9 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full 
-              border border-[#0EFF7B] dark:border-[#0EFF7B1A] 
-              bg-white dark:bg-[#0EFF7B1A] 
-              shadow flex items-center justify-center"
+                         border border-[#0EFF7B] dark:border-[#0EFF7B1A] 
+                         bg-white dark:bg-[#0EFF7B1A] 
+                         shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -141,7 +150,7 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
               options={departments}
             />
 
-            {/* Appointment Date */}
+            {/* Appointment Date – compact dropdown style */}
             <div>
               <label
                 className="text-sm text-black dark:text-white"
@@ -150,20 +159,38 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
                 Appointment Date
               </label>
               <div className="relative mt-1">
-                <input
-                  type="date"
-                  name="appointmentDate"
-                  value={formData.appointmentDate || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      appointmentDate: e.target.value,
-                    })
+                <DatePicker
+                  selected={parseDate(formData.appointmentDate)}
+                  onChange={(date) => {
+                    const formatted = date
+                      ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+                          date.getDate()
+                        ).padStart(2, "0")}/${date.getFullYear()}`
+                      : "";
+                    setFormData({ ...formData, appointmentDate: formatted });
+                  }}
+                  dateFormat="MM/dd/yyyy"
+                  placeholderText="MM/DD/YYYY"
+                  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                  wrapperClassName="w-full"
+                  popperClassName="z-50"
+                  popperPlacement="bottom-start"
+                  showPopperArrow={false}
+                  customInput={
+                    <input
+                      style={{
+                        paddingRight: "2.5rem",
+                        fontSize: "14px",
+                        lineHeight: "16px",
+                        fontFamily: "Helvetica, Arial, sans-serif",
+                      }}
+                    />
                   }
-                  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 />
-                <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                <Calendar
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+                />
               </div>
             </div>
 
@@ -218,14 +245,14 @@ const EditAppointmentPopup = ({ onClose, appointment, onUpdate }) => {
           <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent dark:text-white"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] bg-white dark:bg-transparent"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               Update

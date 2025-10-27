@@ -1,9 +1,11 @@
 import { useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { Listbox } from "@headlessui/react";
-import { ChevronDown, Calendar,ArrowLeft } from "lucide-react";
+import { ChevronDown, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// ✅ Photo Upload Component
+// Photo Upload Component
 const PhotoUploadBox = ({ photo, setPhoto }) => {
   const navigate = useNavigate();
   const handlePhotoUpload = (e) => {
@@ -24,15 +26,11 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
       <label
         htmlFor="photoUpload"
         className="border border-dashed border-[#0EFF7B] mr-12 w-24 h-24 md:w-32 md:h-32 
-    flex items-center justify-center text-gray-600 cursor-pointer 
-    rounded-lg overflow-hidden bg-[#0EFF7B1A] hover:border-[#08994A] hover:text-[#08994A]"
+                   flex items-center justify-center text-gray-600 cursor-pointer 
+                   rounded-lg overflow-hidden bg-[#0EFF7B1A] hover:border-[#08994A] hover:text-[#08994A]"
       >
         {photo ? (
-          <img
-            src={photo}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
+          <img src={photo} alt="Preview" className="w-full h-full object-cover" />
         ) : (
           <span className="text-xs md:text-sm">+ Add Photo</span>
         )}
@@ -41,7 +39,7 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
   );
 };
 
-// ✅ Reusable Dropdown
+// Reusable Dropdown
 const Dropdown = ({ label, value, onChange, options }) => (
   <div className="space-y-1 w-full">
     <label
@@ -54,7 +52,7 @@ const Dropdown = ({ label, value, onChange, options }) => (
       <div className="relative">
         <Listbox.Button
           className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-          bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {value || "Select"}
@@ -64,7 +62,7 @@ const Dropdown = ({ label, value, onChange, options }) => (
         </Listbox.Button>
         <Listbox.Options
           className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 
-          border border-gray-300 dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-y-auto"
+                     border border-gray-300 dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-y-auto"
         >
           {options.map((option, idx) => (
             <Listbox.Option
@@ -72,12 +70,8 @@ const Dropdown = ({ label, value, onChange, options }) => (
               value={option}
               className={({ active, selected }) =>
                 `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                ${
-                  active
-                    ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                }
-                ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                 ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                 ${selected ? "font-medium text-[#0EFF7B]" : ""}`
               }
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
@@ -90,7 +84,7 @@ const Dropdown = ({ label, value, onChange, options }) => (
   </div>
 );
 
-// ✅ Reusable Input
+// Reusable Input
 const InputField = ({
   label,
   name,
@@ -113,11 +107,66 @@ const InputField = ({
       onChange={onChange}
       placeholder={placeholder}
       className="w-full h-[33px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[14px]"
+                 bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[14px]"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
   </div>
 );
+
+// Reusable DatePicker Field
+const DateField = ({ label, value, onChange, placeholder }) => {
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [m, d, y] = dateStr.split("/").map(Number);
+    if (!m || !d || !y) return null;
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label
+        className="text-sm text-black dark:text-white"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        {label}
+      </label>
+      <div className="relative">
+        <DatePicker
+          selected={parseDate(value)}
+          onChange={(date) => {
+            const formatted = date
+              ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${date.getFullYear()}`
+              : "";
+            onChange(formatted);
+          }}
+          dateFormat="MM/dd/yyyy"
+          placeholderText={placeholder}
+          className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+          popperPlacement="bottom-start"
+          showPopperArrow={false}
+          customInput={
+            <input
+              style={{
+                paddingRight: "2.5rem",
+                fontSize: "14px",
+                lineHeight: "16px",
+                fontFamily: "Helvetica, Arial, sans-serif",
+              }}
+            />
+          }
+        />
+        <Calendar
+          size={18}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+        />
+      </div>
+    </div>
+  );
+};
 
 export default function NewRegistration({ isSidebarOpen }) {
   const [formData, setFormData] = useState({});
@@ -138,15 +187,12 @@ export default function NewRegistration({ isSidebarOpen }) {
     console.log("Submitted Data:", { ...formData, photo });
   };
 
-  const openDatePicker = (e) => {
-    e.currentTarget.showPicker();
+  const handleDateChange = (field) => (value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
-    >
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -155,6 +201,7 @@ export default function NewRegistration({ isSidebarOpen }) {
           zIndex: 0,
         }}
       ></div>
+
       {/* Gradient Border */}
       <div
         style={{
@@ -172,17 +219,18 @@ export default function NewRegistration({ isSidebarOpen }) {
           zIndex: 0,
         }}
       ></div>
+
       {/* Back Button */}
       <div className="mt-4 mb-6">
         <button
-            className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
-            onClick={() => navigate(-1)}
-            style={{
-              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-            }}
-          >
-            <ArrowLeft size={18} /> Back
-          </button>
+          className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
+          onClick={() => navigate(-1)}
+          style={{
+            background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+          }}
+        >
+          <ArrowLeft size={18} /> Back
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-8">
@@ -229,38 +277,22 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter full name"
               />
-              <div className="space-y-1 w-full">
-                <label
-                  className="text-sm text-black dark:text-white"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Date of Birth
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    name="dob"
-                    value={formData.dob || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dob: e.target.value })
-                    }
-                    onClick={openDatePicker}
-                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  <Calendar
-                    size={18}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-                  />
-                </div>
-              </div>
+
+              {/* Date of Birth */}
+              <DateField
+                label="Date of Birth"
+                value={formData.dob || ""}
+                onChange={handleDateChange("dob")}
+                placeholder="MM/DD/YYYY"
+              />
+
               <Dropdown
                 label="Gender"
                 value={formData.gender}
                 onChange={(val) => setFormData({ ...formData, gender: val })}
                 options={["Male", "Female", "Other"]}
               />
+
               <InputField
                 label="Age Group"
                 name="age"
@@ -271,6 +303,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter age"
               />
+
               <Dropdown
                 label="Marital Status"
                 value={formData.maritalStatus}
@@ -279,6 +312,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 options={maritalStatus}
               />
+
               <InputField
                 label="Address"
                 name="address"
@@ -288,6 +322,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter address"
               />
+
               <InputField
                 label="Phone"
                 name="phone"
@@ -298,6 +333,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter phone number"
               />
+
               <InputField
                 label="Email ID"
                 name="email"
@@ -308,6 +344,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter email"
               />
+
               <InputField
                 label="National ID"
                 name="nid"
@@ -317,6 +354,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter National ID"
               />
+
               <InputField
                 label="City place"
                 name="city"
@@ -326,6 +364,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="City"
               />
+
               <InputField
                 label="Country"
                 name="country"
@@ -335,32 +374,15 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Country"
               />
-              <div className="space-y-1 w-full">
-                <label
-                  className="text-sm text-black dark:text-white"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Date of Registration
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    name="dor"
-                    value={formData.dor || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dor: e.target.value })
-                    }
-                    onClick={openDatePicker}
-                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  <Calendar
-                    size={18}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-                  />
-                </div>
-              </div>
+
+              {/* Date of Registration */}
+              <DateField
+                label="Date of Registration"
+                value={formData.dor || ""}
+                onChange={handleDateChange("dor")}
+                placeholder="MM/DD/YYYY"
+              />
+
               <InputField
                 label="Occupation"
                 name="occupation"
@@ -370,6 +392,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter occupation"
               />
+
               <InputField
                 label="Weight"
                 name="weight"
@@ -380,6 +403,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter weight in kg"
               />
+
               <InputField
                 label="Height"
                 name="height"
@@ -393,7 +417,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             </div>
           </div>
 
-          {/* /* Medical Info */}
+          {/* Medical Info */}
           <div>
             <h3
               className="text-lg font-medium mb-2 md:mb-4 text-black dark:text-white"
@@ -416,6 +440,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 options={bloodGroups}
               />
+
               <InputField
                 label="Blood Pressure"
                 name="bp"
@@ -425,6 +450,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="e.g. 120/80 mmHg"
               />
+
               <InputField
                 label="Temperature"
                 name="temperature"
@@ -435,6 +461,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter temperature"
               />
+
               <Dropdown
                 label="Consultation Type"
                 value={formData.consultType}
@@ -443,6 +470,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 options={consultationTypes}
               />
+
               <InputField
                 label="Patient ID"
                 name="patientId"
@@ -452,6 +480,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter patient ID"
               />
+
               <Dropdown
                 label="Department"
                 value={formData.department}
@@ -460,44 +489,29 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 options={departments}
               />
+
               <Dropdown
                 label="Consulting Doctor"
                 value={formData.doctor}
                 onChange={(val) => setFormData({ ...formData, doctor: val })}
                 options={doctors}
               />
+
               <Dropdown
                 label="Appointment Type"
                 value={formData.apptType}
                 onChange={(val) => setFormData({ ...formData, apptType: val })}
                 options={appointmentTypes}
               />
-              <div className="space-y-1 w-full">
-                <label
-                  className="text-sm text-black dark:text-white"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Admit Date
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    name="admitDate"
-                    value={formData.admitDate || ""}
-                    onChange={(e) =>
-                      setFormData({ ...formData, admitDate: e.target.value })
-                    }
-                    onClick={openDatePicker}
-                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  <Calendar
-                    size={18}
-                    className="absolute right-10 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-                  />
-                </div>
-              </div>
+
+              {/* Admit Date */}
+              <DateField
+                label="Admit Date"
+                value={formData.admitDate || ""}
+                onChange={handleDateChange("admitDate")}
+                placeholder="MM/DD/YYYY"
+              />
+
               <InputField
                 label="Room No"
                 name="roomNo"
@@ -507,6 +521,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter room no"
               />
+
               <InputField
                 label="Test Report"
                 name="testReport"
@@ -516,6 +531,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 }
                 placeholder="Enter test report"
               />
+
               <Dropdown
                 label="Casualty"
                 value={formData.casualty}
