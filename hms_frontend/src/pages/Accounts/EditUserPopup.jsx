@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Calendar } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
 /* 1. NEW IMPORTS */
@@ -13,7 +13,7 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
     email: "",
     role: "",
     department: "",
-    joinedOn: "",               // will be a string "MM/DD/YYYY"
+    joinedOn: "", // "MM/DD/YYYY"
   });
 
   /* ---------- SYNC PROP → STATE ---------- */
@@ -39,7 +39,6 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
       return;
     }
 
-    // `joinedOn` is already a string in "MM/DD/YYYY" because DatePicker formats it.
     if (onUpdate) onUpdate(formData);
     onClose();
   };
@@ -57,7 +56,7 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
     "Pediatrics",
     "Hematology",
     "Neurology",
-  ]; // keep in sync with UserSettings.jsx
+  ];
 
   /* ---------- REUSABLE DROPDOWN ---------- */
   const Dropdown = ({ label, value, onChange, options }) => (
@@ -99,11 +98,20 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
     </div>
   );
 
+  /* ---------- PARSE MM/DD/YYYY → Date ---------- */
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const [m, d, y] = dateStr.split("/").map(Number);
+    if (!m || !d || !y) return null;
+    const date = new Date(y, m - 1, d);
+    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+  };
+
   /* ---------- RENDER ---------- */
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
       <div className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative">
-        {/* Gradient border (unchanged) */}
+        {/* Gradient border */}
         <div
           style={{
             position: "absolute",
@@ -128,7 +136,7 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
           </h3>
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg Plur-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+            className="w-6 h-6 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
           >
             <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
           </button>
@@ -183,27 +191,43 @@ const UpdateUserPopup = ({ onClose, user, onUpdate }) => {
             options={departments}
           />
 
-          {/* Joined Date – react-datepicker */}
+          {/* Joined Date – with Calendar icon */}
           <div>
             <label className="text-sm">Joined Date</label>
-            <DatePicker
-              selected={formData.joinedOn ? new Date(formData.joinedOn) : null}
-              onChange={(date) => {
-                const formatted = date
-                  ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-                      date.getDate()
-                    ).padStart(2, "0")}/${date.getFullYear()}`
-                  : "";
-                setFormData({ ...formData, joinedOn: formatted });
-              }}
-              dateFormat="MM/dd/yyyy"
-              placeholderText="MM/DD/YYYY"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-              wrapperClassName="w-full"
-              popperClassName="z-50"
-            />
+            <div className="relative">
+              <DatePicker
+                selected={parseDate(formData.joinedOn)}
+                onChange={(date) => {
+                  const formatted = date
+                    ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+                        date.getDate()
+                      ).padStart(2, "0")}/${date.getFullYear()}`
+                    : "";
+                  setFormData({ ...formData, joinedOn: formatted });
+                }}
+                dateFormat="MM/dd/yyyy"
+                placeholderText="MM/DD/YYYY"
+                className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
+                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
+                wrapperClassName="w-full"
+                popperClassName="z-50"
+                popperPlacement="bottom-start"
+                showPopperArrow={false}
+                customInput={
+                  <input
+                    style={{
+                      paddingRight: "2.5rem",
+                      fontSize: "14px",
+                      lineHeight: "16px",
+                    }}
+                  />
+                }
+              />
+              <div className="absolute right-3 top-3 pointer-events-none">
+                <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+              </div>
+            </div>
           </div>
         </div>
 

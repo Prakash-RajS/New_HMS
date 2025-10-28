@@ -143,7 +143,7 @@ const SecuritySettingsPage = () => {
       </div>
 
       {/* Change Password */}
-      <div className="bg-white dark:bg-black border-b border-gray-300 dark:border-[#3C3C3C] pb-4 flex justify-between items-start mb-4">
+      {/* <div className="bg-white dark:bg-black border-b border-gray-300 dark:border-[#3C3C3C] pb-4 flex justify-between items-start mb-4">
         <div>
           <h3 className="font-medium text-[18px] text-black dark:text-white">Change password</h3>
           <p className="text-[16px] text-black dark:text-white mt-2">
@@ -159,7 +159,7 @@ const SecuritySettingsPage = () => {
           </button>
           <p className="text-[12px] text-gray-600 dark:text-gray-400 mr-3 mt-2">Last changed: Mar 2, 2025</p>
         </div>
-      </div>
+      </div> */}
 
       {/* 2FA */}
       <div className="border-b border-gray-300 dark:border-[#3C3C3C] pb-4 flex justify-between items-center mb-4">

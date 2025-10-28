@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Shield, Edit, Trash2, Search, ChevronLeft, ChevronRight, X, Printer, Download, ChevronDown } from "lucide-react";
+import { Shield, Edit, Trash2, Search, Calendar, ChevronLeft, ChevronRight, X, Printer, Download, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditUserPopup from "./EditUserPopup.jsx";
 import { useNavigate } from "react-router-dom";
@@ -541,143 +541,158 @@ const Dropdown = ({ label, placeholder, value, onChange, options, className }) =
       )}
 
       {showAddUserPopup && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-            bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-            dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div
+      className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
+                 bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+                 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+    >
+      <div
+        className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center pb-2 mb-3">
+          <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+            Add New User
+          </h2>
+          <button
+            onClick={() => setShowAddUserPopup(false)}
+            className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
           >
-            <div
-              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center pb-2 mb-3">
-                <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-                  Add New User
-                </h2>
-                <button
-                  onClick={() => setShowAddUserPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
-                >
-                  <X size={16} className="text-black dark:text-white" />
-                </button>
-              </div>
+            <X size={16} className="text-black dark:text-white" />
+          </button>
+        </div>
 
-              {/* Form Fields */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* Name */}
-                <div>
-                  <label className="text-sm text-black dark:text-white">Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter name"
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
-                    dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] 
-                    placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    required
-                  />
-                </div>
+        {/* Form Fields */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Name */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Name</label>
+            <input
+              type="text"
+              placeholder="Enter name"
+              value={newUser.name}
+              onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+                         dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] 
+                         placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              required
+            />
+          </div>
 
-                {/* Email */}
-                <div>
-                  <label className="text-sm text-black dark:text-white">Email</label>
-                  <input
-                    type="email"
-                    placeholder="Enter email"
-                    value={newUser.email}
-                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
-                    dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
-                    required
-                  />
-                </div>
+          {/* Email */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Email</label>
+            <input
+              type="email"
+              placeholder="Enter email"
+              value={newUser.email}
+              onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+                         dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+              required
+            />
+          </div>
 
-                {/* Password */}
-                <div>
-                  <label className="text-sm text-black dark:text-white">Password</label>
-                  <input
-                    type="password"
-                    placeholder="Enter password"
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
-                    dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
-                    required
-                  />
-                </div>
+          {/* Password */}
+          <div>
+            <label className="text-sm text-black dark:text-white">Password</label>
+            <input
+              type="password"
+              placeholder="Enter password"
+              value={newUser.password}
+              onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+              className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
+                         dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+              required
+            />
+          </div>
 
-                {/* Role */}
-                <Dropdown
-                  label="Role"
-                  value={newUser.role}
-                  onChange={(val) => setNewUser({ ...newUser, role: val })}
-                  options={roleOptions}
-                  className="w-[228px] h-[30px] mt-[2px]"
+          {/* Role */}
+          <Dropdown
+            label="Role"
+            value={newUser.role}
+            onChange={(val) => setNewUser({ ...newUser, role: val })}
+            options={roleOptions}
+            className="w-[228px] h-[30px] mt-[2px]"
+          />
+
+          {/* Department */}
+          <Dropdown
+            label="Department"
+            value={newUser.department}
+            onChange={(val) => setNewUser({ ...newUser, department: val })}
+            options={departmentOptions}
+            className="w-[228px] h-[30px] mt-[2px]"
+          />
+
+          {/* Joined On – with Calendar Icon */}
+          <div className="relative">
+            <label className="text-sm text-black dark:text-white">Joined On</label>
+            <DatePicker
+              selected={newUser.joinedOn ? new Date(newUser.joinedOn) : null}
+              onChange={(date) => {
+                const formatted = date
+                  ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+                      date.getDate()
+                    ).padStart(2, "0")}/${date.getFullYear()}`
+                  : "";
+                setNewUser({ ...newUser, joinedOn: formatted });
+              }}
+              dateFormat="MM/dd/yyyy"
+              placeholderText="MM/DD/YYYY"
+              className="w-[228px] h-[30px] mt-[2px] px-3 pr-10 rounded-[8px] border border-gray-300 
+                         dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
+                         dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 
+                         outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+              wrapperClassName="w-full"
+              popperClassName="z-50"
+              popperPlacement="bottom-start"
+              showPopperArrow={false}
+              customInput={
+                <input
+                  style={{
+                    paddingRight: "2.5rem",
+                    fontSize: "14px",
+                    lineHeight: "16px",
+                  }}
                 />
-
-                {/* Department */}
-                <Dropdown
-                  label="Department"
-                  value={newUser.department}
-                  onChange={(val) => setNewUser({ ...newUser, department: val })}
-                  options={departmentOptions}
-                  className="w-[228px] h-[30px] mt-[2px]"
-                />
-
-                {/* Joined On */}
-                <div>
-  <label className="text-sm text-black dark:text-white">Joined On</label>
-  <DatePicker
-    selected={newUser.joinedOn ? new Date(newUser.joinedOn) : null}
-    onChange={(date) => {
-      const formatted = date
-        ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-            date.getDate()
-          ).padStart(2, "0")}/${date.getFullYear()}`
-        : "";
-      setNewUser({ ...newUser, joinedOn: formatted });
-    }}
-    dateFormat="MM/dd/yyyy"
-    placeholderText="MM/DD/YYYY"
-    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 
-               dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
-               dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 
-               outline-none"
-    wrapperClassName="w-full"
-    popperClassName="z-50"
-    required
-  />
-</div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-center gap-4 mt-5">
-                <button
-                  onClick={() => setShowAddUserPopup(false)}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 
-                  dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
-                  dark:text-white font-medium text-[14px] leading-[16px]"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  onClick={handleAddUser}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r 
-                  from-[#025126] via-[#0D7F41] to-[#025126] text-white 
-                  font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-                >
-                  Add User
-                </button>
-              </div>
+              }
+              required
+            />
+            {/* Calendar Icon */}
+            <div className="absolute right-3 top-8 pointer-events-none">
+              <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             </div>
           </div>
         </div>
-      )}
+
+        {/* Buttons */}
+        <div className="flex justify-center gap-4 mt-5">
+          <button
+            onClick={() => setShowAddUserPopup(false)}
+            className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 
+                       dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
+                       dark:text-white font-medium text-[14px] leading-[16px]"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            onClick={handleAddUser}
+            className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r 
+                       from-[#025126] via-[#0D7F41] to-[#025126] text-white 
+                       font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+          >
+            Add User
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       {showEditUserPopup && editUser && (
   <EditUserPopup
     user={editUser}

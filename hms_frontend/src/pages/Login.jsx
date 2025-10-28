@@ -314,7 +314,7 @@ const LoginPage = () => {
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-5 h-5"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff /> : <Eye />}
+                    {showPassword ? <Eye /> : <EyeOff />}
                   </button>
                 </div>
               </motion.div>
