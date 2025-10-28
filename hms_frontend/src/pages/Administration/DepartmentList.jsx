@@ -157,6 +157,7 @@ const DepartmentList = () => {
     Endocrinology: Zap,
   };
 
+  // Fixed: Added searchTerm to dependencies + correct sort values
   const filteredAndSortedDepartments = useMemo(() => {
     let result = departments.filter((dept) => {
       if (
@@ -187,7 +188,7 @@ const DepartmentList = () => {
     }
 
     return result;
-  }, [departments, searchTerm, filtersData, sortOrder]);
+  }, [departments, searchTerm, filtersData, sortOrder]); // ← searchTerm added
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -218,6 +219,7 @@ const DepartmentList = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFiltersData({ ...filtersData, [name]: value });
+    setCurrentPage(1); // ← Reset page
   };
 
   const handleClearFilters = () => {
@@ -227,6 +229,8 @@ const DepartmentList = () => {
     });
     setSortOrder("A-to-Z");
     setItemsPerPage(8);
+    setSearchTerm(""); // ← Also clear search
+    setCurrentPage(1); // ← Reset page
   };
 
   const handleBulkStatusChange = (val) => {
@@ -243,62 +247,61 @@ const DepartmentList = () => {
   };
 
   const Dropdown = ({ value, onChange, options }) => (
-  <Listbox value={value} onChange={onChange}>
-    <div className="relative w-full">
-      <Listbox.Button
-        className="w-full h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] 
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative w-full">
+        <Listbox.Button
+          className="w-full h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] 
                  dark:border-[#3A3A3A] bg-white dark:bg-transparent 
                  text-[#08994A] dark:text-[#0EFF7B] text-left 
                  text-sm leading-[16px]"
-      >
-        {value || "Select"}
-        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-        </span>
-      </Listbox.Button>
+        >
+          {value || "Select"}
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
 
-      <Listbox.Options
-        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black 
+        <Listbox.Options
+          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black 
                  shadow-lg z-[60] border border-[#0EFF7B] 
                  dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
-      >
-        {options.map((option, idx) => {
-          const label = typeof option === "string" ? option : option.label;
-          const val = typeof option === "string" ? option : option.value;
-          return (
-            <Listbox.Option
-              key={idx}
-              value={val}
-              className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                } ${
-                  selected
-                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                    : ""
-                }`
-              }
-            >
-              {label}
-            </Listbox.Option>
-          );
-        })}
-      </Listbox.Options>
-    </div>
-  </Listbox>
-);
-
+        >
+          {options.map((option, idx) => {
+            const label = typeof option === "string" ? option : option.label;
+            const val = typeof option === "string" ? option : option.value;
+            return (
+              <Listbox.Option
+                key={idx}
+                value={val}
+                className={({ active, selected }) =>
+                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                    active
+                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "text-black dark:text-white"
+                  } ${
+                    selected
+                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                      : ""
+                  }`
+                }
+              >
+                {label}
+              </Listbox.Option>
+            );
+          })}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  );
 
   const applySettings = () => {
-    setCurrentPage(1);
+    setCurrentPage(1); // ← Reset page
     setShowSettingsPopup(false);
   };
 
   return (
     <div className="w-full max-w-[1400px] mx-auto">
-       <div
+      <div
         className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-6 w-full max-w-[1400px] mx-auto flex flex-col  
      bg-white dark:bg-transparent overflow-hidden relative"
       >
@@ -310,38 +313,37 @@ const DepartmentList = () => {
             zIndex: 0,
           }}
         ></div>
-          {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "10px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
-  {/* Header */}
+        {/* Gradient Border */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "10px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+        {/* Header */}
         <div className="flex justify-between items-center mt-4 mb-2">
           <h2 className="text-xl font-semibold text-black dark:text-white">
             Department Lists
           </h2>
           <button
-  onClick={() => setShowAddPopup(true)}
-  className="flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300"
-  style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}
->
-  <Plus size={18} className="text-white" /> Add Department
-</button>
-
+            onClick={() => setShowAddPopup(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300"
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+          >
+            <Plus size={18} className="text-white" /> Add Department
+          </button>
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -399,6 +401,27 @@ const DepartmentList = () => {
 
         {/* Search and Filter */}
         <div className="flex gap-4 mb-4 justify-end">
+          {/* Search Input - Added */}
+          <div className="relative">
+            <Search
+              size={18}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#08994A] dark:text-[#0EFF7B]"
+            />
+            <input
+              type="text"
+              placeholder="Search department or description..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1); // ← Reset page
+              }}
+              className="w-[280px] h-[42px] pl-10 pr-3 rounded-[8px] border border-[#0EFF7B]
+                         dark:border-[#3A3A3A] bg-white dark:bg-transparent
+                         text-black dark:text-white placeholder-gray-500
+                         outline-none text-sm"
+            />
+          </div>
+
           <button
             onClick={() => setShowFilterPopup(true)}
             className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
@@ -471,7 +494,7 @@ const DepartmentList = () => {
                           )}
                         </div>
                       </td>
-                      <td className="font-medium px-4 text-black dark:text-white">
+                      <td className="font-medium px-4 text-black dark:text-white text-left">
                         {dept.name}
                       </td>
                       <td className="text-gray-600 dark:text-gray-400 px-4 max-w-xs truncate">
@@ -612,25 +635,24 @@ const DepartmentList = () => {
         {/* Filter Popup */}
         {showFilterPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-           
             <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
-  {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
+              {/* Gradient Border */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "20px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              ></div>
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px]">
                   Filter
@@ -667,9 +689,10 @@ const DepartmentList = () => {
                   </label>
                   <Dropdown
                     value={filtersData.status}
-                    onChange={(val) =>
-                      setFiltersData({ ...filtersData, status: val })
-                    }
+                    onChange={(val) => {
+                      setFiltersData({ ...filtersData, status: val });
+                      setCurrentPage(1); // ← Reset page
+                    }}
                     options={["Active", "Inactive"]}
                   />
                 </div>
@@ -683,11 +706,14 @@ const DepartmentList = () => {
                   Clear
                 </button>
                 <button
-                  onClick={() => setShowFilterPopup(false)}
+                  onClick={() => {
+                    setShowFilterPopup(false);
+                    setCurrentPage(1); // ← Reset page
+                  }}
                   className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}
+                    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                  }}
                 >
                   Filter
                 </button>
@@ -700,23 +726,23 @@ const DepartmentList = () => {
         {showSettingsPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
             <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
-  {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
+              {/* Gradient Border */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "20px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              ></div>
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px]">
                   Settings
@@ -729,60 +755,66 @@ const DepartmentList = () => {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-6 items-end">
-  {/* Number of Lines */}
-  <div>
-  <label className="text-sm text-black dark:text-white">
-    Number of Lines
-  </label>
-  <Listbox value={itemsPerPage} onChange={setItemsPerPage}>
-    <div className="relative w-full min-w-0">
-      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
-        {itemsPerPage}
-        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-        </span>
-      </Listbox.Button>
-      <Listbox.Options 
-        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
-        style={{
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none'
-        }}
-      >
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
-          <Listbox.Option
-            key={option}
-            value={option}
-            className={({ active, selected }) =>
-              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                active
-                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                  : "text-black dark:text-white"
-              } ${
-                selected
-                  ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                  : ""
-              }`
-            }
-          >
-            {option}
-          </Listbox.Option>
-        ))}
-      </Listbox.Options>
-    </div>
-  </Listbox>
-</div>
+                {/* Number of Lines */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Number of Lines
+                  </label>
+                  <Listbox value={itemsPerPage} onChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}>
+                    <div className="relative w-full min-w-0">
+                      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
+                        {itemsPerPage}
+                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options 
+                        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
+                        style={{
+                          scrollbarWidth: 'none',
+                          msOverflowStyle: 'none'
+                        }}
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
+                          <Listbox.Option
+                            key={option}
+                            value={option}
+                            className={({ active, selected }) =>
+                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                                active
+                                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                  : "text-black dark:text-white"
+                              } ${
+                                selected
+                                  ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                  : ""
+                              }`
+                            }
+                          >
+                            {option}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                </div>
 
-{/* Order Dropdown */}
-<div>
-  <label className="text-sm text-black dark:text-white">Order</label>
-  <Dropdown
-    value={sortOrder}
-    onChange={setSortOrder}
-    options={["A to Z", "Z to A"]}
-  />
-</div>
-</div>
+                {/* Order Dropdown */}
+                <div>
+                  <label className="text-sm text-black dark:text-white">Order</label>
+                  <Dropdown
+                    value={sortOrder}
+                    onChange={(v) => {
+                      setSortOrder(v);
+                      setCurrentPage(1); // ← Reset page
+                    }}
+                    options={[
+                      { label: "A to Z", value: "A-to-Z" },
+                      { label: "Z to A", value: "Z-to-A" },
+                    ]}
+                  />
+                </div>
+              </div>
 
               <div className="flex justify-center gap-6 mt-8">
                 <button
@@ -795,8 +827,8 @@ const DepartmentList = () => {
                   onClick={applySettings}
                   className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}
+                    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                  }}
                 >
                   Apply
                 </button>
@@ -819,7 +851,7 @@ const DepartmentList = () => {
           <DeleteDepartmentPopup
             onClose={() => setShowDeletePopup(false)}
             onConfirm={() => {
-              console.log("Deleting", selectedDepartment);
+              setDepartments(departments.filter(d => d.id !== selectedDepartment.id));
               setShowDeletePopup(false);
             }}
           />
@@ -828,4 +860,5 @@ const DepartmentList = () => {
     </div>
   );
 };
+
 export default DepartmentList;
