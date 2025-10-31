@@ -49,6 +49,7 @@ import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.j
 import BloodBank from "./pages/Clinical_Resources/ClinicalReport/BloodBank/BloodBank.jsx";
 
 import Billing from "./pages/Billing/Billing.jsx";
+import BillingPreview from "./pages/Billing/BillingPreview.jsx";
 import Ambulance from "./pages/Clinical_Resources/EmergencyService/AmbulanceManagement.jsx";
 import UserSettings from "./pages/Accounts/UserSettings.jsx";
 import Security from "./pages/Accounts/SecuritySettingsPage.jsx";
@@ -131,6 +132,7 @@ function AppContent({ contentRef }) {
             <Route path="/ClinicalResources/Laboratory/LaboratoryReports" element={<LaboratoryReports />} />
             <Route path="/ClinicalResources/ClinicalReports/BloodBank" element={<BloodBank />} />
             <Route path="/Billing" element={<Billing />} />
+            <Route path="/BillingPreview" element={<BillingPreview />} />
             <Route path="/ClinicalResources/EmergencyServices/Ambulance" element={<Ambulance />} />
             <Route path="/UserSettings" element={<UserSettings />} />
             <Route path="/security" element={<Security />} />
@@ -144,10 +146,8 @@ function AppContent({ contentRef }) {
     </div>
   );
 }
-
 export default function App() {
   const contentRef = useRef(null);
-
   return (
     <ThemeProvider>
       <Router>

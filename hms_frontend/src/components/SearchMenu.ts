@@ -40,6 +40,12 @@ export const menuItems = [
         icon: Bed,
       },
       {
+        name: "OPD Patient",
+        path: "/patients/out-patients",
+        paths: ["/patients/ipd-opd", "/patients/out-patients"],
+        icon: Bed,
+      },
+      {
         name: "Patient Profile",
         path: "/patients/profile",
         paths: ["/patients/profile", "/patients/profile/details"],

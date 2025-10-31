@@ -240,7 +240,7 @@ const Dropdown = ({ label, placeholder, value, onChange, options, className }) =
     <Listbox value={value} onChange={onChange}>
       <div className="relative mt-1 w-full">
         <Listbox.Button
-          className={`w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
+          className={`w-[225px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
         >
           {value || placeholder}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -248,7 +248,7 @@ const Dropdown = ({ label, placeholder, value, onChange, options, className }) =
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-[228px] max-h-60 overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
+          className="absolute mt-1 w-[225px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'

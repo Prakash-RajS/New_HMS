@@ -604,3 +604,53 @@ class MedicineAllocation(models.Model):
 
     def __str__(self):
         return f"{self.medicine_name} for {self.patient.full_name} ({self.allocation_date})"
+    
+class Invoice(models.Model):
+    STATUS_CHOICES = [
+        ("Paid", "Paid"),
+        ("Unpaid", "Unpaid"),
+        ("Pending", "Pending"),
+    ]
+
+    # ---- Core fields ----
+    invoice_id = models.CharField(max_length=50, unique=True, blank=True)
+    date = models.DateField()
+    patient_name = models.CharField(max_length=100)
+    patient_id = models.CharField(max_length=50)
+    department = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=50)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+
+    # ---- Extra fields ----
+    admission_date = models.DateField()
+    discharge_date = models.DateField()
+    doctor = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20)
+    email = models.CharField(max_length=100)
+    address = models.TextField()
+
+    invoice_items = models.JSONField(default=list)
+    tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=18.0)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    payment_date = models.CharField(max_length=50, blank=True, null=True)
+    pdf_file = models.FileField(upload_to="generated_invoices/", null=True, blank=True)  # ✅ NEW FIELD
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "invoices"
+        ordering = ["-date", "-created_at"]
+
+    def __str__(self):
+        return f"{self.invoice_id} - {self.patient_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.invoice_id:
+            last = Invoice.objects.order_by('-id').first()
+            if last and last.invoice_id.startswith('INV'):
+                num = int(last.invoice_id[3:]) + 1
+            else:
+                num = 1
+            self.invoice_id = f"INV{num:04d}"
+        super().save(*args, **kwargs)

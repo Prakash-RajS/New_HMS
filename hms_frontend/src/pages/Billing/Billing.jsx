@@ -17,6 +17,8 @@ import {
   Calendar,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { useNavigate } from "react-router-dom";
+
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -84,6 +86,7 @@ const BillingManagement = () => {
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterPaymentMethod, setFilterPaymentMethod] = useState("");
   const [filterDate, setFilterDate] = useState("");
+  const navigate = useNavigate();
   const [invoiceData, setInvoiceData] = useState([
     {
       id: "INV-2011",
@@ -237,8 +240,9 @@ const BillingManagement = () => {
   };
 
   const handleGenerateBill = () => {
-    console.log("Generate Bill button clicked");
-  };
+  console.log("Generate Bill button clicked");
+  navigate("/BillingPreview");
+};
 
   const handleProcessPayment = () => {
     console.log("Process Payment button clicked");
