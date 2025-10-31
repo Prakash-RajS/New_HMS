@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -30,6 +30,8 @@ import AddDepartmentPopup from "./AddDepartment";
 import EditDepartmentPopup from "./EditDepartmentPopup";
 import DeleteDepartmentPopup from "./DeleteDepartmentPopup";
 
+const API_BASE = "http://127.0.0.1:8000";
+
 const DepartmentList = () => {
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -44,98 +46,101 @@ const DepartmentList = () => {
   const [bulkStatus, setBulkStatus] = useState(null);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [sortOrder, setSortOrder] = useState("A-to-Z");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [filtersData, setFiltersData] = useState({
     name: "",
     status: "",
   });
 
-  const [departments, setDepartments] = useState([
-    {
-      id: 1,
-      name: "Cardiology",
-      description:
-        "Cardiology is a branch of medicine that deals with the disorders of the heart as well as some parts of the circulatory system.",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Anesthesiology",
-      description:
-        "Anesthesiology is the medical specialty concerned with the total perioperative care of patients before, during and after surgery.",
-      status: "Inactive",
-    },
-    {
-      id: 3,
-      name: "Dermatology",
-      description:
-        "Dermatology is the branch of medicine dealing with the skin, nails, hair and its diseases.",
-      status: "Active",
-    },
-    {
-      id: 4,
-      name: "Gastroenterology",
-      description:
-        "Gastroenterology is the branch of medicine focused on the digestive system and its disorders.",
-      status: "Active",
-    },
-    {
-      id: 5,
-      name: "Gynaecology",
-      description:
-        "Gynaecology is the medical practice dealing with the health of the female reproductive system.",
-      status: "Active",
-    },
-    {
-      id: 6,
-      name: "Pharmacy",
-      description:
-        "Pharmacy is the clinical health science that links medical science with chemistry and it is charged with the discovery, production, disposal, safe and effective use, and control of medications and drugs.",
-      status: "Active",
-    },
-    {
-      id: 7,
-      name: "Neurology",
-      description:
-        "Neurology is a branch of medicine dealing with disorders of the nervous system.",
-      status: "Inactive",
-    },
-    {
-      id: 8,
-      name: "Orthopedic",
-      description:
-        "Orthopedic is the branch of surgery concerned with conditions involving the musculoskeletal system.",
-      status: "Active",
-    },
-    {
-      id: 9,
-      name: "Radiology",
-      description:
-        "Radiology is the medical discipline that uses medical imaging to diagnose diseases and guide their treatment, within the bodies of humans and other animals.",
-      status: "Active",
-    },
-    {
-      id: 10,
-      name: "Urology",
-      description:
-        "Urology is the branch of medicine that focuses on surgical and medical diseases of the urinary-tract system and the reproductive organs.",
-      status: "Active",
-    },
-    {
-      id: 11,
-      name: "Pulmonology",
-      description:
-        "Pulmonology is a medical specialty that deals with diseases involving the respiratory tract.",
-      status: "Active",
-    },
-    {
-      id: 12,
-      name: "Endocrinology",
-      description:
-        "Endocrinology is a branch of biology and medicine dealing with the endocrine system, its diseases, and its specific secretions known as hormones.",
-      status: "Active",
-    },
-  ]);
+  const [departments, setDepartments] = useState([]);
+
+  // API Functions
+  const fetchDepartments = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE}/departments/`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch departments");
+      }
+      const data = await response.json();
+      // Transform backend data to frontend format
+      const transformed = data.map((dept) => ({
+        id: dept.id,
+        name: dept.name,
+        description: dept.description || "",
+        status: dept.status.charAt(0).toUpperCase() + dept.status.slice(1),
+      }));
+      setDepartments(transformed);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateDepartmentStatus = useCallback(async (departmentId, newStatus) => {
+    try {
+      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: newStatus.toLowerCase(),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+      await fetchDepartments(); // Refresh list
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  }, [fetchDepartments]);
+
+  const deleteDepartment = useCallback(async (departmentId) => {
+    try {
+      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete department");
+      }
+      await fetchDepartments(); // Refresh list
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  }, [fetchDepartments]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchDepartments();
+  }, [fetchDepartments]);
+
+  // Add Department callback
+  const handleAddDepartment = useCallback((newDept) => {
+    setDepartments((prev) => [...prev, {
+      id: newDept.id,
+      name: newDept.name,
+      description: newDept.description || "",
+      status: newDept.status.charAt(0).toUpperCase() + newDept.status.slice(1),
+    }]);
+  }, []);
+
+  // Bulk Status Change
+  const handleBulkStatusChange = useCallback((newStatus) => {
+    if (selectedDepartments.length === 0) return;
+    
+    const updates = selectedDepartments.map(id => 
+      updateDepartmentStatus(id, newStatus)
+    );
+    
+    Promise.all(updates).then(() => {
+      setSelectedDepartments([]);
+      setBulkStatus(null);
+    });
+  }, [selectedDepartments, updateDepartmentStatus]);
 
   const statusColors = {
     Active: "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white",
@@ -157,7 +162,6 @@ const DepartmentList = () => {
     Endocrinology: Zap,
   };
 
-  // Fixed: Added searchTerm to dependencies + correct sort values
   const filteredAndSortedDepartments = useMemo(() => {
     let result = departments.filter((dept) => {
       if (
@@ -188,7 +192,7 @@ const DepartmentList = () => {
     }
 
     return result;
-  }, [departments, searchTerm, filtersData, sortOrder]); // ← searchTerm added
+  }, [departments, searchTerm, filtersData, sortOrder]);
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -219,31 +223,15 @@ const DepartmentList = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFiltersData({ ...filtersData, [name]: value });
-    setCurrentPage(1); // ← Reset page
+    setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
-    setFiltersData({
-      name: "",
-      status: "",
-    });
+    setFiltersData({ name: "", status: "" });
     setSortOrder("A-to-Z");
     setItemsPerPage(8);
-    setSearchTerm(""); // ← Also clear search
-    setCurrentPage(1); // ← Reset page
-  };
-
-  const handleBulkStatusChange = (val) => {
-    setBulkStatus(val);
-    if (selectedDepartments.length > 0 && val) {
-      setDepartments((depts) =>
-        depts.map((d) =>
-          selectedDepartments.includes(d.id) ? { ...d, status: val } : d
-        )
-      );
-      setSelectedDepartments([]);
-      setBulkStatus(null);
-    }
+    setSearchTerm("");
+    setCurrentPage(1);
   };
 
   const Dropdown = ({ value, onChange, options }) => (
@@ -295,9 +283,31 @@ const DepartmentList = () => {
   );
 
   const applySettings = () => {
-    setCurrentPage(1); // ← Reset page
+    setCurrentPage(1);
     setShowSettingsPopup(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button
+          onClick={fetchDepartments}
+          className="px-4 py-2 bg-[#0EFF7B] text-white rounded"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[1400px] mx-auto">
@@ -401,7 +411,7 @@ const DepartmentList = () => {
 
         {/* Search and Filter */}
         <div className="flex gap-4 mb-4 justify-end">
-          {/* Search Input - Added */}
+          {/* Search Input */}
           <div className="relative">
             <Search
               size={18}
@@ -413,7 +423,7 @@ const DepartmentList = () => {
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
-                setCurrentPage(1); // ← Reset page
+                setCurrentPage(1);
               }}
               className="w-[280px] h-[42px] pl-10 pr-3 rounded-[8px] border border-[#0EFF7B]
                          dark:border-[#3A3A3A] bg-white dark:bg-transparent
@@ -495,6 +505,7 @@ const DepartmentList = () => {
                         </div>
                       </td>
                       <td className="font-medium px-4 text-black dark:text-white text-left">
+                        <IconComponent size={16} className="inline mr-2 text-[#08994A]" />
                         {dept.name}
                       </td>
                       <td className="text-gray-600 dark:text-gray-400 px-4 max-w-xs truncate">
@@ -574,7 +585,7 @@ const DepartmentList = () => {
               ) : (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="5"
                     className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                   >
                     No departments found
@@ -691,7 +702,7 @@ const DepartmentList = () => {
                     value={filtersData.status}
                     onChange={(val) => {
                       setFiltersData({ ...filtersData, status: val });
-                      setCurrentPage(1); // ← Reset page
+                      setCurrentPage(1);
                     }}
                     options={["Active", "Inactive"]}
                   />
@@ -708,7 +719,7 @@ const DepartmentList = () => {
                 <button
                   onClick={() => {
                     setShowFilterPopup(false);
-                    setCurrentPage(1); // ← Reset page
+                    setCurrentPage(1);
                   }}
                   className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{
@@ -770,10 +781,6 @@ const DepartmentList = () => {
                       </Listbox.Button>
                       <Listbox.Options 
                         className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
-                        style={{
-                          scrollbarWidth: 'none',
-                          msOverflowStyle: 'none'
-                        }}
                       >
                         {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
                           <Listbox.Option
@@ -806,7 +813,7 @@ const DepartmentList = () => {
                     value={sortOrder}
                     onChange={(v) => {
                       setSortOrder(v);
-                      setCurrentPage(1); // ← Reset page
+                      setCurrentPage(1);
                     }}
                     options={[
                       { label: "A to Z", value: "A-to-Z" },
@@ -839,19 +846,24 @@ const DepartmentList = () => {
 
         {/* Popups */}
         {showAddPopup && (
-          <AddDepartmentPopup onClose={() => setShowAddPopup(false)} />
+          <AddDepartmentPopup 
+            onClose={() => setShowAddPopup(false)} 
+            onSave={handleAddDepartment}
+          />
         )}
         {showEditPopup && (
           <EditDepartmentPopup
             onClose={() => setShowEditPopup(false)}
             department={selectedDepartment}
+            onSave={fetchDepartments}
           />
         )}
         {showDeletePopup && (
           <DeleteDepartmentPopup
             onClose={() => setShowDeletePopup(false)}
+            department={selectedDepartment}
             onConfirm={() => {
-              setDepartments(departments.filter(d => d.id !== selectedDepartment.id));
+              deleteDepartment(selectedDepartment.id);
               setShowDeletePopup(false);
             }}
           />

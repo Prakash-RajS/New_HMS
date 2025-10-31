@@ -623,18 +623,18 @@ class Invoice(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
 
     # ---- Extra fields ----
-    admission_date = models.DateField()
-    discharge_date = models.DateField()
-    doctor = models.CharField(max_length=100)
-    phone = models.CharField(max_length=20)
-    email = models.CharField(max_length=100)
-    address = models.TextField()
+    admission_date = models.DateField(default=timezone.now)  # ✅ Default for old data
+    discharge_date = models.DateField(null=True, blank=True)
+    doctor = models.CharField(max_length=100, default="N/A")
+    phone = models.CharField(max_length=20, default="N/A")
+    email = models.CharField(max_length=100, default="N/A")
+    address = models.TextField(default="N/A")  # ✅ Default value
 
     invoice_items = models.JSONField(default=list)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=18.0)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     payment_date = models.CharField(max_length=50, blank=True, null=True)
-    pdf_file = models.FileField(upload_to="generated_invoices/", null=True, blank=True)  # ✅ NEW FIELD
+    pdf_file = models.FileField(upload_to="generated_invoices/", null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
