@@ -1,5 +1,5 @@
 # fastapi_app/routers/labreport.py
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Response
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict
 from typing import ClassVar
@@ -184,3 +184,25 @@ def update_labreport(labreport_id: int, payload: LabReportUpdate):
         "updated_at": lab.updated_at
     }
     return LabReportOut(**response_data)
+
+@router.delete("/{labreport_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_labreport(labreport_id: int):
+    """
+    Delete Lab Report by ID.
+    """
+    try:
+        lab = LabReport.objects.get(id=labreport_id)
+    except LabReport.DoesNotExist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lab Report not found."
+        )
+
+    try:
+        lab.delete()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting lab report: {str(e)}"
+        )

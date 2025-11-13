@@ -1,89 +1,244 @@
 import React, { useState, useEffect } from "react";
 import { Listbox } from "@headlessui/react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Edit, Trash2 } from "lucide-react";
+import { successToast, errorToast } from "../../components/Toast.jsx";
+import EditMedicineAllocationPopup from "./EditMedicineAllocationPopup";
+import DeleteMedicinePopup from "./DeleteMedicinePopup";
 
 export default function ViewPatientProfile() {
+  const API_BASE = "http://localhost:8000";
   const [searchQuery, setSearchQuery] = useState("");
   const [medicineData, setMedicineData] = useState([
     {
       id: Date.now(),
-      medicineName: "Amoxicillin",
-      dosage: "500 mg",
-      quantity: "20",
-      frequency: "Morning",
-      duration: "15 days",
-      time: "8:00 AM",
+      medicineName: "",
+      dosage: "",
+      quantity: "",
+      frequency: "",
+      duration: "",
+      time: "",
     },
   ]);
-  const [labTests, setLabTests] = useState([
-    { id: Date.now(), labTest: "Blood test" },
-  ]);
-  const [medicineHistory, setMedicineHistory] = useState(() => {
-    const savedHistory = localStorage.getItem("medicineHistory");
-    return savedHistory
-      ? JSON.parse(savedHistory)
-      : [
-          {
-            patientName: "Watson",
-            patientID: "SAH257384",
-            department: "Cardiology",
-            doctor: "Dr. Smith",
-            date: "16-07-2025",
-            medicine: "Amoxicillin",
-            dosage: "500 mg",
-            duration: "5 days",
-          },
-          {
-            patientName: "Watson",
-            patientID: "SAH257384",
-            department: "Cardiology",
-            doctor: "Dr. Smith",
-            date: "26-05-2025",
-            medicine: "Metformin",
-            dosage: "10 mg",
-            duration: "10 days",
-          },
-          {
-            patientName: "Watson",
-            patientID: "SAH257384",
-            department: "Cardiology",
-            doctor: "Dr. Smith",
-            date: "04-04-2025",
-            medicine: "Paracetamol",
-            dosage: "100 mg",
-            duration: "30 days",
-          },
-          {
-            patientName: "Watson",
-            patientID: "SAH257384",
-            department: "Cardiology",
-            doctor: "Dr. Smith",
-            date: "01-03-2024",
-            medicine: "Paracetamol",
-            dosage: "100 mg",
-            duration: "5 days",
-          },
-        ];
-  });
-
+  const [labTests, setLabTests] = useState([{ id: Date.now(), labTest: "" }]);
+  const [medicineHistory, setMedicineHistory] = useState([]);
   const [patientInfo, setPatientInfo] = useState({
-    patientName: "Watson",
-    patientID: "SAH257384",
-    department: "Cardiology",
+    patientName: "",
+    patientID: "",
+    department: "",
   });
+  const [patients, setPatients] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [patientDbId, setPatientDbId] = useState(null);
+  const [fullPatient, setFullPatient] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
+  // New states for edit/delete functionality
+  const [editingMedicine, setEditingMedicine] = useState(null);
+  const [deletingMedicine, setDeletingMedicine] = useState(null);
+  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
+  const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
-  const patients = [
-    { name: "Watson", id: "SAH257384" },
-    { name: "Smith", id: "SAH123456" },
-    { name: "Johnson", id: "SAH789012" },
-  ];
-
+  // Fetch departments and patients on component mount
   useEffect(() => {
-    localStorage.setItem("medicineHistory", JSON.stringify(medicineHistory));
-  }, [medicineHistory]);
+    fetchDepartments();
+    fetchPatients();
+  }, []);
+
+  // Filter patients based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredPatients(patients);
+    } else {
+      const filtered = patients.filter(
+        (patient) =>
+          patient.full_name
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          patient.patient_unique_id
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase())
+      );
+      setFilteredPatients(filtered);
+    }
+  }, [searchQuery, patients]);
+
+  // Fetch departments from backend
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/departments/`);
+      const text = await res.text();
+      if (!res.ok) {
+        console.error("Departments raw response (non-OK):", text);
+        throw new Error("Failed to fetch departments");
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Failed to parse departments JSON:", parseError);
+        console.error("Raw response:", text);
+        throw new Error("Invalid JSON response from departments API");
+      }
+      console.log("Departments API Response:", data);
+      setDepartments(data);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
+  // Fetch patients from backend
+  const fetchPatients = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/patients/edit`);
+      const text = await res.text();
+      if (!res.ok) {
+        console.error("Patients raw response (non-OK):", text);
+        throw new Error("Failed to fetch patients");
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Failed to parse patients JSON:", parseError);
+        console.error("Raw response:", text);
+        throw new Error("Invalid JSON response from patients API");
+      }
+      console.log("Patients API Response:", data);
+
+      // Handle different response structures
+      let patientsList = [];
+      if (Array.isArray(data)) {
+        patientsList = data;
+      } else if (data.patients && Array.isArray(data.patients)) {
+        patientsList = data.patients;
+      } else if (data && typeof data === "object") {
+        // If it's a single patient object, wrap it in array
+        patientsList = [data];
+      }
+
+      setPatients(patientsList);
+      setFilteredPatients(patientsList);
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+    }
+  };
+
+  // Fetch full patient details by patient_unique_id
+  const fetchPatientFull = async (patientUniqueId) => {
+    try {
+      const res = await fetch(`${API_BASE}/patients/${patientUniqueId}`);
+      const text = await res.text();
+      if (!res.ok) {
+        console.error("Full patient raw response (non-OK):", text);
+        throw new Error("Failed to fetch patient details");
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Failed to parse full patient JSON:", parseError);
+        console.error("Raw response:", text);
+        throw new Error("Invalid JSON response from patient details API");
+      }
+      console.log("Full patient data:", data);
+      setFullPatient(data);
+      return data;
+    } catch (error) {
+      console.error("Error fetching patient details:", error);
+      return null;
+    }
+  };
+
+  // Fetch medicine allocation history by patient ID
+  const fetchMedicineHistory = async (patientDbId) => {
+    if (!patientDbId) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/`
+      );
+      const text = await res.text();
+      if (!res.ok) {
+        if (res.status === 404) {
+          setMedicineHistory([]);
+          return;
+        }
+        console.error("Medicine history raw response (non-OK):", text);
+        throw new Error("Failed to fetch medicine history");
+      }
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Failed to parse medicine history JSON:", parseError);
+        console.error("Raw response:", text);
+        throw new Error("Invalid JSON response from medicine history API");
+      }
+      console.log("Medicine history:", data);
+      setMedicineHistory(data || []);
+    } catch (error) {
+      console.error("Error fetching medicine history:", error);
+      setMedicineHistory([]);
+    }
+  };
+
+  // Handle patient selection
+  const handlePatientSelect = async (patient) => {
+    if (!patient) return;
+    console.log("Selected patient:", patient);
+
+    // Find department name
+    const departmentName =
+      departments.find((d) => d.id === patient.department_id)?.name || "";
+
+    // Update patient info
+    setPatientInfo({
+      patientName: patient.full_name,
+      patientID: patient.patient_unique_id,
+      department: departmentName,
+    });
+
+    // Set database ID
+    setPatientDbId(patient.id);
+
+    // Fetch complete patient details
+    const fullPatientData = await fetchPatientFull(patient.patient_unique_id);
+
+    // Fetch medicine history
+    await fetchMedicineHistory(patient.id);
+
+    setSearchQuery("");
+  };
+
+  // Handle dropdown selection for patient fields
+  const handlePatientFieldChange = (field, value) => {
+    console.log(`Field changed: ${field} = ${value}`);
+
+    if (field === "patientName" && value) {
+      const selectedPatient = patients.find((p) => p.full_name === value);
+      if (selectedPatient) {
+        handlePatientSelect(selectedPatient);
+      }
+    } else if (field === "patientID" && value) {
+      const selectedPatient = patients.find(
+        (p) => p.patient_unique_id === value
+      );
+      if (selectedPatient) {
+        handlePatientSelect(selectedPatient);
+      }
+    } else if (field === "department" && value) {
+      // Update department only
+      setPatientInfo((prev) => ({
+        ...prev,
+        department: value,
+      }));
+    }
+  };
 
   const handleInputChange = (e, index, type) => {
     const { name, value } = e.target;
+
     if (type === "medicine") {
       setMedicineData((prev) => {
         const newData = [...prev];
@@ -95,18 +250,6 @@ export default function ViewPatientProfile() {
         const newTests = [...prev];
         newTests[index] = { ...newTests[index], [name]: value };
         return newTests;
-      });
-    } else {
-      setPatientInfo((prev) => {
-        const updatedData = { ...prev, [name]: value };
-        if (name === "patientName") {
-          const patient = patients.find((p) => p.name === value);
-          if (patient) updatedData.patientID = patient.id;
-        } else if (name === "patientID") {
-          const patient = patients.find((p) => p.id === value);
-          if (patient) updatedData.patientName = patient.name;
-        }
-        return updatedData;
       });
     }
   };
@@ -138,115 +281,478 @@ export default function ViewPatientProfile() {
     setLabTests((prev) => prev.filter((entry) => entry.id !== id));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newHistoryEntries = medicineData.map((med) => ({
-      patientName: patientInfo.patientName,
-      patientID: patientInfo.patientID,
-      department: patientInfo.department,
-      doctor: "Dr. Smith",
-      date: new Date().toLocaleDateString("en-GB").split("/").join("-"),
-      medicine: med.medicineName,
-      dosage: med.dosage,
-      duration: med.duration,
-    }));
 
-    setMedicineHistory((prev) => [...newHistoryEntries, ...prev]);
-    handleClear();
+    if (!patientDbId) {
+      errorToast("Please select a patient");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${API_BASE}/medicine_allocation/${patientDbId}/allocations/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            medicines: medicineData.map((med) => ({
+              medicine_name: med.medicineName,
+              dosage: med.dosage,
+              quantity: med.quantity,
+              frequency: med.frequency,
+              duration: med.duration,
+              time: med.time,
+            })),
+            lab_test_types: labTests
+              .map((test) => test.labTest)
+              .filter((test) => test && test.trim() !== ""),
+          }),
+        }
+      );
+
+      const text = await res.text();
+      if (!res.ok) {
+        console.error("Submit raw response (non-OK):", text);
+        let errorData;
+        try {
+          errorData = JSON.parse(text);
+        } catch {
+          errorData = { detail: text };
+        }
+        throw new Error(errorData.detail || "Failed to allocate medicines");
+      }
+
+      const result = JSON.parse(text);
+      const newHistoryEntries = result.medicines.map((med) => ({
+        id: med.id,
+        patient_name: med.patient_name,
+        patient_id: med.patient_id,
+        department: med.department,
+        doctor: med.doctor,
+        allocation_date: med.allocation_date,
+        medicine_name: med.medicine_name,
+        dosage: med.dosage,
+        duration: med.duration,
+        lab_test_type: med.lab_test_type,
+      }));
+
+      setMedicineHistory((prev) => [...newHistoryEntries, ...prev]);
+      handleClear();
+      successToast("Medicines allocated successfully!");
+    } catch (error) {
+      console.error("Error allocating medicines:", error);
+      errorToast(`Failed to allocate medicines: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClear = () => {
-    setPatientInfo({
-      patientName: "Watson",
-      patientID: "SAH257384",
-      department: "Cardiology",
-    });
     setMedicineData([
       {
         id: Date.now(),
-        medicineName: "Amoxicillin",
-        dosage: "500 mg",
-        quantity: "20",
-        frequency: "Morning",
-        duration: "15 days",
-        time: "8:00 AM",
+        medicineName: "",
+        dosage: "",
+        quantity: "",
+        frequency: "",
+        duration: "",
+        time: "",
       },
     ]);
-    setLabTests([{ id: Date.now(), labTest: "Blood test" }]);
-    setSearchQuery("");
+    setLabTests([{ id: Date.now(), labTest: "" }]);
   };
 
-  const filteredPatients = patients.filter(
-    (patient) =>
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.id.toLowerCase().includes(searchQuery.toLowerCase())
+  // New functions for edit/delete operations
+  const handleEditMedicine = (medicine) => {
+    setEditingMedicine(medicine);
+    setIsEditPopupOpen(true);
+  };
+
+  const handleDeleteMedicine = (medicine) => {
+    setDeletingMedicine(medicine);
+    setIsDeletePopupOpen(true);
+  };
+
+  const handleUpdateMedicine = async (updatedData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/${editingMedicine.id}/`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            medicine_name: updatedData.medicineName,
+            dosage: updatedData.dosage,
+            quantity: updatedData.quantity,
+            frequency: updatedData.frequency,
+            duration: updatedData.duration,
+            time: updatedData.time,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to update medicine allocation");
+      }
+
+      // Refresh medicine history
+      await fetchMedicineHistory(patientDbId);
+      successToast("Medicine allocation updated successfully!");
+    } catch (error) {
+      console.error("Error updating medicine:", error);
+      errorToast("Failed to update medicine allocation");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to delete medicine allocation");
+      }
+
+      // Refresh medicine history
+      await fetchMedicineHistory(patientDbId);
+      successToast("Medicine allocation deleted successfully!");
+    } catch (error) {
+      console.error("Error deleting medicine:", error);
+      errorToast("Failed to delete medicine allocation");
+    } finally {
+      setIsDeletePopupOpen(false);
+      setDeletingMedicine(null);
+    }
+  };
+
+  // Get unique values for dropdowns with proper data extraction
+  const patientNames = patients
+    .map((patient) => patient?.full_name)
+    .filter((name) => name && name.trim() !== "")
+    .filter((name, index, self) => self.indexOf(name) === index);
+  const patientIDs = patients
+    .map((patient) => patient?.patient_unique_id)
+    .filter((id) => id && id.trim() !== "")
+    .filter((id, index, self) => self.indexOf(id) === index);
+  const departmentNames = departments
+    .map((dept) => dept?.name)
+    .filter((name) => name && name.trim() !== "")
+    .filter((name, index, self) => self.indexOf(name) === index);
+
+  // Individual Dropdown Components for better control
+  const PatientNameDropdown = () => (
+    <div className="relative">
+      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+        Patient Name
+      </label>
+      <Listbox
+        value={patientInfo.patientName}
+        onChange={(value) => handlePatientFieldChange("patientName", value)}
+      >
+        {({ open }) => (
+          <>
+            <Listbox.Button
+              className={`
+                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                text-black dark:text-white text-left text-sm leading-none
+                shadow-[0_0_2.09px_#0EFF7B] outline-none
+                transition-all duration-300 font-helvetica
+                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                ${!patientInfo.patientName ? "text-gray-500" : ""}
+              `}
+            >
+              <span className="block truncate">
+                {patientInfo.patientName || "Select patient name"}
+              </span>
+
+              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                <ChevronDown
+                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </span>
+            </Listbox.Button>
+
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+              {patientNames.length > 0 ? (
+                patientNames.map((name) => (
+                  <Listbox.Option
+                    key={name}
+                    value={name}
+                    className={({ active, selected }) =>
+                      `
+                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        ${
+                          active
+                            ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        }
+                        ${
+                          selected
+                            ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                            : ""
+                        }
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                    }
+                  >
+                    {name}
+                  </Listbox.Option>
+                ))
+              ) : (
+                <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                  No patients found
+                </div>
+              )}
+            </Listbox.Options>
+          </>
+        )}
+      </Listbox>
+    </div>
   );
 
-  // Reusable Listbox Dropdown Component
-  const Dropdown = ({ label, placeholder, value, onChange, options, name, index, type }) => (
-    <div>
+  const PatientIDDropdown = () => (
+    <div className="relative">
+      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+        Patient ID
+      </label>
+      <Listbox
+        value={patientInfo.patientID}
+        onChange={(value) => handlePatientFieldChange("patientID", value)}
+      >
+        {({ open }) => (
+          <>
+            <Listbox.Button
+              className={`
+                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                text-black dark:text-white text-left text-sm leading-none
+                shadow-[0_0_2.09px_#0EFF7B] outline-none
+                transition-all duration-300 font-helvetica
+                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                ${!patientInfo.patientID ? "text-gray-500" : ""}
+              `}
+            >
+              <span className="block truncate">
+                {patientInfo.patientID || "Select patient ID"}
+              </span>
+
+              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                <ChevronDown
+                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </span>
+            </Listbox.Button>
+
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+              {patientIDs.length > 0 ? (
+                patientIDs.map((id) => (
+                  <Listbox.Option
+                    key={id}
+                    value={id}
+                    className={({ active, selected }) =>
+                      `
+                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        ${
+                          active
+                            ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        }
+                        ${
+                          selected
+                            ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                            : ""
+                        }
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                    }
+                  >
+                    {id}
+                  </Listbox.Option>
+                ))
+              ) : (
+                <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                  No patient IDs found
+                </div>
+              )}
+            </Listbox.Options>
+          </>
+        )}
+      </Listbox>
+    </div>
+  );
+
+  const DepartmentDropdown = () => (
+    <div className="relative">
+      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+        Department
+      </label>
+      <Listbox
+        value={patientInfo.department}
+        onChange={(value) => handlePatientFieldChange("department", value)}
+      >
+        {({ open }) => (
+          <>
+            <Listbox.Button
+              className={`
+                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                text-black dark:text-white text-left text-sm leading-none
+                shadow-[0_0_2.09px_#0EFF7B] outline-none
+                transition-all duration-300 font-helvetica
+                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                ${!patientInfo.department ? "text-gray-500" : ""}
+              `}
+            >
+              <span className="block truncate">
+                {patientInfo.department || "Select department"}
+              </span>
+
+              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                <ChevronDown
+                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </span>
+            </Listbox.Button>
+
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+              {departmentNames.length > 0 ? (
+                departmentNames.map((dept) => (
+                  <Listbox.Option
+                    key={dept}
+                    value={dept}
+                    className={({ active, selected }) =>
+                      `
+                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        ${
+                          active
+                            ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        }
+                        ${
+                          selected
+                            ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                            : ""
+                        }
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                    }
+                  >
+                    {dept}
+                  </Listbox.Option>
+                ))
+              ) : (
+                <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                  No departments found
+                </div>
+              )}
+            </Listbox.Options>
+          </>
+        )}
+      </Listbox>
+    </div>
+  );
+
+  // Medicine Dropdown Component
+  const MedicineDropdown = ({ label, name, value, options, index }) => (
+    <div className="relative">
       <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
         {label}
       </label>
       <Listbox
         value={value}
-        onChange={(val) => {
-          const fakeEvent = { target: { name, value: val } };
-          if (type === "medicine") handleInputChange(fakeEvent, index, "medicine");
-          else if (type === "labTest") handleInputChange(fakeEvent, index, "labTest");
-          else if (type === "patient") handleInputChange(fakeEvent, null, "patient");
+        onChange={(selectedValue) => {
+          const fakeEvent = { target: { name, value: selectedValue } };
+          handleInputChange(fakeEvent, index, "medicine");
         }}
       >
-        <div className="relative mt-1 w-full">
-          <Listbox.Button
-            className="
-              w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px] 
-              border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black 
-              text-black dark:text-white text-left text-sm 
-              shadow-[0_0_2.09px_#0EFF7B] outline-none 
-              focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] 
-              transition-all duration-300 font-helvetica
-            "
-          >
-            <span className="block truncate">{value || placeholder}</span>
-            <span className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
-          <Listbox.Options
-            className="
-              absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] 
-              bg-white dark:bg-black shadow-lg z-[100] border border-gray-300 dark:border-[#3C3C3C]
-              scrollbar-hide
-            "
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {options.map((option) => (
-              <Listbox.Option
-                key={option}
-                value={option}
-                className={({ active, selected }) =>
-                  `
-                    cursor-pointer select-none py-2 px-3 text-sm rounded-md font-helvetica
-                    ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                    ${selected ? "font-medium text-[#0EFF7B]" : ""}
-                  `
-                }
-              >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
+        {({ open }) => (
+          <>
+            <Listbox.Button
+              className={`
+                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                text-black dark:text-white text-left text-sm leading-none
+                shadow-[0_0_2.09px_#0EFF7B] outline-none
+                transition-all duration-300 font-helvetica
+                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                ${!value ? "text-gray-500" : ""}
+              `}
+            >
+              <span className="block truncate">
+                {value || `Select ${label.toLowerCase()}`}
+              </span>
+
+              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                <ChevronDown
+                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                    open ? "rotate-180" : ""
+                  }`}
+                />
+              </span>
+            </Listbox.Button>
+
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+              {options.map((option) => (
+                <Listbox.Option
+                  key={option}
+                  value={option}
+                  className={({ active, selected }) =>
+                    `
+                      cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                      ${
+                        active
+                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                          : "text-black dark:text-white"
+                      }
+                      ${
+                        selected
+                          ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                          : ""
+                      }
+                      hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                    `
+                  }
+                >
+                  {option}
+                </Listbox.Option>
+              ))}
+            </Listbox.Options>
+          </>
+        )}
       </Listbox>
     </div>
   );
 
   return (
-    <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
-    >
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col relative">
+      {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -255,12 +761,10 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       ></div>
-      {/* Gradient Border */}
+
       <div
+        className="absolute inset-0 rounded-[10px] pointer-events-none"
         style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -268,103 +772,77 @@ export default function ViewPatientProfile() {
             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
-          pointerEvents: "none",
           zIndex: 0,
         }}
       ></div>
-      {/* Search Bar with Dropdowns */}
-      <div className="mb-6 mt-7 flex flex-row justify-end items-center gap-2 flex-wrap max-w-full">
-        <div className="flex-1 min-w-[180px] max-w-[350px] lg:max-w-[400px]">
+
+      {/* Search Bar with Individual Dropdowns */}
+      <div className="mb-6 mt-7 flex flex-row justify-end items-end gap-2 flex-wrap max-w-full relative">
+        <div className="flex-1 min-w-[180px] max-w-[350px] lg:max-w-[400px] relative">
+          <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+            Search Patient
+          </label>
           <input
             type="text"
             placeholder="Search patient name or ID"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && filteredPatients.length > 0) {
+                handlePatientSelect(filteredPatients[0]);
+              }
+            }}
             className="
-              w-full 
+              w-full
               h-[34px]
-              p-[4.19px_16.75px] 
-              rounded 
-              border-[1.05px] 
-              border-[#0EFF7B1A] 
-              bg-[#0EFF7B1A] 
-              text-black dark:text-white 
-              placeholder:text-gray-500 dark:placeholder:text-white/70 
-              focus:outline-none 
+              p-[4.19px_16.75px]
+              rounded
+              border-[1.05px]
+              border-[#0EFF7B1A]
+              bg-[#0EFF7B1A]
+              text-black dark:text-white
+              placeholder:text-gray-500 dark:placeholder:text-white/70
+              focus:outline-none
               focus:border-[#0EFF7B]
               transition-all
               font-helvetica
             "
           />
+          {searchQuery && filteredPatients.length > 0 && (
+            <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+              {filteredPatients.map((patient) => (
+                <div
+                  key={patient.id}
+                  onClick={() => handlePatientSelect(patient)}
+                  className="
+                    cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                    text-black dark:text-white
+                    hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                  "
+                >
+                  {patient.full_name} ({patient.patient_unique_id})
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex gap-2 items-center flex-wrap">
-          <div className="min-w-[120px] w-[160px] lg:w-[180px]">
-            <Dropdown
-              label=""
-              placeholder="Select Patient"
-              value={patientInfo.patientName}
-              onChange={() => {}}
-              options={filteredPatients.map(p => p.name)}
-              name="patientName"
-              type="patient"
-            />
+          <div className="min-w-[120px] w-[160px] lg:w-[180px] relative">
+            <PatientNameDropdown />
           </div>
-          <div className="min-w-[120px] w-[160px] lg:w-[180px]">
-            <Dropdown
-              label=""
-              placeholder="Select ID"
-              value={patientInfo.patientID}
-              onChange={() => {}}
-              options={filteredPatients.map(p => p.id)}
-              name="patientID"
-              type="patient"
-            />
+          <div className="min-w-[120px] w-[160px] lg:w-[180px] relative">
+            <PatientIDDropdown />
           </div>
-          <button
-            type="button"
-            className="
-              flex 
-              items-center 
-              justify-center 
-              h-[33.5px] 
-              px-3 
-              rounded-[8.38px] 
-              bg-[#0EFF7B] 
-              text-black 
-              font-medium 
-              shadow-[0_0_4px_#0EFF7B]
-              hover:bg-[#05c860]
-              hover:text-white
-              transition-all
-              duration-300
-              font-helvetica
-              min-w-[40px]
-            "
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-4 h-4"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1010.5 18a7.5 7.5 0 006.15-3.35z"
-              />
-            </svg>
-          </button>
         </div>
       </div>
 
       {/* View Patient Profile Information */}
-      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-helvetica max-w-full">
+      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-helvetica max-w-full relative">
+        {/* Your existing patient profile content */}
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
           <div className="rounded-full w-[94px] h-[94px] flex items-center justify-center mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B]">
             <svg
-              className="w-[60px] h-[60px]"
+              className="w-[60px] h-[60px] text-[#0EFF7B]"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -373,25 +851,51 @@ export default function ViewPatientProfile() {
             </svg>
           </div>
           <span className="text-[#0EFF7B] text-[18px] font-semibold font-helvetica">
-            Mrs. Watson
+            {fullPatient?.gender === "Female"
+              ? "Mrs."
+              : fullPatient?.gender === "Male"
+              ? "Mr."
+              : ""}{" "}
+            {fullPatient?.full_name ||
+              patientInfo.patientName ||
+              "Select a patient"}
           </span>
           <span className="text-[14px] text-gray-500 dark:text-gray-400 font-helvetica">
-            ID: SAH257384
+            ID:{" "}
+            {fullPatient?.patient_unique_id || patientInfo.patientID || "N/A"}
           </span>
           <span className="text-[14px] text-gray-500 dark:text-gray-400 font-helvetica">
-            watson22@gmail.com
+            {fullPatient?.email_address || "N/A"}
           </span>
         </div>
+
         <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
+
         <div className="flex-1 flex flex-col mt-4 lg:mt-0">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-5 text-[14px]">
             {[
-              { label: "Gender", value: "Female" },
-              { label: "Age", value: "28" },
-              { label: "Blood Group", value: "A+ve" },
-              { label: "Department", value: "Cardiology" },
-              { label: "Bed Number", value: "RM 325" },
-              { label: "Consultant type", value: "In-patient" },
+              { label: "Gender", value: fullPatient?.gender || "N/A" },
+              {
+                label: "Age",
+                value: fullPatient?.age ? `${fullPatient.age}` : "N/A",
+              },
+              {
+                label: "Blood Group",
+                value: fullPatient?.blood_group || "N/A",
+              },
+              {
+                label: "Department",
+                value:
+                  departments.find((d) => d.id === fullPatient?.department_id)
+                    ?.name ||
+                  patientInfo.department ||
+                  "N/A",
+              },
+              { label: "Bed Number", value: fullPatient?.room_number || "N/A" },
+              {
+                label: "Consultant type",
+                value: fullPatient?.consultation_type || "N/A",
+              },
             ].map((item, idx) => (
               <div key={idx} className="flex flex-col items-center">
                 <span className="w-[100px] sm:w-[110px] h-[18px] font-helvetica text-[15px] leading-[100%] text-center text-[#0EFF7B]">
@@ -427,7 +931,9 @@ export default function ViewPatientProfile() {
             </button>
           </div>
         </div>
+
         <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
+
         <div className="text-[14px] flex justify-center gap-3 sm:gap-6 mt-4 lg:mt-0">
           <div className="flex flex-col items-center space-y-3">
             <div className="flex flex-col items-center space-y-1">
@@ -435,7 +941,8 @@ export default function ViewPatientProfile() {
                 Blood Pressure
               </span>
               <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
-                120/80 <span className="text-black dark:text-white">mmHg</span>
+                {fullPatient?.blood_pressure || "N/A"}{" "}
+                <span className="text-black dark:text-white">mmHg</span>
               </span>
             </div>
             <div className="flex flex-col items-center space-y-1">
@@ -443,7 +950,8 @@ export default function ViewPatientProfile() {
                 Heart Rate
               </span>
               <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
-                102 <span className="text-black dark:text-white">bpm</span>
+                {fullPatient?.heart_rate || "N/A"}{" "}
+                <span className="text-black dark:text-white">bpm</span>
               </span>
             </div>
           </div>
@@ -452,60 +960,26 @@ export default function ViewPatientProfile() {
               Temperature
             </span>
             <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
-              98.4°F
+              {fullPatient?.body_temperature
+                ? `${fullPatient.body_temperature}°F`
+                : "N/A"}
             </span>
           </div>
         </div>
       </div>
 
       {/* Medicine Allocation Form */}
-      <div
-        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative overflow-visible bg-white dark:bg-black text-black dark:text-white z-10"
-        style={{
-          border: "1px solid #0EFF7B1A",
-          backdropFilter: "blur(4px)",
-          boxShadow: "0px 0px 4px 0px #0000001F",
-        }}
-      >
-        <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden z-[-1]"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-          }}
-        ></div>
+      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-helvetica">
           Medicine Allocation
         </h2>
         <form onSubmit={handleSubmit}>
-          {/* Patient Info */}
+          {/* Patient Info with Individual Dropdowns */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-            <Dropdown
-              label="Patient Name"
-              placeholder="Select patient"
-              value={patientInfo.patientName}
-              options={patients.map(p => p.name)}
-              name="patientName"
-              type="patient"
-            />
-            <Dropdown
-              label="Patient ID"
-              placeholder="Select ID"
-              value={patientInfo.patientID}
-              options={patients.map(p => p.id)}
-              name="patientID"
-              type="patient"
-            />
-            <Dropdown
-              label="Department"
-              placeholder="Select department"
-              value={patientInfo.department}
-              options={["Cardiology", "Neurology", "Orthopedics"]}
-              name="department"
-              type="patient"
-            />
+            <PatientNameDropdown />
+            <PatientIDDropdown />
+            <DepartmentDropdown />
           </div>
-
           {/* Medicines List */}
           <div className="flex flex-col gap-5">
             {medicineData.map((med, index) => (
@@ -538,54 +1012,144 @@ export default function ViewPatientProfile() {
                     )}
                   </div>
                 </div>
-
-                {/* Medicine Dropdowns */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {[
-                    { label: "Medicine Name", name: "medicineName", options: ["Amoxicillin", "Paracetamol", "Cefixime", "Ibuprofen"] },
-                    { label: "Dosage", name: "dosage", options: ["250 mg", "500 mg", "750 mg"] },
-                    { label: "Quantity", name: "quantity", options: ["10", "20", "30", "50"] },
-                    { label: "Frequency", name: "frequency", options: ["Morning", "Afternoon", "Evening", "Night"] },
-                    { label: "Duration", name: "duration", options: ["5 days", "10 days", "15 days", "30 days"] },
-                    { label: "Time", name: "time", options: ["8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM"] },
-                  ].map((field) => (
-                    <Dropdown
-                      key={field.name}
-                      label={field.label}
-                      placeholder={`Select ${field.label.toLowerCase()}`}
-                      value={med[field.name]}
-                      options={field.options}
-                      name={field.name}
-                      index={index}
-                      type="medicine"
-                    />
-                  ))}
+                  <MedicineDropdown
+                    label="Medicine Name"
+                    name="medicineName"
+                    value={med.medicineName}
+                    options={[
+                      "Amoxicillin",
+                      "Paracetamol",
+                      "Cefixime",
+                      "Ibuprofen",
+                    ]}
+                    index={index}
+                  />
+                  <MedicineDropdown
+                    label="Dosage"
+                    name="dosage"
+                    value={med.dosage}
+                    options={["250 mg", "500 mg", "750 mg"]}
+                    index={index}
+                  />
+                  <MedicineDropdown
+                    label="Quantity"
+                    name="quantity"
+                    value={med.quantity}
+                    options={["10", "20", "30", "50"]}
+                    index={index}
+                  />
+                  <MedicineDropdown
+                    label="Frequency"
+                    name="frequency"
+                    value={med.frequency}
+                    options={["Morning", "Afternoon", "Evening", "Night"]}
+                    index={index}
+                  />
+                  <MedicineDropdown
+                    label="Duration"
+                    name="duration"
+                    value={med.duration}
+                    options={["5 days", "10 days", "15 days", "30 days"]}
+                    index={index}
+                  />
+                  <MedicineDropdown
+                    label="Time"
+                    name="time"
+                    value={med.time}
+                    options={["8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM"]}
+                    index={index}
+                  />
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Lab Tests */}
+          {/* Lab Tests and Form Actions */}
           <div className="mt-6">
             <h4 className="font-medium text-[#0EFF7B] mb-2">Lab Tests</h4>
             {labTests.map((test, index) => (
               <div key={test.id} className="flex items-center gap-3 mb-2">
                 <div className="flex-1">
-                  <Dropdown
-                    label=""
-                    placeholder="Select Lab Test"
-                    value={test.labTest}
-                    options={["Blood Test", "Urine Test", "X-Ray", "MRI"]}
-                    name="labTest"
-                    index={index}
-                    type="labTest"
-                  />
+                  <div className="relative">
+                    <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+                      Lab Test
+                    </label>
+
+                    <Listbox
+                      value={test.labTest}
+                      onChange={(selectedValue) => {
+                        const fakeEvent = {
+                          target: { name: "labTest", value: selectedValue },
+                        };
+                        handleInputChange(fakeEvent, index, "labTest");
+                      }}
+                    >
+                      {({ open }) => (
+                        <>
+                          <Listbox.Button
+                            className={`
+                              relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                              border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                              text-black dark:text-white text-left text-sm leading-none
+                              shadow-[0_0_2.09px_#0EFF7B] outline-none
+                              transition-all duration-300 font-helvetica
+                              ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                              ${!test.labTest ? "text-gray-500" : ""}
+                            `}
+                          >
+                            <span className="block truncate">
+                              {test.labTest || "Select lab test"}
+                            </span>
+
+                            <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                              <ChevronDown
+                                className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                                  open ? "rotate-180" : ""
+                                }`}
+                              />
+                            </span>
+                          </Listbox.Button>
+
+                          <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                            {["Blood Test", "Urine Test", "X-Ray", "MRI"].map(
+                              (option) => (
+                                <Listbox.Option
+                                  key={option}
+                                  value={option}
+                                  className={({ active, selected }) =>
+                                    `
+                                      cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                                      ${
+                                        active
+                                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                          : "text-black dark:text-white"
+                                      }
+                                      ${
+                                        selected
+                                          ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                                          : ""
+                                      }
+                                      hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                                    `
+                                  }
+                                >
+                                  {option}
+                                </Listbox.Option>
+                              )
+                            )}
+                          </Listbox.Options>
+                        </>
+                      )}
+                    </Listbox>
+                  </div>
                 </div>
+
+                {/* + and × buttons */}
                 {index === labTests.length - 1 && (
                   <button
                     type="button"
                     onClick={addLabTestEntry}
-                    className="text-green-500 hover:text-green-600 text-xl"
+                    className="text-green-500 mt-5 hover:text-green-600 text-xl"
                   >
                     +
                   </button>
@@ -594,7 +1158,7 @@ export default function ViewPatientProfile() {
                   <button
                     type="button"
                     onClick={() => removeLabTestEntry(test.id)}
-                    className="text-red-500 hover:text-red-700 text-xl"
+                    className="text-red-500 mt-5 hover:text-red-700 text-xl"
                   >
                     ×
                   </button>
@@ -603,78 +1167,126 @@ export default function ViewPatientProfile() {
             ))}
           </div>
 
-          {/* Form Actions */}
           <div className="mt-5 flex justify-end gap-4">
             <button
               type="button"
               onClick={handleClear}
-              className="px-4 py-2 rounded border border-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800"
+              disabled={loading}
+              className="px-4 py-2 rounded border border-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50"
             >
               Clear
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded bg-[#0EFF7B] text-black font-semibold hover:bg-[#05c860]"
+              disabled={loading || !patientDbId}
+              className="px-4 py-2 rounded bg-[#0EFF7B] text-black font-semibold hover:bg-[#05c860] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Allocate Medicine
+              {loading ? "Allocating..." : "Allocate Medicine"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Medicine Allocation History */}
-      <div
-        className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative overflow-visible bg-white dark:bg-black text-black dark:text-white"
-        style={{
-          border: "1px solid #0EFF7B1A",
-          backdropFilter: "blur(4px)",
-          boxShadow: "0px 0px 4px 0px #0000001F",
-        }}
-      >
-        <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden z-[-1]"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-          }}
-        ></div>
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-helvetica">
-          Medicine allocation history
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[600px] border-collapse font-helvetica text-[13px] sm:text-[14px]">
-            <thead className="text-[#0EFF7B] font-helvetica dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
-              <tr className="text-left text-[#0EFF7B] border border-gray-300 dark:border-[#3C3C3C] text-center">
-                <th className="py-1.5 px-2 sm:px-3">Patient Name</th>
-                <th className="py-1.5 px-2 sm:px-3">Patient ID</th>
-                <th className="py-1.5 px-2 sm:px-3">Department</th>
-                <th className="py-1.5 px-2 sm:px-3">Doctor</th>
-                <th className="py-1.5 px-2 sm:px-3">Date</th>
-                <th className="py-1.5 px-2 sm:px-3">Medicine</th>
-                <th className="py-1.5 px-2 sm:px-3">Dosage</th>
-                <th className="py-1.5 px-2 sm:px-3">Duration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {medicineHistory.map((item, index) => (
-                <tr
-                  key={index}
-                  className="border border-gray-200 dark:border-gray-700 text-center text-black dark:text-[#FFFFFF] hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-black"
+      {/* Medicine Allocation History with Actions */}
+      {/* Medicine Allocation History with Actions */}
+<div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+  <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-helvetica">
+    Medicine allocation history
+  </h2>
+  <div className="overflow-x-auto">
+    <table className="w-full min-w-[600px] border-collapse font-helvetica text-[13px] sm:text-[14px]">
+      <thead className="text-[#0EFF7B] font-helvetica dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+        <tr className="text-left text-[#0EFF7B] border border-gray-300 dark:border-[#3C3C3C] text-center">
+          <th className="py-1.5 px-2 sm:px-3">Patient Name</th>
+          <th className="py-1.5 px-2 sm:px-3">Patient ID</th>
+          <th className="py-1.5 px-2 sm:px-3">Doctor</th>
+          <th className="py-1.5 px-2 sm:px-3">Date</th>
+          <th className="py-1.5 px-2 sm:px-3">Medicine</th>
+          <th className="py-1.5 px-2 sm:px-3">Dosage</th>
+          <th className="py-1.5 px-2 sm:px-3">Duration</th>
+          <th className="py-1.5 px-2 sm:px-3">Lab Tests</th>
+          <th className="py-1.5 px-2 sm:px-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {medicineHistory.map((item, index) => (
+          <tr
+            key={item.id || index}
+            className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-white dark:bg-black"
+          >
+            <td className="py-1.5 px-2 sm:px-3">{item.patient_name}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.patient_id}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.doctor}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.allocation_date}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.medicine_name}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.dosage}</td>
+            <td className="py-1.5 px-2 sm:px-3">{item.duration}</td>
+
+            {/* LAB TESTS CELL – Shows actual test names */}
+            <td className="py-1.5 px-2 sm:px-3">
+              {item.lab_test_types ? (
+                <span className="text-[#0EFF7B] font-medium">
+                  {item.lab_test_types}
+                </span>
+              ) : (
+                <span className="text-gray-500">No</span>
+              )}
+            </td>
+
+            <td className="py-1.5 px-2 sm:px-3">
+              <div className="flex justify-center space-x-2">
+                <button
+                  onClick={() => handleEditMedicine(item)}
+                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                  title="Edit"
                 >
-                  <td className="py-1.5 px-2 sm:px-3">{item.patientName}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.patientID}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.department}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.doctor}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.date}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.medicine}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.dosage}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.duration}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <Edit size={16} />
+                </button>
+                <button
+                  onClick={() => handleDeleteMedicine(item)}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    {medicineHistory.length === 0 && (
+      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        No medicine allocation history found for this patient.
       </div>
+    )}
+  </div>
+</div>
+
+      {/* Edit Medicine Allocation Popup */}
+      {isEditPopupOpen && editingMedicine && (
+        <EditMedicineAllocationPopup
+          onClose={() => {
+            setIsEditPopupOpen(false);
+            setEditingMedicine(null);
+          }}
+          medicineData={editingMedicine}
+          onUpdate={handleUpdateMedicine}
+        />
+      )}
+
+      {/* Delete Medicine Popup */}
+      {isDeletePopupOpen && deletingMedicine && (
+        <DeleteMedicinePopup
+          onClose={() => {
+            setIsDeletePopupOpen(false);
+            setDeletingMedicine(null);
+          }}
+          onConfirm={handleConfirmDelete}
+          medicineName={deletingMedicine.medicine_name}
+        />
+      )}
     </div>
   );
 }

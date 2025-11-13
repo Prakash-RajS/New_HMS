@@ -7,6 +7,7 @@ from datetime import datetime
 from django.db import transaction, IntegrityError
 from django.db.models import Q
 from HMS_backend.models import Stock
+from django.core.exceptions import ObjectDoesNotExist
 
 router = APIRouter(prefix="/stock", tags=["Stock Management"])
 
@@ -247,3 +248,27 @@ def search_stock(
         )
         for stock in stocks
     ]
+
+@router.delete("/delete/{stock_id}", status_code=status.HTTP_200_OK)
+def delete_stock(stock_id: int):
+    """
+    Delete a stock item by ID.
+    """
+    try:
+        stock = Stock.objects.get(id=stock_id)
+        stock.delete()
+        
+        return {
+            "message": f"Stock item {stock_id} deleted successfully",
+            "deleted_id": stock_id
+        }
+    except Stock.DoesNotExist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock item with ID {stock_id} not found"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting stock: {str(e)}"
+        )

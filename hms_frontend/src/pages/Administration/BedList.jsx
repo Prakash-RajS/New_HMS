@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment } from "react";
+import React, { useState, useMemo, useEffect, Fragment } from "react";
 import {
   Search,
   Plus,
@@ -17,6 +17,7 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import DeleteAppointmentPopup from "./DeleteRoomListPopup";
 import AddBedGroupPopup from "./AddBedGroupPopup";
 import EditBedGroupPopup from "./EditBedGroupPopup";
+import { successToast, errorToast } from "../../components/Toast"; // adjust path if needed
 
 const BedList = () => {
   const [showAddPopup, setShowAddPopup] = useState(false);
@@ -31,133 +32,72 @@ const BedList = () => {
   const [roomToDelete, setRoomToDelete] = useState(null);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editingRoomIndex, setEditingRoomIndex] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
   const location = useLocation();
   const itemsPerPage = 9;
 
-  const [roomsData, setRoomsData] = useState([
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 80,
-      unoccupied: 70,
-      status: "Available",
-      bedRange: "80 - 100",
-    },
-    {
-      bedGroup: "Ward",
-      capacity: 150,
-      occupied: 90,
-      unoccupied: 60,
-      status: "Available",
-      bedRange: "80 - 100",
-    },
-    {
-      bedGroup: "Cabin",
-      capacity: 150,
-      occupied: 100,
-      unoccupied: 50,
-      status: "Not Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "Special ward",
-      capacity: 150,
-      occupied: 70,
-      unoccupied: 80,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "PACU",
-      capacity: 150,
-      occupied: 85,
-      unoccupied: 65,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "PACU",
-      capacity: 150,
-      occupied: 95,
-      unoccupied: 55,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 75,
-      unoccupied: 75,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "NICU",
-      capacity: 150,
-      occupied: 110,
-      unoccupied: 40,
-      status: "Not Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 88,
-      unoccupied: 62,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "NICU",
-      capacity: 150,
-      occupied: 110,
-      unoccupied: 40,
-      status: "Not Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 88,
-      unoccupied: 62,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "NICU",
-      capacity: 150,
-      occupied: 110,
-      unoccupied: 40,
-      status: "Not Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 88,
-      unoccupied: 62,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "NICU",
-      capacity: 150,
-      occupied: 110,
-      unoccupied: 40,
-      status: "Not Available",
-      bedRange: "1 - 150",
-    },
-    {
-      bedGroup: "ICU",
-      capacity: 150,
-      occupied: 88,
-      unoccupied: 62,
-      status: "Available",
-      bedRange: "1 - 150",
-    },
-  ]);
+  const [roomsData, setRoomsData] = useState([]);
+
+  // Fetch bed groups on mount
+  useEffect(() => {
+    const fetchBedGroups = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const response = await fetch("http://127.0.0.1:8000/bedgroups/all", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Failed to fetch bed groups.";
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+          setError(errorMessage);
+          errorToast(errorMessage);
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        // Transform backend data to frontend format (add bedRange from actual beds)
+        const transformedData = data.map((group) => {
+          const numbers = group.beds.map((b) => b.bed_number).sort((a, b) => a - b);
+          const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${group.capacity}`;
+          return {
+            id: group.id,
+            bedGroup: group.bedGroup,
+            capacity: group.capacity,
+            occupied: group.occupied,
+            unoccupied: group.unoccupied,
+            status: group.status,
+            bedRange,
+            beds: group.beds, // Keep for edit prefill
+          };
+        });
+        setRoomsData(transformedData);
+        successToast("Bed groups loaded successfully!");
+      } catch (err) {
+        const networkError = "Network error. Please check your connection.";
+        setError(networkError);
+        errorToast(networkError);
+        console.error("Fetch BedGroups Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBedGroups();
+  }, []);
 
   const filteredRooms = useMemo(() => {
     return roomsData.filter((room) => {
@@ -214,10 +154,38 @@ const BedList = () => {
     setShowDeletePopup(true);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (roomToDelete !== null) {
-      setRoomsData((prev) => prev.filter((_, i) => i !== roomToDelete));
-      setSelectedRooms((prev) => prev.filter((r) => r !== roomToDelete));
+      const roomId = roomsData[roomToDelete].id;
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/bedgroups/${roomId}/`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Failed to delete bed group.";
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+          errorToast(errorMessage);
+          return;
+        }
+
+        // Remove from local state
+        setRoomsData((prev) => prev.filter((_, i) => i !== roomToDelete));
+        setSelectedRooms((prev) => prev.filter((r) => r !== roomToDelete));
+        successToast("Bed group deleted successfully!");
+      } catch (err) {
+        const networkError = "Network error. Please check your connection.";
+        errorToast(networkError);
+        console.error("Delete BedGroup Error:", err);
+      }
     }
     setRoomToDelete(null);
     setShowDeletePopup(false);
@@ -241,32 +209,44 @@ const BedList = () => {
     const end = start + 20;
     return `${start} to ${end}`;
   };
-  const handleUpdateBedGroup = (index, updatedData) => {
-    const { bedGroupName, bedFrom, bedTo } = updatedData;
-    const capacity = parseInt(bedTo) - parseInt(bedFrom) + 1;
-    setRoomsData((prev) => {
-      const newData = [...prev];
-      newData[index] = {
-        ...newData[index],
-        bedGroup: bedGroupName,
-        capacity,
-        bedRange: `${bedFrom} - ${bedTo}`,
-        unoccupied: capacity - newData[index].occupied,
-      };
-      return newData;
-    });
+
+  const handleUpdateBedGroup = (updatedData) => {
+    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } = updatedData;
+    // Find index by ID (since list may change)
+    const index = roomsData.findIndex((room) => room.id === id);
+    if (index !== -1) {
+      const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
+      const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${capacity}`;
+      setRoomsData((prev) => {
+        const newData = [...prev];
+        newData[index] = {
+          ...newData[index],
+          bedGroup,
+          capacity,
+          occupied,
+          unoccupied,
+          status,
+          bedRange,
+          beds,
+        };
+        return newData;
+      });
+    }
   };
 
   const handleAddBedGroup = (newGroup) => {
-    const { bedGroupName, bedFrom, bedTo } = newGroup;
-    const capacity = parseInt(bedTo) - parseInt(bedFrom) + 1;
+    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } = newGroup;
+    const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
+    const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${capacity}`;
     const newEntry = {
-      bedGroup: bedGroupName,
+      id,
+      bedGroup,
       capacity,
-      occupied: 0,
-      unoccupied: capacity,
-      status: "Available",
-      bedRange: `${bedFrom} - ${bedTo}`, // <-- store the actual range
+      occupied,
+      unoccupied,
+      status,
+      bedRange,
+      beds,
     };
     setRoomsData((prev) => [...prev, newEntry]);
   };
@@ -275,27 +255,28 @@ const BedList = () => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
     const [status, setStatus] = useState(statusFilter);
 
-    const bedGroups = ["ICU", "Ward", "Cabin", "PACU", "Special ward", "NICU"];
-    const statuses = ["Available", "Not Available"];
+    const bedGroups = ["All", ...new Set(roomsData.map((r) => r.bedGroup))];
+    const statuses = ["All", "Available", "Not Available"];
 
     const handleApply = () => {
-      setBedGroupFilter(bedGroup);
-      setStatusFilter(status);
+      setBedGroupFilter(bedGroup === "All" ? "" : bedGroup);
+      setStatusFilter(status === "All" ? "" : status);
       onClose();
     };
 
     const handleClear = () => {
-      setBedGroup("");
-      setStatus("");
+      setBedGroup("All");
+      setStatus("All");
       setBedGroupFilter("");
       setStatusFilter("");
+      onClose();
     };
 
     if (!isOpen) return null;
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="w-[504px] h-auto rounded-[20px]  bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+        <div className="w-[504px] h-auto rounded-[20px]  bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
           {/* Gradient Border */}
           <div
             style={{
@@ -324,76 +305,135 @@ const BedList = () => {
             Filter
           </h3>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="text-gray-600 dark:text-gray-400 text-sm mb-1 block">
-                Bed Group
-              </label>
-              <Listbox value={bedGroup} onChange={setBedGroup}>
-                <div className="relative">
-                  <Listbox.Button className="w-full bg-[#F5F6F5] dark:bg-[#0D0D0D] text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-gray-700 rounded px-3 py-2 text-sm text-left">
-                    {bedGroup || "Select bedgroup"}
-                  </Listbox.Button>
-                  <Listbox.Options className="mt-1 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded shadow-lg z-50 absolute w-full text-sm">
-                    {bedGroups.map((bg, idx) => (
-                      <Listbox.Option
-                        key={idx}
-                        value={bg}
-                        className="px-3 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 cursor-pointer text-black dark:text-white"
-                      >
-                        {bg}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-            </div>
+          <div className="grid grid-cols-2 gap-6">
+  {/* --- Bed Group Dropdown --- */}
+  <div>
+    <label className="text-sm text-black dark:text-white">
+      Bed Group
+    </label>
+    <Listbox value={bedGroup} onChange={setBedGroup}>
+      <div className="relative mt-1 w-[228px]">
+        <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+          {bedGroup || "Select bed group"}
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
 
-            <div>
-              <label className="text-gray-600 dark:text-gray-400 text-sm mb-1 block">
-                Status
-              </label>
-              <Listbox value={status} onChange={setStatus}>
-                <div className="relative">
-                  <Listbox.Button className="w-full bg-[#F5F6F5] dark:bg-[#0D0D0D] text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-gray-700 rounded px-3 py-2 text-sm text-left">
-                    {status || "Select status"}
-                  </Listbox.Button>
-                  <Listbox.Options className="mt-1 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded shadow-lg z-50 absolute w-full text-sm">
-                    {statuses.map((s, idx) => (
-                      <Listbox.Option
-                        key={idx}
-                        value={s}
-                        className="px-3 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 cursor-pointer text-black dark:text-white"
-                      >
-                        {s}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-            </div>
-          </div>
+        <Listbox.Options
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {bedGroups.map((bg, idx) => (
+            <Listbox.Option
+              key={idx}
+              value={bg}
+              className={({ active, selected }) =>
+                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                  active
+                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                    : "text-black dark:text-white"
+                } ${
+                  selected
+                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                    : ""
+                }`
+              }
+            >
+              {bg}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  </div>
 
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handleClear}
-              className="px-4 py-2 border border-[#0EFF7B] dark:border-gray-700 rounded-full text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+  {/* --- Status Dropdown --- */}
+  <div>
+    <label className="text-sm text-black dark:text-white">
+      Status
+    </label>
+    <Listbox value={status} onChange={setStatus}>
+      <div className="relative mt-1 w-[228px]">
+        <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+          {status || "Select status"}
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
+
+        <Listbox.Options
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {statuses.map((s, idx) => (
+            <Listbox.Option
+              key={idx}
+              value={s}
+              className={({ active, selected }) =>
+                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                  active
+                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                    : "text-black dark:text-white"
+                } ${
+                  selected
+                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                    : ""
+                }`
+              }
             >
-              Clear
-            </button>
-            <button
-              onClick={handleApply}
-              className="px-4 py-2 rounded-full bg-[#08994A] dark:bg-green-500 text-white dark:text-black hover:bg-[#0EFF7B1A] dark:hover:bg-green-600"
-            >
-              Filter
-            </button>
-          </div>
+              {s}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  </div>
+</div>
+
+
+          <div className="flex justify-center gap-[18px] mt-8">
+  <button
+    onClick={handleClear}
+    className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+             px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px]
+             shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+  >
+    Clear
+  </button>
+  <button
+    onClick={handleApply}
+    className="w-[104px] h-[33px] border-b-[2px] border-[#0EFF7B] rounded-[8px] text-white dark:text-black font-medium text-[14px]
+             hover:bg-[#0cd968] transition"
+    style={{
+      background:
+        "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+    }}
+  >
+    Filter
+  </button>
+</div>
+
         </div>
       </div>
     );
   };
 
   const isBedListRoute = location.pathname.includes("BedList");
+
+  if (loading) {
+    return <div className="text-center py-8">Loading bed groups...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-8 text-red-500">{error}</div>;
+  }
 
   return (
     <div className="h-auto max-h-auto mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[1400px] mx-auto dark:border-[#1E1E1E]">
@@ -445,7 +485,7 @@ const BedList = () => {
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-7">
-          You have total 7 types bed group.
+          You have total {roomsData.length} types bed group.
         </p>
 
         {/* Filter + Search */}
@@ -469,12 +509,7 @@ const BedList = () => {
                 <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                   {[
                     "All",
-                    "ICU",
-                    "Ward",
-                    "Cabin",
-                    "PACU",
-                    "Special ward",
-                    "NICU",
+                    ...new Set(roomsData.map((r) => r.bedGroup)),
                   ].map((option, idx) => (
                     <Listbox.Option
                       key={idx}
@@ -588,7 +623,7 @@ const BedList = () => {
                             index >= currentRooms.length - 2;
                           return (
                             <tr
-                              key={index}
+                              key={room.id} // Use ID for key
                               className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                             >
                               <td className="px-4 py-3 h-[60px] ">
@@ -603,7 +638,7 @@ const BedList = () => {
                                 {room.bedGroup}
                               </td>
                               <td className="px-4 py-3 text-black dark:text-white">
-                                {getRoomRange(room.occupied)}
+                                {room.bedRange}
                               </td>
                               <td className="px-4 py-3 text-black dark:text-white">
                                 {room.capacity}
@@ -714,13 +749,12 @@ const BedList = () => {
         {showEditPopup && editingRoomIndex !== null && (
           <EditBedGroupPopup
             onClose={() => setShowEditPopup(false)}
-            onUpdate={(updatedRoom) =>
-              handleUpdateBedGroup(editingRoomIndex, updatedRoom)
-            }
+            onUpdate={handleUpdateBedGroup}
             data={{
+              id: roomsData[editingRoomIndex].id,
               bedGroupName: roomsData[editingRoomIndex].bedGroup,
-              bedFrom: roomsData[editingRoomIndex].bedRange.split(" - ")[0],
-              bedTo: roomsData[editingRoomIndex].bedRange.split(" - ")[1],
+              bedFrom: roomsData[editingRoomIndex].beds.map(b => b.bed_number).sort((a, b) => a - b)[0].toString(),
+              bedTo: roomsData[editingRoomIndex].beds.map(b => b.bed_number).sort((a, b) => a - b).slice(-1)[0].toString(),
             }}
           />
         )}

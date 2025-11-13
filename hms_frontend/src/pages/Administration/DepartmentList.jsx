@@ -1,3 +1,4 @@
+//src/pages/Administration/DepartmentList.jsx
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search,
@@ -29,6 +30,7 @@ import { Listbox } from "@headlessui/react";
 import AddDepartmentPopup from "./AddDepartment";
 import EditDepartmentPopup from "./EditDepartmentPopup";
 import DeleteDepartmentPopup from "./DeleteDepartmentPopup";
+import { successToast, errorToast } from "../../components/Toast";
 
 const API_BASE = "http://127.0.0.1:8000";
 
@@ -99,19 +101,34 @@ const DepartmentList = () => {
     }
   }, [fetchDepartments]);
 
-  const deleteDepartment = useCallback(async (departmentId) => {
-    try {
-      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to delete department");
+  const deleteDepartment = useCallback(async (departmentId, departmentName = "Department") => {
+  try {
+    const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        errorToast("Department not found.");
+        throw new Error("Department not found");
       }
-      await fetchDepartments(); // Refresh list
-    } catch (err) {
-      console.error("Delete error:", err);
+      errorToast("Failed to delete department.");
+      throw new Error("Failed to delete department");
     }
-  }, [fetchDepartments]);
+
+    // SUCCESS TOAST
+    successToast(`"${departmentName}" deleted successfully!`);
+
+    // Refresh list
+    await fetchDepartments();
+  } catch (err) {
+    // Only show toast if not already shown above
+    if (!err.message.includes("not found") && !err.message.includes("delete")) {
+      errorToast("Network error. Please try again.");
+    }
+    console.error("Delete error:", err);
+  }
+}, [fetchDepartments]);
 
   // Initial fetch
   useEffect(() => {

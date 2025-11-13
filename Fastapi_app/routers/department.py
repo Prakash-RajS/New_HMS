@@ -124,3 +124,18 @@ def update_department(department_id: int, payload: DepartmentUpdate):
 
     dep.save()
     return DepartmentOut.model_validate(dep)
+
+@router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_department(department_id: int):
+    """
+    Delete a department by ID.
+    """
+    try:
+        dep = Department.objects.get(id=department_id)
+        dep.delete()
+        return None  # 204 No Content
+    except Department.DoesNotExist:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Department not found.",
+        )

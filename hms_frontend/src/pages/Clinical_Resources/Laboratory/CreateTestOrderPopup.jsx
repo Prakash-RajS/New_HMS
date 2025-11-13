@@ -1,6 +1,26 @@
 import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { successToast, errorToast } from "../../../components/Toast.jsx";
+
+const departments = [
+  "Cardiology",
+  "Neurology",
+  "Orthopedics",
+  "Radiology",
+  "Pathology",
+  "Emergency",
+];
+
+const testTypes = [
+  "Blood Test",
+  "X-Ray",
+  "MRI",
+  "CT Scan",
+  "Ultrasound",
+  "ECG",
+  "Urine Analysis",
+];
 
 const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -26,8 +46,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
 
   const handleSave = () => {
     if (validateForm()) {
-      if (onSave) onSave(formData);
-      onClose();
+      try {
+        onSave(formData);
+        successToast(
+          `Test order for "${formData.patientName}" created successfully!`
+        );
+        onClose();
+      } catch (error) {
+        errorToast("Failed to create test order");
+      }
+    } else {
+      errorToast("Please fix the errors below");
     }
   };
 
@@ -63,10 +92,11 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
           <Listbox.Options
             className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black
             shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
-          style={{
-                      scrollbarWidth: "none",
-                      msOverflowStyle: "none",
-                    }}>
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}

@@ -1,21 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { successToast, errorToast } from "../../components/Toast";
+
+const API_BASE = "http://localhost:8000";
 
 /* -------------------------------------------------
-   Dropdown – same as UpdateUserPopup
+   Dropdown – EXACT SAME AS YOUR DESIGN
 ------------------------------------------------- */
-const Dropdown = ({ label, value, onChange, options, error }) => (
+const Dropdown = ({ label, value, onChange, options, error, disabled = false }) => (
   <div>
     <label className="text-sm text-black dark:text-white">{label}</label>
-    <Listbox value={value} onChange={onChange}>
+    <Listbox value={value} onChange={onChange} disabled={disabled}>
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
           className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-                     outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                     outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -49,40 +52,141 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
 );
 
 /* -------------------------------------------------
-   AdmitPatientPopup – EXACTLY like UpdateUserPopup
+   AdmitPatientPopup – DESIGN 100% SAME, YOUR TOAST INTEGRATED
 ------------------------------------------------- */
-const AdmitPatientPopup = ({ onClose, onAdmit }) => {
+const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: "",
     patientId: "",
     bedGroup: "",
     bedNumber: "",
-    admitDate: "", // "MM/DD/YYYY"
+    admitDate: "",
   });
   const [errors, setErrors] = useState({});
+  const [bedGroups, setBedGroups] = useState([]);
+  const [availableBeds, setAvailableBeds] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
-  const bedGroups = ["ICU", "Ward", "Emergency"];
+  // Load bed groups
+  useEffect(() => {
+    fetch(`${API_BASE}/bedgroups/all`)
+      .then((r) => r.json())
+      .then((groups) => {
+        const names = groups.map((g) => g.bedGroup);
+        setBedGroups(names);
+        if (names.length > 0) {
+          setFormData((prev) => ({ ...prev, bedGroup: names[0] }));
+        }
+      })
+      .catch(() => {
+        const msg = "Failed to load bed groups";
+        setServerError(msg);
+        errorToast(msg);
+      });
+  }, []);
 
-  /* ---------- Validation ---------- */
+  // Load free beds when group changes
+  useEffect(() => {
+    if (!formData.bedGroup) return;
+
+    fetch(`${API_BASE}/bedgroups/all`)
+      .then((r) => r.json())
+      .then((groups) => {
+        const group = groups.find((g) => g.bedGroup === formData.bedGroup);
+        if (group) {
+          const free = group.beds
+            .filter((b) => !b.is_occupied)
+            .map((b) => `Bed ${b.bed_number}`)
+            .sort();
+          setAvailableBeds(free);
+          if (free.length > 0 && !formData.bedNumber) {
+            setFormData((prev) => ({ ...prev, bedNumber: free[0] }));
+          } else {
+            setFormData((prev) => ({ ...prev, bedNumber: "" }));
+          }
+        }
+      });
+  }, [formData.bedGroup]);
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Patient name is required";
     if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
     if (!formData.bedGroup) newErrors.bedGroup = "Bed group is required";
-    if (!formData.bedNumber.trim()) newErrors.bedNumber = "Bed number is required";
+    if (!formData.bedNumber) newErrors.bedNumber = "Select a free bed";
     if (!formData.admitDate) newErrors.admitDate = "Admit date is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAdmit = () => {
-    if (validateForm()) {
-      onAdmit?.(formData);
-      onClose();
+  const handleAdmit = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setServerError("");
+
+    const bedNumberNum = parseInt(formData.bedNumber.replace("Bed ", ""));
+
+    try {
+      const response = await fetch(`${API_BASE}/bedgroups/admit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          full_name: formData.name,
+          patient_unique_id: formData.patientId,
+          bed_group_name: formData.bedGroup,
+          bed_number: bedNumberNum.toString(),
+          admission_date: formData.admitDate,
+        }),
+      });
+
+      let errorMessage = "Failed to admit patient.";
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          const err = await response.json();
+          errorMessage = err.detail || "Invalid data.";
+        } else if (response.status === 404) {
+          errorMessage = "Patient or bed not found.";
+        } else {
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+        }
+        setServerError(errorMessage);
+        errorToast(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const result = await response.json();
+
+      // SUCCESS TOAST
+      successToast(`Patient "${formData.name}" admitted to ${formData.bedNumber}!`);
+
+      // Notify parent to refresh
+      if (onSuccess) onSuccess();
+
+      // Close after delay
+      setTimeout(() => {
+        onClose();
+      }, 600);
+    } catch (err) {
+      const networkError = "Network error. Please check your connection.";
+      setServerError(networkError);
+      errorToast(networkError);
+      console.error("Admit Patient Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* ---------- Parse MM/DD/YYYY → Date ---------- */
   const parseDate = (dateStr) => {
     if (!dateStr) return null;
     const [m, d, y] = dateStr.split("/").map(Number);
@@ -92,7 +196,7 @@ const AdmitPatientPopup = ({ onClose, onAdmit }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70">
       <div
         className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
         style={{
@@ -131,6 +235,8 @@ const AdmitPatientPopup = ({ onClose, onAdmit }) => {
           </button>
         </div>
 
+        {serverError && <p className="text-red-500 text-sm mb-4">{serverError}</p>}
+
         {/* Form Grid */}
         <div className="grid grid-cols-2 gap-6">
           {/* Patient Name */}
@@ -165,26 +271,22 @@ const AdmitPatientPopup = ({ onClose, onAdmit }) => {
           <Dropdown
             label="Bed Group"
             value={formData.bedGroup}
-            onChange={(v) => setFormData({ ...formData, bedGroup: v })}
+            onChange={(v) => setFormData({ ...formData, bedGroup: v, bedNumber: "" })}
             options={bedGroups}
             error={errors.bedGroup}
           />
 
           {/* Bed Number */}
-          <div>
-            <label className="text-sm">Bed Number</label>
-            <input
-              value={formData.bedNumber}
-              onChange={(e) => setFormData({ ...formData, bedNumber: e.target.value })}
-              placeholder="Enter bed number"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-            />
-            {errors.bedNumber && <p className="text-red-500 text-xs mt-1">{errors.bedNumber}</p>}
-          </div>
+          <Dropdown
+            label="Bed Number"
+            value={formData.bedNumber}
+            onChange={(v) => setFormData({ ...formData, bedNumber: v })}
+            options={availableBeds}
+            error={errors.bedNumber}
+            disabled={!availableBeds.length}
+          />
 
-          {/* Admit Date – EXACTLY LIKE UpdateUserPopup */}
+          {/* Admit Date */}
           <div>
             <label className="text-sm">Admit Date</label>
             <div className="relative">
@@ -207,8 +309,6 @@ const AdmitPatientPopup = ({ onClose, onAdmit }) => {
                 popperClassName="z-50"
                 popperPlacement="bottom-start"
                 showPopperArrow={false}
-                // No withPortal → inline dropdown style
-                // Inline style to force compact size
                 customInput={
                   <input
                     style={{
@@ -238,13 +338,14 @@ const AdmitPatientPopup = ({ onClose, onAdmit }) => {
           </button>
           <button
             onClick={handleAdmit}
+            disabled={loading}
             style={{
               background:
                 "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
             }}
-            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:bg-[#0cd968]"
+            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:bg-[#0cd968] disabled:opacity-50"
           >
-            Admit
+            {loading ? "Admitting..." : "Admit"}
           </button>
         </div>
       </div>

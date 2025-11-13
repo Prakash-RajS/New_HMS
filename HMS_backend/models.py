@@ -147,9 +147,22 @@ class Staff(models.Model):
         db_table = "staff"  
 
 
+# HMS_backend/models.py
+from django.db import models
+from django.core.exceptions import ValidationError
+from datetime import date
+
+
 class Patient(models.Model):
     patient_unique_id = models.CharField(max_length=20, unique=True, editable=False)
     full_name = models.CharField(max_length=200)
+    
+    # === ADMISSION FIELDS ===
+    admission_date = models.DateField(null=True, blank=True)  # Set when admitted
+    discharge_date = models.DateField(null=True, blank=True)  # Set when discharged
+    room_number = models.CharField(max_length=20, blank=True, null=True)  # e.g., "101"
+
+    # === BASIC INFO ===
     date_of_birth = models.DateField(blank=True, null=True)
     gender = models.CharField(max_length=10, blank=True, null=True)
     age = models.IntegerField(blank=True, null=True)
@@ -162,25 +175,27 @@ class Patient(models.Model):
     country = models.CharField(max_length=100, blank=True, null=True)
     date_of_registration = models.DateField(blank=True, null=True)
     occupation = models.CharField(max_length=100, blank=True, null=True)
+
+    # === VITALS ===
     weight_in_kg = models.FloatField(blank=True, null=True)
     height_in_cm = models.FloatField(blank=True, null=True)
-
     blood_group = models.CharField(max_length=5, blank=True, null=True)
     blood_pressure = models.CharField(max_length=20, blank=True, null=True)
     body_temperature = models.FloatField(blank=True, null=True)
+
+    # === CONSULTATION ===
     consultation_type = models.CharField(max_length=20, blank=True, null=True)
-
-    department = models.ForeignKey("Department", on_delete=models.SET_NULL, null=True)
-    staff = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True)
-
+    department = models.ForeignKey("Department", on_delete=models.SET_NULL, null=True, blank=True)
+    staff = models.ForeignKey("Staff", on_delete=models.SET_NULL, null=True, blank=True)
     appointment_type = models.CharField(max_length=20, blank=True, null=True)
-    admission_date = models.DateField(blank=True, null=True)
-    room_number = models.CharField(max_length=20, blank=True, null=True)
     test_report_details = models.TextField(blank=True, null=True)
     casualty_status = models.CharField(max_length=10, blank=True, null=True)
     reason_for_visit = models.TextField(blank=True, null=True)
+
+    # === MEDIA ===
     photo = models.ImageField(upload_to="patient_photos/", blank=True, null=True)
 
+    # === TIMESTAMPS ===
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -188,6 +203,7 @@ class Patient(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
+        # Auto-generate patient_unique_id
         if not self.patient_unique_id:
             last = Patient.objects.order_by("id").last()
             if last and last.patient_unique_id.startswith("PAT"):
@@ -333,27 +349,43 @@ class LabReport(models.Model):
 
 class BedGroup(models.Model):
     bedGroup = models.CharField(max_length=100, unique=True)
-    capacity = models.IntegerField()
+    capacity = models.IntegerField(default=0)
     occupied = models.IntegerField(default=0)
     unoccupied = models.IntegerField(default=0)
     status = models.CharField(max_length=20, default="Available")
 
-    def update_status(self):
-        """Update availability status"""
+    def refresh_counts(self):
+        """
+        Recalculate total, occupied, unoccupied beds,
+        and update status automatically.
+        """
+        total_beds = self.beds.count()
+        occupied_beds = self.beds.filter(is_occupied=True).count()
+
+        self.capacity = total_beds
+        self.occupied = occupied_beds
+        self.unoccupied = total_beds - occupied_beds
         self.status = "Available" if self.unoccupied > 0 else "Not Available"
-        self.save()
+        self.save(update_fields=["capacity", "occupied", "unoccupied", "status"])
 
     def __str__(self):
         return f"{self.bedGroup} (Total: {self.capacity}, Occ: {self.occupied}, Free: {self.unoccupied})"
 
 
+
 class Bed(models.Model):
-    bed_number = models.IntegerField()
+    bed_number = models.PositiveIntegerField()  # Removed global uniqueness
     is_occupied = models.BooleanField(default=False)
-    bed_group = models.ForeignKey(BedGroup, related_name="beds", on_delete=models.CASCADE)
+    bed_group = models.ForeignKey(
+        BedGroup, related_name="beds", on_delete=models.CASCADE
+    )
+    patient = models.ForeignKey(
+        "Patient", on_delete=models.SET_NULL, null=True, blank=True, related_name="beds"
+    )
 
     class Meta:
-        unique_together = ("bed_number", "bed_group")
+        unique_together = ("bed_number", "bed_group")  # Bed number unique per group
+        ordering = ["bed_group", "bed_number"]
 
     def __str__(self):
         return f"Bed {self.bed_number} ({'Occupied' if self.is_occupied else 'Free'}) in {self.bed_group.bedGroup}"
@@ -581,13 +613,10 @@ class MedicineAllocation(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="medicine_allocations")
     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, related_name="medicine_allocations")
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
-    lab_report = models.ForeignKey(
-        LabReport, 
-        on_delete=models.SET_NULL, 
-        related_name="medicine_allocations", 
-        null=True, 
-        blank=True
-    )
+
+    # ✅ changed from ForeignKey → JSONField to store multiple lab report IDs
+    lab_report_ids = models.JSONField(default=list, blank=True, null=True)
+
     medicine_name = models.CharField(max_length=100)
     dosage = models.CharField(max_length=50)
     quantity = models.CharField(max_length=50, blank=True, null=True)

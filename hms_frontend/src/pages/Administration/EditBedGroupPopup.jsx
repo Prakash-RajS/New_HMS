@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { successToast, errorToast } from "../../components/Toast"; // adjust path if needed
 
 const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   const [formData, setFormData] = useState({
@@ -8,14 +9,16 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
     bedTo: "",
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   // Prefill form when `data` changes
   useEffect(() => {
     if (data) {
       setFormData({
-        bedGroupName: data.bedGroupName || "",
-        bedFrom: data.bedFrom || "",
-        bedTo: data.bedTo || "",
+        bedGroupName: data.bedGroupName || data.bedGroup || "",
+        bedFrom: data.bedFrom?.toString() || "1",
+        bedTo: data.bedTo?.toString() || data.capacity?.toString() || "",
       });
     }
   }, [data]);
@@ -32,10 +35,67 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = () => {
-    if (validateForm()) {
-      if (onUpdate) onUpdate(formData);
-      onClose();
+  const handleUpdate = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setServerError("");
+
+    const capacity = parseInt(formData.bedTo) - parseInt(formData.bedFrom) + 1;
+    const payload = {
+      bedGroup: formData.bedGroupName.trim(),
+      capacity: capacity,
+    };
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/bedgroups/${data.id}/`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to update bed group.";
+        if (response.status === 400) {
+          const err = await response.json();
+          errorMessage = err.detail || "Invalid data.";
+        } else if (response.status === 404) {
+          errorMessage = "Bed group not found.";
+        } else {
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+        }
+        setServerError(errorMessage);
+        errorToast(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const updatedGroup = await response.json();
+
+      // SUCCESS TOAST
+      successToast(`"${updatedGroup.bedGroup}" updated successfully!`);
+
+      // Notify parent to refresh the list
+      if (onUpdate) onUpdate(updatedGroup);
+
+      // Close popup after short delay
+      setTimeout(() => {
+        onClose();
+      }, 600);
+    } catch (err) {
+      const networkError = "Network error. Please check your connection.";
+      setServerError(networkError);
+      errorToast(networkError);
+      console.error("Update BedGroup Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -68,6 +128,7 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
           </h3>
           <button
             onClick={onClose}
+            disabled={loading}
             className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] 
             flex items-center justify-center"
           >
@@ -121,12 +182,16 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
             {errors.bedFrom && <p className="text-red-500 text-xs mt-1">{errors.bedFrom}</p>}
             {errors.bedTo && <p className="text-red-500 text-xs mt-1">{errors.bedTo}</p>}
           </div>
+
+          {/* Server Error */}
+          {serverError && <p className="text-red-500 text-xs">{serverError}</p>}
         </div>
 
         {/* Buttons */}
         <div className="flex justify-center gap-4 mt-8">
           <button
             onClick={onClose}
+            disabled={loading}
             className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
             px-3 py-2 text-[#08994A] dark:text-white font-medium text-[14px] 
             hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] transition"
@@ -135,6 +200,7 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
           </button>
           <button
             onClick={handleUpdate}
+            disabled={loading}
             className="w-[104px] h-[33px] rounded-[8px] 
             bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] 
             text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
@@ -142,7 +208,7 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
               background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
             }}
           >
-            Update!
+            {loading ? "Updating…" : "Update!"}
           </button>
         </div>
       </div>

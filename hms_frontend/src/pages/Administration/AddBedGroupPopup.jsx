@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import { successToast, errorToast } from "../../components/Toast";  // <-- adjust import if you use a different toast lib
 
 const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,8 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     bedTo: "",
   });
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   const validateForm = () => {
     const newErrors = {};
@@ -21,10 +24,67 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleAdd = () => {
-    if (validateForm()) {
-      if (onAdd) onAdd(formData);
-      onClose();
+  const handleAdd = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setServerError("");
+
+    const capacity = parseInt(formData.bedTo) - parseInt(formData.bedFrom) + 1;
+    const payload = {
+      bedGroup: formData.bedGroupName.trim(),
+      capacity: capacity,
+    };
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/bedgroups/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Failed to create bed group.";
+
+        if (response.status === 400) {
+          const err = await response.json();
+          errorMessage = err.detail || "Bed group already exists.";
+        } else {
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+        }
+
+        setServerError(errorMessage);
+        errorToast(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const newGroup = await response.json();
+
+      // SUCCESS TOAST
+      successToast(`"${newGroup.bedGroup}" created successfully!`);
+
+      // Notify parent to refresh the list
+      if (onAdd) onAdd(newGroup);
+
+      // Close popup after a short delay so the toast is visible
+      setTimeout(() => {
+        onClose();
+      }, 600);
+    } catch (err) {
+      const networkError = "Network error. Please check your connection.";
+      setServerError(networkError);
+      errorToast(networkError);
+      console.error("Create BedGroup Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,22 +93,23 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
       <div className="w-[420px] h-auto rounded-[20px]  
       bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-md backdrop-blur-md relative">
         {/* Gradient Border */}
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      borderRadius: "20px",
-      padding: "2px",
-      background:
-        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-      WebkitMask:
-        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-      WebkitMaskComposite: "xor",
-      maskComposite: "exclude",
-      pointerEvents: "none",
-      zIndex: 0,
-    }}
-  ></div>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4">
           <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-white">
@@ -109,12 +170,16 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
             {errors.bedFrom && <p className="text-red-500 text-xs mt-1">{errors.bedFrom}</p>}
             {errors.bedTo && <p className="text-red-500 text-xs mt-1">{errors.bedTo}</p>}
           </div>
+
+          {/* Server error display (optional) */}
+          {serverError && <p className="text-red-500 text-xs">{serverError}</p>}
         </div>
 
         {/* Buttons */}
         <div className="flex justify-center gap-4 mt-8">
           <button
             onClick={onClose}
+            disabled={loading}
             className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
             px-3 py-2 text-[#08994A] dark:text-white font-medium text-[14px] 
             hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A] transition"
@@ -123,13 +188,15 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
           </button>
           <button
             onClick={handleAdd}
+            disabled={loading}
             className="w-[104px] h-[33px] rounded-[8px] 
             bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] 
             text-white dark:text-black font-medium text-[14px] hover:bg-[#0cd968] transition border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66]"
-          style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}>
-            Add
+            style={{
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            }}
+          >
+            {loading ? "Adding…" : "Add"}
           </button>
         </div>
       </div>

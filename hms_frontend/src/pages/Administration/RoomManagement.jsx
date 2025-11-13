@@ -1,4 +1,4 @@
-import React, { useState, useMemo, Fragment } from "react";
+import React, { useState, useMemo, Fragment, useEffect } from "react";
 import {
   Search,
   Plus,
@@ -8,18 +8,22 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
-  Settings,
   Edit,
-  Trash2,
   X,
 } from "lucide-react";
 import { Listbox, Menu, Transition } from "@headlessui/react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import AdmitPatientPopup from "./AdmitPatientPopup";
 import EditAdmitPatientPopup from "./EditAdmitPatientPopup";
-import DeleteRoomManagement from "./DeleteRoomManagement";
+import DischargePopup from "./Dischargepatient";
+import { successToast, errorToast } from "../../components/Toast";
+
+const API_BASE = "http://localhost:8000";
 
 const RoomManagement = () => {
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedRooms, setSelectedRooms] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,97 +33,76 @@ const RoomManagement = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [showAdmitPopup, setShowAdmitPopup] = useState(false);
   const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showDischargePopup, setShowDischargePopup] = useState(false);
   const [roomToEdit, setRoomToEdit] = useState(null);
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState(null);
+  const [dischargeRoom, setDischargeRoom] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
   const itemsPerPage = 9;
 
-  const roomsData = [
-    {
-      roomNo: "101",
-      bedGroup: "ICU",
-      patient: "Abishek",
-      patientId: "SMH06204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "102",
-      bedGroup: "Ward",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "103",
-      bedGroup: "Cabin",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Not Available",
-    },
-    {
-      roomNo: "104",
-      bedGroup: "Special ward",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "105",
-      bedGroup: "PACU",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "106",
-      bedGroup: "PACU",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "107",
-      bedGroup: "ICU",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-    {
-      roomNo: "108",
-      bedGroup: "NICU",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Not Available",
-    },
-    {
-      roomNo: "109",
-      bedGroup: "ICU",
-      patient: "Abishek",
-      patientId: "SMH07204",
-      admit: "12/08/2025",
-      discharge: "20/08/2025",
-      status: "Available",
-    },
-  ];
+  // Fetch rooms with correct patient data
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/bedgroups/all`);
+        if (!res.ok) throw new Error("Failed to fetch bed groups");
+        const groups = await res.json();
+
+        const roomList = [];
+
+        for (const group of groups) {
+          for (const bed of group.beds) {
+            let patientName = "—";
+            let patientId = "—";
+            let admitDate = "—";
+
+            if (bed.patient) {
+              patientName = bed.patient.name || "—";
+              patientId = bed.patient.id || "—";
+
+              try {
+                const patientRes = await fetch(
+                  `${API_BASE}/patients/${bed.patient.id}`
+                );
+                if (patientRes.ok) {
+                  const patient = await patientRes.json();
+                  admitDate = patient.admission_date
+                    ? new Date(patient.admission_date).toLocaleDateString(
+                        "en-GB"
+                      )
+                    : "—";
+                }
+              } catch (err) {
+                console.warn("Failed to fetch patient:", err);
+              }
+            }
+
+            roomList.push({
+              roomNo: bed.bed_number.toString(),
+              bedGroup: group.bedGroup,
+              patient: patientName,
+              patientId,
+              admit: admitDate,
+              status: bed.is_occupied ? "Not Available" : "Available",
+              bedId: bed.id,
+              groupId: group.id,
+            });
+          }
+        }
+
+        setRooms(roomList);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        errorToast("Failed to load rooms");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRooms();
+  }, [refreshKey]);
 
   const statusColors = {
     Available: "text-[#08994A] dark:text-[#0EFF7B]",
@@ -127,37 +110,28 @@ const RoomManagement = () => {
   };
 
   const filteredRooms = useMemo(() => {
-    return roomsData.filter((room) => {
-      if (
-        searchTerm &&
-        !(
-          room.roomNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          room.patientId.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      ) {
-        return false;
-      }
-      if (
-        filterValue &&
-        filterValue !== "All" &&
-        room.bedGroup !== filterValue
-      ) {
-        return false;
-      }
-      if (
-        bedGroupFilter &&
-        bedGroupFilter !== "All" &&
-        room.bedGroup !== bedGroupFilter
-      ) {
-        return false;
-      }
-      if (statusFilter && room.status !== statusFilter) {
-        return false;
-      }
-      return true;
+    return rooms.filter((room) => {
+      const matchesSearch =
+        !searchTerm ||
+        room.roomNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.patient.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        room.patientId.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesGroupFilter =
+        !filterValue || filterValue === "All" || room.bedGroup === filterValue;
+
+      const matchesBedGroup =
+        !bedGroupFilter ||
+        bedGroupFilter === "All" ||
+        room.bedGroup === bedGroupFilter;
+
+      const matchesStatus = !statusFilter || room.status === statusFilter;
+
+      return (
+        matchesSearch && matchesGroupFilter && matchesBedGroup && matchesStatus
+      );
     });
-  }, [roomsData, searchTerm, filterValue, bedGroupFilter, statusFilter]);
+  }, [rooms, searchTerm, filterValue, bedGroupFilter, statusFilter]);
 
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
@@ -165,11 +139,11 @@ const RoomManagement = () => {
   const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
 
   const handleCheckboxChange = (roomNo) => {
-    if (selectedRooms.includes(roomNo)) {
-      setSelectedRooms(selectedRooms.filter((r) => r !== roomNo));
-    } else {
-      setSelectedRooms([...selectedRooms, roomNo]);
-    }
+    setSelectedRooms((prev) =>
+      prev.includes(roomNo)
+        ? prev.filter((r) => r !== roomNo)
+        : [...prev, roomNo]
+    );
   };
 
   const handleSelectAll = () => {
@@ -180,8 +154,10 @@ const RoomManagement = () => {
     }
   };
 
-  const handleAdmitClick = () => {
-    setShowAdmitPopup(true);
+  const handleAdmitClick = () => setShowAdmitPopup(true);
+  const handleAdmitSuccess = () => {
+    setRefreshKey((prev) => prev + 1);
+    successToast("Patient admitted successfully!");
   };
 
   const handleEditClick = (room) => {
@@ -189,111 +165,124 @@ const RoomManagement = () => {
     setShowEditPopup(true);
   };
 
-  const handleCloseAdmitPopup = () => {
-    setShowAdmitPopup(false);
+  const handleDischargeClick = (room) => {
+    setDischargeRoom(room);
+    setShowDischargePopup(true);
   };
 
+  const handleConfirmDischarge = async () => {
+    if (!dischargeRoom) return;
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/bedgroups/${dischargeRoom.groupId}/beds/${dischargeRoom.roomNo}/vacate`,
+        { method: "POST" }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Discharge failed");
+      }
+
+      successToast("Patient discharged successfully!");
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      errorToast(err.message);
+    } finally {
+      setShowDischargePopup(false);
+      setDischargeRoom(null);
+    }
+  };
+
+  const handleCloseAdmitPopup = () => setShowAdmitPopup(false);
   const handleCloseEditPopup = () => {
     setShowEditPopup(false);
     setRoomToEdit(null);
   };
-
-  const handleBedListClick = () => {
-    navigate("/Administration/BedList");
+  const handleCloseDischargePopup = () => {
+    setShowDischargePopup(false);
+    setDischargeRoom(null);
   };
 
-  const handleRoomManagementClick = () => {
+  const handleBedListClick = () => navigate("/Administration/BedList");
+  const handleRoomManagementClick = () =>
     navigate("/Administration/roommanagement");
-  };
-const handleDeleteClick = (index) => {
-    setRoomToDelete(index);
-    setShowDeletePopup(true);
-  };
 
-  const handleConfirmDelete = () => {
-    if (roomToDelete !== null) {
-      setRoomsData((prev) => prev.filter((_, i) => i !== roomToDelete));
-      setSelectedRooms((prev) => prev.filter((r) => r !== roomToDelete));
-    }
-    setRoomToDelete(null);
-    setShowDeletePopup(false);
-  };
-
-  const handleCancelDelete = () => {
-    setRoomToDelete(null);
-    setShowDeletePopup(false);
-  };
+  // MENU OPENS ABOVE 3 DOTS
+  // MENU OPENS ABOVE 3 DOTS
   const ActionMenu = ({ room, index }) => {
-  return (
-    <Menu as="div" className="relative inline-block text-left">
-      <Menu.Button className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
-        <MoreHorizontal size={18} />
-      </Menu.Button>
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <Menu.Items className="absolute right-0 mt-2 w-36 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg focus:outline-none z-50">
-          <Menu.Item>
-            {({ active }) => (
-              <button
-                onClick={() => handleEditClick(room)}
-                className={`${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
-                    : ""
-                } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-              >
-                <Edit
-                  size={16}
-                  className="mr-2 text-blue-500 dark:text-blue-400"
-                />
-                Edit
-              </button>
-            )}
-          </Menu.Item>
-          <Menu.Item>
-            {({ active }) => (
-              <button
-                onClick={() => handleDeleteClick(index)}
-                className={`${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
-                    : ""
-                } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-              >
-                <Trash2
-                  size={16}
-                  className="mr-2 text-red-500 dark:text-red-400"
-                />
-                Delete
-              </button>
-            )}
-          </Menu.Item>
-        </Menu.Items>
-      </Transition>
-    </Menu>
-  );
-};
+    // Calculate if it's in the last 3 rows to show menu above
+    const isLastThreeRows = index >= currentRooms.length - 3;
+
+    return (
+      <Menu as="div" className="relative inline-block text-left">
+        <Menu.Button className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
+          <MoreHorizontal size={18} />
+        </Menu.Button>
+        <Transition
+          as={Fragment}
+          enter="transition ease-out duration-100"
+          enterFrom="transform opacity-0 scale-95"
+          enterTo="transform opacity-100 scale-100"
+          leave="transition ease-in duration-75"
+          leaveFrom="transform opacity-100 scale-100"
+          leaveTo="transform opacity-0 scale-95"
+        >
+          <Menu.Items
+            className={`absolute right-0 ${
+              isLastThreeRows ? "bottom-full mb-2" : "mt-2"
+            } w-36 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg focus:outline-none z-50 origin-bottom-right`}
+          >
+            <div className="p-1">
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => handleEditClick(room)}
+                    className={`${
+                      active
+                        ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
+                        : ""
+                    } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
+                  >
+                    <Edit
+                      size={16}
+                      className="mr-2 text-blue-500 dark:text-blue-400"
+                    />
+                    Edit
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => handleDischargeClick(room)}
+                    className={`${
+                      active
+                        ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
+                        : ""
+                    } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
+                  >
+                    <X
+                      size={16}
+                      className="mr-2 text-red-500 dark:text-red-400"
+                    />
+                    Discharge
+                  </button>
+                )}
+              </Menu.Item>
+            </div>
+          </Menu.Items>
+        </Transition>
+      </Menu>
+    );
+  };
 
   const FilterPopover = ({ isOpen, onClose }) => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
     const [status, setStatus] = useState(statusFilter);
 
-    const bedGroups = [
-      "All",
-      "ICU",
-      "Ward",
-      "Cabin",
-      "PACU",
-      "Special ward",
-      "NICU",
-    ];
+    // Get unique bed groups from the actual rooms data
+    const bedGroups = ["All", ...new Set(rooms.map((room) => room.bedGroup))];
     const statuses = ["Available", "Not Available"];
 
     const handleApply = () => {
@@ -307,14 +296,14 @@ const handleDeleteClick = (index) => {
       setStatus("");
       setBedGroupFilter("");
       setStatusFilter("");
+      onClose();
     };
 
     if (!isOpen) return null;
 
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-        <div className="w-[504px] h-auto rounded-[20px]  bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
-          {/* Gradient Border */}
+        <div className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
           <div
             style={{
               position: "absolute",
@@ -332,7 +321,7 @@ const handleDeleteClick = (index) => {
             }}
           ></div>
           <div className="flex justify-between items-center pb-3 mb-4">
-            <h3 className="font-inter font-medium text-[16px] leading-[19px] text-black dark:text-white">
+            <h3 className="font-inter font-medium text-[16px] leading-[19px]">
               Filter
             </h3>
             <button
@@ -342,12 +331,9 @@ const handleDeleteClick = (index) => {
               <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
             </button>
           </div>
-
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="text-sm text-black dark:text-white">
-                Bed Group
-              </label>
+              <label className="text-sm">Bed Group</label>
               <Listbox value={bedGroup} onChange={setBedGroup}>
                 <div className="relative mt-1 w-[228px]">
                   <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
@@ -356,16 +342,10 @@ const handleDeleteClick = (index) => {
                       <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options
-                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
-                    style={{
-                      scrollbarWidth: "none",
-                      msOverflowStyle: "none",
-                    }}
-                  >
-                    {bedGroups.map((bg, idx) => (
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar">
+                    {bedGroups.map((bg) => (
                       <Listbox.Option
-                        key={idx}
+                        key={bg}
                         value={bg}
                         className={({ active, selected }) =>
                           `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
@@ -386,11 +366,8 @@ const handleDeleteClick = (index) => {
                 </div>
               </Listbox>
             </div>
-
             <div>
-              <label className="text-sm text-black dark:text-white">
-                Status
-              </label>
+              <label className="text-sm">Status</label>
               <Listbox value={status} onChange={setStatus}>
                 <div className="relative mt-1 w-[228px]">
                   <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
@@ -400,9 +377,9 @@ const handleDeleteClick = (index) => {
                     </span>
                   </Listbox.Button>
                   <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-                    {statuses.map((s, idx) => (
+                    {statuses.map((s) => (
                       <Listbox.Option
-                        key={idx}
+                        key={s}
                         value={s}
                         className={({ active, selected }) =>
                           `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
@@ -424,13 +401,10 @@ const handleDeleteClick = (index) => {
               </Listbox>
             </div>
           </div>
-
           <div className="flex justify-center gap-[18px] mt-8">
             <button
               onClick={handleClear}
-              className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
-                       px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] 
-                       shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+              className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
             >
               Clear
             </button>
@@ -452,12 +426,19 @@ const handleDeleteClick = (index) => {
 
   const isBedListRoute = location.pathname.includes("BedList");
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-[#08994A] dark:text-[#0EFF7B]">
+          Loading rooms...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-[60px] h-100% mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[1400px] mx-auto dark:border-[#1E1E1E]">
-      <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
-      >
+      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -466,7 +447,6 @@ const handleDeleteClick = (index) => {
             zIndex: 0,
           }}
         ></div>
-        {/* Gradient Border */}
         <div
           style={{
             position: "absolute",
@@ -500,12 +480,12 @@ const handleDeleteClick = (index) => {
             <Plus size={18} className="text-white" /> Add Admission
           </button>
         </div>
-
         <p className="text-gray-600 dark:text-gray-400 mb-2">
-          You have total 7 types bed group.
+          You have total {new Set(rooms.map((r) => r.bedGroup)).size} types bed
+          group.
         </p>
 
-        {/* Filter + Search */}
+        {/* Search + Filter */}
         <div className="flex justify-between items-center mb-4">
           <Listbox value={filterValue} onChange={setFilterValue}>
             <div className="flex items-center gap-3">
@@ -519,36 +499,30 @@ const handleDeleteClick = (index) => {
                 onChange={handleSelectAll}
               />
               <div className="relative">
-                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px]  border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
+                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
                   {filterValue}
                   <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-green-400 ml-2" />
                 </Listbox.Button>
                 <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-                  {[
-                    "All",
-                    "ICU",
-                    "Ward",
-                    "Cabin",
-                    "PACU",
-                    "Special ward",
-                    "NICU",
-                  ].map((option, idx) => (
-                    <Listbox.Option
-                      key={idx}
-                      value={option}
-                      className={({ active, selected }) =>
-                        `cursor-pointer select-none py-2 px-4 text-sm rounded-lg ${
-                          selected
-                            ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22] text-[#08994A] dark:text-[#0EFF7B]"
-                            : active
-                            ? "bg-[#0EFF7B1A] dark:bg-[#1A1A1A] text-[#08994A] dark:text-white"
-                            : "text-black dark:text-gray-300"
-                        }`
-                      }
-                    >
-                      {option}
-                    </Listbox.Option>
-                  ))}
+                  {["All", ...new Set(rooms.map((r) => r.bedGroup))].map(
+                    (option) => (
+                      <Listbox.Option
+                        key={option}
+                        value={option}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-4 text-sm rounded-lg ${
+                            selected
+                              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22] text-[#08994A] dark:text-[#0EFF7B]"
+                              : active
+                              ? "bg-[#0EFF7B1A] dark:bg-[#1A1A1A] text-[#08994A] dark:text-white"
+                              : "text-black dark:text-gray-300"
+                          }`
+                        }
+                      >
+                        {option}
+                      </Listbox.Option>
+                    )
+                  )}
                 </Listbox.Options>
               </div>
               <button
@@ -563,14 +537,13 @@ const handleDeleteClick = (index) => {
                     : "bg-[#0EFF7B1A] dark:bg-[#025126] dark:shadow-[0px_0px_20px_0px_#0EFF7B40]"
                 }`}
               >
-                <span className="flex items-center justify-center w-5 h-5  rounded-[4px]">
+                <span className="flex items-center justify-center w-5 h-5 rounded-[4px]">
                   <FileText size={18} className="text-[#0EFF7B]" />
                 </span>
                 Bed group lists
               </button>
             </div>
           </Listbox>
-
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 border border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-[8px] px-3 py-1 w-[315px] h-[42px] relative">
               <Search
@@ -595,9 +568,6 @@ const handleDeleteClick = (index) => {
               />{" "}
               Filter
             </button>
-            {/* <button className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]">
-              <Settings size={18} className="text-[#08994A] dark:text-[#0EFF7B] " />
-            </button> */}
           </div>
         </div>
 
@@ -611,8 +581,8 @@ const handleDeleteClick = (index) => {
             path="/"
             element={
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="px-[20px]  rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
+                <table className="w-full text-center text-sm">
+                  <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
                     <tr>
                       <th className="py-3 px-2">
                         <input
@@ -629,7 +599,6 @@ const handleDeleteClick = (index) => {
                       <th>Bed Group</th>
                       <th>Patients</th>
                       <th>Admit</th>
-                      <th>Discharge</th>
                       <th>Status</th>
                       <th className="text-center">...</th>
                     </tr>
@@ -655,11 +624,13 @@ const handleDeleteClick = (index) => {
                           <td className="text-black dark:text-white">
                             {room.bedGroup}
                           </td>
-                          <td className="flex items-center gap-2">
+                          <td className="flex items-center justify-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-[#08994A] dark:bg-green-600 flex items-center justify-center text-sm font-bold text-white dark:text-black">
-                              {room.patient.charAt(0)}
+                              {room.patient === "—"
+                                ? "?"
+                                : room.patient.charAt(0)}
                             </div>
-                            <div>
+                            <div className="text-center">
                               <p className="text-black dark:text-white text-sm font-medium">
                                 {room.patient}
                               </p>
@@ -668,24 +639,23 @@ const handleDeleteClick = (index) => {
                               </p>
                             </div>
                           </td>
+
                           <td className="text-black dark:text-white">
                             {room.admit}
-                          </td>
-                          <td className="text-black dark:text-white">
-                            {room.discharge}
                           </td>
                           <td className={`${statusColors[room.status]}`}>
                             {room.status}
                           </td>
                           <td className="text-center">
-                            <ActionMenu room={room} index={index}/>
+                            {/* Make sure to pass the index prop here */}
+                            <ActionMenu room={room} index={index} />
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr className="w-[1089px] h-[72px] bg-white dark:bg-black flex items-center justify-center">
                         <td
-                          colSpan="8"
+                          colSpan="7"
                           className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                         >
                           No rooms found
@@ -719,20 +689,23 @@ const handleDeleteClick = (index) => {
         </Routes>
 
         {/* Popups */}
-        {/* Delete Confirmation Popup */}
-        {showDeletePopup && (
-          <DeleteRoomManagement
-            onClose={handleCancelDelete}
-            onConfirm={handleConfirmDelete}
-          />
-        )}
         {showAdmitPopup && (
-          <AdmitPatientPopup onClose={handleCloseAdmitPopup} />
+          <AdmitPatientPopup
+            onClose={handleCloseAdmitPopup}
+            onSuccess={handleAdmitSuccess}
+          />
         )}
         {showEditPopup && (
           <EditAdmitPatientPopup
             onClose={handleCloseEditPopup}
             room={roomToEdit}
+            onSuccess={handleAdmitSuccess}
+          />
+        )}
+        {showDischargePopup && (
+          <DischargePopup
+            onClose={handleCloseDischargePopup}
+            onConfirm={handleConfirmDischarge}
           />
         )}
 

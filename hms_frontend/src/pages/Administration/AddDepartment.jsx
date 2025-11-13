@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { successToast, errorToast } from "../../components/Toast";
 
 const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -12,55 +13,75 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSave = async () => {
-    // Basic validation
-    if (!formData.departmentName.trim() || !formData.status) {
-      setError("Department name and status are required.");
+const handleSave = async () => {
+  // Basic validation
+  if (!formData.departmentName.trim() || !formData.status) {
+    setError("Department name and status are required.");
+    errorToast("Department name and status are required.");
+    return;
+  }
+
+  setLoading(true);
+  setError("");
+
+  const payload = {
+    name: formData.departmentName.trim(),
+    status: formData.status.toLowerCase(), // Backend expects "active"/"inactive"
+    description: formData.description.trim() || null,
+  };
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/departments/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      let errorMessage = "Failed to create department.";
+
+      if (response.status === 409) {
+        const err = await response.json();
+        errorMessage = err.detail || "Department with this name already exists.";
+      } else {
+        try {
+          const err = await response.json();
+          errorMessage = err.detail || errorMessage;
+        } catch {
+          errorMessage = `Server error: ${response.status}`;
+        }
+      }
+
+      setError(errorMessage);
+      errorToast(errorMessage);
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    setError("");
+    const newDepartment = await response.json();
 
-    const payload = {
-      name: formData.departmentName.trim(),
-      status: formData.status.toUpperCase(), // Assuming backend expects "ACTIVE"/"INACTIVE"
-      description: formData.description.trim(),
-    };
+    // SUCCESS TOAST
+    successToast(`"${newDepartment.name}" created successfully!`);
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/departments/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // Add auth header if needed, e.g.:
-          // "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    // Notify parent to refresh list
+    if (onSave) onSave(newDepartment);
 
-      if (!response.ok) {
-        if (response.status === 409) {
-          const err = await response.json();
-          setError(err.detail || "Department with this name already exists.");
-        } else {
-          const err = await response.json();
-          setError(err.detail || "Failed to create department.");
-        }
-        setLoading(false);
-        return;
-      }
-
-      const newDepartment = await response.json();
-      if (onSave) onSave(newDepartment);
+    // Close popup with a tiny delay for toast visibility
+    setTimeout(() => {
       onClose();
-    } catch (err) {
-      setError("Network error. Please try again.");
-      console.error("API Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 600);
+
+  } catch (err) {
+    const networkError = "Network error. Please check your connection.";
+    setError(networkError);
+    errorToast(networkError);
+    console.error("Create Department Error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleClear = () => {
     setFormData({ departmentName: "", status: "", description: "" });

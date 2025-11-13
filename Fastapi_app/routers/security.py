@@ -83,8 +83,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 # ------------------ Router ------------------
 router = APIRouter(prefix="/security", tags=["Security"])
 
-
-# ---------- Create User ----------
 # ---------- Create User ----------
 @router.post("/create_user")
 def create_user(

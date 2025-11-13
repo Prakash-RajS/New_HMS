@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Plus, Edit, X, ChevronLeft, ChevronRight } from "lucide-react";
 import image from "../../assets/image.png";
 import { Listbox } from "@headlessui/react";
 import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
+import { successToast, errorToast } from "../../components/Toast";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 const ProfileSection = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -14,122 +17,58 @@ const ProfileSection = () => {
     department: "",
     specialist: "",
   });
-  const [currentPage, setCurrentPage] = useState(1); // Add state for current page
-  const rowsPerPage = 9; // Display 9 profiles per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 9;
 
   const navigate = useNavigate();
 
-  const departments = ["Orthopedics", "Cardiology", "Dermatology", "Neurology", "Pediatrics"];
-  const specialists = ["MBBS, FCPS", "MISS, MD, DNR", "MISS, MD (Anesthesiology)", "MISS, DNR"];
+  const [profiles, setProfiles] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [specialists, setSpecialists] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const profiles = [
-    {
-      name: "Dr. David Miller",
-      qualification: "MBBS, FCPS",
-      department: "Orthopedics",
-      joinDate: "24 Jun 2015",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Doctors",
-    },
-    {
-      name: "Dr. Alishek",
-      qualification: "MISS, MD, DNR",
-      department: "Cardiology",
-      joinDate: "29 Jun 2015",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Doctors",
-    },
-    {
-      name: "Dr. Michael Johnson",
-      qualification: "MISS, DNR",
-      department: "Dermatology",
-      joinDate: "21 Jun 2015",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Doctors",
-    },
-    {
-      name: "Dr. Sarah Williams",
-      qualification: "MISS, DNR",
-      department: "Neurology",
-      joinDate: "18 Jun 2015",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Doctors",
-    },
-    {
-      name: "Dr. Emily Davis",
-      qualification: "MBBS, FCPS",
-      department: "Orthopedics",
-      joinDate: "24 Jun 2015",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Doctors",
-    },
-    {
-      name: "Nurse Jane Smith",
-      qualification: "RN, BSN",
-      department: "Emergency",
-      joinDate: "15 Mar 2018",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Nurses",
-    },
-    {
-      name: "Nurse Robert Brown",
-      qualification: "RN, MSN",
-      department: "ICU",
-      joinDate: "22 Aug 2019",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Nurses",
-    },
-    {
-      name: "John Doe",
-      qualification: "Medical Assistant",
-      department: "Administration",
-      joinDate: "10 Jan 2020",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Other Staff",
-    },{
-      name: "Nurse Robert Brown",
-      qualification: "RN, MSN",
-      department: "ICU",
-      joinDate: "22 Aug 2019",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Nurses",
-    },
-    {
-      name: "John Doe",
-      qualification: "Medical Assistant",
-      department: "Administration",
-      joinDate: "10 Jan 2020",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Other Staff",
-    },{
-      name: "Nurse Robert Brown",
-      qualification: "RN, MSN",
-      department: "ICU",
-      joinDate: "22 Aug 2019",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Nurses",
-    },
-    {
-      name: "John Doe",
-      qualification: "Medical Assistant",
-      department: "Administration",
-      joinDate: "10 Jan 2020",
-      contact: "+8754XXXXX",
-      email: "Stacklymed@info.com",
-      type: "Other Staff",
-    },
-  ];
+  // Fetch all staff from backend
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_BASE}/staff/all/`);
+        if (!response.ok) throw new Error("Failed to fetch profiles");
+        const data = await response.json();
+
+        // Transform to match frontend format
+        const transformed = data.map(staff => ({
+          id: staff.id,
+          name: staff.full_name || "Unknown",
+          qualification: staff.specialization || "N/A",
+          department: staff.department || "N/A",
+          joinDate: staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString('en-GB') : "N/A",
+          contact: staff.phone || "N/A",
+          email: staff.email || "N/A",
+          type: staff.designation ? 
+            (staff.designation.toLowerCase() === "doctor" ? "Doctors" : 
+             staff.designation.toLowerCase() === "nurse" ? "Nurses" : 
+             "Other Staff") : "Other Staff",
+          // Include all original data for editing
+          originalData: staff
+        }));
+
+        setProfiles(transformed);
+
+        // Extract unique departments and specialists (exclude N/A)
+        const uniqueDepartments = [...new Set(transformed.map(p => p.department).filter(d => d && d !== "N/A"))].sort();
+        const uniqueSpecialists = [...new Set(transformed.map(p => p.qualification).filter(s => s && s !== "N/A"))].sort();
+        setDepartments(uniqueDepartments);
+        setSpecialists(uniqueSpecialists);
+      } catch (err) {
+        errorToast("Failed to load profiles.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfiles();
+  }, []);
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter((profile) => {
@@ -152,7 +91,6 @@ const ProfileSection = () => {
     });
   }, [profiles, searchTerm, filtersData]);
 
-  // Calculate total pages and slice profiles for the current page
   const totalPages = Math.ceil(filteredProfiles.length / rowsPerPage);
   const paginatedProfiles = filteredProfiles.slice(
     (currentPage - 1) * rowsPerPage,
@@ -171,10 +109,9 @@ const ProfileSection = () => {
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFiltersData((prev) => ({ ...prev, [name]: value }));
-    setCurrentPage(1); // Reset to first page when filters change
+  const handleFilterChange = (field, value) => {
+    setFiltersData(prev => ({ ...prev, [field]: value }));
+    setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
@@ -182,21 +119,64 @@ const ProfileSection = () => {
       department: "",
       specialist: "",
     });
-    setCurrentPage(1); // Reset to first page when filters are cleared
+    setCurrentPage(1);
+  };
+
+  const handleEditProfile = (profile) => {
+    setSelectedProfile(profile.originalData);
+    setShowEditPopup(true);
+  };
+
+  const handleUpdateProfile = async (updatedData) => {
+    try {
+      // Update the profile in the backend
+      const response = await fetch(`${API_BASE}/staff/update/${updatedData.id}/`, {
+        method: 'PUT',
+        body: updatedData // This should be FormData in your actual implementation
+      });
+      
+      if (response.ok) {
+        successToast("Profile updated successfully");
+        // Refresh the profiles
+        const fetchResponse = await fetch(`${API_BASE}/staff/all/`);
+        const data = await fetchResponse.json();
+        const transformed = data.map(staff => ({
+          id: staff.id,
+          name: staff.full_name || "Unknown",
+          qualification: staff.specialization || "N/A",
+          department: staff.department || "N/A",
+          joinDate: staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString('en-GB') : "N/A",
+          contact: staff.phone || "N/A",
+          email: staff.email || "N/A",
+          type: staff.designation ? 
+            (staff.designation.toLowerCase() === "doctor" ? "Doctors" : 
+             staff.designation.toLowerCase() === "nurse" ? "Nurses" : 
+             "Other Staff") : "Other Staff",
+          originalData: staff
+        }));
+        setProfiles(transformed);
+      } else {
+        errorToast("Failed to update profile");
+      }
+    } catch (error) {
+      errorToast("Error updating profile");
+      console.error(error);
+    }
   };
 
   const Dropdown = ({ placeholder, value, onChange, options }) => (
-    <div>
+    <div className="relative">
       <Listbox value={value || ""} onChange={(val) => onChange(val === placeholder ? "" : val)}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
+                       bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
             style={{
               borderColor: "#3C3C3C",
               boxShadow: "0px 0px 4px 0px #0EFF7B",
             }}
           >
-            {value || placeholder}
+            <span className="block truncate">{value || placeholder}</span>
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <svg
                 className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
@@ -208,16 +188,18 @@ const ProfileSection = () => {
               </svg>
             </span>
           </Listbox.Button>
+          
           <Listbox.Options
-            className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}>
+            className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
             <Listbox.Option
               key="default"
               value={placeholder}
-              className="cursor-pointer select-none py-2 px-2 text-sm text-gray-600 dark:text-gray-400"
+              className="cursor-pointer select-none py-2 px-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]"
             >
               {placeholder}
             </Listbox.Option>
@@ -240,19 +222,24 @@ const ProfileSection = () => {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   const totalDoctors = filteredProfiles.filter((p) => p.type === "Doctors").length;
   const totalNurses = filteredProfiles.filter((p) => p.type === "Nurses").length;
   const totalOtherStaff = filteredProfiles.filter((p) => p.type === "Other Staff").length;
 
   return (
-    <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
-    >
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
-          background:
-            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          background: "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
           zIndex: 0,
         }}
       ></div>
@@ -263,18 +250,17 @@ const ProfileSection = () => {
           inset: 0,
           borderRadius: "10px",
           padding: "2px",
-          background:
-            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
           pointerEvents: "none",
           zIndex: 0,
         }}
       ></div>
+      
       {/* Header */}
-      <div className="flex justify-between items-center mt-4 mb-6">
+      <div className="flex justify-between items-center mt-4 mb-6 relative z-10">
         <h2 className="text-xl font-semibold text-black dark:text-white">Doctor/Nurse Profiles</h2>
         <button
           onClick={() => navigate("/Doctors-Nurse/AddDoctorNurse")}
@@ -283,21 +269,19 @@ const ProfileSection = () => {
             background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
           }}
         >
-          <Plus size={18} className="text-black dark:text-black" />
+          <Plus size={18} className="text-white" />
           Add Doctor/Nurse
         </button>
       </div>
 
       {/* Stats */}
-      <div className="mb-6 w-[800px]">
+      <div className="mb-6 w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Total Doctors
             </span>
-            <span
-              className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A]"
-            >
+            <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A]">
               {totalDoctors}
             </span>
           </div>
@@ -305,9 +289,7 @@ const ProfileSection = () => {
             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Total Nurse
             </span>
-            <span
-              className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#2231FF] dark:border-[#2231FF] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#6E92FF] to-[#425899] dark:from-[#6E92FF] dark:to-[#425899]"
-            >
+            <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#2231FF] dark:border-[#2231FF] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#6E92FF] to-[#425899] dark:from-[#6E92FF] dark:to-[#425899]">
               {totalNurses}
             </span>
           </div>
@@ -315,9 +297,7 @@ const ProfileSection = () => {
             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Other staff
             </span>
-            <span
-              className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#FF930E] dark:border-[#FF930E] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#FF930E] to-[#995808] dark:from-[#FF930E] dark:to-[#995808]"
-            >
+            <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#FF930E] dark:border-[#FF930E] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#FF930E] to-[#995808] dark:from-[#FF930E] dark:to-[#995808]">
               {totalOtherStaff}
             </span>
           </div>
@@ -325,25 +305,23 @@ const ProfileSection = () => {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-6">
+      <div className="flex justify-between items-center mb-6 relative z-30">
+        <div className="flex gap-4">
           <Dropdown
             placeholder="Select Department"
             value={filtersData.department}
-            onChange={(val) => setFiltersData({ ...filtersData, department: val })}
+            onChange={(val) => handleFilterChange('department', val)}
             options={departments}
           />
           <Dropdown
             placeholder="Select Specialist"
             value={filtersData.specialist}
-            onChange={(val) => setFiltersData({ ...filtersData, specialist: val })}
+            onChange={(val) => handleFilterChange('specialist', val)}
             options={specialists}
           />
         </div>
         <div className="flex gap-4">
-          <div
-            className="min-w-[315px] flex items-center bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-full px-3 py-1 border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] relative"
-          >
+          <div className="min-w-[315px] flex items-center bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-full px-3 py-1 border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] relative">
             <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <input
               type="text"
@@ -365,64 +343,63 @@ const ProfileSection = () => {
       {/* Filter Popup */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative"
-          >
+          <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
             {/* Gradient Border */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "20px",
-          padding: "2px",
-          background:
-            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      ></div>
-            <div className="flex justify-between items-center pb-3 mb-4">
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                borderRadius: "20px",
+                padding: "2px",
+                background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+                zIndex: 0,
+              }}
+            ></div>
+            <div className="flex justify-between items-center pb-3 mb-4 relative z-10">
               <h3 className="text-black dark:text-white font-medium text-[16px]">
                 Filter Profiles
               </h3>
               <button
                 onClick={() => setShowFilterPopup(false)}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center text-gray-600 dark:text-white hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
               >
-                <X size={16} className="text-[#08994A] dark:text-white" />
+                <X size={16} />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-6">
+
+            <div className="grid grid-cols-2 gap-6 relative z-30">
               <Dropdown
                 placeholder="Select Department"
                 value={filtersData.department}
-                onChange={(val) => setFiltersData({ ...filtersData, department: val })}
+                onChange={(val) => setFiltersData(prev => ({ ...prev, department: val }))}
                 options={departments}
               />
               <Dropdown
                 placeholder="Select Specialist"
                 value={filtersData.specialist}
-                onChange={(val) => setFiltersData({ ...filtersData, specialist: val })}
+                onChange={(val) => setFiltersData(prev => ({ ...prev, specialist: val }))}
                 options={specialists}
               />
             </div>
-            <div className="flex justify-center gap-6 mt-8">
+
+            <div className="flex justify-center gap-6 mt-8 relative z-10">
               <button
                 onClick={handleClearFilters}
-                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white font-medium text-[14px] leading-[16px] hover:bg-[#0EFF7B1A] dark:hover:bg-[#1E1E1E]"
+                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
               >
                 Clear
               </button>
               <button
                 onClick={() => setShowFilterPopup(false)}
-                className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-              style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}>
+                className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+                style={{
+                  background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                }}
+              >
                 Filter
               </button>
             </div>
@@ -431,17 +408,25 @@ const ProfileSection = () => {
       )}
 
       {/* Edit Doctor/Nurse Popup */}
-      {showEditPopup && (
-        <EditDoctorNursePopup profile={selectedProfile} onClose={() => setShowEditPopup(false)} />
+      {showEditPopup && selectedProfile && (
+        <EditDoctorNursePopup
+          onClose={() => {
+            setShowEditPopup(false);
+            setSelectedProfile(null);
+          }}
+          profile={selectedProfile}
+          onUpdate={handleUpdateProfile}
+        />
       )}
 
       {/* Profiles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-20">
         {paginatedProfiles.length > 0 ? (
           paginatedProfiles.map((profile, index) => (
             <div
-              key={index}
-              className="w-full h-full bg-gray-100 dark:bg-[#0EFF7B08] rounded-lg p-5 border border-gray-300 dark:border-[#0EFF7B80] shadow-[0px_0px_4px_0px_#A0A0A040] dark:shadow-[0px_0px_4px_0px_#0EFF7B] relative text-center flex flex-col items-center"
+              key={profile.id || index}
+              className="w-full h-full bg-gray-100 dark:bg-[#0EFF7B08] rounded-lg p-5 border border-[#0EFF7B80] dark:border-[#0EFF7B80] shadow-[0px_0px_4px_0px_#A0A0A040] dark:shadow-[0px_0px_4px_0px_#0EFF7B] relative text-center flex flex-col items-center"
+              style={{ zIndex: 20 }}
             >
               <div className="absolute top-4 left-4 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
                 {profile.type}
@@ -474,10 +459,7 @@ const ProfileSection = () => {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  setSelectedProfile(profile);
-                  setShowEditPopup(true);
-                }}
+                onClick={() => handleEditProfile(profile)}
                 className="absolute top-4 right-4 flex items-center gap-1 text-[#4D58FF] dark:text-[#6E92FF] text-[12px]"
               >
                 <Edit size={16} />
@@ -485,7 +467,7 @@ const ProfileSection = () => {
               </button>
               <button
                 className="w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
-                onClick={() => navigate("/Doctors-Nurse/ViewProfile")}
+                onClick={() => navigate("/Doctors-Nurse/ViewProfile", { state: { profile: profile.originalData } })}
               >
                 View profile
               </button>
@@ -499,11 +481,9 @@ const ProfileSection = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4">
+      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
         <div className="text-sm text-black dark:text-white">
-          Page {currentPage} of {totalPages} (
-          {(currentPage - 1) * rowsPerPage + 1} to{" "}
-          {Math.min(currentPage * rowsPerPage, filteredProfiles.length)} from {filteredProfiles.length} Records)
+          Page {currentPage} of {totalPages} ({(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredProfiles.length)} from {filteredProfiles.length} Records)
         </div>
         <div className="flex items-center gap-x-2">
           <button

@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { successToast, errorToast } from "../../components/Toast";
+
+const API_BASE = "http://localhost:8000";
 
 /* -------------------------------------------------
-   Dropdown – same as AdmitPatientPopup
+   Dropdown Component
 ------------------------------------------------- */
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -49,56 +52,196 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
 );
 
 /* -------------------------------------------------
-   EditAdmitPatientPopup – matches AdmitPatientPopup
+   EditAdmitPatientPopup – Fixed date handling
 ------------------------------------------------- */
-const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
+const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
   const [formData, setFormData] = useState({
-    name: existingData?.name || "",
-    patientId: existingData?.patientId || "",
-    bedGroup: existingData?.bedGroup || "",
-    bedNumber: existingData?.bedNumber || "",
-    admitDate: existingData?.admitDate || "", // "MM/DD/YYYY"
-    dischargeDate: existingData?.dischargeDate || "",
+    full_name: "",
+    patient_unique_id: "",
+    bed_group_name: "",
+    bed_number: "",
+    admission_date: "",
   });
 
+  const [selectedAdmitDate, setSelectedAdmitDate] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [bedGroups, setBedGroups] = useState([]);
 
-  const bedGroups = ["ICU", "Ward", "Emergency"];
+  // Fetch available bed groups and patient data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch bed groups
+        const bedGroupsRes = await fetch(`${API_BASE}/bedgroups/all`);
+        if (bedGroupsRes.ok) {
+          const groups = await bedGroupsRes.json();
+          setBedGroups(groups.map(group => group.bedGroup));
+        }
+
+        // If room has patient data, fetch patient details
+        if (room && room.patientId && room.patientId !== "—") {
+          try {
+            const patientRes = await fetch(`${API_BASE}/patients/${room.patientId}`);
+            if (patientRes.ok) {
+              const patient = await patientRes.json();
+              
+              // Parse admission date properly
+              let admissionDate = "";
+              let dateObj = null;
+              
+              if (patient.admission_date) {
+                if (patient.admission_date.includes('-')) {
+                  // ISO format from API - convert to MM/DD/YYYY
+                  const date = new Date(patient.admission_date);
+                  admissionDate = `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+                  dateObj = date;
+                } else {
+                  // Already in MM/DD/YYYY format
+                  admissionDate = patient.admission_date;
+                  const [m, d, y] = admissionDate.split("/").map(Number);
+                  dateObj = new Date(y, m - 1, d);
+                }
+              }
+
+              setFormData({
+                full_name: patient.full_name || room.patient,
+                patient_unique_id: patient.patient_unique_id || room.patientId,
+                bed_group_name: room.bedGroup,
+                bed_number: room.roomNo,
+                admission_date: admissionDate,
+              });
+              
+              setSelectedAdmitDate(dateObj);
+            } else {
+              // Fallback to room data if patient API fails
+              setFormData({
+                full_name: room.patient,
+                patient_unique_id: room.patientId,
+                bed_group_name: room.bedGroup,
+                bed_number: room.roomNo,
+                admission_date: "",
+              });
+            }
+          } catch (patientError) {
+            console.warn("Failed to fetch patient details:", patientError);
+            // Fallback to room data
+            setFormData({
+              full_name: room.patient,
+              patient_unique_id: room.patientId,
+              bed_group_name: room.bedGroup,
+              bed_number: room.roomNo,
+              admission_date: "",
+            });
+          }
+        } else {
+          // No patient data, just prefill bed info
+          setFormData({
+            full_name: "",
+            patient_unique_id: "",
+            bed_group_name: room.bedGroup,
+            bed_number: room.roomNo,
+            admission_date: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        errorToast("Failed to load data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [room]);
 
   /* ---------- Validation ---------- */
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = "Patient name is required";
-    if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
-    if (!formData.bedGroup) newErrors.bedGroup = "Bed group is required";
-    if (!formData.bedNumber.trim()) newErrors.bedNumber = "Bed number is required";
-    if (!formData.admitDate) newErrors.admitDate = "Admit date is required";
-
-    if (formData.dischargeDate && formData.admitDate) {
-      if (formData.dischargeDate < formData.admitDate) {
-        newErrors.dischargeDate = "Discharge date cannot be before admit date";
-      }
-    }
+    if (!formData.full_name.trim()) newErrors.full_name = "Patient name is required";
+    if (!formData.patient_unique_id.trim()) newErrors.patient_unique_id = "Patient ID is required";
+    if (!formData.bed_group_name) newErrors.bed_group_name = "Bed group is required";
+    if (!formData.bed_number.trim()) newErrors.bed_number = "Bed number is required";
+    if (!formData.admission_date) newErrors.admission_date = "Admit date is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleUpdate = () => {
-    if (validateForm()) {
-      onUpdate?.(formData);
-      onClose();
+  /* ---------- Handle Date Change ---------- */
+  const handleDateChange = (date) => {
+    setSelectedAdmitDate(date);
+    
+    if (date) {
+      const formatted = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+        date.getDate()
+      ).padStart(2, "0")}/${date.getFullYear()}`;
+      
+      setFormData(prev => ({
+        ...prev,
+        admission_date: formatted
+      }));
+      
+      // Clear any previous date errors
+      if (errors.admission_date) {
+        setErrors(prev => ({ ...prev, admission_date: "" }));
+      }
+    } else {
+      // If date is cleared, also clear the form data
+      setFormData(prev => ({
+        ...prev,
+        admission_date: ""
+      }));
     }
   };
 
-  /* ---------- Parse MM/DD/YYYY → Date ---------- */
-  const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    const [m, d, y] = dateStr.split("/").map(Number);
-    if (!m || !d || !y) return null;
-    const date = new Date(y, m - 1, d);
-    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+  /* ---------- Handle Update ---------- */
+  const handleUpdate = async () => {
+    if (!validateForm()) return;
+
+    try {
+      // First discharge from current bed
+      await fetch(
+        `${API_BASE}/bedgroups/${room.groupId}/beds/${room.bedId}/vacate`,
+        { method: "POST" }
+      );
+
+      // Then admit to new bed with updated data
+      const formDataToSend = new FormData();
+      formDataToSend.append("full_name", formData.full_name);
+      formDataToSend.append("patient_unique_id", formData.patient_unique_id);
+      formDataToSend.append("bed_group_name", formData.bed_group_name);
+      formDataToSend.append("bed_number", formData.bed_number);
+      formDataToSend.append("admission_date", formData.admission_date);
+
+      const admitRes = await fetch(`${API_BASE}/bedgroups/admit`, {
+        method: "POST",
+        body: formDataToSend,
+      });
+
+      if (admitRes.ok) {
+        successToast("Patient admission updated successfully!");
+        onSuccess?.();
+        onClose();
+      } else {
+        const errorData = await admitRes.json();
+        throw new Error(errorData.detail || "Failed to update admission");
+      }
+    } catch (err) {
+      errorToast(err.message);
+      console.error("Update error:", err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+        <div className="text-white">Loading patient data...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -146,67 +289,60 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
           <div>
             <label className="text-sm">Patient Name</label>
             <input
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter name"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              placeholder="Enter patient name"
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
                          bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
                          focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
           </div>
 
           {/* Patient ID */}
           <div>
             <label className="text-sm">Patient ID</label>
             <input
-              value={formData.patientId}
-              onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
-              placeholder="Enter ID"
+              value={formData.patient_unique_id}
+              onChange={(e) => setFormData({ ...formData, patient_unique_id: e.target.value })}
+              placeholder="Enter patient ID"
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
                          bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
                          focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
-            {errors.patientId && <p className="text-red-500 text-xs mt-1">{errors.patientId}</p>}
+            {errors.patient_unique_id && <p className="text-red-500 text-xs mt-1">{errors.patient_unique_id}</p>}
           </div>
 
           {/* Bed Group */}
           <Dropdown
             label="Bed Group"
-            value={formData.bedGroup}
-            onChange={(v) => setFormData({ ...formData, bedGroup: v })}
+            value={formData.bed_group_name}
+            onChange={(v) => setFormData({ ...formData, bed_group_name: v })}
             options={bedGroups}
-            error={errors.bedGroup}
+            error={errors.bed_group_name}
           />
 
           {/* Bed Number */}
           <div>
             <label className="text-sm">Bed Number</label>
             <input
-              value={formData.bedNumber}
-              onChange={(e) => setFormData({ ...formData, bedNumber: e.target.value })}
+              value={formData.bed_number}
+              onChange={(e) => setFormData({ ...formData, bed_number: e.target.value })}
               placeholder="Enter bed number"
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
                          bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
                          focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
-            {errors.bedNumber && <p className="text-red-500 text-xs mt-1">{errors.bedNumber}</p>}
+            {errors.bed_number && <p className="text-red-500 text-xs mt-1">{errors.bed_number}</p>}
           </div>
 
-          {/* Admit Date – compact dropdown style */}
+          {/* Admit Date - FIXED */}
           <div>
             <label className="text-sm">Admit Date</label>
             <div className="relative">
               <DatePicker
-                selected={parseDate(formData.admitDate)}
-                onChange={(date) => {
-                  const formatted = date
-                    ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-                        date.getDate()
-                      ).padStart(2, "0")}/${date.getFullYear()}`
-                    : "";
-                  setFormData({ ...formData, admitDate: formatted });
-                }}
+                selected={selectedAdmitDate}
+                onChange={handleDateChange}
                 dateFormat="MM/dd/yyyy"
                 placeholderText="MM/DD/YYYY"
                 className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
@@ -216,8 +352,11 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
                 popperClassName="z-50"
                 popperPlacement="bottom-start"
                 showPopperArrow={false}
+                //isClearable
                 customInput={
                   <input
+                    readOnly
+                    value={formData.admission_date}
                     style={{
                       paddingRight: "2.5rem",
                       fontSize: "14px",
@@ -230,52 +369,25 @@ const EditAdmitPatientPopup = ({ onClose, onUpdate, existingData }) => {
                 <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
               </div>
             </div>
-            {errors.admitDate && <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>}
-          </div>
-
-          {/* Discharge Date – same style */}
-          <div>
-            <label className="text-sm">Discharge Date</label>
-            <div className="relative">
-              <DatePicker
-                selected={parseDate(formData.dischargeDate)}
-                onChange={(date) => {
-                  const formatted = date
-                    ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-                        date.getDate()
-                      ).padStart(2, "0")}/${date.getFullYear()}`
-                    : "";
-                  setFormData({ ...formData, dischargeDate: formatted });
-                }}
-                dateFormat="MM/dd/yyyy"
-                placeholderText="MM/DD/YYYY"
-                className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
-                wrapperClassName="w-full"
-                popperClassName="z-50"
-                popperPlacement="bottom-start"
-                showPopperArrow={false}
-                customInput={
-                  <input
-                    style={{
-                      paddingRight: "2.5rem",
-                      fontSize: "14px",
-                      lineHeight: "16px",
-                    }}
-                  />
-                }
-              />
-              <div className="absolute right-3 top-3.5 pointer-events-none">
-                <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
-              </div>
-            </div>
-            {errors.dischargeDate && <p className="text-red-500 text-xs mt-1">{errors.dischargeDate}</p>}
+            {errors.admission_date && <p className="text-red-500 text-xs mt-1">{errors.admission_date}</p>}
           </div>
         </div>
 
+        {/* Current Bed Info */}
+        <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            <strong>Current Bed:</strong> {room.bedGroup} - Bed {room.roomNo}
+            {room.patient !== "—" && (
+              <>
+                <br />
+                <strong>Current Patient:</strong> {room.patient} ({room.patientId})
+              </>
+            )}
+          </p>
+        </div>
+
         {/* Buttons */}
-        <div className="flex justify-center gap-[18px] mt-8">
+        <div className="flex justify-center gap-[18px] mt-6">
           <button
             onClick={onClose}
             className="w-[104px] h-[33px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 

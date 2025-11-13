@@ -113,12 +113,22 @@ export const menuItems = [
     ],
   },
 
-  { name: "Billing", path: "/Billing", icon: DollarSign },
+  { name: "Billing", path: "/Billing", icon: DollarSign,
+    dropdown: [
+      { name: "Billing Preview", path: "/BillingPreview", icon: DollarSign},
+      
+    ],
+   },
 
   {
     name: "Accounts",
     path: "/UserSettings",
     paths: ["/security", "/UserSettings"],
+    icon: UserCog,
+  },
+  {
+    name: "Settings",
+    path: "/security",
     icon: UserCog,
   },
 ];
@@ -141,27 +151,40 @@ export const searchMenu = (query: string): SearchResult[] => {
       const label = item.name.toLowerCase();
 
       if (label.includes(q)) {
-        results.push({
-          label: item.name,
-          path: item.path,
-          icon: item.icon,
-          depth,
-        });
-      }
-
-      if (item.dropdown) {
-        item.dropdown.forEach((sub) => {
-          const subLabel = sub.name.toLowerCase();
-
-          if (subLabel.includes(q)) {
+        if (item.dropdown) {
+          // If top-level matches and has dropdown, add all sub-items
+          item.dropdown.forEach((sub) => {
             results.push({
               label: sub.name,
               path: sub.path,
               icon: sub.icon,
               depth: depth + 1,
             });
-          }
-        });
+          });
+        } else {
+          // Add top-level if no dropdown
+          results.push({
+            label: item.name,
+            path: item.path,
+            icon: item.icon,
+            depth,
+          });
+        }
+      } else {
+        // If top-level doesn't match, check sub-items for matches
+        if (item.dropdown) {
+          item.dropdown.forEach((sub) => {
+            const subLabel = sub.name.toLowerCase();
+            if (subLabel.includes(q)) {
+              results.push({
+                label: sub.name,
+                path: sub.path,
+                icon: sub.icon,
+                depth: depth + 1,
+              });
+            }
+          });
+        }
       }
     });
   };
