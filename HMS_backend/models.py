@@ -7,12 +7,18 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None, staff=None, **extra_fields):
+    def create_user(self, username, password=None, staff=None, role="staff", **extra_fields):
         if not username:
             raise ValueError("The username must be set")
-        user = self.model(username=username, staff=staff, **extra_fields)
         if not password:
             raise ValueError("Password must be set")
+
+        user = self.model(
+            username=username,
+            staff=staff,
+            role=role,  # ✅ store role correctly
+            **extra_fields
+        )
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -24,12 +30,20 @@ class UserManager(BaseUserManager):
         if not password:
             raise ValueError("Superuser must have a password")
 
-        return self.create_user(username=username, password=password, **extra_fields)
+        # ✅ always set role = admin for superuser
+        return self.create_user(
+            username=username,
+            password=password,
+            role="admin",      # <-- FIXED HERE
+            staff=None,        # superuser not linked to Staff model
+            **extra_fields
+        )
+
 
 # ------------------ Custom User ------------------
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=100, unique=True)
-    role = models.CharField(max_length=50, default="staff")  # ✅ Add this
+    role = models.CharField(max_length=50, default="staff")  # default for normal users
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     staff = models.OneToOneField("Staff", on_delete=models.CASCADE, null=True, blank=True)
@@ -41,6 +55,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
 
 class Department(models.Model):
     STATUS_CHOICES = (("active", "Active"), ("inactive", "Inactive"))

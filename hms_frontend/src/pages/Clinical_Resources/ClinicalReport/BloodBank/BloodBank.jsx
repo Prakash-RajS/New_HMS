@@ -1028,7 +1028,7 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import DeleteBloodBankPopup from "./DeleteBloodBankPopup.jsx";
-import EditBloodTypes from "./EditBloodTypes.jsx";
+import EditBloodTypePopup from "./EditBloodTypePopup.jsx";
 import EditDonorPopup from "./EditDonorPopup.jsx";
 import AddBloodTypePopup from "./AddBloodTypesPopup.jsx";
 import AddDonorPopup from "./AddDonorPopup.jsx";
@@ -1049,7 +1049,6 @@ const BloodBank = () => {
   const [showBloodFilterPopup, setShowBloodFilterPopup] = useState(false);
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
   const API_BASE = "http://localhost:8000";
-
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
   const [tempBloodStatus, setTempBloodStatus] = useState("All");
@@ -1061,31 +1060,24 @@ const BloodBank = () => {
     bloodType: "All",
     gender: "All",
   });
-
   const [donorSearch, setDonorSearch] = useState("");
   const [showDonorSearch, setShowDonorSearch] = useState(false);
   const [bloodSearch, setBloodSearch] = useState("");
   const [showBloodSearch, setShowBloodSearch] = useState(false);
-
   const [selectedBloodTypes, setSelectedBloodTypes] = useState([]);
   const [selectedDonors, setSelectedDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donorLoading, setDonorLoading] = useState(true);
-
   /* ---------- Blood Types Data ---------- */
   const [allBloodTypes, setAllBloodTypes] = useState([]);
-
   /* ---------- Donor Data ---------- */
   const [allDonors, setAllDonors] = useState([]);
-
   const bloodTypesOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   const statusOptions = ["All", "Available", "Low Stock", "Out of Stock"];
-
   /* ---------- Pagination ---------- */
   const [bloodPage, setBloodPage] = useState(1);
   const [donorPage, setDonorPage] = useState(1);
   const rowsPerPage = 5;
-
   /* ---------- API Functions ---------- */
   const fetchBloodGroups = async () => {
     try {
@@ -1104,7 +1096,6 @@ const BloodBank = () => {
       setLoading(false);
     }
   };
-
   const fetchDonors = async () => {
     try {
       setDonorLoading(true);
@@ -1133,33 +1124,26 @@ const BloodBank = () => {
       setDonorLoading(false);
     }
   };
-
   /* ---------- Blood Group Handlers ---------- */
   const handleAddBloodGroup = async (newBloodGroup) => {
     setAllBloodTypes((prev) => [...prev, newBloodGroup]);
     await fetchBloodGroups();
   };
-
   const handleUpdateBloodGroup = async (updatedBloodGroup) => {
     try {
       console.log("🟡 handleUpdateBloodGroup called with:", updatedBloodGroup);
-
       const bloodId = editBlood?.id;
       console.log("🟡 Editing blood ID:", bloodId);
       console.log("🟡 Original editBlood data:", editBlood);
-
       if (!bloodId) {
         throw new Error("Blood group ID is missing");
       }
-
       const payload = {
         blood_type: updatedBloodGroup.type,
         available_units: parseInt(updatedBloodGroup.units),
         status: updatedBloodGroup.status,
       };
-
       console.log("🟡 Sending payload to backend:", payload);
-
       const response = await fetch(
         `${API_BASE}/api/blood-groups/${bloodId}/edit`,
         {
@@ -1168,16 +1152,13 @@ const BloodBank = () => {
           body: JSON.stringify(payload),
         }
       );
-
       const result = await response.json();
       console.log("🟡 Update response status:", response.status);
       console.log("🟡 Update response data:", result);
-
       if (!response.ok) {
         const errorMsg = result.detail || "Failed to update blood group";
         throw new Error(errorMsg);
       }
-
       // Refresh the data
       await fetchBloodGroups();
       console.log("✅ Blood group updated successfully");
@@ -1186,14 +1167,12 @@ const BloodBank = () => {
       alert(`Error updating blood group:\n${error.message}`);
     }
   };
-
   const handleDeleteBloodGroup = async (bloodGroup) => {
     try {
       const response = await fetch(
         `${API_BASE}/api/blood-groups/${bloodGroup.id}/delete`,
         { method: "DELETE" }
       );
-
       if (response.ok) {
         // Remove from state
         setAllBloodTypes((prev) =>
@@ -1202,10 +1181,8 @@ const BloodBank = () => {
         setSelectedBloodTypes((prev) =>
           prev.filter((bg) => bg.id !== bloodGroup.id)
         );
-
         // Refresh list
         await fetchBloodGroups();
-
         // Success toast
         successToast(`Blood type "${bloodGroup.type}" deleted successfully!`);
       } else {
@@ -1213,26 +1190,20 @@ const BloodBank = () => {
       }
     } catch (error) {
       console.error("Error deleting blood group:", error);
-
       // Still remove from UI (optimistic)
       setAllBloodTypes((prev) => prev.filter((bg) => bg.id !== bloodGroup.id));
-
       // Error toast
       errorToast(`Failed to delete "${bloodGroup.type}"`);
     }
   };
-
   const handleDeleteSelectedBloodGroups = async () => {
     const count = selectedBloodTypes.length;
     const types = selectedBloodTypes.map((bg) => bg.type).join(", ");
-
     try {
       for (const bg of selectedBloodTypes) {
         await handleDeleteBloodGroup(bg);
       }
-
       setSelectedBloodTypes([]);
-
       // Bulk success toast
       successToast(
         `${count} blood type${count > 1 ? "s" : ""} deleted successfully!`
@@ -1242,7 +1213,6 @@ const BloodBank = () => {
       errorToast("Some blood types could not be deleted.");
     }
   };
-
   /* ---------- Donor Handlers ---------- */
   const handleAddDonor = async () => {
     // Simply refresh the donors list - the API call already happened in the popup
@@ -1254,17 +1224,13 @@ const BloodBank = () => {
       console.error("Error refreshing data after adding donor:", error);
     }
   };
-
   const handleUpdateDonor = async (updatedDonorData) => {
     try {
       console.log("🟡 Updating donor with data:", updatedDonorData);
-
       const donorId = editDonor?.id;
-
       if (!donorId) {
         throw new Error("Donor ID is missing");
       }
-
       const payload = {
         donor_name: updatedDonorData.donor_name,
         phone: updatedDonorData.phone,
@@ -1273,28 +1239,23 @@ const BloodBank = () => {
         last_donation_date: updatedDonorData.last_donation_date || null,
         status: updatedDonorData.status,
       };
-
       console.log(
         "🟡 Sending PUT request to:",
         `${API_BASE}/api/donors/${donorId}`
       );
       console.log("🟡 Request payload:", payload);
-
       const response = await fetch(`${API_BASE}/api/donors/${donorId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
       console.log("🟡 Update response status:", response.status);
       console.log("🟡 Update response data:", result);
-
       if (!response.ok) {
         const errorMsg = result.detail || "Failed to update donor";
         throw new Error(errorMsg);
       }
-
       // Refresh the donors list
       await fetchDonors();
       console.log("✅ Donor updated successfully");
@@ -1320,7 +1281,6 @@ const BloodBank = () => {
       setAllDonors((prev) => prev.filter((d) => d.id !== donor.id));
     }
   };
-
   const handleDeleteSelectedDonors = async () => {
     for (const donor of selectedDonors) {
       await handleDeleteDonor(donor);
@@ -1328,12 +1288,10 @@ const BloodBank = () => {
     setSelectedDonors([]);
     setShowDeleteDonorPopup(false);
   };
-
   const handleDeleteSingleDonor = (donor) => {
     setDeleteDonor(donor);
     setShowDeleteDonorPopup(true);
   };
-
   const confirmDeleteDonors = () => {
     if (deleteDonor) {
       handleDeleteDonor(deleteDonor);
@@ -1343,13 +1301,11 @@ const BloodBank = () => {
     }
     setShowDeleteDonorPopup(false);
   };
-
   /* ---------- useEffect ---------- */
   useEffect(() => {
     fetchBloodGroups();
     fetchDonors();
   }, []);
-
   /* ---------- Filtering Logic ---------- */
   const filteredBloodTypes = allBloodTypes.filter((b) => {
     if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter)
@@ -1363,7 +1319,6 @@ const BloodBank = () => {
       return false;
     return true;
   });
-
   const filteredDonors = allDonors.filter((d) => {
     if (donorFilters.bloodType !== "All" && d.blood !== donorFilters.bloodType)
       return false;
@@ -1379,7 +1334,6 @@ const BloodBank = () => {
       return false;
     return true;
   });
-
   const bloodTypes = filteredBloodTypes.slice(
     (bloodPage - 1) * rowsPerPage,
     bloodPage * rowsPerPage
@@ -1388,33 +1342,27 @@ const BloodBank = () => {
     (donorPage - 1) * rowsPerPage,
     donorPage * rowsPerPage
   );
-
   const totalBloodPages = Math.ceil(filteredBloodTypes.length / rowsPerPage);
   const totalDonorPages = Math.ceil(filteredDonors.length / rowsPerPage);
-
   /* ---------- Checkbox Selection ---------- */
   const handleBloodTypeCheckboxChange = (blood) => {
     setSelectedBloodTypes((prev) =>
       prev.includes(blood) ? prev.filter((b) => b !== blood) : [...prev, blood]
     );
   };
-
   const handleDonorCheckboxChange = (donor) => {
     setSelectedDonors((prev) =>
       prev.includes(donor) ? prev.filter((d) => d !== donor) : [...prev, donor]
     );
   };
-
   const handleSelectAllBloodTypes = () => {
     setSelectedBloodTypes(
       selectedBloodTypes.length === bloodTypes.length ? [] : bloodTypes
     );
   };
-
   const handleSelectAllDonors = () => {
     setSelectedDonors(selectedDonors.length === donors.length ? [] : donors);
   };
-
   /* ---------- UI ---------- */
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
@@ -1426,7 +1374,6 @@ const BloodBank = () => {
             "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
         }}
       ></div>
-
       {/* Gradient Border */}
       <div
         style={{
@@ -1443,7 +1390,6 @@ const BloodBank = () => {
           pointerEvents: "none",
         }}
       ></div>
-
       {/* ==================== BLOOD TYPES SECTION ==================== */}
       <div className="mt-4 mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] overflow-hidden relative">
         {/* Header */}
@@ -1462,7 +1408,6 @@ const BloodBank = () => {
             Available Blood Types and Donor Registry
           </p>
         </div>
-
         {/* Controls */}
         <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3A3A3A] rounded-[12px] p-4">
           <div className="flex justify-between items-center mb-4">
@@ -1494,7 +1439,6 @@ const BloodBank = () => {
                   </Listbox.Options>
                 </Listbox>
               </div>
-
               {/* Delete Selected Button */}
               {selectedBloodTypes.length > 0 && (
                 <button
@@ -1506,7 +1450,6 @@ const BloodBank = () => {
                 </button>
               )}
             </div>
-
             {/* Search & Filter */}
             <div className="flex gap-2 items-center">
               {showBloodSearch && (
@@ -1538,7 +1481,6 @@ const BloodBank = () => {
               </button>
             </div>
           </div>
-
           {/* Table */}
           <table className="w-full border-collapse">
             <thead className="min-h-[52px] bg-gray-200 dark:bg-[#091810] h-[52px]">
@@ -1551,7 +1493,7 @@ const BloodBank = () => {
                       bloodTypes.length > 0
                     }
                     onChange={handleSelectAllBloodTypes}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['Check'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="p-3">Blood Types</th>
@@ -1581,7 +1523,7 @@ const BloodBank = () => {
                         type="checkbox"
                         checked={selectedBloodTypes.includes(b)}
                         onChange={() => handleBloodTypeCheckboxChange(b)}
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['Check'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       />
                     </td>
                     <td className="p-3">{b.blood_type}</td>
@@ -1643,7 +1585,6 @@ const BloodBank = () => {
               )}
             </tbody>
           </table>
-
           {/* Pagination */}
           {!loading && filteredBloodTypes.length > 0 && (
             <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 p-4">
@@ -1686,7 +1627,6 @@ const BloodBank = () => {
           )}
         </div>
       </div>
-
       {/* ==================== DONOR LIST SECTION ==================== */}
       <div className="mt-[30px] mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative p-6">
         {/* Header */}
@@ -1705,7 +1645,6 @@ const BloodBank = () => {
             Registered Donors and Blood Type Information
           </p>
         </div>
-
         {/* Filters & Search */}
         <div className="flex justify-between items-center mb-4">
           <div className="flex gap-2">
@@ -1738,7 +1677,6 @@ const BloodBank = () => {
                 </Listbox.Options>
               </Listbox>
             </div>
-
             <div className="relative">
               <Listbox
                 value={donorFilters.gender}
@@ -1765,7 +1703,6 @@ const BloodBank = () => {
                 </Listbox.Options>
               </Listbox>
             </div>
-
             {selectedDonors.length > 0 && (
               <button
                 onClick={() => setShowDeleteDonorPopup(true)}
@@ -1776,7 +1713,6 @@ const BloodBank = () => {
               </button>
             )}
           </div>
-
           <div className="flex gap-2 items-center">
             {showDonorSearch && (
               <div className="relative w-72">
@@ -1813,7 +1749,6 @@ const BloodBank = () => {
             </button>
           </div>
         </div>
-
         {/* Donor Table */}
         <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4">
           <table className="w-full border-collapse">
@@ -1827,7 +1762,7 @@ const BloodBank = () => {
                       donors.length > 0
                     }
                     onChange={handleSelectAllDonors}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['Check'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="p-3">Donor</th>
@@ -1860,7 +1795,7 @@ const BloodBank = () => {
                         type="checkbox"
                         checked={selectedDonors.includes(d)}
                         onChange={() => handleDonorCheckboxChange(d)}
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['Check'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       />
                     </td>
                     <td className="p-3">{d.name}</td>
@@ -1923,7 +1858,6 @@ const BloodBank = () => {
               )}
             </tbody>
           </table>
-
           {/* Pagination */}
           {!donorLoading && filteredDonors.length > 0 && (
             <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 p-4">
@@ -1966,7 +1900,6 @@ const BloodBank = () => {
           )}
         </div>
       </div>
-
       {/* ==================== POP-UPS ==================== */}
       {showAddPopup && (
         <AddBloodTypePopup
@@ -1975,8 +1908,8 @@ const BloodBank = () => {
         />
       )}
       {showEditBloodPopup && (
-        <EditBloodTypes
-          data={editBlood}
+        <EditBloodTypePopup
+          bloodData={editBlood}
           onClose={() => setShowEditBloodPopup(false)}
           onUpdate={handleUpdateBloodGroup}
         />
@@ -2007,7 +1940,6 @@ const BloodBank = () => {
           onAdd={handleAddDonor} // Just pass the function reference, no parameters
         />
       )}
-
       {/* Delete Donor(s) Confirmation */}
       {showDeleteDonorPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -2028,7 +1960,6 @@ const BloodBank = () => {
                   pointerEvents: "none",
                 }}
               ></div>
-
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   {deleteDonor ? "Delete Donor" : "Delete Donors"}
@@ -2040,7 +1971,6 @@ const BloodBank = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
                 {deleteDonor
                   ? `Are you sure you want to delete donor ${deleteDonor.name}?`
@@ -2048,7 +1978,6 @@ const BloodBank = () => {
                 <br />
                 This action cannot be undone.
               </p>
-
               <div className="flex justify-end gap-4">
                 <button
                   onClick={() => setShowDeleteDonorPopup(false)}
@@ -2067,7 +1996,6 @@ const BloodBank = () => {
           </div>
         </div>
       )}
-
       {/* Blood Filter Popup */}
       {showBloodFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -2088,7 +2016,6 @@ const BloodBank = () => {
                   pointerEvents: "none",
                 }}
               ></div>
-
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   Filter Blood Types
@@ -2100,7 +2027,6 @@ const BloodBank = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2 text-black dark:text-white">
                   Status
@@ -2134,7 +2060,6 @@ const BloodBank = () => {
                   </Listbox>
                 </div>
               </div>
-
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={() => {
@@ -2160,7 +2085,6 @@ const BloodBank = () => {
           </div>
         </div>
       )}
-
       {/* Donor Filter Popup */}
       {showDonorFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -2181,7 +2105,6 @@ const BloodBank = () => {
                   pointerEvents: "none",
                 }}
               ></div>
-
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
                   Filter Donor
@@ -2193,7 +2116,6 @@ const BloodBank = () => {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-
               <div className="grid grid-cols-2 gap-6">
                 {/* Blood Type */}
                 <div>
@@ -2231,7 +2153,6 @@ const BloodBank = () => {
                     </Listbox>
                   </div>
                 </div>
-
                 {/* Gender */}
                 <div>
                   <label className="block text-sm font-medium mb-2 text-black dark:text-white">
@@ -2269,7 +2190,6 @@ const BloodBank = () => {
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-end gap-4 mt-6">
                 <button
                   onClick={() => {

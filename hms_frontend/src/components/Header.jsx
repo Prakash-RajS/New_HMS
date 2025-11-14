@@ -145,7 +145,7 @@ const Header = ({ isCollapsed }) => {
         className="flex items-center justify-between p-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
         style={{
           width: `calc(100% - ${isCollapsed ? "120px" : "270px"})`,
-          maxWidth: "1580px",
+          maxWidth: "2580px",
           position: "fixed",
           left: isCollapsed ? "100px" : "247px",
           zIndex: 40,

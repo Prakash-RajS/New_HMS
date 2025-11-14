@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
@@ -9,17 +9,7 @@ const departments = [
   "Orthopedics",
   "Radiology",
   "Pathology",
-  "Emergency",
-];
-
-const testTypes = [
-  "Blood Test",
-  "X-Ray",
-  "MRI",
-  "CT Scan",
-  "Ultrasound",
-  "ECG",
-  "Urine Analysis",
+  "General Medicine",
 ];
 
 const CreateTestOrderPopup = ({ onClose, onSave }) => {
@@ -31,6 +21,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [patients, setPatients] = useState([]);
+
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/medicine_allocation/edit")
+      .then(res => res.json())
+      .then(data => setPatients(data.patients || []))
+      .catch(err => console.error("Failed to fetch patients", err));
+  }, []);
+
+  const patientNames = [...new Set(patients.map(p => p.full_name || ""))].filter(Boolean);
+  const patientIds = patients.map(p => p.patient_unique_id || "").filter(Boolean);
 
   const validateForm = () => {
     const newErrors = {};
@@ -60,16 +61,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
     }
   };
 
-  const departments = [
-    "Cardiology",
-    "Neurology",
-    "Orthopedics",
-    "Radiology",
-    "Pathology",
-    "General Medicine",
-  ];
-
-  const Dropdown = ({ label, value, onChange, options, error }) => (
+  const Dropdown = ({ label, value, onChange, options, error, isPatientName = false, isPatientId = false }) => (
     <div>
       <label
         className="text-sm text-black dark:text-white"
@@ -77,7 +69,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
       >
         {label}
       </label>
-      <Listbox value={value} onChange={onChange}>
+      <Listbox value={value} onChange={(val) => {
+        if (isPatientName) {
+          const patient = patients.find(p => p.full_name === val);
+          setFormData({ ...formData, patientName: val, patientId: patient ? patient.patient_unique_id : formData.patientId });
+        } else if (isPatientId) {
+          const patient = patients.find(p => p.patient_unique_id === val);
+          setFormData({ ...formData, patientId: val, patientName: patient ? patient.full_name : formData.patientName });
+        } else {
+          onChange(val);
+        }
+      }}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
@@ -116,10 +118,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
         </div>
       </Listbox>
       {error && (
-        <p
-          className="text-red-500 dark:text-red-400 text-xs mt-1"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
+        <p className="text-red-500 text-xs mt-1">
           {error}
         </p>
       )}
@@ -155,53 +154,25 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
 
           {/* Form Fields */}
           <div className="grid grid-cols-2 gap-6">
-            {/* Patient Name */}
-            <div>
-              <label
-                className="text-sm text-black dark:text-white"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                Patient Name
-              </label>
-              <input
-                name="patientName"
-                value={formData.patientName}
-                onChange={(e) =>
-                  setFormData({ ...formData, patientName: e.target.value })
-                }
-                placeholder="Enter patient name"
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-              />
-              {errors.patientName && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.patientName}
-                </p>
-              )}
-            </div>
+            {/* Patient Name Dropdown */}
+            <Dropdown
+              label="Patient Name"
+              value={formData.patientName}
+              onChange={(val) => {}}
+              options={patientNames}
+              error={errors.patientName}
+              isPatientName={true}
+            />
 
-            {/* Patient ID */}
-            <div>
-              <label
-                className="text-sm text-black dark:text-white"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                Patient ID
-              </label>
-              <input
-                name="patientId"
-                value={formData.patientId}
-                onChange={(e) =>
-                  setFormData({ ...formData, patientId: e.target.value })
-                }
-                placeholder="Enter patient ID"
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-              />
-              {errors.patientId && (
-                <p className="text-red-500 text-xs mt-1">{errors.patientId}</p>
-              )}
-            </div>
+            {/* Patient ID Dropdown */}
+            <Dropdown
+              label="Patient ID"
+              value={formData.patientId}
+              onChange={(val) => {}}
+              options={patientIds}
+              error={errors.patientId}
+              isPatientId={true}
+            />
 
             {/* Department */}
             <Dropdown
