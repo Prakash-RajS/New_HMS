@@ -1267,6 +1267,32 @@ const AppointmentList = () => {
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    
+      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "10px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
       {/* Header */}
       <div className="flex justify-between items-center mt-4 mb-2 relative z-10">
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
@@ -1418,7 +1444,7 @@ const AppointmentList = () => {
                 />
               </th>
               <th>Patient Name</th>
-              <th>Patient ID</th>
+              <th>Appointment ID</th>
               <th>Department</th>
               <th>Doctor</th>
               <th>Room no</th>

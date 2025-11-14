@@ -90,7 +90,7 @@ export default function ViewPatientProfile() {
   // Fetch patients from backend
   const fetchPatients = async () => {
     try {
-      const res = await fetch(`${API_BASE}/patients/edit`);
+      const res = await fetch(`${API_BASE}/medicine_allocation/edit`);
       const text = await res.text();
       if (!res.ok) {
         console.error("Patients raw response (non-OK):", text);

@@ -425,3 +425,5 @@ async def delete_patient(patient_id: str = Path(...)):
     except Exception as e:
         logging.exception("delete_patient error")
         raise HTTPException(status_code=500, detail=str(e))
+
+

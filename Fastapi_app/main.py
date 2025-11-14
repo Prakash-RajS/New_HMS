@@ -56,7 +56,7 @@ app.mount(
     StaticFiles(directory=PROFILE_PIC_DIR),
     name="profile_pictures",
 )
-
+app.mount("/static/patient_photos", StaticFiles(directory="fastapi_app/Patient_photos"), name="patient_photos")
 
 # ==================== HEALTH CHECK ====================
 @app.get("/health")
