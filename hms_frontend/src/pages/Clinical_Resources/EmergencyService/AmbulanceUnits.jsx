@@ -144,7 +144,7 @@ const AmbulanceUnitsModal = ({
                   name="in_service"
                   checked={form.in_service}
                   onChange={handleChange}
-                  className="w-5 h-5 rounded border-[#0EFF7B] checked:bg-[#025126]"
+                  className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
                 <span className="ml-2 text-sm">
                   {form.in_service ? "Yes" : "No"}

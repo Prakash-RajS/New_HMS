@@ -516,10 +516,10 @@ class Dispatch(models.Model):
         ("Cancelled", "Cancelled")
     ]
 
-    dispatch_id = models.CharField(max_length=50, unique=True)  # e.g. "D-10241"
-    timestamp = models.DateTimeField()  # dispatched time
+    dispatch_id = models.CharField(max_length=50, unique=True, blank=True)
+    timestamp = models.DateTimeField()
     unit = models.ForeignKey(AmbulanceUnit, on_delete=models.SET_NULL, null=True, related_name="dispatches")
-    dispatcher = models.CharField(max_length=150)  # name of dispatcher
+    dispatcher = models.CharField(max_length=150)
     call_type = models.CharField(max_length=30, choices=CALL_TYPE_CHOICES, default="Emergency")
     location = models.CharField(max_length=255)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="Standby")
@@ -528,8 +528,16 @@ class Dispatch(models.Model):
         db_table = "ambulance_dispatches"
         ordering = ["-timestamp"]
 
+    def save(self, *args, **kwargs):
+        if not self.dispatch_id:
+            last = Dispatch.objects.order_by("-id").first()
+            next_id = 1 if not last else last.id + 1
+            self.dispatch_id = f"DSP{next_id:04d}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.dispatch_id} - {self.unit}"
+
 
 
 class Trip(models.Model):
@@ -540,16 +548,25 @@ class Trip(models.Model):
         ("Cancelled", "Cancelled"),
     ]
 
-    trip_id = models.CharField(max_length=50, unique=True)  # e.g. "T-7751"
+    trip_id = models.CharField(max_length=50, unique=True, blank=True)
     dispatch = models.ForeignKey(Dispatch, on_delete=models.CASCADE, related_name="trips")
     unit = models.ForeignKey(AmbulanceUnit, on_delete=models.SET_NULL, null=True, related_name="trips")
-    crew = models.TextField(blank=True, null=True)  # e.g. "Paramedic Lewis, EMT Clark"
-    patient_id = models.CharField(max_length=50, blank=True, null=True)
+    crew = models.TextField(blank=True, null=True)
+    
+    # CHANGED: Now a proper ForeignKey to Patient
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ambulance_trips"
+    )
+
     pickup_location = models.CharField(max_length=255, blank=True, null=True)
     destination = models.CharField(max_length=255, blank=True, null=True)
     start_time = models.DateTimeField(blank=True, null=True)
     end_time = models.DateTimeField(blank=True, null=True)
-    mileage = models.CharField(max_length=50, blank=True, null=True)  # could be minutes or distance
+    mileage = models.CharField(max_length=50, blank=True, null=True)
     status = models.CharField(max_length=30, choices=TRIP_STATUS, default="Standby")
     notes = models.TextField(blank=True, null=True)
 
@@ -559,8 +576,16 @@ class Trip(models.Model):
         db_table = "ambulance_trips"
         ordering = ["-created_at"]
 
+    def save(self, *args, **kwargs):
+        if not self.trip_id:
+            last = Trip.objects.order_by("-id").first()
+            next_id = 1 if not last else last.id + 1
+            self.trip_id = f"TRP{next_id:04d}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.trip_id} (Dispatch: {self.dispatch.dispatch_id})"
+        patient_name = self.patient.full_name if self.patient else "No Patient"
+        return f"{self.trip_id} - {patient_name}"
 
 class Invoice(models.Model):
     STATUS_CHOICES = [
