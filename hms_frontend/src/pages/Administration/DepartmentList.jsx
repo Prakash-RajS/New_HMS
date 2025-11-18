@@ -46,7 +46,7 @@ const DepartmentList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [menuOpenFor, setMenuOpenFor] = useState(null);
   const [bulkStatus, setBulkStatus] = useState(null);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortOrder, setSortOrder] = useState("A-to-Z");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -246,7 +246,7 @@ const DepartmentList = () => {
   const handleClearFilters = () => {
     setFiltersData({ name: "", status: "" });
     setSortOrder("A-to-Z");
-    setItemsPerPage(8);
+    setItemsPerPage(10);
     setSearchTerm("");
     setCurrentPage(1);
   };
@@ -302,6 +302,13 @@ const DepartmentList = () => {
   const applySettings = () => {
     setCurrentPage(1);
     setShowSettingsPopup(false);
+  };
+
+  // Function to determine dropdown position
+  const getDropdownPosition = (index) => {
+    // For the last 3-4 rows, show dropdown above the button
+    // Since we have 10 rows per page, show above for last 4 rows (index 6,7,8,9)
+    return index >= 6 ? "top" : "bottom";
   };
 
   if (loading) {
@@ -464,7 +471,7 @@ const DepartmentList = () => {
         </div>
 
         {/* Table Container */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-auto">
+        <div className="flex-1 flex flex-col min-h-0  overflow-hidden">
           <table className="w-full text-left text-sm min-w-[600px]">
             <thead className="bg-[#F5F6F5] dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
               <tr>
@@ -500,6 +507,8 @@ const DepartmentList = () => {
               {currentDepartments.length > 0 ? (
                 currentDepartments.map((dept, idx) => {
                   const IconComponent = departmentIcons[dept.name] || Activity;
+                  const dropdownPosition = getDropdownPosition(idx);
+                  
                   return (
                     <tr
                       key={dept.id}
@@ -554,9 +563,9 @@ const DepartmentList = () => {
                         {menuOpenFor === dept.id && (
                           <div
                             className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-white dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${
-                              idx >= currentDepartments.length - 2
-                                ? "bottom-full mb-2"
-                                : "top-full mt-2"
+                              dropdownPosition === "top" 
+                                ? "bottom-full mb-0" 
+                                : "top-full mt-0"
                             }`}
                           >
                             <ul className="py-1">
@@ -612,7 +621,7 @@ const DepartmentList = () => {
             </tbody>
           </table>
           {/* Pagination */}
-          <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center mt-9 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -661,94 +670,91 @@ const DepartmentList = () => {
         </div>
 
         {/* Filter Popup */}
-        {showFilterPopup && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
-              {/* Gradient Border */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "20px",
-                  padding: "2px",
-                  background:
-                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "xor",
-                  maskComposite: "exclude",
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              ></div>
-              <div className="flex justify-between items-center pb-3 mb-4">
-                <h3 className="text-black dark:text-white font-medium text-[16px]">
-                  Filter
-                </h3>
-                <button
-                  onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-                >
-                  <X size={16} className="text-[#08994A] dark:text-white" />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                {/* Department Name */}
-                <div className="flex flex-col w-[228px]">
-                  <label className="text-sm text-black dark:text-white mb-1">
-                    Department Name
-                  </label>
-                  <input
-                    name="name"
-                    value={filtersData.name}
-                    onChange={handleFilterChange}
-                    placeholder="Enter Name"
-                    className="w-full h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] 
-                 dark:border-[#3A3A3A] bg-white dark:bg-transparent 
-                 text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
-                 dark:placeholder-gray-500 outline-none text-sm"
-                  />
-                </div>
+       {showFilterPopup && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
+    <div className="relative w-[350px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+      
+      {/* Gradient Border */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "20px",
+          padding: "2px",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      ></div>
 
-                {/* Status Dropdown */}
-                <div className="flex flex-col w-[228px]">
-                  <label className="text-sm text-black dark:text-white mb-1">
-                    Status
-                  </label>
-                  <Dropdown
-                    value={filtersData.status}
-                    onChange={(val) => {
-                      setFiltersData({ ...filtersData, status: val });
-                      setCurrentPage(1);
-                    }}
-                    options={["Active", "Inactive"]}
-                  />
-                </div>
-              </div>
+      {/* Header */}
+      <div className="flex justify-between items-center pb-3 mb-4">
+        <h3 className="text-black dark:text-white font-medium text-[16px]">Filter</h3>
+        <button
+          onClick={() => setShowFilterPopup(false)}
+          className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] 
+                     bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center 
+                     hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] 
+                     hover:text-[#08994A] dark:hover:text-white"
+        >
+          <X size={16} className="text-[#08994A] dark:text-white" />
+        </button>
+      </div>
 
-              <div className="flex justify-center gap-6 mt-8">
-                <button
-                  onClick={handleClearFilters}
-                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={() => {
-                    setShowFilterPopup(false);
-                    setCurrentPage(1);
-                  }}
-                  className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-                  style={{
-                    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                  }}
-                >
-                  Filter
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Status Filter - Centered */}
+      <div className="flex flex-col items-center w-full">
+        <label className="text-sm text-black dark:text-white mb-1 self-start">
+          Status
+        </label>
+        <Dropdown
+          value={filtersData.status}
+          onChange={(val) => {
+            setFiltersData({ ...filtersData, status: val });
+            setCurrentPage(1);
+          }}
+          options={["Active", "Inactive"]}
+        />
+      </div>
+
+      {/* Buttons */}
+      <div className="flex justify-center gap-4 mt-8">
+        <button
+          onClick={handleClearFilters}
+          className="w-[100px] h-[33px] rounded-[8px] border border-[#0EFF7B] 
+                     dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 
+                     text-black dark:text-white font-medium text-[14px] 
+                     hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] 
+                     hover:text-[#08994A] dark:hover:text-white"
+        >
+          Clear
+        </button>
+
+        <button
+          onClick={() => {
+            setShowFilterPopup(false);
+            setCurrentPage(1);
+          }}
+          className="w-[120px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] 
+                     dark:border-[#0EFF7B66] px-3 py-2 shadow text-white font-medium text-[14px]
+                     bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A]
+                     hover:scale-105 transition"
+          style={{
+            background:
+              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+          }}
+        >
+          Filter
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
         {/* Settings Popup */}
         {showSettingsPopup && (
@@ -799,7 +805,7 @@ const DepartmentList = () => {
                       <Listbox.Options 
                         className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
                       >
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
+                        {[5, 6, 7, 8, 9, 10, 11, 12].map((option) => (
                           <Listbox.Option
                             key={option}
                             value={option}
