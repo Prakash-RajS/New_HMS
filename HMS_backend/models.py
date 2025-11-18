@@ -587,29 +587,29 @@ class Trip(models.Model):
         patient_name = self.patient.full_name if self.patient else "No Patient"
         return f"{self.trip_id} - {patient_name}"
 
-class Invoice(models.Model):
-    STATUS_CHOICES = [
-        ("Paid", "Paid"),
-        ("Unpaid", "Unpaid"),
-        ("Pending", "Pending"),
-    ]
+# class Invoice(models.Model):
+#     STATUS_CHOICES = [
+#         ("Paid", "Paid"),
+#         ("Unpaid", "Unpaid"),
+#         ("Pending", "Pending"),
+#     ]
 
-    invoice_id = models.CharField(max_length=50, unique=True)
-    date = models.DateField()
-    patient_name = models.CharField(max_length=100)
-    patient_id = models.CharField(max_length=50)
-    department = models.CharField(max_length=100)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+#     invoice_id = models.CharField(max_length=50, unique=True)
+#     date = models.DateField()
+#     patient_name = models.CharField(max_length=100)
+#     patient_id = models.CharField(max_length=50)
+#     department = models.CharField(max_length=100)
+#     amount = models.DecimalField(max_digits=10, decimal_places=2)
+#     payment_method = models.CharField(max_length=50)
+#     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        ordering = ["-date", "-created_at"]
+#     class Meta:
+#         ordering = ["-date", "-created_at"]
 
-    def __str__(self):
-        return f"{self.invoice_id} - {self.patient_name} ({self.status})"
+#     def __str__(self):
+#         return f"{self.invoice_id} - {self.patient_name} ({self.status})"
 
 
 class SecuritySettings(models.Model):

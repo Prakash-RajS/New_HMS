@@ -1,6 +1,7 @@
 // src/components/AmbulanceManagement.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Listbox } from "@headlessui/react";
+import MapView from "./MapView";
 import {
   Search,
   ChevronDown,
@@ -15,6 +16,13 @@ import {
   Trash2,
   X,
   Plus,
+  AlertTriangle,
+  CheckCircle,
+  Siren,
+  Navigation,
+  Ambulance as AmbulanceIcon,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import EditDispatchModal from "./EditDispatch";
 import EditTripModal from "./EditTrip";
@@ -22,6 +30,7 @@ import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 const API_BASE = "http://localhost:8000/ambulance";
+const WS_URL = "ws://localhost:8000/ws";
 
 const AmbulanceManagement = () => {
   // ── STATE ─────────────────────────────────────
@@ -36,6 +45,13 @@ const AmbulanceManagement = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedRows, setSelectedRows] = useState(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState("disconnected");
+  const [livePositions, setLivePositions] = useState({});
+  const ws = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   // Data
   const [dispatchData, setDispatchData] = useState([]);
@@ -62,8 +78,352 @@ const AmbulanceManagement = () => {
 
   const itemsPerPage = 10;
 
-  // ── FETCH DATA ─────────────────────────────────
+  // ── WEBSOCKET MANAGEMENT ──────────────────────
+  const connectWebSocket = useCallback(() => {
+    if (!isMountedRef.current) return;
+
+    // Clear any existing reconnection timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    // Close existing connection
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+      ws.current.close(1000, "Reconnecting");
+    }
+
+    console.log("🔄 Attempting WebSocket connection...");
+    setConnectionStatus("connecting");
+
+    try {
+      ws.current = new WebSocket(WS_URL);
+
+      ws.current.onopen = () => {
+        if (!isMountedRef.current) {
+          ws.current?.close();
+          return;
+        }
+        console.log("✅ WebSocket connected successfully");
+        setConnectionStatus("connected");
+        
+        // Send client info
+        const clientInfo = {
+          type: "client_info",
+          client: "ambulance_management",
+          timestamp: new Date().toISOString()
+        };
+        ws.current.send(JSON.stringify(clientInfo));
+      };
+
+      ws.current.onmessage = (event) => {
+        if (!isMountedRef.current) return;
+
+        try {
+          const data = JSON.parse(event.data);
+          console.log("📨 WebSocket message received:", data.type);
+          handleWebSocketMessage(data);
+        } catch (parseError) {
+          console.error("❌ Error parsing WebSocket message:", parseError);
+        }
+      };
+
+      ws.current.onclose = (event) => {
+        if (!isMountedRef.current) return;
+
+        console.log("🔌 WebSocket disconnected:", event.code, event.reason);
+        setConnectionStatus("disconnected");
+
+        // Don't attempt to reconnect if component is unmounting or connection was intentional
+        if (event.code === 1000 || !isMountedRef.current) return;
+
+        // Attempt reconnection with exponential backoff
+        const delay = Math.min(1000 * Math.pow(1.5, 3), 10000); // Max 10 seconds
+        console.log(`🔄 Reconnecting in ${delay}ms...`);
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            connectWebSocket();
+          }
+        }, delay);
+      };
+
+      ws.current.onerror = (error) => {
+        if (!isMountedRef.current) return;
+        console.error("❌ WebSocket error:", error);
+        setConnectionStatus("error");
+      };
+
+    } catch (error) {
+      console.error("❌ Failed to create WebSocket connection:", error);
+      setConnectionStatus("error");
+      
+      // Retry connection after delay
+      reconnectTimeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          connectWebSocket();
+        }
+      }, 3000);
+    }
+  }, []);
+
+const handleWebSocketMessage = (data) => {
+  // Skip connection established messages
+  if (data.type === "connection_established") {
+    console.log("✅ WebSocket connection confirmed");
+    return;
+  }
+
+  // Handle different message types - match exactly what backend sends
+  switch (data.type) {
+    case "unit_created":
+    case "unit_updated":
+    case "unit_deleted":
+    case "dispatch_created":
+    case "dispatch_updated":
+    case "dispatch_deleted":
+    case "trip_created":
+    case "trip_updated":
+    case "trip_deleted":
+    case "trip_status_changed":
+      // Refresh data when CRUD operations happen
+      fetchData();
+      
+      // Show toast notification
+      showNotificationToast(data);
+      break;
+
+    case "location_update":
+      setLivePositions((prev) => ({
+        ...prev,
+        [data.unit_number]: { lat: data.lat, lng: data.lng },
+      }));
+      break;
+
+    case "status_update":
+      showNotificationToast(data);
+      break;
+
+    // Add these new message types that backend actually sends
+    case "new_dispatch":
+    case "new_trip":
+    case "trip_completed":
+    case "dispatch_status_updated":
+    case "dispatch_unit_changed":
+      fetchData(); // Refresh data
+      showNotificationToast(data);
+      break;
+
+    default:
+      console.log("📨 Unknown message type:", data.type, data);
+      break;
+  }
+
+  // Add to notification panel (except for location updates)
+  if (data.type !== "location_update" && data.type !== "connection_established") {
+    addToNotificationPanel(data);
+  }
+};
+
+const showNotificationToast = (data) => {
+  const toastConfigs = {
+    // Unit operations
+    unit_created: {
+      icon: AmbulanceIcon,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 4000,
+    },
+    unit_updated: {
+      icon: AmbulanceIcon,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    unit_deleted: {
+      icon: AmbulanceIcon,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+
+    // Dispatch operations
+    dispatch_created: {
+      icon: Siren,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 8000,
+      playSound: true,
+    },
+    new_dispatch: { // This is what backend actually sends for new dispatches
+      icon: Siren,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 8000,
+      playSound: true,
+    },
+    dispatch_updated: {
+      icon: Edit,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    dispatch_deleted: {
+      icon: Trash2,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+    dispatch_status_updated: {
+      icon: Clock,
+      color: "text-purple-500",
+      bgColor: "bg-purple-900/30 border-purple-500/50",
+      autoClose: 5000,
+    },
+    dispatch_unit_changed: {
+      icon: AmbulanceIcon,
+      color: "text-orange-500",
+      bgColor: "bg-orange-900/30 border-orange-500/50",
+      autoClose: 5000,
+    },
+
+    // Trip operations
+    trip_created: {
+      icon: AmbulanceIcon,
+      color: "text-blue-500",
+      bgColor: "bg-blue-900/30 border-blue-500/50",
+      autoClose: 5000,
+    },
+    new_trip: { // This is what backend actually sends for new trips
+      icon: AmbulanceIcon,
+      color: "text-blue-500",
+      bgColor: "bg-blue-900/30 border-blue-500/50",
+      autoClose: 5000,
+    },
+    trip_updated: {
+      icon: Edit,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    trip_deleted: {
+      icon: Trash2,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+    trip_status_changed: {
+      icon: Clock,
+      color: "text-purple-500",
+      bgColor: "bg-purple-900/30 border-purple-500/50",
+      autoClose: 5000,
+    },
+    trip_completed: {
+      icon: CheckCircle,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 5000,
+    },
+
+    // Status updates
+    status_update: {
+      icon: CheckCircle,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 5000,
+    },
+  };
+
+  const config = toastConfigs[data.type] || {
+    icon: Bell,
+    color: "text-gray-500",
+    bgColor: "bg-gray-900/30 border-gray-500/50",
+    autoClose: 4000,
+  };
+
+  successToast(
+    <div className="flex items-center gap-3">
+      <config.icon className={`w-6 h-6 ${config.color}`} />
+      <div>
+        <strong className={config.color}>{data.title || formatMessageType(data.type)}</strong>
+        <p className="text-sm text-gray-700">{data.message}</p>
+      </div>
+    </div>,
+    { autoClose: config.autoClose }
+  );
+
+  // Play emergency sound for new dispatches
+  if (config.playSound) {
+    try {
+      const audio = new Audio(
+        "https://assets.mixkit.co/sfx/preview/mixkit-emergency-alert-2951.mp3"
+      );
+      audio.volume = 0.3;
+      audio.play().catch((e) => console.log("Audio play failed:", e));
+    } catch (audioError) {
+      console.log("Audio initialization failed:", audioError);
+    }
+  }
+};
+
+// Helper function to format message types for display
+const formatMessageType = (type) => {
+  const typeMap = {
+    unit_created: "Ambulance Unit Created",
+    unit_updated: "Ambulance Unit Updated", 
+    unit_deleted: "Ambulance Unit Deleted",
+    dispatch_created: "New Dispatch Created",
+    new_dispatch: "New Dispatch Created",
+    dispatch_updated: "Dispatch Updated",
+    dispatch_deleted: "Dispatch Cancelled",
+    dispatch_status_updated: "Dispatch Status Updated",
+    dispatch_unit_changed: "Dispatch Unit Changed",
+    trip_created: "New Trip Started",
+    new_trip: "New Trip Started",
+    trip_updated: "Trip Updated",
+    trip_deleted: "Trip Cancelled",
+    trip_status_changed: "Trip Status Updated",
+    trip_completed: "Trip Completed",
+    status_update: "Status Update",
+    location_update: "Location Update"
+  };
+  
+  return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
+
+  const addToNotificationPanel = (data) => {
+    const now = Date.now();
+    const notificationId = now + Math.random();
+
+    setNotifications((prev) => {
+      // Prevent duplicates
+      const isDuplicate = prev.some(
+        (n) =>
+          n.type === data.type &&
+          n.message === data.message &&
+          n.title === data.title &&
+          now - n.id < 2000 // 2 second duplicate window
+      );
+
+      if (isDuplicate) return prev;
+
+      return [
+        {
+          id: notificationId,
+          ...data,
+          time: new Date().toLocaleTimeString(),
+        },
+        ...prev.slice(0, 49), // Keep only last 50 notifications
+      ];
+    });
+
+    setUnreadCount((c) => c + 1);
+  };
+
+  // ── DATA FETCHING ─────────────────────────────
   const fetchData = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     setLoading(true);
     setError(null);
     try {
@@ -96,15 +456,42 @@ const AmbulanceManagement = () => {
 
       setStats({ total, ready, onRoad, outOfService });
     } catch (err) {
+      console.error("❌ Error fetching data:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
+  // ── LIFECYCLE ─────────────────────────────────
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Initial data fetch
     fetchData();
-  }, [fetchData]);
+    
+    // Connect WebSocket after a brief delay to ensure component is mounted
+    const wsTimeout = setTimeout(() => {
+      connectWebSocket();
+    }, 500);
+
+    return () => {
+      isMountedRef.current = false;
+      
+      // Clear timeouts
+      clearTimeout(wsTimeout);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      // Close WebSocket
+      if (ws.current) {
+        ws.current.close(1000, "Component unmounting");
+      }
+    };
+  }, [fetchData, connectWebSocket]);
 
   // ── FILTER / PAGINATION / SORT ─────────────────
   const currentData =
@@ -367,6 +754,22 @@ const AmbulanceManagement = () => {
         <div>
           <h1 className="text-[20px] font-medium flex items-center gap-2">
             Ambulance Management
+            <div className="flex items-center gap-2 text-sm">
+              {connectionStatus === "connected" ? (
+                <Wifi size={16} className="text-green-500" />
+              ) : connectionStatus === "connecting" ? (
+                <Wifi size={16} className="text-yellow-500 animate-pulse" />
+              ) : (
+                <WifiOff size={16} className="text-red-500" />
+              )}
+              <span className={`text-xs ${
+                connectionStatus === "connected" ? "text-green-500" :
+                connectionStatus === "connecting" ? "text-yellow-500" :
+                "text-red-500"
+              }`}>
+                {connectionStatus}
+              </span>
+            </div>
           </h1>
           <p className="text-[14px] mt-2 text-gray-600 dark:text-gray-400">
             Manage ambulance dispatches, trips, and vehicle status in one place.
@@ -377,67 +780,160 @@ const AmbulanceManagement = () => {
       {/* Map + Stats + Notifications */}
       <div className="w-full flex flex-col lg:flex-row gap-6 mb-6 relative z-10">
         {/* Map + Stats */}
-        <div className="w-full lg:flex-1">
-          <div className="w-full h-[284px] bg-white dark:bg-[#1E1E1E] rounded-xl mb-6 flex items-center justify-center text-gray-600 dark:text-gray-400">
-            Map View (Google Maps/Leaflet)
+        <div className="w-full lg:flex-1 space-y-6">
+          {/* Live Map */}
+          <div className="w-full h-[340px] rounded-2xl overflow-hidden shadow-2xl border border-[#0EFF7B]/20 bg-gradient-to-br from-black via-[#0a0a0a] to-black">
+            <MapView
+              units={unitData}
+              trips={tripData}
+              livePositions={livePositions}
+            />
           </div>
-          <div className="w-full h-[91px] flex items-center justify-between rounded-lg px-6 py-[22px] bg-white dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0D0D0D]">
+
+          {/* Stats Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Vehicles", value: stats.total },
-              { label: "Ready", value: stats.ready, color: "green" },
-              { label: "On Road", value: stats.onRoad, color: "orange" },
+              {
+                label: "Total Vehicles",
+                value: stats.total,
+                icon: "Ambulance",
+              },
+              {
+                label: "Ready",
+                value: stats.ready,
+                color: "text-green-400",
+                bg: "bg-green-500/10",
+                icon: "CheckCircle",
+              },
+              {
+                label: "On Road",
+                value: stats.onRoad,
+                color: "text-orange-400",
+                bg: "bg-orange-500/10",
+                icon: "Navigation",
+              },
               {
                 label: "Out of Service",
                 value: stats.outOfService,
-                color: "red",
+                color: "text-red-400",
+                bg: "bg-red-500/10",
+                icon: "AlertTriangle",
               },
-            ].map((s, index) => (
-              <React.Fragment key={index}>
-                <div className="flex-1 text-center">
-                  <span className="text-sm">{s.label}</span>
-                  <span
-                    className={`block text-base font-medium ${
-                      s.color
-                        ? `text-${s.color}-600 dark:text-${s.color}-500`
-                        : ""
-                    }`}
-                  >
-                    {s.value}
-                  </span>
+            ].map((s, i) => (
+              <div
+                key={i}
+                className={`relative p-5 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
+                  s.bg || "bg-white/5 border-[#0EFF7B]/30"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-400">{s.label}</span>
+                  {s.icon === "CheckCircle" && (
+                    <CheckCircle size={16} className="text-green-400" />
+                  )}
+                  {s.icon === "Navigation" && (
+                    <Navigation size={16} className="text-orange-400" />
+                  )}
+                  {s.icon === "AlertTriangle" && (
+                    <AlertTriangle size={16} className="text-red-400" />
+                  )}
+                  {s.icon === "Ambulance" && (
+                    <AmbulanceIcon size={16} className="text-[#0EFF7B]" />
+                  )}
                 </div>
-                {index < 3 && (
-                  <div className="w-px h-10 bg-gray-300 dark:bg-[#3C3C3C]" />
+                <span
+                  className={`text-3xl font-bold ${s.color || "text-white"}`}
+                >
+                  {s.value}
+                </span>
+                {s.label === "On Road" && stats.onRoad > 0 && (
+                  <div className="absolute top-2 right-2 w-3 h-3 bg-orange-400 rounded-full animate-pulse" />
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Notifications */}
-        <div className="w-full lg:w-[320px] h-[399px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B1A] rounded-xl p-2 flex flex-col">
-          <div className="bg-white dark:bg-[#000000] rounded-xl p-4 flex-1">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="text-[15px] font-semibold flex items-center gap-2">
-                Notifications
-              </h3>
-              <a href="#" className="text-[#0EFF7B] text-xs">
-                View all
-              </a>
-            </div>
-            <p className="text-xs mb-3">July 2025</p>
-            <ul className="text-sm overflow-y-auto flex-1">
-              <li className="py-3 border-b border-[#3C3C3C]">
-                <p className="font-medium">David's vans</p>
-                <p className="text-xs text-gray-400">Today at 12:03</p>
-                <p className="text-xs flex items-center gap-1 mt-1">
-                  Out of hours usage
-                </p>
-              </li>
-            </ul>
+        {/* REAL-TIME NOTIFICATIONS PANEL */}
+        <div className="w-full lg:w-96 bg-black/40 backdrop-blur-xl border border-[#0EFF7B]/30 rounded-2xl p-4 shadow-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold flex items-center gap-3">
+              <Bell size={20} className="text-[#0EFF7B]" />
+              Live Alerts
+              {unreadCount > 0 && (
+                <span className="ml-2 px-3 py-1 text-xs font-bold bg-red-600 text-white rounded-full animate-pulse">
+                  {unreadCount} new
+                </span>
+              )}
+            </h3>
+            <button
+              onClick={() => {
+                setNotifications([]);
+                setUnreadCount(0);
+              }}
+              className="text-xs text-gray-400 hover:text-[#0EFF7B] transition"
+            >
+              Clear all
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+            {notifications.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <Bell size={48} className="mx-auto mb-3 opacity-20" />
+                <p>No active alerts</p>
+              </div>
+            ) : (
+              notifications.slice(0, 15).map((n) => (
+                <div
+                  key={n.id}
+                  className={`p-4 rounded-lg border transition-all ${
+                    n.type === "dispatch_created"
+                      ? "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20"
+                      : n.type === "trip_created"
+                      ? "bg-blue-900/20 border-blue-500/40"
+                      : n.type === "status_update"
+                      ? "bg-green-900/20 border-green-500/40"
+                      : "bg-purple-900/20 border-purple-500/40"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {n.type === "dispatch_created" && (
+                      <Siren
+                        size={20}
+                        className="text-red-400 mt-0.5 animate-pulse"
+                      />
+                    )}
+                    {n.type === "trip_created" && (
+                      <AmbulanceIcon
+                        size={20}
+                        className="text-blue-400 mt-0.5"
+                      />
+                    )}
+                    {n.type === "status_update" && (
+                      <CheckCircle
+                        size={20}
+                        className="text-green-400 mt-0.5"
+                      />
+                    )}
+                    {n.type === "location_update" && (
+                      <MapPin size={20} className="text-purple-400 mt-0.5" />
+                    )}
+
+                    <div className="flex-1">
+                      <p className="font-semibold text-white">
+                        {n.title || n.type}
+                      </p>
+                      <p className="text-sm text-gray-300 mt-1">{n.message}</p>
+                      <p className="text-xs text-gray-500 mt-2">{n.time}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
-
       {/* Tabs */}
       <div className="mb-6 relative z-10">
         <h1 className="text-[20px] font-medium">Transport Management</h1>
