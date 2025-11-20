@@ -723,3 +723,70 @@ class Invoice(models.Model):
                 num = 1
             self.invoice_id = f"INV{num:04d}"
         super().save(*args, **kwargs)
+        
+class PharmacyInvoiceHistory(models.Model):
+    """Main invoice table for pharmacy billing"""
+    OUTPATIENT = "Outpatient"
+    INPATIENT = "Inpatient"
+    PATIENT_TYPES = [
+        (OUTPATIENT, "Outpatient"),
+        (INPATIENT, "Inpatient"),
+    ]
+
+    bill_no = models.CharField(max_length=20, unique=True)
+    patient_name = models.CharField(max_length=120)
+    patient_id = models.CharField(max_length=40)
+    age = models.IntegerField()
+    doctor_name = models.CharField(max_length=120)
+    billing_staff = models.CharField(max_length=120)
+    staff_id = models.CharField(max_length=40)
+    patient_type = models.CharField(max_length=20, choices=PATIENT_TYPES)
+    address_text = models.CharField(max_length=255)
+    payment_type = models.CharField(max_length=60)
+    payment_status = models.CharField(max_length=60)
+    payment_mode = models.CharField(max_length=60)
+    bill_date = models.DateField()
+
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    cgst_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    cgst_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    sgst_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    sgst_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    net_amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    # ✅ Store generated PDF path
+    path = models.CharField(max_length=255, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "pharmacy_invoice_history"
+
+    def __str__(self):
+        return f"{self.bill_no} - {self.patient_name}"
+
+
+class PharmacyInvoiceItem(models.Model):
+    """Line items table for pharmacy invoice"""
+    invoice = models.ForeignKey(
+        PharmacyInvoiceHistory,
+        on_delete=models.CASCADE,
+        related_name="items"
+    )
+    sl_no = models.IntegerField()
+    item_code = models.CharField(max_length=30)
+    drug_name = models.CharField(max_length=120)
+    rack_no = models.CharField(max_length=20)
+    shelf_no = models.CharField(max_length=20)
+    quantity = models.IntegerField()
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    discount_pct = models.DecimalField(max_digits=5, decimal_places=2)
+    tax_pct = models.DecimalField(max_digits=5, decimal_places=2)
+    line_total = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        db_table = "pharmacy_invoice_item"
+
+    def __str__(self):
+        return f"{self.drug_name} ({self.item_code})"

@@ -183,6 +183,9 @@ const Profile = () => {
       await fetchProfile();
       setIsEditing(false);
       successToast("Profile updated successfully!");
+      
+      // Full page refresh to update header profile image and other global states
+      window.location.reload();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.response?.data?.message || "Update failed";
       errorToast(errorMsg);

@@ -181,22 +181,26 @@ async def update_my_profile(
     profile_picture: Optional[UploadFile] = File(None)
 ):
     try:
-        print(f"Updating profile for staff ID: {staff.id}")  # Debug log
+        print(f"Updating profile for staff ID: {staff.id}")
         
-        # Get fresh staff instance for update
         current_staff = await get_staff_with_department(staff.id)
         if not current_staff:
             raise HTTPException(status_code=404, detail="Staff profile not found")
 
+        # ---- Updated path (same as add staff) ----
         if profile_picture:
-            os.makedirs("profile_pictures", exist_ok=True)
-            pic_path = f"profile_pictures/{profile_picture.filename}"
-            with open(pic_path, "wb") as f:
+            os.makedirs("fastapi_app/staffs_pictures", exist_ok=True)
+
+            file_name = f"{current_staff.id}_{profile_picture.filename}"
+            save_path = f"fastapi_app/staffs_pictures/{file_name}"
+
+            with open(save_path, "wb") as f:
                 content = await profile_picture.read()
                 f.write(content)
-            current_staff.profile_picture = pic_path
 
-        # Update fields using async function
+            # Store public URL
+            current_staff.profile_picture = f"fastapi_app/staffs_pictures/{file_name}"
+
         updated_staff = await update_staff_fields(
             current_staff,
             full_name=full_name,
@@ -209,7 +213,6 @@ async def update_my_profile(
             timezone=timezone
         )
 
-        # Get updated staff with department
         final_staff = await get_staff_with_department(updated_staff.id)
 
         return ProfileResponse(
@@ -227,10 +230,11 @@ async def update_my_profile(
             timezone=getattr(final_staff, 'timezone', None),
             profile_picture=final_staff.profile_picture
         )
+
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Email or phone already exists")
     except Exception as e:
-        print(f"Error in update_my_profile: {str(e)}")  # Debug log
+        print(f"Error in update_my_profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

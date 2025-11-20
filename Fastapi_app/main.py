@@ -1,10 +1,5 @@
-# main.py
-# --------------------------------------------------------------
-# 1. Django must be configured **first**, before any Django models are imported
-# --------------------------------------------------------------
-import fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
-# --------------------------------------------------------------
 
+import fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -23,7 +18,7 @@ from fastapi_app.routers import (
     blood_donor, labreport, bed_group_list, staffmanagement, payroll,
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
-    pharmacybilling, invoice_generator,
+    pharmacybilling, invoice_generator, invoice_pharmacy_billing,
 )
 
 
@@ -122,6 +117,25 @@ app.add_middleware(
 )
 PROFILE_PIC_DIR = os.path.abspath("profile_pictures")
 os.makedirs(PROFILE_PIC_DIR, exist_ok=True)
+
+STAFF_PIC_DIR = os.path.abspath("fastapi_app/staffs_pictures")
+os.makedirs(STAFF_PIC_DIR, exist_ok=True)
+
+app.mount(
+    "/fastapi_app/staffs_pictures",
+    StaticFiles(directory=STAFF_PIC_DIR),
+    name="staffs_pictures",
+)
+
+# ---------- STAFF DOCUMENTS / CERTIFICATES ----------
+STAFF_DOC_DIR = os.path.abspath("fastapi_app/Staff_documents")
+os.makedirs(STAFF_DOC_DIR, exist_ok=True)
+
+app.mount(
+    "/staff_documents",
+    StaticFiles(directory=STAFF_DOC_DIR),
+    name="staff_documents",
+)
 
 app.mount(
     "/profile_pictures",
@@ -235,6 +249,7 @@ app.include_router(user_profile.router)
 app.include_router(medicine_allocation.router)
 app.include_router(pharmacybilling.router)
 app.include_router(invoice_generator.router)
+app.include_router(invoice_pharmacy_billing.router)
 
 # Make notify_clients available to routers
 app.state.notify_clients = notify_clients
