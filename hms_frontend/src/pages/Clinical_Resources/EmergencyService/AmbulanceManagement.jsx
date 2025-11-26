@@ -52,6 +52,7 @@ const AmbulanceManagement = () => {
   const ws = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const isMountedRef = useRef(true);
+
   // Data
   const [dispatchData, setDispatchData] = useState([]);
   const [tripData, setTripData] = useState([]);
@@ -65,6 +66,7 @@ const AmbulanceManagement = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   // Modals
   const [editDispatchOpen, setEditDispatchOpen] = useState(false);
   const [editTripOpen, setEditTripOpen] = useState(false);
@@ -73,94 +75,30 @@ const AmbulanceManagement = () => {
   const [editingTrip, setEditingTrip] = useState(null);
   const [editingUnit, setEditingUnit] = useState(null);
   const [patientList, setPatientList] = useState([]);
+
   const itemsPerPage = 10;
-
-  // ── HELPER FUNCTIONS ──────────────────────────
-  const formatMessageType = (type) => {
-    const typeMap = {
-      unit_created: "Ambulance Unit Created",
-      unit_updated: "Ambulance Unit Updated",
-      unit_deleted: "Ambulance Unit Deleted",
-      dispatch_created: "New Dispatch Created",
-      new_dispatch: "New Dispatch Created",
-      dispatch_updated: "Dispatch Updated",
-      dispatch_deleted: "Dispatch Cancelled",
-      dispatch_status_updated: "Dispatch Status Updated",
-      dispatch_unit_changed: "Dispatch Unit Changed",
-      trip_created: "New Trip Started",
-      new_trip: "New Trip Started",
-      trip_updated: "Trip Updated",
-      trip_deleted: "Trip Cancelled",
-      trip_status_changed: "Trip Status Updated",
-      trip_completed: "Trip Completed",
-      status_update: "Status Update",
-      location_update: "Location Update"
-    };
-    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const getNotificationStyle = (type) => {
-    const styles = {
-      unit_created: "bg-green-900/20 border-green-500/40",
-      unit_updated: "bg-yellow-900/20 border-yellow-500/40",
-      unit_deleted: "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20",
-      dispatch_created: "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20",
-      new_dispatch: "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20",
-      dispatch_updated: "bg-yellow-900/20 border-yellow-500/40",
-      dispatch_deleted: "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20",
-      dispatch_status_updated: "bg-purple-900/20 border-purple-500/40",
-      dispatch_unit_changed: "bg-orange-900/20 border-orange-500/40",
-      trip_created: "bg-blue-900/20 border-blue-500/40",
-      new_trip: "bg-blue-900/20 border-blue-500/40",
-      trip_updated: "bg-yellow-900/20 border-yellow-500/40",
-      trip_deleted: "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20",
-      trip_status_changed: "bg-purple-900/20 border-purple-500/40",
-      trip_completed: "bg-green-900/20 border-green-500/40",
-      status_update: "bg-green-900/20 border-green-500/40",
-      default: "bg-purple-900/20 border-purple-500/40",
-    };
-    return styles[type] || styles.default;
-  };
-
-  const getNotificationIcon = (type) => {
-    const iconMap = {
-      unit_created: { component: AmbulanceIcon, color: "text-green-400" },
-      unit_updated: { component: Edit, color: "text-yellow-400" },
-      unit_deleted: { component: Trash2, color: "text-red-400" },
-      dispatch_created: { component: Siren, color: "text-red-400", animate: "animate-pulse" },
-      new_dispatch: { component: Siren, color: "text-red-400", animate: "animate-pulse" },
-      dispatch_updated: { component: Edit, color: "text-yellow-400" },
-      dispatch_deleted: { component: Trash2, color: "text-red-400" },
-      dispatch_status_updated: { component: Clock, color: "text-purple-400" },
-      dispatch_unit_changed: { component: AmbulanceIcon, color: "text-orange-400" },
-      trip_created: { component: AmbulanceIcon, color: "text-blue-400" },
-      new_trip: { component: AmbulanceIcon, color: "text-blue-400" },
-      trip_updated: { component: Edit, color: "text-yellow-400" },
-      trip_deleted: { component: Trash2, color: "text-red-400" },
-      trip_status_changed: { component: Clock, color: "text-purple-400" },
-      trip_completed: { component: CheckCircle, color: "text-green-400" },
-      status_update: { component: CheckCircle, color: "text-green-400" },
-      location_update: { component: MapPin, color: "text-purple-400" },
-    };
-    return iconMap[type] || { component: Bell, color: "text-purple-400" };
-  };
 
   // ── WEBSOCKET MANAGEMENT ──────────────────────
   const connectWebSocket = useCallback(() => {
     if (!isMountedRef.current) return;
+
     // Clear any existing reconnection timeout
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+
     // Close existing connection
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.close(1000, "Reconnecting");
     }
+
     console.log("🔄 Attempting WebSocket connection...");
     setConnectionStatus("connecting");
+
     try {
       ws.current = new WebSocket(WS_URL);
+
       ws.current.onopen = () => {
         if (!isMountedRef.current) {
           ws.current?.close();
@@ -168,7 +106,7 @@ const AmbulanceManagement = () => {
         }
         console.log("✅ WebSocket connected successfully");
         setConnectionStatus("connected");
-       
+        
         // Send client info
         const clientInfo = {
           type: "client_info",
@@ -177,8 +115,10 @@ const AmbulanceManagement = () => {
         };
         ws.current.send(JSON.stringify(clientInfo));
       };
+
       ws.current.onmessage = (event) => {
         if (!isMountedRef.current) return;
+
         try {
           const data = JSON.parse(event.data);
           console.log("📨 WebSocket message received:", data.type);
@@ -187,31 +127,37 @@ const AmbulanceManagement = () => {
           console.error("❌ Error parsing WebSocket message:", parseError);
         }
       };
+
       ws.current.onclose = (event) => {
         if (!isMountedRef.current) return;
+
         console.log("🔌 WebSocket disconnected:", event.code, event.reason);
         setConnectionStatus("disconnected");
+
         // Don't attempt to reconnect if component is unmounting or connection was intentional
         if (event.code === 1000 || !isMountedRef.current) return;
+
         // Attempt reconnection with exponential backoff
         const delay = Math.min(1000 * Math.pow(1.5, 3), 10000); // Max 10 seconds
         console.log(`🔄 Reconnecting in ${delay}ms...`);
-       
+        
         reconnectTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
             connectWebSocket();
           }
         }, delay);
       };
+
       ws.current.onerror = (error) => {
         if (!isMountedRef.current) return;
         console.error("❌ WebSocket error:", error);
         setConnectionStatus("error");
       };
+
     } catch (error) {
       console.error("❌ Failed to create WebSocket connection:", error);
       setConnectionStatus("error");
-     
+      
       // Retry connection after delay
       reconnectTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current) {
@@ -221,57 +167,234 @@ const AmbulanceManagement = () => {
     }
   }, []);
 
-  const handleWebSocketMessage = (data) => {
-    // Skip connection established messages
-    if (data.type === "connection_established") {
-      console.log("✅ WebSocket connection confirmed");
-      return;
-    }
-    // Handle different message types - match exactly what backend sends
-    switch (data.type) {
-      case "unit_created":
-      case "unit_updated":
-      case "unit_deleted":
-      case "dispatch_created":
-      case "dispatch_updated":
-      case "dispatch_deleted":
-      case "trip_created":
-      case "trip_updated":
-      case "trip_deleted":
-      case "trip_status_changed":
-        // Refresh data when CRUD operations happen
-        fetchData();
-        break;
-      case "location_update":
-        setLivePositions((prev) => ({
-          ...prev,
-          [data.unit_number]: { lat: data.lat, lng: data.lng },
-        }));
-        break;
-      case "status_update":
-        fetchData();
-        break;
-      // Add these new message types that backend actually sends
-      case "new_dispatch":
-      case "new_trip":
-      case "trip_completed":
-      case "dispatch_status_updated":
-      case "dispatch_unit_changed":
-        fetchData(); // Refresh data
-        break;
-      default:
-        console.log("📨 Unknown message type:", data.type, data);
-        break;
-    }
-    // Add to notification panel (except for location updates)
-    if (data.type !== "location_update" && data.type !== "connection_established") {
-      addToNotificationPanel(data);
-    }
+const handleWebSocketMessage = (data) => {
+  // Skip connection established messages
+  if (data.type === "connection_established") {
+    console.log("✅ WebSocket connection confirmed");
+    return;
+  }
+
+  // Handle different message types - match exactly what backend sends
+  switch (data.type) {
+    case "unit_created":
+    case "unit_updated":
+    case "unit_deleted":
+    case "dispatch_created":
+    case "dispatch_updated":
+    case "dispatch_deleted":
+    case "trip_created":
+    case "trip_updated":
+    case "trip_deleted":
+    case "trip_status_changed":
+      // Refresh data when CRUD operations happen
+      fetchData();
+      
+      // Show toast notification
+      showNotificationToast(data);
+      break;
+
+    case "location_update":
+      setLivePositions((prev) => ({
+        ...prev,
+        [data.unit_number]: { lat: data.lat, lng: data.lng },
+      }));
+      break;
+
+    case "status_update":
+      showNotificationToast(data);
+      break;
+
+    // Add these new message types that backend actually sends
+    case "new_dispatch":
+    case "new_trip":
+    case "trip_completed":
+    case "dispatch_status_updated":
+    case "dispatch_unit_changed":
+      fetchData(); // Refresh data
+      showNotificationToast(data);
+      break;
+
+    default:
+      console.log("📨 Unknown message type:", data.type, data);
+      break;
+  }
+
+  // Add to notification panel (except for location updates)
+  if (data.type !== "location_update" && data.type !== "connection_established") {
+    addToNotificationPanel(data);
+  }
+};
+
+const showNotificationToast = (data) => {
+  const toastConfigs = {
+    // Unit operations
+    unit_created: {
+      icon: AmbulanceIcon,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 4000,
+    },
+    unit_updated: {
+      icon: AmbulanceIcon,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    unit_deleted: {
+      icon: AmbulanceIcon,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+
+    // Dispatch operations
+    dispatch_created: {
+      icon: Siren,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 8000,
+      playSound: true,
+    },
+    new_dispatch: { // This is what backend actually sends for new dispatches
+      icon: Siren,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 8000,
+      playSound: true,
+    },
+    dispatch_updated: {
+      icon: Edit,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    dispatch_deleted: {
+      icon: Trash2,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+    dispatch_status_updated: {
+      icon: Clock,
+      color: "text-purple-500",
+      bgColor: "bg-purple-900/30 border-purple-500/50",
+      autoClose: 5000,
+    },
+    dispatch_unit_changed: {
+      icon: AmbulanceIcon,
+      color: "text-orange-500",
+      bgColor: "bg-orange-900/30 border-orange-500/50",
+      autoClose: 5000,
+    },
+
+    // Trip operations
+    trip_created: {
+      icon: AmbulanceIcon,
+      color: "text-blue-500",
+      bgColor: "bg-blue-900/30 border-blue-500/50",
+      autoClose: 5000,
+    },
+    new_trip: { // This is what backend actually sends for new trips
+      icon: AmbulanceIcon,
+      color: "text-blue-500",
+      bgColor: "bg-blue-900/30 border-blue-500/50",
+      autoClose: 5000,
+    },
+    trip_updated: {
+      icon: Edit,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+      autoClose: 4000,
+    },
+    trip_deleted: {
+      icon: Trash2,
+      color: "text-red-500",
+      bgColor: "bg-red-900/30 border-red-500/50",
+      autoClose: 4000,
+    },
+    trip_status_changed: {
+      icon: Clock,
+      color: "text-purple-500",
+      bgColor: "bg-purple-900/30 border-purple-500/50",
+      autoClose: 5000,
+    },
+    trip_completed: {
+      icon: CheckCircle,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 5000,
+    },
+
+    // Status updates
+    status_update: {
+      icon: CheckCircle,
+      color: "text-green-500",
+      bgColor: "bg-green-900/30 border-green-500/50",
+      autoClose: 5000,
+    },
   };
+
+  const config = toastConfigs[data.type] || {
+    icon: Bell,
+    color: "text-gray-500",
+    bgColor: "bg-gray-900/30 border-gray-500/50",
+    autoClose: 4000,
+  };
+
+  successToast(
+    <div className="flex items-center gap-3">
+      <config.icon className={`w-6 h-6 ${config.color}`} />
+      <div>
+        <strong className={config.color}>{data.title || formatMessageType(data.type)}</strong>
+        <p className="text-sm text-gray-700">{data.message}</p>
+      </div>
+    </div>,
+    { autoClose: config.autoClose }
+  );
+
+  // Play emergency sound for new dispatches
+  if (config.playSound) {
+    try {
+      const audio = new Audio(
+        "https://assets.mixkit.co/sfx/preview/mixkit-emergency-alert-2951.mp3"
+      );
+      audio.volume = 0.3;
+      audio.play().catch((e) => console.log("Audio play failed:", e));
+    } catch (audioError) {
+      console.log("Audio initialization failed:", audioError);
+    }
+  }
+};
+
+// Helper function to format message types for display
+const formatMessageType = (type) => {
+  const typeMap = {
+    unit_created: "Ambulance Unit Created",
+    unit_updated: "Ambulance Unit Updated", 
+    unit_deleted: "Ambulance Unit Deleted",
+    dispatch_created: "New Dispatch Created",
+    new_dispatch: "New Dispatch Created",
+    dispatch_updated: "Dispatch Updated",
+    dispatch_deleted: "Dispatch Cancelled",
+    dispatch_status_updated: "Dispatch Status Updated",
+    dispatch_unit_changed: "Dispatch Unit Changed",
+    trip_created: "New Trip Started",
+    new_trip: "New Trip Started",
+    trip_updated: "Trip Updated",
+    trip_deleted: "Trip Cancelled",
+    trip_status_changed: "Trip Status Updated",
+    trip_completed: "Trip Completed",
+    status_update: "Status Update",
+    location_update: "Location Update"
+  };
+  
+  return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+};
 
   const addToNotificationPanel = (data) => {
     const now = Date.now();
     const notificationId = now + Math.random();
+
     setNotifications((prev) => {
       // Prevent duplicates
       const isDuplicate = prev.some(
@@ -281,7 +404,9 @@ const AmbulanceManagement = () => {
           n.title === data.title &&
           now - n.id < 2000 // 2 second duplicate window
       );
+
       if (isDuplicate) return prev;
+
       return [
         {
           id: notificationId,
@@ -291,13 +416,14 @@ const AmbulanceManagement = () => {
         ...prev.slice(0, 49), // Keep only last 50 notifications
       ];
     });
+
     setUnreadCount((c) => c + 1);
   };
 
   // ── DATA FETCHING ─────────────────────────────
   const fetchData = useCallback(async () => {
     if (!isMountedRef.current) return;
-   
+    
     setLoading(true);
     setError(null);
     try {
@@ -307,22 +433,27 @@ const AmbulanceManagement = () => {
         fetch(`${API_BASE}/units`),
         fetch(`${API_BASE}/patients`),
       ]);
+
       if (!dispatchRes.ok || !tripRes.ok || !unitRes.ok || !patientRes.ok)
         throw new Error("Failed to fetch data");
+
       const dispatches = await dispatchRes.json();
       const trips = await tripRes.json();
       const allUnits = await unitRes.json();
       const patients = await patientRes.json();
+
       setPatientList(patients);
       setDispatchData(dispatches);
       setTripData(trips);
       setUnitData(allUnits);
       setUnits(allUnits);
+
       // Stats
       const total = allUnits.length;
       const ready = allUnits.filter((u) => u.in_service).length;
       const onRoad = trips.filter((t) => t.status === "En Route").length;
       const outOfService = total - ready;
+
       setStats({ total, ready, onRoad, outOfService });
     } catch (err) {
       console.error("❌ Error fetching data:", err);
@@ -337,23 +468,24 @@ const AmbulanceManagement = () => {
   // ── LIFECYCLE ─────────────────────────────────
   useEffect(() => {
     isMountedRef.current = true;
-   
+    
     // Initial data fetch
     fetchData();
-   
+    
     // Connect WebSocket after a brief delay to ensure component is mounted
     const wsTimeout = setTimeout(() => {
       connectWebSocket();
     }, 500);
+
     return () => {
       isMountedRef.current = false;
-     
+      
       // Clear timeouts
       clearTimeout(wsTimeout);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
-     
+      
       // Close WebSocket
       if (ws.current) {
         ws.current.close(1000, "Component unmounting");
@@ -368,6 +500,7 @@ const AmbulanceManagement = () => {
       : activeTab === "Trip Log"
       ? tripData
       : unitData;
+
   const filteredData = currentData
     .filter((item) =>
       Object.values(item)
@@ -376,11 +509,13 @@ const AmbulanceManagement = () => {
         .includes(searchTerm.toLowerCase())
     )
     .filter((item) => (filterStatus ? item.status === filterStatus : true));
+
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const displayedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
   const sortedData = [...displayedData].sort((a, b) => {
     if (!sortColumn) return 0;
     const valA = a[sortColumn];
@@ -401,23 +536,28 @@ const AmbulanceManagement = () => {
       setSortOrder("asc");
     }
   };
+
   const handlePrevPage = () => currentPage > 1 && setCurrentPage((p) => p - 1);
   const handleNextPage = () =>
     currentPage < totalPages && setCurrentPage((p) => p + 1);
+
   const applyFilter = (status) => {
     setFilterStatus(status);
     setIsFilterOpen(false);
     setCurrentPage(1);
   };
+
   const clearFilter = () => {
     setFilterStatus("");
     setIsFilterOpen(false);
     setCurrentPage(1);
   };
+
   const handleDelete = (item) => {
     setSelectedItem(item);
     setIsDeleteOpen(true);
   };
+
   const confirmDelete = async () => {
     const ids = selectedItem ? [selectedItem.id] : Array.from(selectedRows);
     const count = ids.length;
@@ -433,17 +573,21 @@ const AmbulanceManagement = () => {
         : activeTab === "Trip Log"
         ? "trip"
         : "unit";
+
     try {
       const responses = await Promise.all(
         ids.map((id) =>
           fetch(`${API_BASE}/${endpoint}/${id}`, { method: "DELETE" })
         )
       );
+
       const failed = responses.some((res) => !res.ok);
       if (failed) throw new Error("Some items could not be deleted");
+
       await fetchData();
       setSelectedRows(new Set());
       setSelectAll(false);
+
       successToast(
         count === 1
           ? `${
@@ -458,12 +602,14 @@ const AmbulanceManagement = () => {
       setSelectedItem(null);
     }
   };
+
   const getStatusColor = (status) => {
     if (status === "Completed") return "text-green-600 dark:text-green-500";
     if (status === "En Route") return "text-blue-600 dark:text-blue-500";
     if (status === "Standby") return "text-yellow-600 dark:text-yellow-500";
     return "text-gray-600 dark:text-gray-400";
   };
+
   // Selection
   const handleSelectAll = () => {
     if (selectAll) {
@@ -474,26 +620,32 @@ const AmbulanceManagement = () => {
     }
     setSelectAll(!selectAll);
   };
+
   const handleRowSelect = (id) => {
     const copy = new Set(selectedRows);
     copy.has(id) ? copy.delete(id) : copy.add(id);
     setSelectedRows(copy);
     setSelectAll(copy.size === sortedData.length);
   };
+
   const isRowSelected = (id) => selectedRows.has(id);
+
   // ── CREATE / EDIT HANDLERS ─────────────────────
   const handleOpenEditDispatch = (dispatch = null) => {
     setEditingDispatch(dispatch);
     setEditDispatchOpen(true);
   };
+
   const handleOpenEditTrip = (trip = null) => {
     setEditingTrip(trip);
     setEditTripOpen(true);
   };
+
   const handleOpenEditUnit = (unit = null) => {
     setEditingUnit(unit);
     setEditUnitOpen(true);
   };
+
   const saveDispatch = async (payload) => {
     const method = editingDispatch ? "PUT" : "POST";
     const url = editingDispatch
@@ -517,6 +669,7 @@ const AmbulanceManagement = () => {
       errorToast(e.message || "Operation failed");
     }
   };
+
   const saveTrip = async (payload) => {
     const method = editingTrip ? "PUT" : "POST";
     const url = editingTrip
@@ -543,6 +696,7 @@ const AmbulanceManagement = () => {
       );
     }
   };
+
   const saveUnit = async (payload) => {
     const method = editingUnit ? "PUT" : "POST";
     const url = editingUnit
@@ -574,6 +728,7 @@ const AmbulanceManagement = () => {
   if (loading) return <div className="p-10 text-center">Loading...</div>;
   if (error)
     return <div className="p-10 text-center text-red-500">Error: {error}</div>;
+
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
       {/* Gradient Border */}
@@ -593,6 +748,7 @@ const AmbulanceManagement = () => {
           zIndex: 0,
         }}
       />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6 mt-4 relative z-10">
         <div>
@@ -620,6 +776,7 @@ const AmbulanceManagement = () => {
           </p>
         </div>
       </div>
+
       {/* Map + Stats + Notifications */}
       <div className="w-full flex flex-col lg:flex-row gap-6 mb-6 relative z-10">
         {/* Map + Stats */}
@@ -632,6 +789,7 @@ const AmbulanceManagement = () => {
               livePositions={livePositions}
             />
           </div>
+
           {/* Stats Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
@@ -695,6 +853,7 @@ const AmbulanceManagement = () => {
             ))}
           </div>
         </div>
+
         {/* REAL-TIME NOTIFICATIONS PANEL */}
         <div className="w-full lg:w-96 bg-black/40 backdrop-blur-xl border border-[#0EFF7B]/30 rounded-2xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
@@ -717,6 +876,7 @@ const AmbulanceManagement = () => {
               Clear all
             </button>
           </div>
+
           <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
             {notifications.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
@@ -724,29 +884,52 @@ const AmbulanceManagement = () => {
                 <p>No active alerts</p>
               </div>
             ) : (
-              notifications.slice(0, 15).map((n) => {
-                const { component: IconComp, color, animate = "" } = getNotificationIcon(n.type);
-                return (
-                  <div
-                    key={n.id}
-                    className={`p-4 rounded-lg border transition-all ${getNotificationStyle(n.type)}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <IconComp
+              notifications.slice(0, 15).map((n) => (
+                <div
+                  key={n.id}
+                  className={`p-4 rounded-lg border transition-all ${
+                    n.type === "dispatch_created"
+                      ? "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20"
+                      : n.type === "trip_created"
+                      ? "bg-blue-900/20 border-blue-500/40"
+                      : n.type === "status_update"
+                      ? "bg-green-900/20 border-green-500/40"
+                      : "bg-purple-900/20 border-purple-500/40"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {n.type === "dispatch_created" && (
+                      <Siren
                         size={20}
-                        className={`${color} mt-0.5 ${animate}`}
+                        className="text-red-400 mt-0.5 animate-pulse"
                       />
-                      <div className="flex-1">
-                        <p className="font-semibold text-white">
-                          {n.title || formatMessageType(n.type)}
-                        </p>
-                        <p className="text-sm text-gray-300 mt-1">{n.message}</p>
-                        <p className="text-xs text-gray-500 mt-2">{n.time}</p>
-                      </div>
+                    )}
+                    {n.type === "trip_created" && (
+                      <AmbulanceIcon
+                        size={20}
+                        className="text-blue-400 mt-0.5"
+                      />
+                    )}
+                    {n.type === "status_update" && (
+                      <CheckCircle
+                        size={20}
+                        className="text-green-400 mt-0.5"
+                      />
+                    )}
+                    {n.type === "location_update" && (
+                      <MapPin size={20} className="text-purple-400 mt-0.5" />
+                    )}
+
+                    <div className="flex-1">
+                      <p className="font-semibold text-white">
+                        {n.title || n.type}
+                      </p>
+                      <p className="text-sm text-gray-300 mt-1">{n.message}</p>
+                      <p className="text-xs text-gray-500 mt-2">{n.time}</p>
                     </div>
                   </div>
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -778,6 +961,7 @@ const AmbulanceManagement = () => {
           ))}
         </div>
       </div>
+
       {/* Table Header + Controls */}
       <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 bg-white dark:bg-transparent">
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -796,6 +980,7 @@ const AmbulanceManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
             <button
               onClick={() => selectedRows.size > 0 && setIsDeleteOpen(true)}
               disabled={selectedRows.size === 0}
@@ -807,6 +992,7 @@ const AmbulanceManagement = () => {
             >
               <Trash2 size={18} />
             </button>
+
             {activeTab === "Ambulance Units" ? (
               <button
                 onClick={() => handleOpenEditUnit()}
@@ -831,6 +1017,7 @@ const AmbulanceManagement = () => {
             )}
           </div>
         </div>
+
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
@@ -1106,6 +1293,7 @@ const AmbulanceManagement = () => {
             </tbody>
           </table>
         </div>
+
         {/* Pagination */}
         <div className="flex items-center h-full mt-4 bg-white dark:bg-transparent p-4 rounded gap-x-4">
           <div className="text-sm text-black dark:text-white">
@@ -1155,6 +1343,7 @@ const AmbulanceManagement = () => {
           </div>
         </div>
       </div>
+
       {/* MODALS */}
       <EditDispatchModal
         isOpen={editDispatchOpen}
@@ -1166,6 +1355,7 @@ const AmbulanceManagement = () => {
         onSave={saveDispatch}
         units={units}
       />
+
       <EditTripModal
         isOpen={editTripOpen}
         onClose={() => {
@@ -1178,6 +1368,7 @@ const AmbulanceManagement = () => {
         dispatches={dispatchData}
         patients={patientList}
       />
+
       <AmbulanceUnitsModal
         isOpen={editUnitOpen}
         onClose={() => {
@@ -1187,117 +1378,128 @@ const AmbulanceManagement = () => {
         unit={editingUnit}
         onSave={saveUnit}
       />
+
       {/* Delete Confirmation */}
-      {isDeleteOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]">
-            <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-6 relative">
-              {/* Border Glow */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "20px",
-                  padding: "2px",
-                  background:
-                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "xor",
-                  maskComposite: "exclude",
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              ></div>
-              <div className="relative z-10">
-                {/* TITLE + CLOSE BUTTON */}
-                <div className="flex justify-between items-center mb-4">
-                  <h2
-                    className="text-black dark:text-white font-medium text-[16px]"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    {selectedItem
-                      ? "Confirm Deletion"
-                      : "Confirm Bulk Deletion"}
-                  </h2>
-                  <button
-                    onClick={() => setIsDeleteOpen(false)}
-                    className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A]
-                      bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="text-[#08994A] dark:text-white"
-                      width="16"
-                      height="16"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        d="M18 6L6 18M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                </div>
-                {/* MESSAGE */}
-                <p
-                  className="text-sm text-black dark:text-white mb-6 text-center"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  {selectedItem ? (
-                    <>
-                      Are you sure you want to delete{" "}
-                      <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
-                        {selectedItem.trip_id ||
-                          selectedItem.dispatch_id ||
-                          selectedItem.unit_number}
-                      </span>
-                      ?<br />
-                      This action cannot be undone.
-                    </>
-                  ) : (
-                    <>
-                      Are you sure you want to delete{" "}
-                      <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
-                        {selectedRows.size} selected items
-                      </span>
-                      ?<br />
-                      This action cannot be undone.
-                    </>
-                  )}
-                </p>
-                {/* BUTTONS */}
-                <div className="flex justify-center gap-4">
-                  {/* Cancel */}
-                  <button
-                    onClick={() => setIsDeleteOpen(false)}
-                    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C]
-                      text-white font-medium text-[14px] shadow-[0_2px_12px_0px_#00000040]
-                      bg-black dark:bg-transparent hover:bg-gray-800 dark:hover:bg-[#3A3A3A] transition"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Cancel
-                  </button>
-                  {/* Delete */}
-                  <button
-                    onClick={confirmDelete}
-                    className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center
-                      bg-gradient-to-r from-[#FF4D4D] to-[#B30000]
-                      text-white font-medium text-[14px] hover:scale-105 transition
-                      shadow-[0_2px_12px_0px_#00000040]"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Delete {selectedItem ? "" : `(${selectedRows.size})`}
-                  </button>
-                </div>
-              </div>
-            </div>
+    {isDeleteOpen && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] 
+      ">
+
+      <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-6 relative">
+
+        {/* Border Glow */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
+        <div className="relative z-10">
+
+          {/* TITLE + CLOSE BUTTON */}
+          <div className="flex justify-between items-center mb-4">
+            <h2
+              className="text-black dark:text-white font-medium text-[16px]"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              {selectedItem
+                ? "Confirm Deletion"
+                : "Confirm Bulk Deletion"}
+            </h2>
+
+            <button
+              onClick={() => setIsDeleteOpen(false)}
+              className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] 
+                bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="text-[#08994A] dark:text-white"
+                width="16"
+                height="16"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  d="M18 6L6 18M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          {/* MESSAGE */}
+          <p
+            className="text-sm text-black dark:text-white mb-6 text-center"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            {selectedItem ? (
+              <>
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
+                  {selectedItem.trip_id ||
+                    selectedItem.dispatch_id ||
+                    selectedItem.unit_number}
+                </span>
+                ?<br />
+                This action cannot be undone.
+              </>
+            ) : (
+              <>
+                Are you sure you want to delete{" "}
+                <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
+                  {selectedRows.size} selected items
+                </span>
+                ?<br />
+                This action cannot be undone.
+              </>
+            )}
+          </p>
+
+          {/* BUTTONS */}
+          <div className="flex justify-center gap-4">
+            {/* Cancel */}
+            <button
+              onClick={() => setIsDeleteOpen(false)}
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] 
+                text-white font-medium text-[14px] shadow-[0_2px_12px_0px_#00000040] 
+                bg-black dark:bg-transparent hover:bg-gray-800 dark:hover:bg-[#3A3A3A] transition"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Cancel
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={confirmDelete}
+              className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center 
+                bg-gradient-to-r from-[#FF4D4D] to-[#B30000] 
+                text-white font-medium text-[14px] hover:scale-105 transition 
+                shadow-[0_2px_12px_0px_#00000040]"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Delete {selectedItem ? "" : `(${selectedRows.size})`}
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

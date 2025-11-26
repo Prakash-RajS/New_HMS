@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Edit, Trash2 } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import EditMedicineAllocationPopup from "./EditMedicineAllocationPopup";
 import DeleteMedicinePopup from "./DeleteMedicinePopup";
+import { useNavigate } from "react-router-dom";
 
 export default function ViewPatientProfile() {
   const API_BASE = "http://localhost:8000";
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const [medicineData, setMedicineData] = useState([
     {
       id: Date.now(),
@@ -32,6 +34,8 @@ export default function ViewPatientProfile() {
   const [patientDbId, setPatientDbId] = useState(null);
   const [fullPatient, setFullPatient] = useState(null);
   const [loading, setLoading] = useState(false);
+  // New state for stock data
+  const [stockData, setStockData] = useState([]);
   
   // New states for edit/delete functionality
   const [editingMedicine, setEditingMedicine] = useState(null);
@@ -39,11 +43,31 @@ export default function ViewPatientProfile() {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
-  // Fetch departments and patients on component mount
+  // Fetch departments, patients, and stock on component mount
   useEffect(() => {
     fetchDepartments();
     fetchPatients();
+    fetchStock();
   }, []);
+
+  // Dynamic options from stock
+  const medicineNames = useMemo(() => {
+    return [...new Set(stockData.map(s => s.product_name).filter(Boolean))].sort();
+  }, [stockData]);
+
+  const dosageMap = useMemo(() => {
+    const map = {};
+    stockData.forEach(s => {
+      if (s.product_name && s.dosage) {
+        if (!map[s.product_name]) map[s.product_name] = new Set();
+        map[s.product_name].add(s.dosage);
+      }
+    });
+    Object.keys(map).forEach(k => {
+      map[k] = [...map[k]].sort();
+    });
+    return map;
+  }, [stockData]);
 
   // Filter patients based on search query
   useEffect(() => {
@@ -124,6 +148,22 @@ export default function ViewPatientProfile() {
     }
   };
 
+  // Fetch stock data for dynamic dropdowns
+  const fetchStock = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/stock/list`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch stock: ${res.status}`);
+      }
+      const data = await res.json();
+      setStockData(data);
+      console.log("Stock data loaded:", data);
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+      errorToast("Failed to load stock data");
+    }
+  };
+
   // Fetch full patient details by patient_unique_id
   const fetchPatientFull = async (patientUniqueId) => {
     try {
@@ -185,31 +225,28 @@ export default function ViewPatientProfile() {
 
   // Handle patient selection
   const handlePatientSelect = async (patient) => {
-    if (!patient) return;
-    console.log("Selected patient:", patient);
+  if (!patient) return;
 
-    // Find department name
-    const departmentName =
-      departments.find((d) => d.id === patient.department_id)?.name || "";
+  console.log("Selected patient:", patient);
 
-    // Update patient info
-    setPatientInfo({
-      patientName: patient.full_name,
-      patientID: patient.patient_unique_id,
-      department: departmentName,
-    });
+  // CRITICAL: Store the actual Django PK (patient.id)
+  setPatientDbId(patient.id); // This is the real primary key (1, 2, 3...)
 
-    // Set database ID
-    setPatientDbId(patient.id);
+  const departmentName =
+    departments.find((d) => d.id === patient.department_id)?.name || "";
 
-    // Fetch complete patient details
-    const fullPatientData = await fetchPatientFull(patient.patient_unique_id);
+  setPatientInfo({
+    patientName: patient.full_name,
+    patientID: patient.patient_unique_id,
+    department: departmentName,
+  });
 
-    // Fetch medicine history
-    await fetchMedicineHistory(patient.id);
+  // Fetch full details and history
+  const fullPatientData = await fetchPatientFull(patient.patient_unique_id);
+  await fetchMedicineHistory(patient.id);
 
-    setSearchQuery("");
-  };
+  setSearchQuery("");
+};
 
   // Handle dropdown selection for patient fields
   const handlePatientFieldChange = (field, value) => {
@@ -243,6 +280,10 @@ export default function ViewPatientProfile() {
       setMedicineData((prev) => {
         const newData = [...prev];
         newData[index] = { ...newData[index], [name]: value };
+        // If medicineName changed, clear dosage if not matching
+        if (name === "medicineName" && newData[index].dosage && !dosageMap[value]?.includes(newData[index].dosage)) {
+          newData[index].dosage = "";
+        }
         return newData;
       });
     } else if (type === "labTest") {
@@ -680,7 +721,7 @@ export default function ViewPatientProfile() {
   );
 
   // Medicine Dropdown Component
-  const MedicineDropdown = ({ label, name, value, options, index }) => (
+  const MedicineDropdown = ({ label, name, value, options, index, medicineName }) => (
     <div className="relative">
       <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
         {label}
@@ -719,30 +760,36 @@ export default function ViewPatientProfile() {
             </Listbox.Button>
 
             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {options.map((option) => (
-                <Listbox.Option
-                  key={option}
-                  value={option}
-                  className={({ active, selected }) =>
-                    `
-                      cursor-pointer select-none py-2 px-3 text-sm font-helvetica
-                      ${
-                        active
-                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                          : "text-black dark:text-white"
-                      }
-                      ${
-                        selected
-                          ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
-                          : ""
-                      }
-                      hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                    `
-                  }
-                >
-                  {option}
-                </Listbox.Option>
-              ))}
+              {options.length > 0 ? (
+                options.map((option) => (
+                  <Listbox.Option
+                    key={option}
+                    value={option}
+                    className={({ active, selected }) =>
+                      `
+                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        ${
+                          active
+                            ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        }
+                        ${
+                          selected
+                            ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium"
+                            : ""
+                        }
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                    }
+                  >
+                    {option}
+                  </Listbox.Option>
+                ))
+              ) : (
+                <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                  No {label.toLowerCase()} available
+                </div>
+              )}
             </Listbox.Options>
           </>
         )}
@@ -840,16 +887,31 @@ export default function ViewPatientProfile() {
       <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-helvetica max-w-full relative">
         {/* Your existing patient profile content */}
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
-          <div className="rounded-full w-[94px] h-[94px] flex items-center justify-center mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B]">
-            <svg
-              className="w-[60px] h-[60px] text-[#0EFF7B]"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="12" cy="8" r="4" />
-              <path d="M12 14c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z" />
-            </svg>
-          </div>
+          <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
+  {fullPatient?.photo_url ? (
+    <img
+      src={fullPatient.photo_url}
+      alt={fullPatient.full_name}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+        e.currentTarget.nextElementSibling.style.display = 'flex';
+      }}
+    />
+  ) : null}
+  
+  {/* Fallback SVG - only shows if no photo or image fails to load */}
+  <div className={`w-full h-full flex items-center justify-center bg-gray-200 ${fullPatient?.photo_url ? 'hidden' : 'flex'}`}>
+    <svg
+      className="w-[60px] h-[60px] text-[#0EFF7B]"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="12" cy="8" r="4" />
+      <path d="M12 14c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z" />
+    </svg>
+  </div>
+</div>
           <span className="text-[#0EFF7B] text-[18px] font-semibold font-helvetica">
             {fullPatient?.gender === "Female"
               ? "Mrs."
@@ -908,27 +970,25 @@ export default function ViewPatientProfile() {
             ))}
           </div>
           <div className="flex justify-end mt-5">
-            <button className="flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-helvetica">
-              <span className="text-[15px] w-[calc(100%-34px)]">
-                View more information
-              </span>
-              <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="white"
-                  className="w-[10px] h-[10px]"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </div>
-            </button>
+            <button
+  onClick={() => {
+    if (!patientDbId) {
+      errorToast("Patient not selected properly");
+      return;
+    }
+    navigate(`/patients/profile/${patientDbId}`);
+  }}
+  className="flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-helvetica"
+>
+  <span className="text-[15px] w-[calc(100%-34px)]">
+    View more information
+  </span>
+  <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-[10px] h-[10px]">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  </div>
+</button>
           </div>
         </div>
 
@@ -1017,20 +1077,16 @@ export default function ViewPatientProfile() {
                     label="Medicine Name"
                     name="medicineName"
                     value={med.medicineName}
-                    options={[
-                      "Amoxicillin",
-                      "Paracetamol",
-                      "Cefixime",
-                      "Ibuprofen",
-                    ]}
+                    options={medicineNames}
                     index={index}
                   />
                   <MedicineDropdown
                     label="Dosage"
                     name="dosage"
                     value={med.dosage}
-                    options={["250 mg", "500 mg", "750 mg"]}
+                    options={dosageMap[med.medicineName] || []}
                     index={index}
+                    medicineName={med.medicineName}
                   />
                   <MedicineDropdown
                     label="Quantity"

@@ -185,7 +185,6 @@ const DateField = ({ label, value, onChange, placeholder }) => {
 
   return (
     <div className="space-y-1 w-full">
-      
       <label
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -275,7 +274,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   const casualtyTypes = ["Yes", "No"];
 
   /* ---------- Load Departments ---------- */
-useEffect(() => {
+  useEffect(() => {
     let mounted = true;
     setLoadingDepts(true);
     fetch(`${API_BASE}/patients/departments`)
@@ -299,40 +298,33 @@ useEffect(() => {
   }, []);
 
   /* ---------- Load Staff ---------- */
-// In the staff useEffect, add logging:
-useEffect(() => {
-  if (!formData.department_id) {
-    setDoctors([]);
-    setFormData((p) => ({ ...p, staff_id: "" }));
-    return;
-  }
-  
-  let mounted = true;
-  setLoadingStaff(true);
-  
-  console.log("Fetching staff for department_id:", formData.department_id);
-  
-  fetch(`${API_BASE}/patients/staff?department_id=${formData.department_id}`)
-    .then((res) => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then((data) => {
-      console.log("Staff API response:", data);
-      console.log("Staff data:", data.staff);
-      if (mounted) {
-        setDoctors(data.staff || []);
-        setLoadingStaff(false);
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to load staff:", err);
-      if (mounted) setLoadingStaff(false);
-    });
-  return () => {
-    mounted = false;
-  };
-}, [formData.department_id]);
+  useEffect(() => {
+    if (!formData.department_id) {
+      setDoctors([]);
+      setFormData((p) => ({ ...p, staff_id: "" }));
+      return;
+    }
+    let mounted = true;
+    setLoadingStaff(true);
+    fetch(`${API_BASE}/patients/staff?department_id=${formData.department_id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (mounted) {
+          setDoctors(data.staff || []);
+          setLoadingStaff(false);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load staff:", err);
+        if (mounted) setLoadingStaff(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [formData.department_id]);
 
   const handleChange = (field) => (e) => {
     const val = e?.target?.value ?? e;
@@ -431,7 +423,8 @@ useEffect(() => {
 
   /* ---------- Render ---------- */
   return (
-       <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col relative">
+      {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -440,12 +433,10 @@ useEffect(() => {
           zIndex: 0,
         }}
       ></div>
-      {/* Gradient Border */}
+
       <div
+        className="absolute inset-0 rounded-[10px] pointer-events-none"
         style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -453,7 +444,6 @@ useEffect(() => {
             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
-          pointerEvents: "none",
           zIndex: 0,
         }}
       ></div>
@@ -539,43 +529,16 @@ useEffect(() => {
                 label="Phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  // allow only digits and max 10 characters
-                  if (/^\d{0,10}$/.test(value)) {
-                    handleChange("phone")(e);
-                  }
-                }}
-                placeholder="Enter 10 digit phone no"
+                onChange={handleChange("phone")}
+                placeholder="Enter phone"
               />
-
               <InputField
-  label="Email ID"
-  type="email"
-  value={formData.email}
-  onChange={(e) => {
-    const value = e.target.value;
-
-    // Allow typing anything normally
-    handleChange("email")(e);
-
-    // If user completed email and it's NOT Gmail → block it
-    const fullEmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-    // If user types a @ and finishes domain incorrectly → reset it
-    if (value.includes("@") && !value.endsWith("@gmail.com")) {
-      if (value.length >= "@gmail.com".length) {
-        setFormData((prev) => ({
-          ...prev,
-          email: prev.email.replace(/@.*/, "@gmail.com")
-        }));
-      }
-    }
-  }}
-  placeholder="Enter email"
-/>
-
+                label="Email ID"
+                type="email"
+                value={formData.email}
+                onChange={handleChange("email")}
+                placeholder="Enter email"
+              />
               <InputField
                 label="National ID"
                 value={formData.nid}
@@ -652,26 +615,26 @@ useEffect(() => {
                 onChange={(v) => handleDropdownChange("consultType", v)}
                 options={consultationTypes.map((c) => ({ id: c, name: c }))}
               />
-             <Dropdown
+              <Dropdown
                 label="Department"
                 value={formData.department_id}
                 onChange={(v) => handleDropdownChange("department_id", v)}
                 options={departments}
                 loading={loadingDepts}
               />
-           <Dropdown
-  label="Consulting Doctor"
-  value={formData.staff_id}
-  onChange={(v) => handleDropdownChange("staff_id", v)}
-  options={doctors.map((d) => ({
-    id: d.id,
-    name: `${d.full_name} – ${d.designation}`, // Use 'name' instead of 'display'
-  }))}
-  loading={loadingStaff}
-  placeholder={doctors.length === 0 ? "No doctors available" : "Select Doctor"}
-  idField="id"
-  nameField="name" // Changed from 'display' to 'name'
-/>
+              <Dropdown
+                label="Consulting Doctor"
+                value={formData.staff_id}
+                onChange={(v) => handleDropdownChange("staff_id", v)}
+                options={doctors.map((d) => ({
+                  id: d.id,
+                  display: `${d.full_name} – ${d.designation}`,
+                }))}
+                loading={loadingStaff}
+                placeholder="Select Department First"
+                idField="id"
+                nameField="display"
+              />
               <Dropdown
                 label="Appointment Type"
                 value={formData.apptType}

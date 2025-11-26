@@ -916,11 +916,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  ChevronDown, // ← FIXED: Added import
 } from "lucide-react";
 import BP from "../../assets/BP.png";
 import HR from "../../assets/HR.png";
 import GL from "../../assets/GL.png";
 import CL from "../../assets/CL.png";
+import { Listbox } from "@headlessui/react";
 
 const API_BASE = "http://localhost:8000";
 
@@ -931,6 +933,12 @@ export default function ViewPatientProfile() {
   const [activeTab, setActiveTab] = useState("Diagnosis");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  // Tab Data
+  const [diagnoses, setDiagnoses] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
+  const [testReports, setTestReports] = useState([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -943,82 +951,10 @@ export default function ViewPatientProfile() {
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
-  // Mock Data (Will be replaced by API later)
-  const diagnoses = [
-    {
-      reportType: "CT Scan",
-      date: "10 Apr 2025",
-      description: "Lorem ipsum, dolor sit amet consectetur adipisicing elit.",
-      status: "Completed",
-    },
-    {
-      reportType: "Blood Test",
-      date: "11 Jul 2025",
-      description: "Lorem ipsum, dolor sit amet consectetur adipisicing elit.",
-      status: "Pending",
-    },
-    {
-      reportType: "Blood Analysis",
-      date: "11 Jul 2025",
-      description: "Lorem ipsum, dolor sit amet consectetur adipisicing elit.",
-      status: "Cancelled",
-    },
-    {
-      reportType: "Vascular Sonography",
-      date: "10 Jul 2025",
-      description: "Lorem ipsum, dolor sit amet consectetur adipisicing elit.",
-      status: "Completed",
-    },
-  ];
+  // Dynamic Departments
+  const [departments, setDepartments] = useState(["All"]);
 
-  const prescriptions = [
-    {
-      date: "12 Apr 2025",
-      prescription: "Paracetamol 500mg",
-      dosage: "1 Tablet",
-      timing: "Morning & Night",
-      status: "Completed",
-    },
-    {
-      date: "13 Apr 2025",
-      prescription: "Amoxicillin 250mg",
-      dosage: "2 Capsules",
-      timing: "After Lunch",
-      status: "Pending",
-    },
-    {
-      date: "14 Apr 2025",
-      prescription: "Vitamin D3",
-      dosage: "1 Capsule",
-      timing: "Morning",
-      status: "Cancelled",
-    },
-  ];
-
-  const testReports = [
-    {
-      dateTime: "2025-04-10 09:45 AM",
-      month: "April",
-      testType: "Blood Sugar Test",
-      department: "Pathology",
-      status: "Completed",
-    },
-    {
-      dateTime: "2025-05-15 11:20 AM",
-      month: "May",
-      testType: "X-Ray",
-      department: "Radiology",
-      status: "Pending",
-    },
-    {
-      dateTime: "2025-06-20 10:15 AM",
-      month: "June",
-      testType: "MRI Scan",
-      department: "Radiology",
-      status: "Cancelled",
-    },
-  ];
-
+  // Mock Invoices
   const invoices = [
     {
       invoice_number: "#123456",
@@ -1080,6 +1016,51 @@ export default function ViewPatientProfile() {
     },
   ];
 
+  // Fetch Departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await axios.get(
+          `${API_BASE}/medicine_allocation/departments/`
+        );
+        setDepartments(res.data);
+      } catch (err) {
+        console.error("Failed to load departments", err);
+        setDepartments(["All", "Pathology", "Radiology"]);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  // Reusable Listbox Component
+  const FilterListbox = ({ value, onChange, options, label }) => (
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative w-[164px]">
+        <Listbox.Button className="w-full h-[40px] rounded-[8px] bg-[#025126] dark:bg-[#025126] text-white dark:text-white text-[16px] flex items-center justify-between px-4 border border-[#0EFF7B] dark:border-[#0EFF7B]">
+          {value || `All ${label}s`}
+          <ChevronDown className="h-5 w-5 text-[#0EFF7B]" />
+        </Listbox.Button>
+        <Listbox.Options className="absolute mt-1 min-w-full w-full rounded-md bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-auto">
+          {options.map((opt) => (
+            <Listbox.Option
+              key={opt}
+              value={opt}
+              className={({ active }) =>
+                `cursor-pointer select-none py-2 px-4 text-sm ${
+                  active
+                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                    : "text-black dark:text-white"
+                }`
+              }
+            >
+              {opt}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  );
+
   // Fetch Patient
   useEffect(() => {
     const fetchPatient = async () => {
@@ -1094,6 +1075,36 @@ export default function ViewPatientProfile() {
     };
     fetchPatient();
   }, [patient_id]);
+
+  // Fetch Tab Data
+  useEffect(() => {
+    if (!patient) return;
+
+    const fetchTabData = async () => {
+      setDataLoading(true);
+      try {
+        const [diagRes, presRes, testRes] = await Promise.all([
+          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/diagnoses/`),
+          axios.get(
+            `${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`
+          ),
+          axios.get(
+            `${API_BASE}/medicine_allocation/${patient_id}/test-reports/`
+          ),
+        ]);
+
+        setDiagnoses(diagRes.data);
+        setPrescriptions(presRes.data);
+        setTestReports(testRes.data);
+      } catch (err) {
+        console.error("Failed to load tab data", err);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchTabData();
+  }, [patient, patient_id]);
 
   if (loading)
     return <div className="text-center py-20">Loading patient...</div>;
@@ -1134,7 +1145,7 @@ export default function ViewPatientProfile() {
           pointerEvents: "none",
           zIndex: 0,
         }}
-      ></div>
+      />
 
       {/* Back Button */}
       <button
@@ -1159,7 +1170,7 @@ export default function ViewPatientProfile() {
               "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
             zIndex: 0,
           }}
-        ></div>
+        />
 
         {/* Avatar */}
         <div className="w-[146px] h-[187px] flex-shrink-0 flex flex-col gap-[4px] items-center pr-2 md:mr-[65px] ml-3">
@@ -1179,12 +1190,12 @@ export default function ViewPatientProfile() {
           <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">
             {patient.email_address || "—"}
           </span>
-          <button className="mt-1 text-[#08994A] dark:text-blue-400 underline text-xs hover:text-green-800 dark:hover:text-blue-300">
+          {/* <button className="mt-1 text-[#08994A] dark:text-blue-400 underline text-xs hover:text-green-800 dark:hover:text-blue-300">
             Edit
-          </button>
+          </button> */}
         </div>
 
-        <div className="w-[1px] h-[187px] bg-gray-300 dark:bg-[#A0A0A0] mr-6"></div>
+        <div className="w-[1px] h-[187px] bg-gray-300 dark:bg-[#A0A0A0] mr-6" />
 
         {/* Info Grid */}
         <div className="w-[761px] h-[200px] md:ml-12 ml-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[24px] mt-6 md:mt-0">
@@ -1231,7 +1242,7 @@ export default function ViewPatientProfile() {
           ].map((vital, i) => (
             <div
               key={i}
-              className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+              className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF dad's] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
               style={{
                 backgroundColor: "rgba(14, 255, 123, 0.02)",
                 fontFamily: "Helvetica, sans-serif",
@@ -1267,7 +1278,7 @@ export default function ViewPatientProfile() {
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
             zIndex: 0,
           }}
-        ></div>
+        />
 
         <div className="w-full overflow-x-auto h-[50px] flex items-center justify-center mb-8 px-2 relative z-10">
           <div
@@ -1283,12 +1294,11 @@ export default function ViewPatientProfile() {
               <button
                 key={name}
                 onClick={() => setActiveTab(name)}
-                className={`relative min-w-[180px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-all
-                  ${
-                    activeTab === name
-                      ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-                      : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
-                  }`}
+                className={`relative min-w-[180px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-all ${
+                  activeTab === name
+                    ? "bg-[#0EFF7B14] text-[#0EFF7B]"
+                    : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
+                }`}
                 style={{
                   borderBottom: "1px solid",
                   borderImageSlice: 1,
@@ -1308,151 +1318,175 @@ export default function ViewPatientProfile() {
           </div>
         </div>
 
-        {/* === TABS CONTENT === */}
-        {activeTab === "Diagnosis" && (
+        {/* Loading */}
+        {dataLoading && (
+          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+            Loading records...
+          </div>
+        )}
+
+        {/* === DIAGNOSIS TAB === */}
+        {activeTab === "Diagnosis" && !dataLoading && (
           <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
             <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px] mb-4">
               Patient’s diagnosis information.
             </p>
-            <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
-              <thead>
-                <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                  <th className="py-3">Report Type</th>
-                  <th className="py-3">Date</th>
-                  <th className="py-3">Description</th>
-                  <th className="py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-[16px] text-black dark:text-white">
-                {currentDiagnoses.map((d, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-gray-200 dark:border-gray-700"
-                  >
-                    <td className="py-4">{d.reportType}</td>
-                    <td className="py-4">{d.date}</td>
-                    <td className="py-4">{d.description}</td>
-                    <td className="py-4">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full
-                        ${
-                          d.status === "Completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : d.status === "Pending"
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                        }`}
+            {diagnoses.length === 0 ? (
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                No diagnoses found
+              </p>
+            ) : (
+              <>
+                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                  <thead>
+                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3">Report Type</th>
+                      <th className="py-3">Date</th>
+                      <th className="py-3">Department</th>
+                      <th className="py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[16px] text-black dark:text-white">
+                    {currentDiagnoses.map((d, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        {d.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex items-center mt-4 gap-x-4">
-              <div className="text-sm text-black dark:text-white">
-                Page {currentPage} of {totalPages(diagnoses)}
-              </div>
-              <div className="flex items-center gap-x-2">
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-1 rounded-full border border-[#0EFF7B]"
-                >
-                  <ChevronLeft size={12} />
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(totalPages(diagnoses), p + 1)
-                    )
-                  }
-                  disabled={currentPage === totalPages(diagnoses)}
-                  className="p-1 rounded-full border border-[#0EFF7B]"
-                >
-                  <ChevronRight size={12} />
-                </button>
-              </div>
-            </div>
+                        <td className="py-4">{d.reportType}</td>
+                        <td className="py-4">{d.date}</td>
+                        <td className="py-4">{d.department}</td>
+                        <td className="py-4">
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                              d.status === "Completed"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                : d.status === "Pending"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                            }`}
+                          >
+                            {d.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center mt-4 gap-x-4">
+                  <div className="text-sm text-black dark:text-white">
+                    Page {currentPage} of {totalPages(diagnoses)}
+                  </div>
+                  <div className="flex items-center gap-x-2">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-1 rounded-full border border-[#0EFF7B]"
+                    >
+                      <ChevronLeft size={12} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(totalPages(diagnoses), p + 1)
+                        )
+                      }
+                      disabled={currentPage === totalPages(diagnoses)}
+                      className="p-1 rounded-full border border-[#0EFF7B]"
+                    >
+                      <ChevronRight size={12} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {activeTab === "Prescription" && (
+        {/* === PRESCRIPTION TAB === */}
+        {activeTab === "Prescription" && !dataLoading && (
           <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
             <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px] mb-4">
               Patient’s prescription details.
             </p>
-            <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
-              <thead>
-                <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                  <th className="py-3">Date</th>
-                  <th className="py-3">Prescription</th>
-                  <th className="py-3">Dosage</th>
-                  <th className="py-3">Timing</th>
-                  <th className="py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-[16px] text-black dark:text-white">
-                {currentPrescriptions.map((p, i) => (
-                  <tr
-                    key={i}
-                    className="border-b border-gray-200 dark:border-gray-700"
-                  >
-                    <td className="py-4">{p.date}</td>
-                    <td className="py-4">{p.prescription}</td>
-                    <td className="py-4">{p.dosage}</td>
-                    <td className="py-4">{p.timing}</td>
-                    <td className="py-4">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full
-                        ${
-                          p.status === "Completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : p.status === "Pending"
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                        }`}
+            {prescriptions.length === 0 ? (
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                No prescriptions found
+              </p>
+            ) : (
+              <>
+                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                  <thead>
+                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3">Date</th>
+                      <th className="py-3">Prescription</th>
+                      <th className="py-3">Dosage</th>
+                      <th className="py-3">Timing</th>
+                      <th className="py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[16px] text-black dark:text-white">
+                    {currentPrescriptions.map((p, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        {p.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="flex items-center mt-4 gap-x-4">
-              <div className="text-sm text-black dark:text-white">
-                Page {currentPrescriptionPage} of {totalPages(prescriptions)}
-              </div>
-              <div className="flex items-center gap-x-2">
-                <button
-                  onClick={() =>
-                    setCurrentPrescriptionPage((p) => Math.max(1, p - 1))
-                  }
-                  disabled={currentPrescriptionPage === 1}
-                  className="p-1 rounded-full border border-[#0EFF7B]"
-                >
-                  <ChevronLeft size={12} />
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentPrescriptionPage((p) =>
-                      Math.min(totalPages(prescriptions), p + 1)
-                    )
-                  }
-                  disabled={
-                    currentPrescriptionPage === totalPages(prescriptions)
-                  }
-                  className="p-1 rounded-full border border-[#0EFF7B]"
-                >
-                  <ChevronRight size={12} />
-                </button>
-              </div>
-            </div>
+                        <td className="py-4">{p.date}</td>
+                        <td className="py-4">{p.prescription}</td>
+                        <td className="py-4">{p.dosage}</td>
+                        <td className="py-4">{p.timing}</td>
+                        <td className="py-4">
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                              p.status === "Completed"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                : p.status === "Pending"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center mt-4 gap-x-4">
+                  <div className="text-sm text-black dark:text-white">
+                    Page {currentPrescriptionPage} of{" "}
+                    {totalPages(prescriptions)}
+                  </div>
+                  <div className="flex items-center gap-x-2">
+                    <button
+                      onClick={() =>
+                        setCurrentPrescriptionPage((p) => Math.max(1, p - 1))
+                      }
+                      disabled={currentPrescriptionPage === 1}
+                      className="p-1 rounded-full border border-[#0EFF7B]"
+                    >
+                      <ChevronLeft size={12} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setCurrentPrescriptionPage((p) =>
+                          Math.min(totalPages(prescriptions), p + 1)
+                        )
+                      }
+                      disabled={
+                        currentPrescriptionPage === totalPages(prescriptions)
+                      }
+                      className="p-1 rounded-full border border-[#0EFF7B]"
+                    >
+                      <ChevronRight size={12} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
+        {/* === INVOICE TAB === */}
         {activeTab === "Invoice" &&
           invoices.map((inv, i) => (
             <div
@@ -1529,116 +1563,134 @@ export default function ViewPatientProfile() {
             </div>
           ))}
 
-        {activeTab === "Test Reports" && (
+        {/* === TEST REPORTS TAB === */}
+        {activeTab === "Test Reports" && !dataLoading && (
           <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
               <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px]">
                 Patients test report information.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 mt-2 sm:mt-0">
-                {[
-                  {
-                    label: "Month",
-                    value: selectedMonth,
-                    set: setSelectedMonth,
-                    opts: ["All", "April", "May", "June"],
-                  },
-                  {
-                    label: "Department",
-                    value: selectedDepartment,
-                    set: setSelectedDepartment,
-                    opts: ["All", "Pathology", "Radiology"],
-                  },
-                  {
-                    label: "Status",
-                    value: selectedStatus,
-                    set: setSelectedStatus,
-                    opts: ["All", "Completed", "Pending", "Cancelled"],
-                  },
-                ].map((f) => (
-                  <div key={f.label} className="relative">
-                    <select
-                      value={f.value}
-                      onChange={(e) => f.set(e.target.value)}
-                      className="appearance-none w-[140px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] border border-[#0EFF7B] text-white text-sm rounded-lg px-4 py-2.5 pr-8 focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] hover:shadow-[0_0_8px_#0EFF7B] dark:bg-gradient-to-r dark:from-[#002414] dark:via-[#003D24] dark:to-[#002414]"
-                    >
-                      {f.opts.map((opt) => (
-                        <option
-                          key={opt}
-                          value={opt}
-                          className="bg-white dark:bg-black text-black dark:text-white"
-                        >
-                          {opt === "All" ? `All ${f.label}s` : opt}
-                        </option>
-                      ))}
-                    </select>
-                    <svg
-                      className="absolute right-3 top-3 w-4 h-4 text-[#0EFF7B] pointer-events-none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </div>
-                ))}
+                <FilterListbox
+                  value={selectedMonth}
+                  onChange={setSelectedMonth}
+                  options={[
+                    "All",
+                    "January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July",
+                    "August",
+                    "September",
+                    "October",
+                    "November",
+                    "December",
+                  ]}
+                  label="Month"
+                />
+                <FilterListbox
+                  value={selectedDepartment}
+                  onChange={setSelectedDepartment}
+                  options={departments}
+                  label="Department"
+                />
+                <FilterListbox
+                  value={selectedStatus}
+                  onChange={setSelectedStatus}
+                  options={["All", "Completed", "Pending", "Cancelled"]}
+                  label="Status"
+                />
               </div>
             </div>
-            <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
-              <thead>
-                <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                  <th className="py-3">Date & Time</th>
-                  <th className="py-3">Month</th>
-                  <th className="py-3">Test Type</th>
-                  <th className="py-3">Department</th>
-                  <th className="py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody className="text-[16px] text-black dark:text-white">
-                {currentTests.length > 0 ? (
-                  currentTests.map((t, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-gray-200 dark:border-gray-700"
-                    >
-                      <td className="py-4">{t.dateTime}</td>
-                      <td className="py-4">{t.month}</td>
-                      <td className="py-4">{t.testType}</td>
-                      <td className="py-4">{t.department}</td>
-                      <td className="py-4">
-                        <span
-                          className={`inline-block px-3 py-1 text-xs font-semibold rounded-full
-                        ${
-                          t.status === "Completed"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : t.status === "Pending"
-                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                        }`}
-                        >
-                          {t.status}
-                        </span>
-                      </td>
+
+            {filteredTests.length === 0 ? (
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                No test reports found
+              </p>
+            ) : (
+              <>
+                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                  <thead>
+                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3">Source</th>
+                      <th className="py-3">Date & Time</th>
+                      <th className="py-3">Month</th>
+                      <th className="py-3">Test Type</th>
+                      <th className="py-3">Department</th>
+                      <th className="py-3">Status</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                  </thead>
+                  <tbody className="text-[16px] text-black dark:text-white">
+                    {currentTests.map((t, i) => (
+                      <tr
+                        key={i}
+                        className="border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <td className="py-4">
+                          <span
+                            className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                              t.source === "Medicine Allocation"
+                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                                : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                            }`}
+                          >
+                            {t.source}
+                          </span>
+                        </td>
+                        <td className="py-4">{t.dateTime}</td>
+                        <td className="py-4">{t.month}</td>
+                        <td className="py-4">{t.testType}</td>
+                        <td className="py-4">{t.department}</td>
+                        <td className="py-4">
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                              t.status === "Completed"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                : t.status === "Pending"
+                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                            }`}
+                          >
+                            {t.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="flex items-center mt-4 gap-x-4">
+                  <div className="text-sm text-black dark:text-white">
+                    Page {currentTestPage} of {totalPages(filteredTests)}
+                  </div>
+                  <div className="flex items-center gap-x-2">
+                    <button
+                      onClick={() =>
+                        setCurrentTestPage((p) => Math.max(1, p - 1))
+                      }
+                      disabled={currentTestPage === 1}
+                      className="p-1 rounded-full border border-[#0EFF7B]"
                     >
-                      No test reports found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      <ChevronLeft size={12} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        setCurrentTestPage((p) =>
+                          Math.min(totalPages(filteredTests), p + 1)
+                        )
+                      }
+                      disabled={currentTestPage === totalPages(filteredTests)}
+                      className="p-1 rounded-full border border-[#0EFF7B]"
+                    >
+                      <ChevronRight size={12} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

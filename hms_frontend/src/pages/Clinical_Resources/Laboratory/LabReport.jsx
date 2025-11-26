@@ -894,7 +894,7 @@ const LabReport = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-[#000000] rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
+      <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
         <div className="text-sm text-gray-600 dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

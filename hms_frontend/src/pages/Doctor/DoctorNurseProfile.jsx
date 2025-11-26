@@ -1,7 +1,633 @@
+// import React, { useState, useMemo, useEffect } from "react";
+// import { useNavigate } from "react-router-dom";
+// import {
+//   Search,
+//   Filter,
+//   Plus,
+//   Edit,
+//   X,
+//   ChevronLeft,
+//   ChevronRight,
+// } from "lucide-react";
+// import image from "../../assets/image.png";
+// import { Listbox } from "@headlessui/react";
+// import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
+// import { successToast, errorToast } from "../../components/Toast";
+
+// const API_BASE = "http://127.0.0.1:8000";
+
+// const ProfileSection = () => {
+//   const [searchTerm, setSearchTerm] = useState("");
+//   const [selectedProfile, setSelectedProfile] = useState(null);
+//   const [showEditPopup, setShowEditPopup] = useState(false);
+//   const [showFilterPopup, setShowFilterPopup] = useState(false);
+//   const [filtersData, setFiltersData] = useState({
+//     department: "",
+//     specialist: "",
+//   });
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const rowsPerPage = 9;
+
+//   const navigate = useNavigate();
+
+//   const [profiles, setProfiles] = useState([]);
+//   const [departments, setDepartments] = useState([]);
+//   const [specialists, setSpecialists] = useState([]);
+//   const [loading, setLoading] = useState(true);
+
+//   // Fetch all staff from backend
+//   useEffect(() => {
+//     const fetchProfiles = async () => {
+//       setLoading(true);
+//       try {
+//         const response = await fetch(`${API_BASE}/staff/all/`);
+//         if (!response.ok) throw new Error("Failed to fetch profiles");
+//         const data = await response.json();
+
+//         // Transform to match frontend format
+//         const transformed = data.map((staff) => ({
+//           id: staff.id,
+//           name: staff.full_name || "Unknown",
+//           qualification: staff.specialization || "N/A",
+//           department: staff.department || "N/A",
+//           joinDate: staff.date_of_joining
+//             ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
+//             : "N/A",
+//           contact: staff.phone || "N/A",
+//           email: staff.email || "N/A",
+//           type: staff.designation
+//             ? staff.designation.toLowerCase() === "doctor"
+//               ? "Doctors"
+//               : staff.designation.toLowerCase() === "nurse"
+//               ? "Nurses"
+//               : "Other Staff"
+//             : "Other Staff",
+//           // Include all original data for editing
+//           originalData: staff,
+//         }));
+
+//         setProfiles(transformed);
+
+//         // Extract unique departments and specialists (exclude N/A)
+//         const uniqueDepartments = [
+//           ...new Set(
+//             transformed.map((p) => p.department).filter((d) => d && d !== "N/A")
+//           ),
+//         ].sort();
+//         const uniqueSpecialists = [
+//           ...new Set(
+//             transformed
+//               .map((p) => p.qualification)
+//               .filter((s) => s && s !== "N/A")
+//           ),
+//         ].sort();
+//         setDepartments(uniqueDepartments);
+//         setSpecialists(uniqueSpecialists);
+//       } catch (err) {
+//         errorToast("Failed to load profiles.");
+//         console.error(err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchProfiles();
+//   }, []);
+
+//   const filteredProfiles = useMemo(() => {
+//     return profiles.filter((profile) => {
+//       if (
+//         searchTerm &&
+//         !(
+//           profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+//           profile.department.toLowerCase().includes(searchTerm.toLowerCase())
+//         )
+//       ) {
+//         return false;
+//       }
+//       if (
+//         filtersData.department &&
+//         profile.department !== filtersData.department
+//       ) {
+//         return false;
+//       }
+//       if (
+//         filtersData.specialist &&
+//         profile.qualification !== filtersData.specialist
+//       ) {
+//         return false;
+//       }
+//       return true;
+//     });
+//   }, [profiles, searchTerm, filtersData]);
+
+//   const totalPages = Math.ceil(filteredProfiles.length / rowsPerPage);
+//   const paginatedProfiles = filteredProfiles.slice(
+//     (currentPage - 1) * rowsPerPage,
+//     currentPage * rowsPerPage
+//   );
+
+//   const handlePreviousPage = () => {
+//     if (currentPage > 1) {
+//       setCurrentPage(currentPage - 1);
+//     }
+//   };
+
+//   const handleNextPage = () => {
+//     if (currentPage < totalPages) {
+//       setCurrentPage(currentPage + 1);
+//     }
+//   };
+
+//   const handleFilterChange = (field, value) => {
+//     setFiltersData((prev) => ({ ...prev, [field]: value }));
+//     setCurrentPage(1);
+//   };
+
+//   const handleClearFilters = () => {
+//     setFiltersData({
+//       department: "",
+//       specialist: "",
+//     });
+//     setCurrentPage(1);
+//   };
+
+//   const handleEditProfile = (profile) => {
+//     setSelectedProfile(profile.originalData);
+//     setShowEditPopup(true);
+//   };
+
+//   const handleUpdateProfile = async (updatedData) => {
+//     try {
+//       // Update the profile in the backend
+//       const response = await fetch(
+//         `${API_BASE}/staff/update/${updatedData.id}/`,
+//         {
+//           method: "PUT",
+//           body: updatedData, // This should be FormData in your actual implementation
+//         }
+//       );
+
+//       if (response.ok) {
+//         successToast("Profile updated successfully");
+//         // Refresh the profiles
+//         const fetchResponse = await fetch(`${API_BASE}/staff/all/`);
+//         const data = await fetchResponse.json();
+//         const transformed = data.map((staff) => ({
+//           id: staff.id,
+//           name: staff.full_name || "Unknown",
+//           qualification: staff.specialization || "N/A",
+//           department: staff.department || "N/A",
+//           joinDate: staff.date_of_joining
+//             ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
+//             : "N/A",
+//           contact: staff.phone || "N/A",
+//           email: staff.email || "N/A",
+//           type: staff.designation
+//             ? staff.designation.toLowerCase() === "doctor"
+//               ? "Doctors"
+//               : staff.designation.toLowerCase() === "nurse"
+//               ? "Nurses"
+//               : "Other Staff"
+//             : "Other Staff",
+//           originalData: staff,
+//         }));
+//         setProfiles(transformed);
+//       } else {
+//         errorToast("Failed to update profile");
+//       }
+//     } catch (error) {
+//       errorToast("Error updating profile");
+//       console.error(error);
+//     }
+//   };
+
+//   const Dropdown = ({ placeholder, value, onChange, options }) => (
+//     <div className="relative">
+//       <Listbox
+//         value={value || ""}
+//         onChange={(val) => onChange(val === placeholder ? "" : val)}
+//       >
+//         <div className="relative mt-1 w-[228px]">
+//           <Listbox.Button
+//             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+//                        bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
+//             style={{
+//               borderColor: "#3C3C3C",
+//               boxShadow: "0px 0px 4px 0px #0EFF7B",
+//             }}
+//           >
+//             <span className="block truncate">{value || placeholder}</span>
+//             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+//               <svg
+//                 className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
+//                 fill="none"
+//                 stroke="currentColor"
+//                 viewBox="0 0 24 24"
+//               >
+//                 <path
+//                   strokeLinecap="round"
+//                   strokeLinejoin="round"
+//                   strokeWidth="2"
+//                   d="M19 9l-7 7-7-7"
+//                 />
+//               </svg>
+//             </span>
+//           </Listbox.Button>
+
+//           <Listbox.Options
+//             className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
+//             style={{
+//               scrollbarWidth: "none",
+//               msOverflowStyle: "none",
+//             }}
+//           >
+//             <Listbox.Option
+//               key="default"
+//               value={placeholder}
+//               className="cursor-pointer select-none py-2 px-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]"
+//             >
+//               {placeholder}
+//             </Listbox.Option>
+//             {options.map((option, idx) => (
+//               <Listbox.Option
+//                 key={idx}
+//                 value={option}
+//                 className={({ active, selected }) =>
+//                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+//                     active
+//                       ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+//                       : "text-black dark:text-white"
+//                   } ${
+//                     selected
+//                       ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+//                       : ""
+//                   }`
+//                 }
+//               >
+//                 {option}
+//               </Listbox.Option>
+//             ))}
+//           </Listbox.Options>
+//         </div>
+//       </Listbox>
+//     </div>
+//   );
+
+//   if (loading) {
+//     return (
+//       <div className="flex justify-center items-center h-64">
+//         <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+//       </div>
+//     );
+//   }
+
+//   const totalDoctors = filteredProfiles.filter(
+//     (p) => p.type === "Doctors"
+//   ).length;
+//   const totalNurses = filteredProfiles.filter(
+//     (p) => p.type === "Nurses"
+//   ).length;
+//   const totalOtherStaff = filteredProfiles.filter(
+//     (p) => p.type === "Other Staff"
+//   ).length;
+
+//   return (
+//     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+//       <div
+//         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+//         style={{
+//           background:
+//             "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+//           zIndex: 0,
+//         }}
+//       ></div>
+//       {/* Gradient Border */}
+//       <div
+//         style={{
+//           position: "absolute",
+//           inset: 0,
+//           borderRadius: "10px",
+//           padding: "2px",
+//           background:
+//             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+//           WebkitMask:
+//             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+//           WebkitMaskComposite: "xor",
+//           maskComposite: "exclude",
+//           pointerEvents: "none",
+//           zIndex: 0,
+//         }}
+//       ></div>
+
+//       {/* Header */}
+//       <div className="flex justify-between items-center mt-4 mb-6 relative z-10">
+//         <h2 className="text-xl font-semibold text-black dark:text-white">
+//           Doctor/Nurse Profiles
+//         </h2>
+//         <button
+//           onClick={() => navigate("/Doctors-Nurse/AddDoctorNurse")}
+//           className="w-[200px] h-[40px] flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-[8px] text-white font-semibold hover:scale-105 transition"
+//           style={{
+//             background:
+//               "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+//           }}
+//         >
+//           <Plus size={18} className="text-white" />
+//           Add Doctor/Nurse
+//         </button>
+//       </div>
+
+//       {/* Stats */}
+//       <div className="mb-6 w-[800px] relative z-10">
+//         <div className="flex items-center gap-4 rounded-xl">
+//           <div className="flex items-center gap-3">
+//             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+//               Total Doctors
+//             </span>
+//             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A]">
+//               {totalDoctors}
+//             </span>
+//           </div>
+//           <div className="flex items-center gap-2">
+//             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+//               Total Nurse
+//             </span>
+//             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#2231FF] dark:border-[#2231FF] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#6E92FF] to-[#425899] dark:from-[#6E92FF] dark:to-[#425899]">
+//               {totalNurses}
+//             </span>
+//           </div>
+//           <div className="flex items-center gap-2">
+//             <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+//               Other staff
+//             </span>
+//             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#FF930E] dark:border-[#FF930E] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#FF930E] to-[#995808] dark:from-[#FF930E] dark:to-[#995808]">
+//               {totalOtherStaff}
+//             </span>
+//           </div>
+//         </div>
+//       </div>
+
+//       {/* Search and Filter */}
+//       <div className="flex justify-between items-center mb-6 relative z-30">
+//         <div className="flex gap-4">
+//           <Dropdown
+//             placeholder="Select Department"
+//             value={filtersData.department}
+//             onChange={(val) => handleFilterChange("department", val)}
+//             options={departments}
+//           />
+//           <Dropdown
+//             placeholder="Select Specialist"
+//             value={filtersData.specialist}
+//             onChange={(val) => handleFilterChange("specialist", val)}
+//             options={specialists}
+//           />
+//         </div>
+//         <div className="flex gap-4">
+//           <div className="min-w-[315px] flex items-center bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-full px-3 py-1 border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] relative">
+//             <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+//             <input
+//               type="text"
+//               placeholder="Search by name or department"
+//               value={searchTerm}
+//               onChange={(e) => setSearchTerm(e.target.value)}
+//               className="bg-transparent px-2 text-[12px] placeholder-[#5CD592] outline-none text-[#08994A] dark:text-[#5CD592] w-48"
+//             />
+//           </div>
+//           <button
+//             onClick={() => setShowFilterPopup(true)}
+//             className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white px-4 py-2 rounded-full border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+//           >
+//             <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+//           </button>
+//         </div>
+//       </div>
+
+//       {/* Filter Popup */}
+//       {showFilterPopup && (
+//         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+//           <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
+//             {/* Gradient Border */}
+//             <div
+//               style={{
+//                 position: "absolute",
+//                 inset: 0,
+//                 borderRadius: "20px",
+//                 padding: "2px",
+//                 background:
+//                   "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+//                 WebkitMask:
+//                   "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+//                 WebkitMaskComposite: "xor",
+//                 maskComposite: "exclude",
+//                 pointerEvents: "none",
+//                 zIndex: 0,
+//               }}
+//             ></div>
+//             <div className="flex justify-between items-center pb-3 mb-4 relative z-10">
+//               <h3 className="text-black dark:text-white font-medium text-[16px]">
+//                 Filter Profiles
+//               </h3>
+//               <button
+//                 onClick={() => setShowFilterPopup(false)}
+//                 className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center text-gray-600 dark:text-white hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+//               >
+//                 <X size={16} />
+//               </button>
+//             </div>
+
+//             <div className="grid grid-cols-2 gap-6 relative z-30">
+//               <Dropdown
+//                 placeholder="Select Department"
+//                 value={filtersData.department}
+//                 onChange={(val) =>
+//                   setFiltersData((prev) => ({ ...prev, department: val }))
+//                 }
+//                 options={departments}
+//               />
+//               <Dropdown
+//                 placeholder="Select Specialist"
+//                 value={filtersData.specialist}
+//                 onChange={(val) =>
+//                   setFiltersData((prev) => ({ ...prev, specialist: val }))
+//                 }
+//                 options={specialists}
+//               />
+//             </div>
+
+//             <div className="flex justify-center gap-6 mt-8 relative z-10">
+//               <button
+//                 onClick={handleClearFilters}
+//                 className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+//               >
+//                 Clear
+//               </button>
+//               <button
+//                 onClick={() => setShowFilterPopup(false)}
+//                 className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+//                 style={{
+//                   background:
+//                     "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+//                 }}
+//               >
+//                 Filter
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+
+//       {/* Edit Doctor/Nurse Popup */}
+//       {showEditPopup && selectedProfile && (
+//         <EditDoctorNursePopup
+//           onClose={() => {
+//             setShowEditPopup(false);
+//             setSelectedProfile(null);
+//           }}
+//           profile={selectedProfile}
+//           onUpdate={handleUpdateProfile}
+//         />
+//       )}
+
+//       {/* Profiles Grid */}
+//       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 relative z-20">
+//         {paginatedProfiles.length > 0 ? (
+//           paginatedProfiles.map((profile, index) => (
+//             <div
+//               key={profile.id || index}
+//               className="w-full h-full bg-gray-100 dark:bg-[#0EFF7B08] rounded-lg p-5 border border-[#0EFF7B80] dark:border-[#0EFF7B80] shadow-[0px_0px_4px_0px_#A0A0A040] dark:shadow-[0px_0px_4px_0px_#0EFF7B] relative text-center flex flex-col items-center"
+//               style={{ zIndex: 20 }}
+//             >
+//               <div className="absolute top-4 left-4 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
+//                 {profile.type}
+//               </div>
+//               <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden">
+//                 <img
+//                   src={image}
+//                   alt="Staff Avatar"
+//                   className="w-full h-full object-cover"
+//                 />
+//               </div>
+//               <p className="text-[18px] font-medium text-[#08994A] dark:text-[#0EFF7B] mb-1">
+//                 {profile.name}
+//               </p>
+//               <p className="text-[14px] text-gray-600 dark:text-gray-400 mb-4">
+//                 {profile.qualification}
+//               </p>
+//               <div className="w-full text-left space-y-2 mb-4">
+//                 <div className="flex justify-between">
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     Department
+//                   </span>
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     {profile.department}
+//                   </span>
+//                 </div>
+//                 <div className="flex justify-between">
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     Join Date
+//                   </span>
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     {profile.joinDate}
+//                   </span>
+//                 </div>
+//                 <div className="flex justify-between">
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     Contact
+//                   </span>
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     {profile.contact}
+//                   </span>
+//                 </div>
+//                 <div className="flex justify-between">
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400">
+//                     Email ID
+//                   </span>
+//                   <span className="text-[14px] text-gray-600 dark:text-gray-400 truncate max-w-[150px]">
+//                     {profile.email}
+//                   </span>
+//                 </div>
+//               </div>
+//               <button
+//                 onClick={() => handleEditProfile(profile)}
+//                 className="absolute top-4 right-4 flex items-center gap-1 text-[#4D58FF] dark:text-[#6E92FF] text-[12px]"
+//               >
+//                 <Edit size={16} />
+//                 <span>Edit</span>
+//               </button>
+//               <button
+//                 className="w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
+//                 onClick={() =>
+//                   navigate("/Doctors-Nurse/ViewProfile", {
+//                     state: { profile: profile.originalData },
+//                   })
+//                 }
+//               >
+//                 View profile
+//               </button>
+//             </div>
+//           ))
+//         ) : (
+//           <div className="col-span-3 text-center py-6 text-gray-600 dark:text-gray-400 italic">
+//             No profiles found
+//           </div>
+//         )}
+//       </div>
+
+//       {/* Pagination */}
+//       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+//         <div className="text-sm text-black dark:text-white">
+//           Page {currentPage} of {totalPages} (
+//           {(currentPage - 1) * rowsPerPage + 1} to{" "}
+//           {Math.min(currentPage * rowsPerPage, filteredProfiles.length)} from{" "}
+//           {filteredProfiles.length} Records)
+//         </div>
+//         <div className="flex items-center gap-x-2">
+//           <button
+//             onClick={handlePreviousPage}
+//             disabled={currentPage === 1}
+//             className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+//               currentPage === 1
+//                 ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+//                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+//             }`}
+//           >
+//             <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
+//           </button>
+//           <button
+//             onClick={handleNextPage}
+//             disabled={currentPage === totalPages || totalPages === 0}
+//             className={`w-5 h-5 flex items-center justify-center rounded-full border ${
+//               currentPage === totalPages || totalPages === 0
+//                 ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+//                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+//             }`}
+//           >
+//             <ChevronRight
+//               size={12}
+//               className="text-[#08994A] dark:text-white"
+//             />
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ProfileSection;
+
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Filter, Plus, Edit, X, ChevronLeft, ChevronRight } from "lucide-react";
-import image from "../../assets/image.png";
+import {
+  Search,
+  Filter,
+  Plus,
+  Edit,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  User,
+} from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
 import { successToast, errorToast } from "../../components/Toast";
@@ -27,6 +653,31 @@ const ProfileSection = () => {
   const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Helper function to get profile picture URL
+  const getProfilePictureUrl = (profilePicturePath) => {
+    if (!profilePicturePath) return null;
+
+    console.log("Processing profile picture path:", profilePicturePath);
+
+    // If it's already a full URL, return as is
+    if (profilePicturePath.startsWith("http")) {
+      return profilePicturePath;
+    }
+
+    // If it starts with /static/, it's already a proper URL path
+    if (profilePicturePath.startsWith("/static/")) {
+      return `${API_BASE}${profilePicturePath}`;
+    }
+
+    // If it's a file path, extract the filename and construct the URL
+    const filename = profilePicturePath.split("/").pop();
+    if (filename) {
+      return `${API_BASE}/static/staffs_pictures/${filename}`;
+    }
+
+    return null;
+  };
+
   // Fetch all staff from backend
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -36,28 +687,46 @@ const ProfileSection = () => {
         if (!response.ok) throw new Error("Failed to fetch profiles");
         const data = await response.json();
 
+        console.log("Fetched staff data:", data); // Debug log
+
         // Transform to match frontend format
-        const transformed = data.map(staff => ({
+        const transformed = data.map((staff) => ({
           id: staff.id,
           name: staff.full_name || "Unknown",
           qualification: staff.specialization || "N/A",
           department: staff.department || "N/A",
-          joinDate: staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString('en-GB') : "N/A",
+          joinDate: staff.date_of_joining
+            ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
+            : "N/A",
           contact: staff.phone || "N/A",
           email: staff.email || "N/A",
-          type: staff.designation ? 
-            (staff.designation.toLowerCase() === "doctor" ? "Doctors" : 
-             staff.designation.toLowerCase() === "nurse" ? "Nurses" : 
-             "Other Staff") : "Other Staff",
+          type: staff.designation
+            ? staff.designation.toLowerCase() === "doctor"
+              ? "Doctors"
+              : staff.designation.toLowerCase() === "nurse"
+              ? "Nurses"
+              : "Other Staff"
+            : "Other Staff",
+          profilePicture: staff.profile_picture, // Include profile picture
           // Include all original data for editing
-          originalData: staff
+          originalData: staff,
         }));
 
         setProfiles(transformed);
 
         // Extract unique departments and specialists (exclude N/A)
-        const uniqueDepartments = [...new Set(transformed.map(p => p.department).filter(d => d && d !== "N/A"))].sort();
-        const uniqueSpecialists = [...new Set(transformed.map(p => p.qualification).filter(s => s && s !== "N/A"))].sort();
+        const uniqueDepartments = [
+          ...new Set(
+            transformed.map((p) => p.department).filter((d) => d && d !== "N/A")
+          ),
+        ].sort();
+        const uniqueSpecialists = [
+          ...new Set(
+            transformed
+              .map((p) => p.qualification)
+              .filter((s) => s && s !== "N/A")
+          ),
+        ].sort();
         setDepartments(uniqueDepartments);
         setSpecialists(uniqueSpecialists);
       } catch (err) {
@@ -81,10 +750,16 @@ const ProfileSection = () => {
       ) {
         return false;
       }
-      if (filtersData.department && profile.department !== filtersData.department) {
+      if (
+        filtersData.department &&
+        profile.department !== filtersData.department
+      ) {
         return false;
       }
-      if (filtersData.specialist && profile.qualification !== filtersData.specialist) {
+      if (
+        filtersData.specialist &&
+        profile.qualification !== filtersData.specialist
+      ) {
         return false;
       }
       return true;
@@ -110,7 +785,7 @@ const ProfileSection = () => {
   };
 
   const handleFilterChange = (field, value) => {
-    setFiltersData(prev => ({ ...prev, [field]: value }));
+    setFiltersData((prev) => ({ ...prev, [field]: value }));
     setCurrentPage(1);
   };
 
@@ -130,29 +805,38 @@ const ProfileSection = () => {
   const handleUpdateProfile = async (updatedData) => {
     try {
       // Update the profile in the backend
-      const response = await fetch(`${API_BASE}/staff/update/${updatedData.id}/`, {
-        method: 'PUT',
-        body: updatedData // This should be FormData in your actual implementation
-      });
-      
+      const response = await fetch(
+        `${API_BASE}/staff/update/${updatedData.id}/`,
+        {
+          method: "PUT",
+          body: updatedData, // This should be FormData in your actual implementation
+        }
+      );
+
       if (response.ok) {
         successToast("Profile updated successfully");
         // Refresh the profiles
         const fetchResponse = await fetch(`${API_BASE}/staff/all/`);
         const data = await fetchResponse.json();
-        const transformed = data.map(staff => ({
+        const transformed = data.map((staff) => ({
           id: staff.id,
           name: staff.full_name || "Unknown",
           qualification: staff.specialization || "N/A",
           department: staff.department || "N/A",
-          joinDate: staff.date_of_joining ? new Date(staff.date_of_joining).toLocaleDateString('en-GB') : "N/A",
+          joinDate: staff.date_of_joining
+            ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
+            : "N/A",
           contact: staff.phone || "N/A",
           email: staff.email || "N/A",
-          type: staff.designation ? 
-            (staff.designation.toLowerCase() === "doctor" ? "Doctors" : 
-             staff.designation.toLowerCase() === "nurse" ? "Nurses" : 
-             "Other Staff") : "Other Staff",
-          originalData: staff
+          type: staff.designation
+            ? staff.designation.toLowerCase() === "doctor"
+              ? "Doctors"
+              : staff.designation.toLowerCase() === "nurse"
+              ? "Nurses"
+              : "Other Staff"
+            : "Other Staff",
+          profilePicture: staff.profile_picture, // Include profile picture
+          originalData: staff,
         }));
         setProfiles(transformed);
       } else {
@@ -166,7 +850,10 @@ const ProfileSection = () => {
 
   const Dropdown = ({ placeholder, value, onChange, options }) => (
     <div className="relative">
-      <Listbox value={value || ""} onChange={(val) => onChange(val === placeholder ? "" : val)}>
+      <Listbox
+        value={value || ""}
+        onChange={(val) => onChange(val === placeholder ? "" : val)}
+      >
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
@@ -184,16 +871,21 @@ const ProfileSection = () => {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </span>
           </Listbox.Button>
-          
+
           <Listbox.Options
             className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
             style={{
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
             <Listbox.Option
@@ -209,8 +901,14 @@ const ProfileSection = () => {
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                  } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
+                    active
+                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "text-black dark:text-white"
+                  } ${
+                    selected
+                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                      : ""
+                  }`
                 }
               >
                 {option}
@@ -230,16 +928,23 @@ const ProfileSection = () => {
     );
   }
 
-  const totalDoctors = filteredProfiles.filter((p) => p.type === "Doctors").length;
-  const totalNurses = filteredProfiles.filter((p) => p.type === "Nurses").length;
-  const totalOtherStaff = filteredProfiles.filter((p) => p.type === "Other Staff").length;
+  const totalDoctors = filteredProfiles.filter(
+    (p) => p.type === "Doctors"
+  ).length;
+  const totalNurses = filteredProfiles.filter(
+    (p) => p.type === "Nurses"
+  ).length;
+  const totalOtherStaff = filteredProfiles.filter(
+    (p) => p.type === "Other Staff"
+  ).length;
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
-          background: "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
           zIndex: 0,
         }}
       ></div>
@@ -250,23 +955,28 @@ const ProfileSection = () => {
           inset: 0,
           borderRadius: "10px",
           padding: "2px",
-          background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          background:
+            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
           pointerEvents: "none",
           zIndex: 0,
         }}
       ></div>
-      
+
       {/* Header */}
       <div className="flex justify-between items-center mt-4 mb-6 relative z-10">
-        <h2 className="text-xl font-semibold text-black dark:text-white">Doctor/Nurse Profiles</h2>
+        <h2 className="text-xl font-semibold text-black dark:text-white">
+          Doctor/Nurse Profiles
+        </h2>
         <button
           onClick={() => navigate("/Doctors-Nurse/AddDoctorNurse")}
           className="w-[200px] h-[40px] flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-[8px] text-white font-semibold hover:scale-105 transition"
           style={{
-            background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+            background:
+              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
           }}
         >
           <Plus size={18} className="text-white" />
@@ -310,13 +1020,13 @@ const ProfileSection = () => {
           <Dropdown
             placeholder="Select Department"
             value={filtersData.department}
-            onChange={(val) => handleFilterChange('department', val)}
+            onChange={(val) => handleFilterChange("department", val)}
             options={departments}
           />
           <Dropdown
             placeholder="Select Specialist"
             value={filtersData.specialist}
-            onChange={(val) => handleFilterChange('specialist', val)}
+            onChange={(val) => handleFilterChange("specialist", val)}
             options={specialists}
           />
         </div>
@@ -351,8 +1061,10 @@ const ProfileSection = () => {
                 inset: 0,
                 borderRadius: "20px",
                 padding: "2px",
-                background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                background:
+                  "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                WebkitMask:
+                  "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                 WebkitMaskComposite: "xor",
                 maskComposite: "exclude",
                 pointerEvents: "none",
@@ -375,13 +1087,17 @@ const ProfileSection = () => {
               <Dropdown
                 placeholder="Select Department"
                 value={filtersData.department}
-                onChange={(val) => setFiltersData(prev => ({ ...prev, department: val }))}
+                onChange={(val) =>
+                  setFiltersData((prev) => ({ ...prev, department: val }))
+                }
                 options={departments}
               />
               <Dropdown
                 placeholder="Select Specialist"
                 value={filtersData.specialist}
-                onChange={(val) => setFiltersData(prev => ({ ...prev, specialist: val }))}
+                onChange={(val) =>
+                  setFiltersData((prev) => ({ ...prev, specialist: val }))
+                }
                 options={specialists}
               />
             </div>
@@ -397,7 +1113,8 @@ const ProfileSection = () => {
                 onClick={() => setShowFilterPopup(false)}
                 className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
                 style={{
-                  background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                  background:
+                    "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
                 }}
               >
                 Filter
@@ -431,28 +1148,70 @@ const ProfileSection = () => {
               <div className="absolute top-4 left-4 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
                 {profile.type}
               </div>
-              <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden">
-                <img src={image} alt="Staff Avatar" className="w-full h-full object-cover" />
+
+              {/* Profile Picture */}
+              <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden border-2 border-[#0EFF7B] bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
+                {profile.profilePicture ? (
+                  <img
+                    src={getProfilePictureUrl(profile.profilePicture)}
+                    alt={`${profile.name}'s profile`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.log(
+                        "Profile image failed to load:",
+                        profile.profilePicture
+                      );
+                      e.target.style.display = "none";
+                      // Fallback to icon when image fails to load
+                      const parent = e.target.parentElement;
+                      const fallback = document.createElement("div");
+                      fallback.className =
+                        "w-full h-full flex items-center justify-center";
+                      fallback.innerHTML =
+                        '<User size={24} className="text-gray-400" />';
+                      parent.appendChild(fallback);
+                    }}
+                  />
+                ) : (
+                  <User size={24} className="text-gray-400" />
+                )}
               </div>
+
               <p className="text-[18px] font-medium text-[#08994A] dark:text-[#0EFF7B] mb-1">
                 {profile.name}
               </p>
-              <p className="text-[14px] text-gray-600 dark:text-gray-400 mb-4">{profile.qualification}</p>
+              <p className="text-[14px] text-gray-600 dark:text-gray-400 mb-4">
+                {profile.qualification}
+              </p>
               <div className="w-full text-left space-y-2 mb-4">
                 <div className="flex justify-between">
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">Department</span>
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">{profile.department}</span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    Department
+                  </span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    {profile.department}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">Join Date</span>
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">{profile.joinDate}</span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    Join Date
+                  </span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    {profile.joinDate}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">Contact</span>
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">{profile.contact}</span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    Contact
+                  </span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    {profile.contact}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[14px] text-gray-600 dark:text-gray-400">Email ID</span>
+                  <span className="text-[14px] text-gray-600 dark:text-gray-400">
+                    Email ID
+                  </span>
                   <span className="text-[14px] text-gray-600 dark:text-gray-400 truncate max-w-[150px]">
                     {profile.email}
                   </span>
@@ -467,7 +1226,11 @@ const ProfileSection = () => {
               </button>
               <button
                 className="w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
-                onClick={() => navigate("/Doctors-Nurse/ViewProfile", { state: { profile: profile.originalData } })}
+                onClick={() =>
+                  navigate("/Doctors-Nurse/ViewProfile", {
+                    state: { profile: profile.originalData },
+                  })
+                }
               >
                 View profile
               </button>
@@ -481,9 +1244,12 @@ const ProfileSection = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+      <div className="flex items-center mt-4 bg-white dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
         <div className="text-sm text-black dark:text-white">
-          Page {currentPage} of {totalPages} ({(currentPage - 1) * rowsPerPage + 1} to {Math.min(currentPage * rowsPerPage, filteredProfiles.length)} from {filteredProfiles.length} Records)
+          Page {currentPage} of {totalPages} (
+          {(currentPage - 1) * rowsPerPage + 1} to{" "}
+          {Math.min(currentPage * rowsPerPage, filteredProfiles.length)} from{" "}
+          {filteredProfiles.length} Records)
         </div>
         <div className="flex items-center gap-x-2">
           <button
@@ -506,7 +1272,10 @@ const ProfileSection = () => {
                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
+            <ChevronRight
+              size={12}
+              className="text-[#08994A] dark:text-white"
+            />
           </button>
         </div>
       </div>

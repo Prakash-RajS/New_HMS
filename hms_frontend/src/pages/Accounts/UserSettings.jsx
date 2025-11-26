@@ -63,16 +63,21 @@ const UserSettings = () => {
 
   // User permissions
   const [currentUserRole, setCurrentUserRole] = useState("");
-  const [availableRoles, setAvailableRoles] = useState(["Select Role", "Doctor", "Staff", "Receptionist"]);
+  const [availableRoles, setAvailableRoles] = useState([
+    "Select Role",
+    "Doctor",
+    "Staff",
+    "Receptionist",
+  ]);
   const [canManageUsers, setCanManageUsers] = useState(false);
 
   // Get auth token and user info
   const getAuthToken = () => {
-    return localStorage.getItem('token') || sessionStorage.getItem('token');
+    return localStorage.getItem("token") || sessionStorage.getItem("token");
   };
 
   const getCurrentUserRole = () => {
-    return localStorage.getItem('role') || sessionStorage.getItem('role') || '';
+    return localStorage.getItem("role") || sessionStorage.getItem("role") || "";
   };
 
   // Fetch Filter Options & Users on Mount
@@ -91,10 +96,17 @@ const UserSettings = () => {
     const role = getCurrentUserRole();
     setCurrentUserRole(role);
 
-    const canManage = role.toLowerCase() === "admin" || role.toLowerCase() === "superuser";
+    const canManage =
+      role.toLowerCase() === "admin" || role.toLowerCase() === "superuser";
     setCanManageUsers(canManage);
     if (canManage) {
-      setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Admin"]);
+      setAvailableRoles([
+        "Select Role",
+        "Doctor",
+        "Staff",
+        "Receptionist",
+        "Admin",
+      ]);
     } else {
       setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist"]);
     }
@@ -105,11 +117,11 @@ const UserSettings = () => {
       const token = getAuthToken();
       const [filterRes, staffRes] = await Promise.all([
         fetch(`${API_BASE}/users/filters`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_BASE}/staff/all/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       const filters = await filterRes.json();
@@ -121,9 +133,13 @@ const UserSettings = () => {
       staffList.forEach((s) => {
         map[s.employee_id] = {
           department: s.department,
-          joinedOn: s.date_of_joining ? new Date(s.date_of_joining).toLocaleDateString("en-US", {
-            month: "2-digit", day: "2-digit", year: "numeric"
-          }) : "",
+          joinedOn: s.date_of_joining
+            ? new Date(s.date_of_joining).toLocaleDateString("en-US", {
+                month: "2-digit",
+                day: "2-digit",
+                year: "numeric",
+              })
+            : "",
           full_name: s.full_name,
           email: s.email,
         };
@@ -141,11 +157,12 @@ const UserSettings = () => {
       const params = new URLSearchParams();
       if (filters.user !== "Select Name") params.append("name", filters.user);
       if (filters.role !== "Select Role") params.append("role", filters.role);
-      if (filters.department !== "Select Department") params.append("department", filters.department);
+      if (filters.department !== "Select Department")
+        params.append("department", filters.department);
       if (userSearch) params.append("search", userSearch);
 
       const res = await fetch(`${API_BASE}/users/?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) {
@@ -169,13 +186,17 @@ const UserSettings = () => {
 
   // Update form when Staff ID is selected
   useEffect(() => {
-    if (newUser.staffId && newUser.staffId !== "Select Staff ID" && staffMap[newUser.staffId]) {
+    if (
+      newUser.staffId &&
+      newUser.staffId !== "Select Staff ID" &&
+      staffMap[newUser.staffId]
+    ) {
       const { department, joinedOn, full_name } = staffMap[newUser.staffId];
       setNewUser((prev) => ({
         ...prev,
         department,
         joinedOn,
-        username: full_name.toLowerCase().replace(/\s+/g, '.') || ""
+        username: full_name.toLowerCase().replace(/\s+/g, ".") || "",
       }));
     }
   }, [newUser.staffId, staffMap]);
@@ -184,7 +205,11 @@ const UserSettings = () => {
   const filteredUsers = allUsers.filter((u) => {
     if (filters.user !== "Select Name" && u.name !== filters.user) return false;
     if (filters.role !== "Select Role" && u.role !== filters.role) return false;
-    if (filters.department !== "Select Department" && u.department !== filters.department) return false;
+    if (
+      filters.department !== "Select Department" &&
+      u.department !== filters.department
+    )
+      return false;
     return true;
   });
 
@@ -192,18 +217,28 @@ const UserSettings = () => {
     if (!sortColumn) return 0;
     const valA = a[sortColumn] || "";
     const valB = b[sortColumn] || "";
-    return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    return sortOrder === "asc"
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
   });
 
-  const users = sortedUsers.slice((userPage - 1) * rowsPerPage, userPage * rowsPerPage);
+  const users = sortedUsers.slice(
+    (userPage - 1) * rowsPerPage,
+    userPage * rowsPerPage
+  );
   const totalUserPages = Math.ceil(filteredUsers.length / rowsPerPage);
 
   // Dynamic unique roles from current user list
-  const uniqueRoles = Array.from(new Set(allUsers.map(u => u.role).filter(Boolean)));
+  const uniqueRoles = Array.from(
+    new Set(allUsers.map((u) => u.role).filter(Boolean))
+  );
   const roleFilterOptions = ["Select Role", ...uniqueRoles];
 
   const userOptions = ["Select Name", ...new Set(allUsers.map((u) => u.name))];
-  const departmentOptions = ["Select Department", ...new Set(allUsers.map((u) => u.department))];
+  const departmentOptions = [
+    "Select Department",
+    ...new Set(allUsers.map((u) => u.department)),
+  ];
 
   // Checkbox Selection
   const handleUserCheckboxChange = (user) => {
@@ -213,7 +248,9 @@ const UserSettings = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedUsers(selectedUsers.length === users.length && users.length > 0 ? [] : users);
+    setSelectedUsers(
+      selectedUsers.length === users.length && users.length > 0 ? [] : users
+    );
   };
 
   // Delete Selected
@@ -231,12 +268,13 @@ const UserSettings = () => {
       for (const user of selectedUsers) {
         const response = await fetch(`${API_BASE}/users/${user.id}`, {
           method: "DELETE",
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) {
           if (response.status === 403) throw new Error("Permission denied.");
-          if (response.status === 401) throw new Error("Authentication failed.");
+          if (response.status === 401)
+            throw new Error("Authentication failed.");
           const errorData = await response.json();
           throw new Error(errorData.detail || `Failed to delete ${user.name}`);
         }
@@ -256,14 +294,16 @@ const UserSettings = () => {
       const token = getAuthToken();
       const response = await fetch(`${API_BASE}/users/${deleteUser.id}`, {
         method: "DELETE",
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!response.ok) {
         if (response.status === 403) throw new Error("Permission denied.");
         if (response.status === 401) throw new Error("Authentication failed.");
         const errorData = await response.json();
-        throw new Error(errorData.detail || `Failed to delete ${deleteUser.name}`);
+        throw new Error(
+          errorData.detail || `Failed to delete ${deleteUser.name}`
+        );
       }
 
       await fetchUsers();
@@ -297,7 +337,7 @@ const UserSettings = () => {
 
         const res = await fetch(`${API_BASE}/users/create_user`, {
           method: "POST",
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
 
@@ -309,7 +349,12 @@ const UserSettings = () => {
         }
 
         setShowAddUserPopup(false);
-        setNewUser({ username: "", password: "", role: "Select Role", staffId: "Select Staff ID" });
+        setNewUser({
+          username: "",
+          password: "",
+          role: "Select Role",
+          staffId: "Select Staff ID",
+        });
         await fetchUsers();
         successToast("User created successfully!");
       } catch (err) {
@@ -331,17 +376,31 @@ const UserSettings = () => {
 
   const getRoleColor = (role) => {
     switch (role) {
-      case "Doctor": return "text-green-600 dark:text-green-500";
-      case "Staff": return "text-orange-600 dark:text-orange-500";
-      case "Receptionist": return "text-red-600 dark:text-red-500";
-      case "Admin": return "text-blue-600 dark:text-blue-500";
-      default: return "text-black dark:text-white";
+      case "Doctor":
+        return "text-green-600 dark:text-green-500";
+      case "Staff":
+        return "text-orange-600 dark:text-orange-500";
+      case "Receptionist":
+        return "text-red-600 dark:text-red-500";
+      case "Admin":
+        return "text-blue-600 dark:text-blue-500";
+      default:
+        return "text-black dark:text-white";
     }
   };
 
-  const Dropdown = ({ label, placeholder, value, onChange, options, className }) => (
+  const Dropdown = ({
+    label,
+    placeholder,
+    value,
+    onChange,
+    options,
+    className,
+  }) => (
     <div>
-      <label className="block text-sm font-medium mb-2 text-black dark:text-white">{label}</label>
+      <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+        {label}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
           <Listbox.Button
@@ -362,9 +421,10 @@ const UserSettings = () => {
                 value={option}
                 className={({ active, selected }) =>
                   `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                  ${active || selected
-                    ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                    : "text-[#08994A] dark:text-[#0EFF7B]"
+                  ${
+                    active || selected
+                      ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                      : "text-[#08994A] dark:text-[#0EFF7B]"
                   }`
                 }
               >
@@ -395,7 +455,8 @@ const UserSettings = () => {
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMask:
+            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
           pointerEvents: "none",
@@ -406,7 +467,9 @@ const UserSettings = () => {
       {/* Header */}
       <div className="mt-[10px] bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col dark:border-[#0D0D0D]">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black dark:text-[#0EFF7B]">User settings</h2>
+          <h2 className="text-xl font-semibold text-black dark:text-[#0EFF7B]">
+            User settings
+          </h2>
           {canManageUsers ? (
             <button
               onClick={() => setShowAddUserPopup(true)}
@@ -425,8 +488,7 @@ const UserSettings = () => {
         <p className="text-gray-600 dark:text-gray-400">
           {canManageUsers
             ? "These settings help add or manage users"
-            : "View user information (Admin users can manage users)"
-          }
+            : "View user information (Admin users can manage users)"}
         </p>
       </div>
 
@@ -444,7 +506,7 @@ const UserSettings = () => {
           placeholder="Select Role"
           value={filters.role}
           onChange={(val) => setFilters({ ...filters, role: val })}
-          options={roleFilterOptions} 
+          options={roleFilterOptions}
         />
         <Dropdown
           label="Select Department"
@@ -458,7 +520,9 @@ const UserSettings = () => {
       {/* User List Table */}
       <div className="bg-white dark:bg-transparent text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#3C3C3C]">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-black dark:text-white">User List</h3>
+          <h3 className="text-lg font-semibold text-black dark:text-white">
+            User List
+          </h3>
           <div className="flex gap-2 items-center">
             {showUserSearch && (
               <input
@@ -473,14 +537,20 @@ const UserSettings = () => {
               className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
               onClick={() => setShowUserSearch(!showUserSearch)}
             >
-              <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+              <Search
+                size={18}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
             </div>
             {canManageUsers && (
               <div
                 className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                 onClick={handleDeleteSelectedUsers}
               >
-                <Trash2 size={18} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
+                <Trash2
+                  size={18}
+                  className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                />
               </div>
             )}
           </div>
@@ -497,35 +567,68 @@ const UserSettings = () => {
                 <tr className="text-left h-[52px] bg-white dark:bg-[#0EFF7B1A] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
                   {canManageUsers && (
                     <th className="p-3">
-        <label className="flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-            checked={selectedUsers.length === users.length && users.length > 0}
-            onChange={handleSelectAll}
-          />
-        </label>
-      </th>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                          checked={
+                            selectedUsers.length === users.length &&
+                            users.length > 0
+                          }
+                          onChange={handleSelectAll}
+                        />
+                      </label>
+                    </th>
                   )}
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("name")}>
-                    Name {sortColumn === "name" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("name")}
+                  >
+                    Name{" "}
+                    {sortColumn === "name" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("username")}>
-                    Username {sortColumn === "username" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("username")}
+                  >
+                    Username{" "}
+                    {sortColumn === "username" &&
+                      (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("email")}>
-                    Email {sortColumn === "email" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("email")}
+                  >
+                    Email{" "}
+                    {sortColumn === "email" &&
+                      (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("role")}>
-                    Role {sortColumn === "role" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("role")}
+                  >
+                    Role{" "}
+                    {sortColumn === "role" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("department")}>
-                    Department {sortColumn === "department" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("department")}
+                  >
+                    Department{" "}
+                    {sortColumn === "department" &&
+                      (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  <th className="p-3 cursor-pointer" onClick={() => handleSort("joinedOn")}>
-                    Joined on {sortColumn === "joinedOn" && (sortOrder === "asc" ? "↑" : "↓")}
+                  <th
+                    className="p-3 cursor-pointer"
+                    onClick={() => handleSort("joinedOn")}
+                  >
+                    Joined on{" "}
+                    {sortColumn === "joinedOn" &&
+                      (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  {canManageUsers && <th className="p-3 text-right">Actions</th>}
+                  {canManageUsers && (
+                    <th className="p-3 text-right">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -536,27 +639,37 @@ const UserSettings = () => {
                   >
                     {canManageUsers && (
                       <td className="p-3">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-              checked={selectedUsers.includes(u)}
-              onChange={() => handleUserCheckboxChange(u)}
-            />
-          </label>
-        </td>
+                        <label className="flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            checked={selectedUsers.includes(u)}
+                            onChange={() => handleUserCheckboxChange(u)}
+                          />
+                        </label>
+                      </td>
                     )}
                     <td className="p-3">
                       <div className="text-black dark:text-white">{u.name}</div>
-                      <div className="text-gray-600 dark:text-gray-400 text-[12px]">(ID: {u.id})</div>
+                      <div className="text-gray-600 dark:text-gray-400 text-[12px]">
+                        (ID: {u.id})
+                      </div>
                     </td>
-                    <td className="p-3 text-black dark:text-white">{u.username}</td>
-                    <td className="p-3 text-black dark:text-white">{u.email}</td>
+                    <td className="p-3 text-black dark:text-white">
+                      {u.username}
+                    </td>
+                    <td className="p-3 text-black dark:text-white">
+                      {u.email}
+                    </td>
                     <td className="p-3">
                       <span className={getRoleColor(u.role)}>{u.role}</span>
                     </td>
-                    <td className="p-3 text-black dark:text-white">{u.department}</td>
-                    <td className="p-3 text-black dark:text-white">{u.joinedOn}</td>
+                    <td className="p-3 text-black dark:text-white">
+                      {u.department}
+                    </td>
+                    <td className="p-3 text-black dark:text-white">
+                      {u.joinedOn}
+                    </td>
                     {canManageUsers && (
                       <td className="p-3 flex justify-end gap-2">
                         <div
@@ -566,7 +679,10 @@ const UserSettings = () => {
                             setShowEditUserPopup(true);
                           }}
                         >
-                          <Edit size={18} className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]" />
+                          <Edit
+                            size={18}
+                            className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                          />
                         </div>
                         <div
                           className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
@@ -575,7 +691,10 @@ const UserSettings = () => {
                             setShowDeleteUserPopup(true);
                           }}
                         >
-                          <Trash2 size={18} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
+                          <Trash2
+                            size={18}
+                            className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                          />
                         </div>
                       </td>
                     )}
@@ -586,15 +705,20 @@ const UserSettings = () => {
 
             {users.length === 0 && (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                No users found. {canManageUsers && "Click 'Add User' to create new users."}
+                No users found.{" "}
+                {canManageUsers && "Click 'Add User' to create new users."}
               </div>
             )}
 
             <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                Page <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">{userPage}</span> of {totalUserPages} (
-                {(userPage - 1) * rowsPerPage + 1} to{" "}
-                {Math.min(userPage * rowsPerPage, filteredUsers.length)} from {filteredUsers.length} Users)
+                Page{" "}
+                <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
+                  {userPage}
+                </span>{" "}
+                of {totalUserPages} ({(userPage - 1) * rowsPerPage + 1} to{" "}
+                {Math.min(userPage * rowsPerPage, filteredUsers.length)} from{" "}
+                {filteredUsers.length} Users)
               </div>
               <div className="flex items-center gap-x-2">
                 <button
@@ -609,7 +733,9 @@ const UserSettings = () => {
                   <ChevronLeft size={12} />
                 </button>
                 <button
-                  onClick={() => setUserPage(Math.min(totalUserPages, userPage + 1))}
+                  onClick={() =>
+                    setUserPage(Math.min(totalUserPages, userPage + 1))
+                  }
                   disabled={userPage === totalUserPages}
                   className={`w-5 h-5 flex items-center justify-center rounded-full border ${
                     userPage === totalUserPages
@@ -637,7 +763,8 @@ const UserSettings = () => {
                 padding: "2px",
                 background:
                   "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMask:
+                  "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                 WebkitMaskComposite: "xor",
                 maskComposite: "exclude",
                 pointerEvents: "none",
@@ -662,8 +789,7 @@ const UserSettings = () => {
               <p className="text-black dark:text-white mb-6">
                 {deleteUser
                   ? `Are you sure you want to delete user "${deleteUser.name}"? This will only delete the user account, not the staff record.`
-                  : `Are you sure you want to delete ${selectedUsers.length} user(s)? This will only delete user accounts, not staff records.`
-                }
+                  : `Are you sure you want to delete ${selectedUsers.length} user(s)? This will only delete user accounts, not staff records.`}
               </p>
               <div className="flex justify-end gap-4">
                 <button
@@ -676,7 +802,9 @@ const UserSettings = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={deleteUser ? confirmDeleteUser : confirmDeleteUsers}
+                  onClick={
+                    deleteUser ? confirmDeleteUserUser : confirmDeleteUsers
+                  }
                   className="bg-red-600 dark:bg-red-700 text-white px-4 py-2 rounded-[8px] font-semibold hover:bg-red-700 dark:hover:bg-red-800 transition"
                 >
                   Delete
@@ -691,9 +819,14 @@ const UserSettings = () => {
       {showAddUserPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-            <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative" style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
+            <div
+              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
               <div className="flex justify-between items-center pb-2 mb-3">
-                <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">Add New User</h2>
+                <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+                  Add New User
+                </h2>
                 <button
                   onClick={() => setShowAddUserPopup(false)}
                   className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
@@ -703,22 +836,30 @@ const UserSettings = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-black dark:text-white">Username *</label>
+                  <label className="text-sm text-black dark:text-white">
+                    Username *
+                  </label>
                   <input
                     type="text"
                     placeholder="Enter username"
                     value={newUser.username}
-                    onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, username: e.target.value })
+                    }
                     className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-black dark:text-white">Password *</label>
+                  <label className="text-sm text-black dark:text-white">
+                    Password *
+                  </label>
                   <input
                     type="password"
                     placeholder="Enter password"
                     value={newUser.password}
-                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, password: e.target.value })
+                    }
                     className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
                   />
                 </div>
@@ -737,25 +878,41 @@ const UserSettings = () => {
                   className="w-[228px] h-[30px] mt-[2px]"
                 />
               </div>
-              {newUser.staffId && newUser.staffId !== "Select Staff ID" && staffMap[newUser.staffId] && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-[#1A1A1A] rounded-md">
-                  <h4 className="text-sm font-medium text-black dark:text-white mb-2">Staff Information:</h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Name:</span>
-                      <span className="ml-2 text-black dark:text-white">{staffMap[newUser.staffId]?.full_name}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Department:</span>
-                      <span className="ml-2 text-black dark:text-white">{staffMap[newUser.staffId]?.department}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600 dark:text-gray-400">Joined On:</span>
-                      <span className="ml-2 text-black dark:text-white">{staffMap[newUser.staffId]?.joinedOn}</span>
+              {newUser.staffId &&
+                newUser.staffId !== "Select Staff ID" &&
+                staffMap[newUser.staffId] && (
+                  <div className="mt-4 p-3 bg-gray-50 dark:bg-[#1A1A1A] rounded-md">
+                    <h4 className="text-sm font-medium text-black dark:text-white mb-2">
+                      Staff Information:
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Name:
+                        </span>
+                        <span className="ml-2 text-black dark:text-white">
+                          {staffMap[newUser.staffId]?.full_name}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Department:
+                        </span>
+                        <span className="ml-2 text-black dark:text-white">
+                          {staffMap[newUser.staffId]?.department}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Joined On:
+                        </span>
+                        <span className="ml-2 text-black dark:text-white">
+                          {staffMap[newUser.staffId]?.joinedOn}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
               <div className="flex justify-center gap-4 mt-5">
                 <button
                   onClick={() => setShowAddUserPopup(false)}
@@ -788,14 +945,20 @@ const UserSettings = () => {
               const token = getAuthToken();
               const formData = new FormData();
 
-              if (updatedUser.username) formData.append("username", updatedUser.username);
+              if (updatedUser.username)
+                formData.append("username", updatedUser.username);
               if (updatedUser.role) formData.append("role", updatedUser.role);
-              if (updatedUser.newPassword) formData.append("new_password", updatedUser.newPassword);
-              if (updatedUser.confirmPassword) formData.append("confirm_password", updatedUser.confirmPassword);
+              if (updatedUser.newPassword)
+                formData.append("new_password", updatedUser.newPassword);
+              if (updatedUser.confirmPassword)
+                formData.append(
+                  "confirm_password",
+                  updatedUser.confirmPassword
+                );
 
               const res = await fetch(`${API_BASE}/users/${updatedUser.id}`, {
                 method: "PUT",
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
                 body: formData,
               });
 

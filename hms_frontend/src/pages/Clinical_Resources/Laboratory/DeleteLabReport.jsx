@@ -115,17 +115,28 @@ const DeleteLabReportPopup = ({ order, onClose, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-      {/* Gradient Border Container */}
-      <div
-        className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-        bg-gradient-to-r from-red-400/70 via-gray-300/30 to-red-400/70
-        dark:bg-[linear-gradient(132.3deg,rgba(255,77,77,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(255,77,77,0.7)_99.36%)]"
-      >
-        {/* Inner Container */}
+      {/* Main Container */}
+      <div className="relative w-[505px] h-auto rounded-[20px] bg-white dark:bg-[#000000] text-black dark:text-white p-6">
+        {/* Gradient Border */}
         <div
-          className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+
+        {/* Content */}
+        <div className="relative z-10" style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h2

@@ -581,7 +581,7 @@ const RoomManagement = () => {
             path="/"
             element={
               <div className="overflow-x-auto">
-                <table className="w-full text-center text-sm">
+                <table className="w-full text-center text-sm min-w-[1000px]">
                   <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
                     <tr>
                       <th className="py-3 px-2">
@@ -639,24 +639,22 @@ const RoomManagement = () => {
                               </p>
                             </div>
                           </td>
-
                           <td className="text-black dark:text-white">
                             {room.admit}
                           </td>
-                          <td className={`${statusColors[room.status]}`}>
+                          <td className={statusColors[room.status]}>
                             {room.status}
                           </td>
                           <td className="text-center">
-                            {/* Make sure to pass the index prop here */}
                             <ActionMenu room={room} index={index} />
                           </td>
                         </tr>
                       ))
                     ) : (
-                      <tr className="w-[1089px] h-[72px] bg-white dark:bg-black flex items-center justify-center">
+                      <tr>
                         <td
                           colSpan="7"
-                          className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                          className="h-64 text-center text-gray-500 dark:text-gray-400 text-lg font-medium"
                         >
                           No rooms found
                         </td>
