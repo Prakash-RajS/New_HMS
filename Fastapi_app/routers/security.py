@@ -116,6 +116,8 @@ def create_user(
         staff=staff,
     )
 
+    Permission.initialize_default_permissions()
+
     # Assign default permissions
     for module, _ in getattr(Permission, "MODULE_CHOICES", []):
         Permission.objects.get_or_create(role=staff.designation, module=module)
@@ -152,10 +154,26 @@ def toggle_permission(
     if not db_user.is_superuser and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admin can toggle permissions")
 
+    # Validate module exists in MODULE_CHOICES
+    valid_modules = [choice[0] for choice in Permission.MODULE_CHOICES]
+    if module not in valid_modules:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Invalid module. Must be one of: {', '.join(valid_modules)}"
+        )
+
     try:
-        perm = Permission.objects.get(role=role, module=module)
+        # Use get_or_create to handle both existing and new permissions
+        perm, created = Permission.objects.get_or_create(
+            role=role,
+            module=module,
+            defaults={"enabled": False}  # Default to disabled when creating new
+        )
+        
+        # Toggle the enabled status
         perm.enabled = not perm.enabled
         perm.save()
+        
         return {"module": perm.module, "enabled": perm.enabled}
-    except Permission.DoesNotExist:
-        raise HTTPException(status_code=404, detail="Permission not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error toggling permission: {str(e)}")

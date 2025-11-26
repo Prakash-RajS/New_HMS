@@ -115,51 +115,209 @@ class Appointment(models.Model):
                 self.patient_id = f"SAH{last_num + 1}"
             else:
                 self.patient_id = "SAH2500"
+        
+        # Call the original save method
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.patient_name} ({self.patient_id})"
+        
+        # Update staff statistics
+        if self.staff:
+            self.staff.update_statistics(save=True)
+            print(f"✅ Updated patient count for staff {self.staff.full_name} after appointment creation")
 
 from django.db import models
+from django.utils import timezone
 
 class Staff(models.Model):
-    # 🔹 New employee ID (used in your FastAPI code)
+    # 🔹 Basic Information
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
-
-
     full_name = models.CharField(max_length=255)
-    date_of_birth = models.DateField()
-    gender = models.CharField(max_length=20)
-    age = models.IntegerField()
-    marital_status = models.CharField(max_length=50)
-    address = models.TextField()
+    date_of_birth = models.DateField(null=True, blank=True)
+    gender = models.CharField(max_length=20, null=True, blank=True)
+    age = models.IntegerField(null=True, blank=True)
+    marital_status = models.CharField(max_length=50, null=True, blank=True)
+    address = models.TextField(null=True, blank=True)
     phone = models.CharField(max_length=20, unique=True)
     email = models.EmailField(unique=True)
-    national_id = models.CharField(max_length=100, unique=True)
-    city = models.CharField(max_length=100)
-    country = models.CharField(max_length=100)
-    date_of_joining = models.DateField()
+    national_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    date_of_joining = models.DateField(null=True, blank=True)
     designation = models.CharField(max_length=100)
 
-    # 🔹 ForeignKey to Department
+    # 🔹 Department Information
     department = models.ForeignKey(
         "Department", 
         on_delete=models.CASCADE,
         related_name="staff_members"
     )
 
+    # 🔹 Professional Information
     specialization = models.CharField(max_length=150, blank=True, null=True)
-    status = models.CharField(max_length=50)
-    shift_timing = models.CharField(max_length=100)
-
+    status = models.CharField(max_length=50, default="Active")
+    shift_timing = models.CharField(max_length=100, null=True, blank=True)
+    
+    # 🔹 New Dynamic Fields for Doctor Profile
+    education = models.TextField(blank=True, null=True)
+    about_physician = models.TextField(blank=True, null=True)
+    experience = models.CharField(max_length=100, blank=True, null=True)
+    license_number = models.CharField(max_length=100, blank=True, null=True)
+    board_certifications = models.TextField(blank=True, null=True)
+    professional_memberships = models.TextField(blank=True, null=True)
+    languages_spoken = models.TextField(blank=True, null=True)
+    awards_recognitions = models.TextField(blank=True, null=True)
+    
+    # 🔹 Dynamic Field - Will be calculated
+    total_patients_treated = models.IntegerField(default=0)
+    
     # 🔹 File fields
     certificates = models.TextField(blank=True, null=True)
-    profile_picture = models.TextField(blank=True, null=True)  # path saved here
+    profile_picture = models.TextField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "staff"
 
     def __str__(self):
         return f"{self.full_name} - {self.designation} ({self.department.name})"
-    class Meta:
-        db_table = "staff"  
+
+    def calculate_patient_statistics(self):
+        """Calculate total UNIQUE patients treated by this staff member"""
+        unique_patient_ids = set()
+        
+        try:
+            # Method 1: Count from Patient model (direct assignment)
+            try:
+                patient_assignments = Patient.objects.filter(staff=self)
+                for patient in patient_assignments:
+                    unique_patient_ids.add(patient.id)
+                print(f"Direct patient assignments found: {len(patient_assignments)}")
+            except Exception as e:
+                print(f"Error counting direct patient assignments: {e}")
+            
+            # Method 2: Count from Appointments
+            try:
+                appointments = self.appointments.all()
+                for appointment in appointments:
+                    # Since Appointment doesn't have direct patient FK, we'll use patient_name as identifier
+                    # In a real system, you'd want to link Appointment to Patient model
+                    patient_identifier = f"appointment_{appointment.patient_name}_{appointment.phone_no}"
+                    unique_patient_ids.add(patient_identifier)
+                print(f"Appointments found: {appointments.count()}")
+            except Exception as e:
+                print(f"Error counting appointments: {e}")
+            
+            # Method 3: Count from Medicine Allocations
+            try:
+                medicine_allocations = self.medicine_allocations.all()
+                for allocation in medicine_allocations:
+                    if allocation.patient:
+                        unique_patient_ids.add(allocation.patient.id)
+                print(f"Medicine allocations found: {medicine_allocations.count()}")
+            except Exception as e:
+                print(f"Error counting medicine allocations: {e}")
+            
+            # Method 4: Count from Lab Reports (if they have staff association)
+            try:
+                lab_reports = LabReport.objects.filter(patient__staff=self)
+                for report in lab_reports:
+                    if report.patient:
+                        unique_patient_ids.add(report.patient.id)
+                print(f"Lab reports found: {lab_reports.count()}")
+            except Exception as e:
+                print(f"Error counting lab reports: {e}")
+            
+        except Exception as e:
+            print(f"Error calculating patient statistics: {e}")
+        
+        total_count = len(unique_patient_ids)
+        print(f"Total UNIQUE patients calculated for {self.full_name}: {total_count}")
+        return total_count
+
+    def update_statistics(self, save=True):
+        """Update statistics fields immediately"""
+        try:
+            new_count = self.calculate_patient_statistics()
+            if self.total_patients_treated != new_count:
+                self.total_patients_treated = new_count
+                if save:
+                    # Use update to avoid recursion
+                    Staff.objects.filter(id=self.id).update(total_patients_treated=new_count)
+                    print(f"✅ Updated patient count for {self.full_name}: {new_count}")
+        except Exception as e:
+            print(f"❌ Error updating statistics: {e}")
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        
+        # Auto-generate employee_id if not set
+        if not self.employee_id and self.designation:
+            from django.db.models import Max
+            prefix_map = {
+                "doctor": "DOC",
+                "nurse": "NUR", 
+                "staff": "STA"
+            }
+            prefix = prefix_map.get(self.designation.lower(), "STA")
+            
+            last_staff = Staff.objects.filter(
+                employee_id__startswith=prefix
+            ).aggregate(max_id=Max('employee_id'))
+            
+            if last_staff['max_id']:
+                try:
+                    last_num = int(last_staff['max_id'].replace(prefix, ""))
+                    new_num = last_num + 1
+                except ValueError:
+                    new_num = 1
+            else:
+                new_num = 1
+            
+            self.employee_id = f"{prefix}{str(new_num).zfill(4)}"
+        
+        # Call the original save method
+        super().save(*args, **kwargs)
+        
+        # Update statistics immediately after saving (for both new and existing staff)
+        self.update_statistics(save=True)
+
+    @classmethod
+    def update_all_statistics(cls):
+        """Update statistics for all staff members"""
+        for staff in cls.objects.all():
+            staff.update_statistics(save=True)
+            print(f"Updated {staff.full_name}: {staff.total_patients_treated} patients")
+
+    def get_patient_details(self):
+        """Get detailed information about patients treated by this staff"""
+        patient_details = {
+            'direct_assignments': [],
+            'appointments': [],
+            'medicine_allocations': [],
+            'lab_reports': []
+        }
+        
+        try:
+            # Direct patient assignments
+            patient_details['direct_assignments'] = list(
+                Patient.objects.filter(staff=self).values('id', 'full_name', 'patient_unique_id')
+            )
+            
+            # Appointments
+            patient_details['appointments'] = list(
+                self.appointments.all().values('id', 'patient_name', 'phone_no')
+            )
+            
+            # Medicine allocations
+            patient_details['medicine_allocations'] = list(
+                self.medicine_allocations.all().values('id', 'patient__full_name', 'medicine_name')
+            )
+            
+        except Exception as e:
+            print(f"Error getting patient details: {e}")
+            
+        return patient_details        
 
 
 # HMS_backend/models.py
@@ -226,10 +384,14 @@ class Patient(models.Model):
                 self.patient_unique_id = f"PAT{num + 1}"
             else:
                 self.patient_unique_id = "PAT1000"
+        
+        # Call the original save method
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.full_name} ({self.patient_unique_id})"
+        
+        # Update staff statistics if staff is assigned
+        if self.staff:
+            self.staff.update_statistics(save=True)
+            print(f"✅ Updated patient count for staff {self.staff.full_name} after patient assignment")
     
 class BloodGroup(models.Model):
     BLOOD_TYPES = [
@@ -457,6 +619,9 @@ class Stock(models.Model):
     shelf_no = models.CharField(max_length=50, blank=True, null=True)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
+    # ✅ Newly Added Column
+    dosage = models.CharField(max_length=100, blank=True, null=True)
+
     STATUS_CHOICES = [
         ('available', 'Available'),
         ('outofstock', 'Out of Stock')
@@ -483,6 +648,7 @@ class Stock(models.Model):
     def no_of_stocks(self):
         """Alias for total quantity of stock."""
         return self.quantity
+
 
     
 class AmbulanceUnit(models.Model):
@@ -632,21 +798,94 @@ class Permission(models.Model):
     enabled = models.BooleanField(default=False)
 
     MODULE_CHOICES = [
+        # Dashboard
+        ("dashboard", "View Dashboard"),
+        
+        # Appointments
+        ("appointments", "Manage Appointments"),
+        
+        # Patients
+        ("patients_view", "View Patients"),
+        ("patients_create", "Create Patients"),
+        ("patients_edit", "Edit Patients"),
+        ("patients_profile", "Patient Profile"),
+        
+        # Administration
+        ("departments", "Manage Departments"),
+        ("room_management", "Room Management"),
+        ("bed_management", "Bed Management"),
+        ("staff_management", "Staff Management"),
+        
+        # Pharmacy
+        ("pharmacy_inventory", "Pharmacy Inventory"),
+        ("pharmacy_billing", "Pharmacy Billing"),
+        
+        # Doctors & Nurses
+        ("doctors_manage", "Manage Doctors/Nurses"),
+        ("medicine_allocation", "Medicine Allocation"),
+        
+        # Clinical Resources
+        ("lab_reports", "Laboratory Reports"),
+        ("blood_bank", "Blood Bank"),
+        ("ambulance", "Ambulance Management"),
+        
+        # Billing
+        ("billing", "Billing Management"),
+        
+        # Accounts
+        ("user_settings", "User Settings"),
+        ("security_settings", "Security Settings"),
+        
+        # User Management
         ("create_user", "Create User"),
-        ("viewPatients", "View Patients"),
-        ("editPatients", "Edit Patients"),
-        ("generateBills", "Generate Bills"),
-        ("approveInsurance", "Approve Insurance"),
-        ("manageAppointments", "Manage Appointments"),
-        ("manageInventory", "Manage Inventory"),
-        ("ambulance", "Ambulance"),
     ]
 
     class Meta:
         unique_together = ("role", "module")
+        db_table = "permissions"
 
     def __str__(self):
         return f"{self.role} - {self.module} ({'Enabled' if self.enabled else 'Disabled'})"
+
+    @classmethod
+    def initialize_default_permissions(cls):
+        """Initialize default permissions for all roles"""
+        roles = ["receptionist", "doctor", "nurse", "billing", "admin"]
+        
+        default_permissions = {
+            "receptionist": [
+                "dashboard", "appointments", "patients_view", "patients_create", 
+                "patients_edit", "patients_profile", "room_management", "bed_management"
+            ],
+            "doctor": [
+                "dashboard", "appointments", "patients_view", "patients_edit", 
+                "patients_profile", "medicine_allocation", "lab_reports"
+            ],
+            "nurse": [
+                "dashboard", "patients_view", "patients_profile", "medicine_allocation", 
+                "bed_management"
+            ],
+            "billing": [
+                "dashboard", "billing", "pharmacy_billing"
+            ],
+            "admin": [choice[0] for choice in cls.MODULE_CHOICES]  # All permissions
+        }
+        
+        for role in roles:
+            for module, _ in cls.MODULE_CHOICES:
+                enabled = module in default_permissions.get(role, [])
+                cls.objects.get_or_create(
+                    role=role,
+                    module=module,
+                    defaults={"enabled": enabled}
+                )
+        print("✅ Default permissions initialized for all roles")
+
+    @classmethod
+    def get_role_permissions(cls, role):
+        """Get all permissions for a specific role"""
+        permissions = cls.objects.filter(role=role)
+        return {perm.module: perm.enabled for perm in permissions}
     
     
 class MedicineAllocation(models.Model):

@@ -1,3 +1,4 @@
+#fastapi_app/routers/pharmacybilling.py
 from fastapi import APIRouter, HTTPException 
 from pydantic import BaseModel
 from typing import List, Optional
@@ -9,7 +10,17 @@ from HMS_backend.models import Patient, MedicineAllocation, Stock
 router = APIRouter(prefix="/pharmacy-billing", tags=["Pharmacy Billing"])
 
 # ---------- Pydantic Response Models ----------
+class StockCheckItem(BaseModel):
+    medicine_name: str
+    item_code: str
+    quantity_needed: int
+    quantity_available: int
+    sufficient_stock: bool
 
+class StockCheckResponse(BaseModel):
+    all_medicines_available: bool
+    stock_check: List[StockCheckItem]
+    
 class PharmacyBillingItem(BaseModel):
     item_code: str
     name_of_drug: str
@@ -20,7 +31,8 @@ class PharmacyBillingItem(BaseModel):
     frequency: Optional[str] = None
     dosage: Optional[str] = None
     duration: Optional[str] = None
-    allocation_date: Optional[str] = None  # New field to show allocation date
+    allocation_date: Optional[str] = None
+    doctor_name: Optional[str] = None
 
 class PharmacyBillingResponse(BaseModel):
     patient_name: str
@@ -32,40 +44,43 @@ class PharmacyBillingResponse(BaseModel):
 
 # ---------- Fetch Pharmacy Billing Data ----------
 @router.get("/{patient_id}/", response_model=PharmacyBillingResponse)
-async def get_pharmacy_billing_details(patient_id: int):
-    """
-    Fetch all medicines prescribed to a patient along with stock details.
-    Used for the Pharmacy Billing Page.
-    """
+async def get_pharmacy_billing_details(
+    patient_id: int, 
+    date_from: Optional[str] = None, 
+    date_to: Optional[str] = None
+):
     try:
         # Fetch patient
         patient = await sync_to_async(Patient.objects.get)(id=patient_id)
 
-        # Fetch all medicine allocations for this patient
-        allocations = await sync_to_async(list)(
-            MedicineAllocation.objects.filter(patient=patient).all()
-        )
-
-        if not allocations:
-            raise HTTPException(status_code=404, detail="No medicine allocations found for this patient")
+        # Fetch allocations WITH STAFF in one query
+        allocations_query = MedicineAllocation.objects.select_related("staff").filter(patient=patient)
+        
+        # Apply date filtering if provided
+        if date_from:
+            allocations_query = allocations_query.filter(allocation_date__gte=date_from)
+        
+        if date_to:
+            allocations_query = allocations_query.filter(allocation_date__lte=date_to)
+        
+        allocations = await sync_to_async(list)(allocations_query)
 
         billing_items = []
         total_amount = 0.0
 
         for allocation in allocations:
-            # Match with stock using medicine name
+            if not allocation.medicine_name:
+                continue
+            
+            # Fetch stock asynchronously
             stock = await sync_to_async(
-                Stock.objects.filter(product_name__iexact=allocation.medicine_name).first
+                lambda: Stock.objects.filter(
+                    product_name__iexact=allocation.medicine_name
+                ).first()
             )()
 
-            # Safely get unit_price from stock
-            unit_price = float(stock.unit_price) if stock and stock.unit_price else 0.0
-
-            # Safely get quantity from allocation
-            try:
-                quantity = int(allocation.quantity)
-            except (TypeError, ValueError):
-                quantity = 0
+            unit_price = float(stock.unit_price) if stock else 0.0
+            quantity = int(allocation.quantity or 0)
 
             item = PharmacyBillingItem(
                 item_code=stock.item_code if stock else "N/A",
@@ -77,13 +92,14 @@ async def get_pharmacy_billing_details(patient_id: int):
                 frequency=allocation.frequency,
                 dosage=allocation.dosage,
                 duration=allocation.duration,
-                allocation_date=allocation.allocation_date.strftime("%d-%m-%Y") if allocation.allocation_date else None
+                allocation_date=allocation.allocation_date.strftime("%Y-%m-%d") if allocation.allocation_date else None,
+                doctor_name=allocation.staff.full_name if allocation.staff else "N/A"
             )
 
             billing_items.append(item)
-            total_amount += unit_price * quantity  # multiply by prescribed quantity
+            total_amount += unit_price * quantity
 
-        response = PharmacyBillingResponse(
+        return PharmacyBillingResponse(
             patient_name=patient.full_name,
             patient_unique_id=patient.patient_unique_id,
             billing_date=datetime.now().strftime("%d-%m-%Y %H:%M"),
@@ -92,9 +108,69 @@ async def get_pharmacy_billing_details(patient_id: int):
             items=billing_items
         )
 
-        return response
-
     except Patient.DoesNotExist:
-        raise HTTPException(status_code=404, detail="Patient not found")
+        # Return empty response instead of 404
+        return PharmacyBillingResponse(
+            patient_name="",
+            patient_unique_id="",
+            billing_date=datetime.now().strftime("%d-%m-%Y %H:%M"),
+            total_items=0,
+            total_amount=0.0,
+            items=[]
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/check-stock-availability/{patient_id}/", response_model=StockCheckResponse)
+async def check_stock_availability(
+    patient_id: int, 
+    date_from: Optional[str] = None, 
+    date_to: Optional[str] = None
+):
+    try:
+        # Fetch patient allocations (same logic as billing)
+        allocations_query = MedicineAllocation.objects.select_related("staff").filter(patient_id=patient_id)
+        
+        if date_from:
+            allocations_query = allocations_query.filter(allocation_date__gte=date_from)
+        if date_to:
+            allocations_query = allocations_query.filter(allocation_date__lte=date_to)
+        
+        allocations = await sync_to_async(list)(allocations_query)
+
+        stock_check_results = []
+        all_available = True
+
+        for allocation in allocations:
+            if not allocation.medicine_name:
+                continue
+            
+            # Fetch stock
+            stock = await sync_to_async(
+                lambda: Stock.objects.filter(
+                    product_name__iexact=allocation.medicine_name
+                ).first()
+            )()
+
+            quantity_needed = int(allocation.quantity or 0)
+            quantity_available = stock.quantity if stock else 0
+            sufficient_stock = quantity_available >= quantity_needed
+
+            if not sufficient_stock:
+                all_available = False
+
+            stock_check_results.append(StockCheckItem(
+                medicine_name=allocation.medicine_name,
+                item_code=stock.item_code if stock else "N/A",
+                quantity_needed=quantity_needed,
+                quantity_available=quantity_available,
+                sufficient_stock=sufficient_stock
+            ))
+
+        return StockCheckResponse(
+            all_medicines_available=all_available,
+            stock_check=stock_check_results
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

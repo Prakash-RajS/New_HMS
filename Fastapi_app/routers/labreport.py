@@ -6,6 +6,8 @@ from typing import ClassVar
 from django.db import transaction, IntegrityError
 from HMS_backend.models import LabReport, Patient
 from datetime import datetime
+from fastapi_app.routers.notifications import NotificationService
+from asgiref.sync import sync_to_async
 
 router = APIRouter(prefix="/labreports", tags=["Lab Reports"])
 
@@ -83,6 +85,7 @@ def create_labreport(payload: LabReportCreate):
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Patient not found."
         )
+    
 
     try:
         with transaction.atomic():
@@ -93,6 +96,11 @@ def create_labreport(payload: LabReportCreate):
                 test_type=payload.test_type.strip(),
                 status="pending"
             )
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(NotificationService.send_lab_report_created(lab))
+            loop.close()
             # Create response with the correct patient_id (patient_unique_id)
             response_data = {
                 "id": lab.id,
@@ -105,12 +113,15 @@ def create_labreport(payload: LabReportCreate):
                 "created_at": lab.created_at,
                 "updated_at": lab.updated_at
             }
+           
             return LabReportOut(**response_data)
+        
     except IntegrityError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Error creating lab report: {str(e)}"
         )
+    
 
 @router.get("/list", response_model=List[LabReportOut])
 def list_labreports():
@@ -134,22 +145,25 @@ def list_labreports():
     return [LabReportOut(**lab_data) for lab_data in lab_reports]
 
 @router.put("/{labreport_id}", response_model=LabReportOut)
-def update_labreport(labreport_id: int, payload: LabReportUpdate):
+async def update_labreport(labreport_id: int, payload: LabReportUpdate):  # Change to async
     """
     Update Lab Report by ID. Patient must exist if patient_id is updated.
     """
     try:
-        lab = LabReport.objects.get(id=labreport_id)
+        lab = await sync_to_async(LabReport.objects.get)(id=labreport_id)
     except LabReport.DoesNotExist:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lab Report not found."
         )
 
+    # Store old status for notification
+    old_status = lab.status
+
     # Update patient if patient_id is provided
     if payload.patient_id:
         try:
-            patient = Patient.objects.get(patient_unique_id=payload.patient_id)
+            patient = await sync_to_async(Patient.objects.get)(patient_unique_id=payload.patient_id)
             if payload.patient_name and patient.full_name != payload.patient_name:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -169,14 +183,20 @@ def update_labreport(labreport_id: int, payload: LabReportUpdate):
     if payload.status:
         lab.status = payload.status.strip()
 
-    lab.save()
+    await sync_to_async(lab.save)()
+    
+    # ✅ Now we can use async notifications directly
+    await NotificationService.send_lab_report_updated(lab)
+    
+    if payload.status and payload.status != old_status and payload.status == "completed":
+        await NotificationService.send_lab_report_completed(lab)
     
     # Return response with correct patient_id
     response_data = {
         "id": lab.id,
         "order_id": lab.order_id,
         "patient_name": lab.patient.full_name,
-        "patient_id": lab.patient.patient_unique_id,  # Use patient_unique_id
+        "patient_id": lab.patient.patient_unique_id,
         "department": lab.department,
         "test_type": lab.test_type,
         "status": lab.status,
@@ -186,22 +206,34 @@ def update_labreport(labreport_id: int, payload: LabReportUpdate):
     return LabReportOut(**response_data)
 
 @router.delete("/{labreport_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_labreport(labreport_id: int):
+async def delete_labreport(labreport_id: int):  # Change to async
     """
     Delete Lab Report by ID.
     """
     try:
-        lab = LabReport.objects.get(id=labreport_id)
+        lab = await sync_to_async(LabReport.objects.select_related('patient').get)(id=labreport_id)
     except LabReport.DoesNotExist:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Lab Report not found."
         )
 
+    # Store data for notification
+    lab_data = {
+        'order_id': lab.order_id,
+        'patient_name': lab.patient.full_name if lab.patient else "Unknown"
+    }
+
     try:
-        lab.delete()
+        # Delete the lab report
+        await sync_to_async(lab.delete)()
+        
+        # ✅ Now we can call async notification directly
+        await NotificationService.send_lab_report_deleted(lab_data)
+        
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
+        print(f"❌ Error in delete_labreport: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error deleting lab report: {str(e)}"

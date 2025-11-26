@@ -1,5 +1,10 @@
-
+# main.py
+# --------------------------------------------------------------
+# 1. Django must be configured **first**, before any Django models are imported
+# --------------------------------------------------------------
 import fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
+# -------------------------------------------------------------
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -10,6 +15,9 @@ from typing import List, Dict, Any
 from datetime import datetime
 import asyncio
 
+# Import WebSocket service
+from fastapi_app.services.websocket_service import manager, notify_clients
+
 # ----------------------------------------------------------------
 # Import routers **after** Django is ready
 # ----------------------------------------------------------------
@@ -18,86 +26,23 @@ from fastapi_app.routers import (
     blood_donor, labreport, bed_group_list, staffmanagement, payroll,
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
-    pharmacybilling, invoice_generator, invoice_pharmacy_billing,
+    pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing
 )
-
-
-
-# ----------------------------------------------------------------
-# WebSocket Connection Manager
-# ----------------------------------------------------------------
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-        self.connection_data: Dict[WebSocket, Dict[str, Any]] = {}
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-        self.connection_data[websocket] = {
-            "connected_at": datetime.now(),
-            "client_info": None
-        }
-        print(f"Client connected. Total connections: {len(self.active_connections)}")
-
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-        if websocket in self.connection_data:
-            del self.connection_data[websocket]
-        print(f"Client disconnected. Total connections: {len(self.active_connections)}")
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        try:
-            await websocket.send_text(message)
-        except Exception as e:
-            print(f"Error sending message to client: {e}")
-            self.disconnect(websocket)
-
-    async def broadcast(self, message: Dict[str, Any]):
-        if not self.active_connections:
-            return
-            
-        message_str = json.dumps(message, default=str, ensure_ascii=False)
-        disconnected = []
-        
-        for connection in self.active_connections:
-            try:
-                await connection.send_text(message_str)
-            except Exception as e:
-                print(f"Error broadcasting to client: {e}")
-                disconnected.append(connection)
-                
-        for connection in disconnected:
-            self.disconnect(connection)
-
-# Global WebSocket manager
-manager = ConnectionManager()
-
-# Global notifier function
-async def notify_clients(event_type: str, **data):
-    """Helper function to broadcast notifications to all connected clients"""
-    payload = {
-        "type": event_type,
-        "timestamp": datetime.now().isoformat(),
-        **data
-    }
-    await manager.broadcast(payload)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("Starting Ambulance Management API...")
+    print("Starting Hospital Management System API...")
     yield
     # Shutdown
-    print("Shutting down Ambulance Management API...")
+    print("Shutting down Hospital Management System API...")
 
 # ----------------------------------------------------------------
 # FastAPI app
 # ----------------------------------------------------------------
 app = FastAPI(
     title="Hospital Management System API",
-    description="Comprehensive HMS with real-time ambulance tracking",
+    description="Comprehensive HMS with real-time notifications",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -115,50 +60,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==================== STATIC FILES ====================
 PROFILE_PIC_DIR = os.path.abspath("profile_pictures")
 os.makedirs(PROFILE_PIC_DIR, exist_ok=True)
-
-STAFF_PIC_DIR = os.path.abspath("fastapi_app/staffs_pictures")
-os.makedirs(STAFF_PIC_DIR, exist_ok=True)
-
-app.mount(
-    "/fastapi_app/staffs_pictures",
-    StaticFiles(directory=STAFF_PIC_DIR),
-    name="staffs_pictures",
-)
-
-# ---------- STAFF DOCUMENTS / CERTIFICATES ----------
-STAFF_DOC_DIR = os.path.abspath("fastapi_app/Staff_documents")
-os.makedirs(STAFF_DOC_DIR, exist_ok=True)
-
-app.mount(
-    "/staff_documents",
-    StaticFiles(directory=STAFF_DOC_DIR),
-    name="staff_documents",
-)
-
 app.mount(
     "/profile_pictures",
     StaticFiles(directory=PROFILE_PIC_DIR),
     name="profile_pictures",
 )
-app.mount("/static/patient_photos", StaticFiles(directory="fastapi_app/Patient_photos"), name="patient_photos")
 
-# ==================== HEALTH CHECK ====================
-@app.get("/health")
-async def health():
-    return {"status": "ok", "message": "FastAPI + Django ready"}
-# ==================== STATIC FILES ====================
-# Serve uploaded profile pictures
-
-
-# Serve patient photos
 PATIENT_PHOTOS_DIR = os.path.abspath("fastapi_app/Patient_photos")
 os.makedirs(PATIENT_PHOTOS_DIR, exist_ok=True)
 app.mount(
     "/static/patient_photos", 
     StaticFiles(directory=PATIENT_PHOTOS_DIR), 
     name="patient_photos"
+)
+
+STAFF_PICTURES_DIR = os.path.abspath("fastapi_app/staffs_pictures")
+os.makedirs(STAFF_PICTURES_DIR, exist_ok=True)
+app.mount(
+    "/static/staffs_pictures",
+    StaticFiles(directory=STAFF_PICTURES_DIR),
+    name="staffs_pictures"
 )
 
 # ==================== HEALTH CHECK ====================
@@ -202,7 +127,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await manager.send_personal_message(
             json.dumps({
                 "type": "connection_established",
-                "message": "Connected to real-time ambulance updates",
+                "message": "Connected to real-time notifications",
                 "timestamp": datetime.now().isoformat(),
                 "connection_id": id(websocket)
             }),
@@ -239,8 +164,11 @@ app.include_router(staffmanagement.router)
 app.include_router(payroll.router)
 app.include_router(attendance.router)
 app.include_router(stock.router)
+
+# Set up ambulance notifications
 ambulance.set_notify_clients(notify_clients)
 app.include_router(ambulance.router)
+
 app.include_router(billing.router)
 app.include_router(auth.router)
 app.include_router(security.router)
@@ -249,6 +177,7 @@ app.include_router(user_profile.router)
 app.include_router(medicine_allocation.router)
 app.include_router(pharmacybilling.router)
 app.include_router(invoice_generator.router)
+app.include_router(notifications.router)
 app.include_router(invoice_pharmacy_billing.router)
 
 # Make notify_clients available to routers

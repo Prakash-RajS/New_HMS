@@ -6,11 +6,12 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
-
+from typing import List
 from HMS_backend import models
-from HMS_backend.models import Patient, Department, Staff
-from django.db.models import Q, F  # ← ADDED F
+from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAllocation
 
+from django.db.models import Q, F  # ← ADDED F
+from fastapi_app.routers.notifications import NotificationService
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
 PHOTO_DIR = "fastapi_app/Patient_photos"
@@ -141,14 +142,14 @@ async def register_patient(
             f.write(await photo.read())
         patient.photo = path.replace("\\", "/")
         await run_in_threadpool(patient.save)
+    await NotificationService.send_patient_registered(patient)
 
     return JSONResponse({
         "success": True,
         "patient_id": patient.patient_unique_id,
         "message": "Patient registered"
     })
-
-
+    
 # ---------- 4. GET List All Patients (IPD) ----------
 @router.get("/", response_model=dict)
 async def list_patients(
@@ -250,7 +251,7 @@ async def list_opd(
                 f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
-
+        
         return {
             "patients": patients,
             "total": total,
@@ -388,8 +389,9 @@ async def edit_patient(
             with open(path, "wb") as f:
                 f.write(await photo.read())
             patient.photo = path.replace("\\", "/")
-
+        
         await run_in_threadpool(patient.save)
+        await NotificationService.send_patient_updated(patient)
         return JSONResponse({"success": True, "message": "Updated"})
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
@@ -410,7 +412,10 @@ async def delete_patient(patient_id: str = Path(...)):
         
         # Delete patient
         await run_in_threadpool(patient.delete)
-        
+        await NotificationService.send_patient_deleted({
+    'patient_unique_id': patient.patient_unique_id,
+    'full_name': patient.full_name
+})  
         # Delete photo if exists
         if photo_path and isinstance(photo_path, str) and os.path.exists(photo_path):
             try:
@@ -419,6 +424,7 @@ async def delete_patient(patient_id: str = Path(...)):
                 logging.warning(f"Failed to delete photo {photo_path}: {file_err}")
         
         return {"success": True, "message": "Deleted"}
+        
     
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -427,3 +433,106 @@ async def delete_patient(patient_id: str = Path(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{patient_id}/diagnoses/", response_model=List[dict])
+def get_patient_diagnoses(patient_id: int):
+    """
+    Returns every LabReport that belongs to the patient
+    (whether it was created together with a medicine allocation or not).
+    """
+    try:
+        reports = (
+            LabReport.objects
+            .select_related("patient")
+            .filter(patient__id=patient_id)
+            .values(
+                "id",
+                "test_type",          # reportType
+                "created_at",         # date
+                "status",
+                "result",             # description (or notes)
+            )
+        )
+        # Format exactly like the mock data
+        return [
+            {
+                "reportType": r["test_type"],
+                "date": r["created_at"].strftime("%d %b %Y") if r["created_at"] else "-",
+                "description": r["result"] or "No notes yet",
+                "status": r["status"].capitalize(),
+            }
+            for r in reports
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --------------------------------------------------------------
+# 2. PRESCRIPTIONS (medicine allocations)
+# --------------------------------------------------------------
+@router.get("/{patient_id}/prescriptions/", response_model=List[dict])
+def get_patient_prescriptions(patient_id: int):
+    """
+    Returns every MedicineAllocation for the patient.
+    """
+    try:
+        allocs = (
+            MedicineAllocation.objects
+            .select_related("patient", "staff")
+            .filter(patient__id=patient_id)
+            .values(
+                "allocation_date",
+                "medicine_name",
+                "dosage",
+                "quantity",
+                "frequency",
+                "time",
+                "duration",
+            )
+        )
+        return [
+            {
+                "date": a["allocation_date"].strftime("%d %b %Y") if a["allocation_date"] else "-",
+                "prescription": a["medicine_name"],
+                "dosage": f"{a['dosage']} {a['quantity'] or ''}".strip(),
+                "timing": f"{a['frequency'] or ''} {a['time'] or ''}".strip(),
+                "status": "Completed",          # you can add a real status field later
+            }
+            for a in allocs
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --------------------------------------------------------------
+# 3. TEST REPORTS (lab reports – same as diagnoses but with extra fields)
+# --------------------------------------------------------------
+@router.get("/{patient_id}/test-reports/", response_model=List[dict])
+def get_patient_test_reports(patient_id: int):
+    try:
+        reports = (
+            LabReport.objects
+            .select_related("patient")
+            .filter(patient__id=patient_id)
+            .values(
+                "created_at",
+                "test_type",
+                "department",
+                "status",
+            )
+        )
+        # Helper to get month name
+        def month_name(dt):
+            return dt.strftime("%B") if dt else "—"
+
+        return [
+            {
+                "dateTime": r["created_at"].strftime("%Y-%m-%d %I:%M %p") if r["created_at"] else "—",
+                "month": month_name(r["created_at"]),
+                "testType": r["test_type"],
+                "department": r["department"] or "General",
+                "status": r["status"].capitalize(),
+            }
+            for r in reports
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

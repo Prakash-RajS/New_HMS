@@ -6,6 +6,7 @@ from django.db import transaction
 from HMS_backend.models import Appointment, Department, Staff
 from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
+from fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
@@ -102,6 +103,7 @@ async def create_appointment(payload: AppointmentCreate):
 
     try:
         appointment = await create_appointment_with_transaction()
+        await NotificationService.send_appointment_created(appointment, staff, department)
         return appointment_to_out(appointment)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create appointment: {str(e)}")
@@ -124,10 +126,12 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     def get_appointment():
         try:
             return Appointment.objects.select_related('department', 'staff').get(id=appointment_id)
+        
         except Appointment.DoesNotExist:
             return None
     
     appt = await get_appointment()
+    
     if appt is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
@@ -136,12 +140,14 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     if payload.department_id is not None:
         try:
             department = await sync_to_async(Department.objects.get)(id=payload.department_id)
+            
             appt.department = department
         except Department.DoesNotExist:
             raise HTTPException(status_code=404, detail="Department not found")
     if payload.staff_id is not None:
         try:
             staff = await sync_to_async(Staff.objects.get)(id=payload.staff_id)
+            
             appt.staff = staff
         except Staff.DoesNotExist:
             raise HTTPException(status_code=404, detail="Staff not found")
@@ -162,6 +168,8 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
 
     try:
         updated_appt = await save_appointment()
+        await NotificationService.send_appointment_updated(updated_appt, updated_appt.staff, updated_appt.department)
+
         return appointment_to_out(updated_appt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update: {str(e)}")
@@ -169,6 +177,27 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
 
 @router.delete("/{appointment_id}", status_code=204)
 async def delete_appointment(appointment_id: int):
+    # First get the appointment data for notification
+    @sync_to_async
+    def get_appointment_data():
+        try:
+            return Appointment.objects.select_related('staff', 'department').get(id=appointment_id)
+        except Appointment.DoesNotExist:
+            return None
+
+    # Get appointment before deletion
+    appointment = await get_appointment_data()
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # Store data for notification
+    appointment_data = {
+        'id': appointment.id,
+        'patient_name': appointment.patient_name,
+        'staff_name': appointment.staff.full_name if appointment.staff else "Unknown",
+        'department_name': appointment.department.name if appointment.department else "Unknown"
+    }
+
     @sync_to_async
     def delete_appt():
         try:
@@ -180,6 +209,10 @@ async def delete_appointment(appointment_id: int):
     deleted = await delete_appt()
     if not deleted:
         raise HTTPException(status_code=404, detail="Appointment not found")
+
+    # ✅ ADD JUST THIS ONE LINE for notification
+    await NotificationService.send_appointment_deleted(appointment_data)
+     
 
 
 

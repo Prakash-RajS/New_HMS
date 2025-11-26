@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Form, Depends, status
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from HMS_backend.models import User  
+from HMS_backend.models import User, Permission, Staff
 from django.contrib.auth.hashers import check_password
 from fastapi.concurrency import run_in_threadpool
 import os
@@ -28,11 +28,32 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # ==============================
+# HELPER FUNCTIONS
+# ==============================
+def get_user_permissions(role: str):
+    """Get all permissions for a specific role"""
+    permissions = Permission.objects.filter(role=role)
+    return [{"module": p.module, "enabled": p.enabled} for p in permissions]
+
+def get_staff_details(user):
+    """Get staff details if user is linked to a staff member"""
+    if hasattr(user, 'staff') and user.staff:
+        staff = user.staff
+        return {
+            "full_name": staff.full_name,
+            "designation": staff.designation,
+            "staff_id": staff.employee_id,
+            "department": staff.department.name if staff.department else "N/A",
+            "email": staff.email
+        }
+    return None
+
+# ==============================
 # LOGIN ROUTE
 # ==============================
 @router.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
-    """Authenticate user from User table and return JWT token"""
+    """Authenticate user from User table and return JWT token with permissions"""
     
     # Validate inputs
     if not username and not password:
@@ -52,11 +73,19 @@ async def login(username: str = Form(...), password: str = Form(...)):
     if not check_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid password")
 
+    # Get user permissions based on role
+    permissions = await run_in_threadpool(get_user_permissions, user.role)
+    
+    # Get staff details if available
+    staff_details = await run_in_threadpool(get_staff_details, user)
+
     # Create JWT token payload
     token_data = {
         "sub": user.username,
         "role": user.role,
+        "permissions": permissions,
         "user_id": user.id,
+        "is_superuser": user.is_superuser,
         "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     }
 
@@ -66,8 +95,14 @@ async def login(username: str = Form(...), password: str = Form(...)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user_id": user.id,
-        "role": user.role,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "role": user.role,
+            "is_superuser": user.is_superuser,
+            "permissions": permissions,
+            "staff_details": staff_details
+        }
     }
 
 
@@ -101,13 +136,41 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 # ==============================
-# PROTECTED ROUTE - TEST TOKEN
+# PROTECTED ROUTE - GET USER DETAILS WITH PERMISSIONS
 # ==============================
 @router.get("/me")
 def get_me(current_user: User = Depends(get_current_user)):
-    """Return current logged-in user details"""
+    """Return current logged-in user details with permissions"""
+    # Get user permissions
+    permissions = get_user_permissions(current_user.role)
+    
+    # Get staff details if available
+    staff_details = get_staff_details(current_user)
+    
     return {
         "id": current_user.id,
         "username": current_user.username,
         "role": current_user.role,
+        "is_superuser": current_user.is_superuser,
+        "permissions": permissions,
+        "staff_details": staff_details
+    }
+
+
+# ==============================
+# REFRESH PERMISSIONS ENDPOINT
+# ==============================
+@router.post("/refresh-permissions")
+def refresh_permissions(current_user: User = Depends(get_current_user)):
+    """Refresh and return updated permissions for the current user"""
+    permissions = get_user_permissions(current_user.role)
+    staff_details = get_staff_details(current_user)
+    
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "role": current_user.role,
+        "is_superuser": current_user.is_superuser,
+        "permissions": permissions,
+        "staff_details": staff_details
     }
