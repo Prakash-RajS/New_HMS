@@ -1,5 +1,3 @@
-
-#fastapi_app/routers/invoice_pharmacy_billing.py
 #fastapi_app/routers/invoice_pharmacy_billing.py
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
@@ -59,15 +57,16 @@ def generate_invoice_number():
     last_invoice = PharmacyInvoiceHistory.objects.order_by("-id").first()
 
     if not last_invoice:
-        return "SINV-0001"
+        return "PH_INV_0001"
 
     try:
-        last_number = int(last_invoice.bill_no.split("-")[1])
+        last_number = int(last_invoice.bill_no.split("_")[-1])
     except:
         last_number = 0
 
     new_number = last_number + 1
-    return f"SINV-{new_number:04d}"
+    return f"PH_INV_{new_number:04d}"
+
 
 
 # ------------------------------

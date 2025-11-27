@@ -1,27 +1,24 @@
-import React, { useState, useRef, useEffect } from "react";
-import DeleteLabReportPopup from "./DeleteLabReport.jsx";
-import CreateTestOrderPopup from "./CreateTestOrderPopup.jsx";
-import { successToast, errorToast } from "../../../components/Toast.jsx";
+import React, { useState } from "react";
 import {
-  Plus,
   Search,
-  MoreHorizontal,
-  ChevronDown,
+  Filter,
+  Settings,
+  Printer,
+  Download,
+  CheckCircle,
+  CreditCard,
+  FileText,
+  Trash2,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Download,
-  Link,
-  CheckSquare,
+  Edit,
   X,
+  ChevronDown,
   Calendar,
-  Edit2,
-  Trash2,
-  FileText,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { useNavigate } from "react-router-dom";
 
-const API = "http://127.0.0.1:8000/labreports";
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -29,7 +26,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
     <Listbox value={value || "Select"} onChange={onChange}>
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
-          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+          className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#0D0D0D] 
           bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
           focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
@@ -76,379 +73,238 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
   </div>
 );
 
-const LabReport = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+const BillingManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("All");
-  const [filterCategory, setFilterCategory] = useState("All");
-  const [filterDate, setFilterDate] = useState("");
-  const [selectedOrders, setSelectedOrders] = useState([]);
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
-  const [tempFilters, setTempFilters] = useState({
-    status: "All",
-    category: "All",
-    date: "",
-  });
-  const [showEditPopup, setShowEditPopup] = useState(false);
-  const [showCreatePopup, setShowCreatePopup] = useState(false);
-  const [selectedOrderForEdit, setSelectedOrderForEdit] = useState(null);
-  const [showActionMenu, setShowActionMenu] = useState(null);
+  const [selectAll, setSelectAll] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortOrder, setSortOrder] = useState("asc");
   const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [selectedOrderForDelete, setSelectedOrderForDelete] = useState(null);
-  const [formData, setFormData] = useState({
-    patientName: "",
-    patientId: "",
-    department: "",
-    testType: "",
-    status: "pending",
-  });
-  const [errors, setErrors] = useState({});
-  const [testOrders, setTestOrders] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showFilterPopup, setShowFilterPopup] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("");
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const navigate = useNavigate();
+  const [invoiceData, setInvoiceData] = useState([
+    {
+      id: "INV-2011",
+      date: "2025-09-01",
+      patientName: "Matthew Scott",
+      patientId: "SAH257384",
+      department: "Cardiology",
+      amount: "$1800.00",
+      paymentMethod: "Insurance",
+      status: "Paid",
+    },
+    {
+      id: "INV-2012",
+      date: "2025-09-01",
+      patientName: "Isabella Lopez",
+      patientId: "SAH257385",
+      department: "Radiology",
+      amount: "$2200.50",
+      paymentMethod: "Insurance",
+      status: "Paid",
+    },
+    {
+      id: "INV-2013",
+      date: "2025-09-01",
+      patientName: "Ethan Harris",
+      patientId: "SAH257386",
+      department: "Oncology",
+      amount: "$3100.75",
+      paymentMethod: "Cash",
+      status: "Paid",
+    },
+    {
+      id: "INV-2014",
+      date: "2025-09-01",
+      patientName: "Ava Robinson",
+      patientId: "SAH257387",
+      department: "Emergency",
+      amount: "$4500.00",
+      paymentMethod: "Credit Card",
+      status: "Paid",
+    },
+    {
+      id: "INV-2015",
+      date: "2025-09-01",
+      patientName: "William Clark",
+      patientId: "SAH257388",
+      department: "Neurology",
+      amount: "$2700.25",
+      paymentMethod: "-",
+      status: "Unpaid",
+    },
+    {
+      id: "INV-2016",
+      date: "2025-09-01",
+      patientName: "Mia Lewis",
+      patientId: "SAH257389",
+      department: "Orthopedics",
+      amount: "$1950.00",
+      paymentMethod: "Credit Card",
+      status: "Paid",
+    },
+    {
+      id: "INV-2017",
+      date: "2025-09-01",
+      patientName: "Alexander",
+      patientId: "SAH257390",
+      department: "Dermatology",
+      amount: "$850.00",
+      paymentMethod: "Cash",
+      status: "Paid",
+    },
+  ]);
 
-  const itemsPerPage = 15;
+  const statusOptions = ["All", "Paid", "Unpaid"];
+  const departmentOptions = [
+    "All",
+    "Cardiology",
+    "Radiology",
+    "Oncology",
+    "Emergency",
+    "Neurology",
+    "Orthopedics",
+    "Dermatology",
+  ];
+  const paymentMethodOptions = ["All", "Insurance", "Cash", "Credit Card", "None"];
 
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
-
-  // === Status colors ===
-  const statusColors = {
-    pending: "text-yellow-400 dark:text-yellow-400",
-    completed: "text-green-400 dark:text-green-400",
-    inprogress: "text-blue-400 dark:text-blue-400",
-  };
-
-  // === Status display mapping ===
-  const statusDisplayMap = {
-    pending: "Pending",
-    completed: "Completed",
-    inprogress: "In Progress",
-  };
-
-  // === Fetch lab reports from backend ===
-  const fetchLabReports = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch(`${API}/list`);
-      if (!res.ok) {
-        console.error("Failed to fetch lab reports:", res.status);
-        return;
-      }
-      const data = await res.json();
-      const mapped = data.map((item) => ({
-        id: item.id,
-        orderId: item.order_id,
-        patientName: item.patient_name,
-        patientId: item.patient_id,
-        department: item.department,
-        testType: item.test_type,
-        status: item.status,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        raw: item,
-      }));
-      setTestOrders(mapped);
-    } catch (err) {
-      console.error("Error loading lab reports:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLabReports();
-  }, []);
-
-  // === API handlers ===
-  const handleCreateReport = async (formData) => {
-    try {
-      const payload = {
-        patient_name: formData.patientName,
-        patient_id: formData.patientId,
-        department: formData.department,
-        test_type: formData.testType,
-      };
-
-      const res = await fetch(`${API}/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || "Failed to create lab report");
-      }
-
-      await fetchLabReports();
-      return await res.json();
-    } catch (err) {
-      console.error("Create lab report failed:", err);
-      throw err;
-    }
-  };
-
-  const handleUpdateReport = async (id, formData) => {
-    try {
-      const payload = {
-        patient_name: formData.patientName,
-        patient_id: formData.patientId,
-        department: formData.department,
-        test_type: formData.testType,
-        status: formData.status,
-      };
-
-      const res = await fetch(`${API}/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        let errorMsg = "Failed to update lab report";
-        try {
-          const errorData = await res.json();
-          errorMsg = errorData.detail || errorData.message || errorMsg;
-        } catch {
-          errorMsg = await res.text();
-        }
-        throw new Error(errorMsg);
-      }
-
-      const result = await res.json();
-
-      // Refresh list
-      await fetchLabReports();
-
-      // Success toast
-      successToast(`Lab report #${id} updated successfully!`);
-
-      return result;
-    } catch (err) {
-      // Only show error toast — no console.error in production
-      errorToast(err.message || "Failed to update lab report");
-
-      // Re-throw so caller can handle (e.g. keep modal open)
-      throw err;
-    }
-  };
-  const handleDeleteReport = async (id) => {
-    try {
-      const res = await fetch(`${API}/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error("Lab report not found");
-        }
-        throw new Error("Failed to delete lab report");
-      }
-
-      // Refresh the list after successful deletion
-      await fetchLabReports();
-      return true;
-    } catch (err) {
-      console.error("Error deleting lab report:", err);
-      throw err;
-    }
-  };
-
-  // === Status Counts ===
-  const statusCounts = {
-    total: testOrders.length,
-    pending: testOrders.filter((report) => report.status === "pending").length,
-    inprogress: testOrders.filter((report) => report.status === "inprogress")
-      .length,
-    completed: testOrders.filter((report) => report.status === "completed")
-      .length,
-  };
-
-  // === Filtering Logic ===
-  const filteredData = testOrders.filter((order) => {
-    const matchesSearch =
-      order.patientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.testType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.patientId?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      filterStatus === "All" || order.status === filterStatus;
-
-    const matchesCategory =
-      filterCategory === "All" || order.department === filterCategory;
-
-    const matchesDate =
-      !filterDate ||
-      (order.createdAt && order.createdAt.slice(0, 10) === filterDate);
-
-    return matchesSearch && matchesStatus && matchesCategory && matchesDate;
+  const filteredData = invoiceData.filter((item) => {
+    const matchesSearch = Object.values(item)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus && filterStatus !== "All" ? item.status === filterStatus : true;
+    const matchesDepartment = filterDepartment && filterDepartment !== "All"
+      ? item.department === filterDepartment
+      : true;
+    const matchesPaymentMethod = filterPaymentMethod && filterPaymentMethod !== "All"
+      ? item.paymentMethod === (filterPaymentMethod === "None" ? "-" : filterPaymentMethod)
+      : true;
+    const matchesDate = filterDate ? item.date === filterDate : true;
+    return matchesSearch && matchesStatus && matchesDepartment && matchesPaymentMethod && matchesDate;
   });
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-  const displayedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const openFilterPopup = () => {
-    setTempFilters({
-      status: filterStatus,
-      category: filterCategory,
-      date: filterDate,
-    });
-    setShowFilterPopup(true);
-  };
-
-  const applyFilters = () => {
-    setFilterStatus(tempFilters.status);
-    setFilterCategory(tempFilters.category);
-    setFilterDate(tempFilters.date);
-    setCurrentPage(1);
-    setShowFilterPopup(false);
-  };
-
-  const clearFilters = () => {
-    setTempFilters({
-      status: "All",
-      category: "All",
-      date: "",
-    });
-    setFilterStatus("All");
-    setFilterCategory("All");
-    setFilterDate("");
-    setCurrentPage(1);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortColumn) return 0;
+    const valA = a[sortColumn];
+    const valB = b[sortColumn];
+    if (sortColumn === "amount") {
+      const numA = parseFloat(valA.replace("$", ""));
+      const numB = parseFloat(valB.replace("$", ""));
+      return sortOrder === "asc" ? numA - numB : numB - numA;
     }
+    return sortOrder === "asc"
+      ? valA.localeCompare(valB)
+      : valB.localeCompare(valA);
+  });
+
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const indexOfFirst = (currentPage - 1) * itemsPerPage;
+  const indexOfLast = currentPage * itemsPerPage;
+  const displayedData = sortedData.slice(indexOfFirst, indexOfLast);
+
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleSelectAll = () => {
+    setSelectAll(!selectAll);
+    setSelectedRows(selectAll ? [] : displayedData.map((row) => row.id));
+  };
+
+  const handleRowSelect = (id) => {
+    setSelectedRows((prev) =>
+      prev.includes(id)
+        ? prev.filter((rowId) => rowId !== id)
+        : [...prev, id]
+    );
   };
 
   const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1));
+  };
+
+  const handleGenerateBill = () => {
+  console.log("Generate Bill button clicked");
+  navigate("/BillingPreview");
+};
+
+  const handleProcessPayment = () => {
+    console.log("Process Payment button clicked");
+  };
+
+  const handleInsuranceClaim = () => {
+    console.log("Handle Insurance Claim button clicked");
+  };
+
+  const handlePrint = () => {
+    console.log("Print button clicked");
+  };
+
+  const handleExport = () => {
+    console.log("Export button clicked");
+  };
+
+  const handleFilter = () => {
+    setShowFilterPopup(true);
+  };
+
+  const handleDelete = () => {
+    if (selectedRows.length > 0) {
+      setShowDeletePopup(true);
     }
   };
 
-  const toggleSelectOrder = (id) => {
-    if (selectedOrders.includes(id)) {
-      setSelectedOrders(selectedOrders.filter((orderId) => orderId !== id));
-    } else {
-      setSelectedOrders([...selectedOrders, id]);
-    }
+  const confirmDelete = () => {
+    setInvoiceData((prev) => prev.filter((item) => !selectedRows.includes(item.id)));
+    setSelectedRows([]);
+    setSelectAll(false);
+    setShowDeletePopup(false);
   };
 
-  const toggleSelectAll = () => {
-    if (selectedOrders.length === displayedData.length) {
-      setSelectedOrders([]);
-    } else {
-      setSelectedOrders(displayedData.map((order) => order.id));
-    }
+  const handleApplyFilter = () => {
+    setShowFilterPopup(false);
+    setCurrentPage(1);
   };
 
-  const toggleActionMenu = (id, buttonEl) => {
-    setShowActionMenu(showActionMenu === id ? null : id);
+  const handleClearFilter = () => {
+    setFilterStatus("All");
+    setFilterDepartment("All");
+    setFilterPaymentMethod("All");
+    setFilterDate("");
+    setShowFilterPopup(false);
+    setCurrentPage(1);
   };
 
-  const openEditPopup = (order) => {
-    setSelectedOrderForEdit(order);
-    setFormData({
-      patientName: order.patientName,
-      patientId: order.patientId,
-      department: order.department,
-      testType: order.testType,
-      status: order.status,
-    });
-    setShowEditPopup(true);
-    setShowActionMenu(null);
+  const handleShare = (id) => {
+    console.log(`Share button clicked for invoice ${id}`);
   };
 
-  const openDeletePopup = (order) => {
-    setSelectedOrderForDelete(order);
-    setShowDeletePopup(true);
-    setShowActionMenu(null);
+  const getStatusColor = (status) => {
+    if (status === "Paid") return "text-green-600 dark:text-green-500";
+    if (status === "Unpaid") return "text-orange-600 dark:text-orange-500";
+    return "text-gray-600 dark:text-gray-400";
   };
-
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.patientName.trim())
-      newErrors.patientName = "Patient name is required";
-    if (!formData.patientId.trim())
-      newErrors.patientId = "Patient ID is required";
-    if (!formData.department) newErrors.department = "Department is required";
-    if (!formData.testType.trim()) newErrors.testType = "Test type is required";
-    if (!formData.status) newErrors.status = "Status is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSaveEdit = async () => {
-    if (!validateForm()) return;
-
-    try {
-      await handleUpdateReport(selectedOrderForEdit.id, formData);
-      setShowEditPopup(false);
-      setErrors({});
-    } catch (error) {
-      console.error("Failed to update report:", error);
-    }
-  };
-
-  const departments = [...new Set(testOrders.map((order) => order.department))];
-  const statusOptions = ["All", "pending", "inprogress", "completed"];
-  const statusDisplayOptions = ["All", "Pending", "In Progress", "Completed"];
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowActionMenu(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showActionMenu]);
-
-  const canOpenDown = (btn) => {
-    if (!btn) return false;
-    const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    return spaceBelow >= 150; // dropdown height
-  };
-
-  const [year, setYear] = useState("2025");
-  const [month, setMonth] = useState("Aug");
-  const years = ["2023", "2024", "2025", "2026"];
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
 
   return (
     <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
     >
-      {/* Background gradients */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -457,7 +313,6 @@ const LabReport = () => {
           zIndex: 0,
         }}
       ></div>
-
       <div
         style={{
           position: "absolute",
@@ -474,481 +329,313 @@ const LabReport = () => {
           zIndex: 0,
         }}
       ></div>
-
-      {/* Header */}
-      <div className="flex justify-between items-center mt-4 mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
-        <div>
-          <h1 className="text-lg font-semibold text-black dark:text-white">
-            Laboratory & Radiology
-          </h1>
-          <p className="text-sm text-[#A0A0A0] mt-1">
-            Manage lab reports, test orders, and radiology requests in one
-            place.
-          </p>
-        </div>
-        <button
-  onClick={() => setShowCreatePopup(true)}
-  className="w-[200px] h-[40px] flex items-center justify-center gap-2
-  bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
-  border-b-[2px] border-[#0EFF7B]
-  shadow-[0px_2px_12px_0px_#00000040]
-  hover:opacity-90
-  text-white font-semibold
-  px-4 py-2 rounded-[8px]
-  transition duration-300 ease-in-out"
-  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
->
-  <Plus className="w-5 h-5 text-white dark:text-white" />
-  <span>Create test order</span>
-</button>
-
-      </div>
-
-      {/* Status Counts */}
-      <div className="mb-3 relative z-10">
-        <div className="flex items-center gap-4 rounded-xl flex-wrap md:flex-nowrap">
-          <div className="flex items-center gap-3">
-            <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
-              Total Orders
-            </span>
-            <span className="w-6 h-6 flex items-center font-[Helvetica] text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#0D2016] dark:bg-[#14DC6F]">
-              {statusCounts.total}
-            </span>
-          </div>
-
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
-              Pending
-            </span>
-            <span className="w-6 h-6 flex items-center text-[12px] font-[Helvetica] text-white justify-center rounded-[20px] bg-yellow-600 dark:bg-yellow-500">
-              {statusCounts.pending}
-            </span>
-          </div>
-
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
-              In Progress
-            </span>
-            <span className="w-6 h-6 flex items-center text-[12px] font-[Helvetica] text-white justify-center rounded-[20px] bg-blue-600 dark:bg-blue-500">
-              {statusCounts.inprogress}
-            </span>
-          </div>
-
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
-              Completed
-            </span>
-            <span className="h-6 min-w-[24px] flex items-center text-[12px] font-[Helvetica] text-white justify-center rounded-[20px] bg-green-600 dark:bg-green-500">
-              {statusCounts.completed}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
-        <div className="flex gap-3 flex-wrap md:flex-nowrap">
-          <button
-            className="flex items-center justify-center gap-2 min-w-[164px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Fetch Previous Report
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 min-w-[121px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Integrate PACS
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 min-w-[149px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Test Type Validation
-          </button>
-        </div>
-        <div className="flex items-center gap-6 flex-wrap md:flex-nowrap">
-          <div className="flex items-center gap-2">
-            <span
-              className="text-gray-400"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Year
-            </span>
-            <div className="relative">
-              <select
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className="text-gray-400"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Month
-            </span>
-            <div className="relative">
-              <select
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {months.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Test Orders & Clear Filters */}
-      <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
-        <h1 className="text-lg font-semibold text-black dark:text-white">
-          Recent Test Orders
-          <p className="text-sm text-[#A0A0A0] mt-1">List of all test orders</p>
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mt-4 mb-6">
+        <h1 className="text-[20px] font-medium text-black dark:text-white">
+          Billing Management
         </h1>
-
-        {(filterStatus !== "All" ||
-          filterCategory !== "All" ||
-          filterDate !== "") && (
-          <button
-            onClick={clearFilters}
-            className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline flex items-center gap-1"
-          >
-            Clear all filters
-            <X className="w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
-          </button>
-        )}
+        <button
+          onClick={handleGenerateBill}
+          className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+        >
+          + Generate Bill
+        </button>
       </div>
-
-      {/* Bordered Container for Categories Dropdown to Table */}
-      <div className="border border-[#0EFF7B] dark:border-[#3A3A3A] rounded-[12px] p-4 relative z-10 overflow-visible">
-        {/* Search and Filters */}
-        <div className="flex justify-between items-center mb-4 flex-wrap gap-4 md:flex-nowrap">
-          <div className="relative min-w-[180px]">
-            <Listbox
-              value={filterCategory}
-              onChange={(value) => {
-                setFilterCategory(value);
-                setCurrentPage(1);
-              }}
-            >
-              <Listbox.Button className="min-w-[180px] appearance-none bg-[#0EFF7B1A] dark:bg-[#000000] px-4 py-2 rounded-[8px] flex items-center border border-[#3C3C3C] text-[#08994A] dark:text-[#5CD592] text-sm pr-8 focus:outline-none">
-                {filterCategory === "All" ? "Departments" : filterCategory}
-                <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
-              </Listbox.Button>
-
-              <Listbox.Options className="absolute mt-1 min-w-[180px] rounded-[8px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
-                <Listbox.Option
-                  value="All"
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                      active
-                        ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                        : "text-black dark:text-white"
-                    } ${
-                      selected
-                        ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                        : ""
-                    }`
-                  }
-                >
-                  All
-                </Listbox.Option>
-
-                {departments.map((dept, index) => (
-                  <Listbox.Option
-                    key={index}
-                    value={dept}
-                    className={({ active, selected }) =>
-                      `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                        active
-                          ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                          : "text-black dark:text-white"
-                      } ${
-                        selected
-                          ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                          : ""
-                      }`
-                    }
-                  >
-                    {dept}
-                  </Listbox.Option>
-                ))}
-              </Listbox.Options>
-            </Listbox>
-          </div>
-
-          <div className="flex items-center gap-3 flex-grow md:flex-grow-0">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
-              <input
-                type="text"
-                placeholder="Search patient name, test type, or order ID.."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
-              />
+      <div className="flex flex-col lg:flex-row gap-6 mb-6">
+        <div className="flex flex-col gap-8 flex-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-6 shadow-sm">
+              <Filter className="text-gray-600 dark:text-[#0EFF7B] w-5 h-5 cursor-pointer hover:text-[#08994A] dark:hover:text-[#0EFF7B] mb-4" />
+              <div className="flex flex-col gap-2">
+                <span className="font-medium text-[18px] text-black dark:text-white">
+                  Total Bills Generated Today
+                </span>
+                <span className="text-[#08994A] dark:text-[#0EFF7B] text-[28px] font-bold">
+                  125
+                </span>
+              </div>
             </div>
-
+            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-6 shadow-sm">
+              <Filter className="text-gray-600 dark:text-[#0EFF7B] w-5 h-5 cursor-pointer hover:text-[#08994A] dark:hover:text-[#0EFF7B] mb-4" />
+              <div className="flex flex-col gap-2">
+                <span className="font-medium text-[18px] text-black dark:text-white">
+                  Insurance Claims
+                </span>
+                <span className="text-[#08994A] dark:text-[#0EFF7B] text-[28px] font-bold">
+                  7
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-4">
             <button
-              onClick={openFilterPopup}
-              className="bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
+              onClick={handleProcessPayment}
+              className="bg-white dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-6 py-3 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
             >
-              <Filter
-                size={18}
-                className="text-[#0EFF7B] dark:text-[#0EFF7B]"
-              />
+              <CreditCard size={16} /> Process Payment
+            </button>
+            <button
+              onClick={handleInsuranceClaim}
+              className="bg-white dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-6 py-3 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+            >
+              <FileText size={16} /> Handle Insurance Claim
             </button>
           </div>
         </div>
-
-        {/* ✅ Table */}
-        {/* ✅ Alternative Fixed Table */}
-        <div className="overflow-x-auto bg-white dark:bg-black rounded-xl shadow-lg">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-200 dark:bg-[#091810] h-[52px]">
-              <tr className="border-b border-gray-300 dark:border-[#000000] text-[#0EFF7B] dark:text-[#0EFF7B]">
-                <th className="py-3 px-4 text-left">
+        <div className="w-full lg:w-[280px] flex flex-col gap-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-4 shadow-sm">
+          <div className="flex justify-between items-center pb-2 border-b border-gray-300 dark:border-[#3C3C3C]">
+            <span className="text-[#6E92FF] dark:text-[#0EFF7B] text-sm font-semibold">
+              VALIDATION & CONTROLS
+            </span>
+            <Settings size={16} className="text-gray-600 dark:text-gray-400" />
+          </div>
+          <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-3 mt-2">
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-green-600 dark:text-green-500" /> Payment method validation
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-red-600 dark:text-red-500" /> No negative billing amounts
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-gray-600 dark:text-gray-400" /> Duplicate bill prevention
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-green-600 dark:text-green-500" /> Refund handling
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-3">
+        <h2 className="text-black dark:text-white text-lg font-semibold">Invoices</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handlePrint}
+            className="bg-white dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+          >
+            <Printer size={16} /> Print
+          </button>
+          <button
+            onClick={handleExport}
+            className="dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+          >
+            <Download size={16} /> Export
+          </button>
+        </div>
+      </div>
+      <div className="w-full bg-white dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
+        <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
+          <span className="text-black dark:text-white text-base font-medium">All Invoices</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full w-full sm:w-auto">
+              <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="bg-transparent outline-none text-sm text-black dark:text-white flex-1 min-w-[120px] placeholder-[#5CD592] dark:placeholder-[#5CD592] focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div
+              className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+              onClick={handleFilter}
+            >
+              <Filter size={16} className="text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]" />
+            </div>
+            <div
+              className="flex items-center justify-center bg-[#FF00001A] dark:bg-[#FF00001A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#FF000033] dark:hover:bg-[#FF000033]"
+              onClick={handleDelete}
+            >
+              <Trash2 size={16} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
+            </div>
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-lg">
+          <table className="w-full border-collapse min-w-[800px]">
+            <thead className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#0EFF7B] dark:text-[#0EFF7B]">
+              <tr>
+                <th className="px-3 py-3 w-10">
                   <input
                     type="checkbox"
-                    checked={
-                      selectedOrders.length === displayedData.length &&
-                      displayedData.length > 0
-                    }
-                    onChange={toggleSelectAll}
+                    checked={selectAll}
+                    onChange={handleSelectAll}
                     className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
-                <th className="py-3 px-4 text-left">Order ID</th>
-                <th className="py-3 px-4 text-left">Patient Name</th>
-                <th className="py-3 px-4 text-left">Patient ID</th>
-                <th className="py-3 px-4 text-left">Department</th>
-                <th className="py-3 px-4 text-left">Test Type</th>
-                <th className="py-3 px-4 text-left">Status</th>
-                <th className="py-3 px-4 text-left">Created Date</th>
-                <th className="py-3 px-4 text-left">Actions</th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("id")}>
+                  Invoice ID {sortColumn === "id" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("patientName")}>
+                  Patient Name {sortColumn === "patientName" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("department")}>
+                  Department {sortColumn === "department" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("amount")}>
+                  Amount {sortColumn === "amount" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("paymentMethod")}>
+                  Payment Method {sortColumn === "paymentMethod" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("status")}>
+                  Status {sortColumn === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+                </th>
+                <th className="px-3 py-3">Actions</th>
               </tr>
             </thead>
-
-            <tbody>
-              {displayedData.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                    No data found
+            <tbody className="text-sm">
+              {displayedData.map((row) => (
+                <tr
+                  key={row.id}
+                  className="h-[62px] bg-white dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                >
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectAll || selectedRows.includes(row.id)}
+                      onChange={() => handleRowSelect(row.id)}
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    />
+                  </td>
+                  <td className="px-3 py-3 text-black dark:text-white">
+                    {row.id}
+                    <br />
+                    <span className="text-gray-600 dark:text-gray-400 text-xs">{row.date}</span>
+                  </td>
+                  <td className="px-3 py-3 text-black dark:text-white">
+                    {row.patientName}
+                    <br />
+                    <span className="text-gray-600 dark:text-gray-400 text-xs">{row.patientId}</span>
+                  </td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.department}</td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.amount}</td>
+                  <td className="px-3 py-3 text-black dark:text-white">{row.paymentMethod}</td>
+                  <td className={`px-3 py-3 font-medium ${getStatusColor(row.status)}`}>
+                    {row.status}
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer">
+                      <Edit
+                        size={16}
+                        className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                        onClick={() => handleShare(row.id)}
+                      />
+                    </div>
                   </td>
                 </tr>
-              ) : (
-                displayedData.map((order, idx) => {
-                  const openDown = idx < displayedData.length - 3;
-                  return (
-                    <tr
-                      key={order.id}
-                      className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
-                    >
-                      <td className="py-3 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => toggleSelectOrder(order.id)}
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                        />
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white font-mono">
-                        {order.orderId}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.patientName}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.patientId}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.department}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.testType}
-                      </td>
-
-                      <td
-                        className={`py-3 px-4 font-medium ${
-                          statusColors[order.status]
-                        }`}
-                      >
-                        {statusDisplayMap[order.status]}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-
-                      {/* ✅ SIMPLE FIX - Using higher z-index and proper positioning */}
-                      <td className="py-3 px-4 relative">
-                        <div className="flex justify-center">
-                          <button
-                            ref={showActionMenu === order.id ? buttonRef : null}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleActionMenu(order.id, e.currentTarget);
-                            }}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors relative z-10"
-                          >
-                            <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                          </button>
-                        </div>
-
-                        {showActionMenu === order.id && (
-                          <div
-                            ref={menuRef}
-                            className="absolute z-[1000] min-w-[160px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3A3A3A] rounded-lg shadow-xl right-4"
-                            style={{
-                              ...(openDown
-                                ? { top: "100%", marginTop: "4px" }
-                                : { bottom: "100%", marginBottom: "4px" }),
-                            }}
-                          >
-                            <button
-                              onClick={() => {
-                                openEditPopup(order);
-                                setShowActionMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] w-full text-left rounded-t-lg transition-colors"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                openDeletePopup(order);
-                                setShowActionMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-[#FF4D4D1A] dark:hover:bg-[#FF4D4D33] w-full text-left rounded-b-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
-        <div className="text-sm text-gray-600 dark:text-white">
-          Page{" "}
-          <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
-            {currentPage}
-          </span>{" "}
-          of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
-          {Math.min(currentPage * itemsPerPage, filteredData.length)} from{" "}
-          {filteredData.length} Orders)
-        </div>
-        <div className="flex items-center gap-x-2">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
-              currentPage === 1
-                ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
-                : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
-            }`}
-          >
-            <ChevronLeft size={12} />
-          </button>
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border ${
-              currentPage === totalPages
-                ? "bg-gray-200 dark:bg-[#0EFF7B1A] border-gray-300 dark:border-[#0EFF7B1A] text-gray-600 dark:text-white opacity-50"
-                : "bg-[#08994A] dark:bg-[#0EFF7B] border-[#08994A] dark:border-[#0EFF7B] text-white dark:text-black"
-            }`}
-          >
-            <ChevronRight size={12} />
-          </button>
+        <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="text-sm text-black dark:text-white">
+            Page{" "}
+            <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span>{" "}
+            of {totalPages} ({indexOfFirst + 1} to{" "}
+            {Math.min(indexOfLast, filteredData.length)} from{" "}
+            {filteredData.length} Invoices)
+          </div>
+          <div className="flex items-center gap-x-2">
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                currentPage === 1
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+              }`}
+            >
+              <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
+            </button>
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                currentPage === totalPages
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+              }`}
+            >
+              <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Filter Popup */}
+      {showDeletePopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="rounded-[20px] p-[1px]">
+            <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "20px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              ></div>
+              <div className="flex justify-between items-center pb-3 mb-4">
+                <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+                  {selectedRows.length === 1 ? "Delete Invoice" : "Delete Invoices"}
+                </h3>
+                <button
+                  onClick={() => setShowDeletePopup(false)}
+                  className="text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] p-1 rounded-full"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+                {selectedRows.length === 1
+                  ? `Are you sure you want to delete invoice ${
+                      invoiceData.find((item) => item.id === selectedRows[0])?.id
+                    }?`
+                  : `Are you sure you want to delete ${selectedRows.length} invoice(s)?`}
+                <br />
+                This action cannot be undone.
+              </p>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowDeletePopup(false)}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white font-medium hover:bg-[#0EFF7B1A] dark:hover:bg-[#3A3A3A]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#FF4D4D] to-[#B30000] text-white font-medium hover:scale-105 transition"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div
             className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
+            bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+            dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] max-w-[90vw] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              {/* Header */}
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h2
                   className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
-                  Filter Test Orders
+                  Filter Invoices
                 </h2>
                 <button
                   onClick={() => setShowFilterPopup(false)}
@@ -957,36 +644,27 @@ const LabReport = () => {
                   <X size={16} className="text-black dark:text-white" />
                 </button>
               </div>
-
-              {/* Filter Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 <Dropdown
-                  label="Department"
-                  value={tempFilters.category}
-                  onChange={(value) =>
-                    setTempFilters({ ...tempFilters, category: value })
-                  }
-                  options={["All", ...departments]}
+                  label="Status"
+                  value={filterStatus}
+                  onChange={setFilterStatus}
+                  options={statusOptions}
                   className="w-[228px] h-[32px] mt-1"
                 />
-
                 <div>
                   <label
                     className="text-sm text-black dark:text-white"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   >
-                    Created Date
+                    Invoice Date
                   </label>
                   <div className="relative">
                     <input
                       type="date"
-                      value={tempFilters.date}
-                      onChange={(e) =>
-                        setTempFilters({ ...tempFilters, date: e.target.value })
-                      }
-                      onClick={(e) => e.target.showPicker()}
-                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
-                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                      value={filterDate}
+                      onChange={(e) => setFilterDate(e.target.value)}
+                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar
                       size={18}
@@ -994,202 +672,32 @@ const LabReport = () => {
                     />
                   </div>
                 </div>
-
-                <Dropdown
-                  label="Status"
-                  value={tempFilters.status}
-                  onChange={(value) =>
-                    setTempFilters({ ...tempFilters, status: value })
-                  }
-                  options={statusOptions}
-                  className="w-[228px] h-[32px] mt-1"
-                />
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-center gap-4 mt-8 flex-wrap md:flex-nowrap">
-                <button
-                  onClick={() => {
-                    clearFilters();
-                    setTempFilters({
-                      status: "All",
-                      category: "All",
-                      date: "",
-                    });
-                  }}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Clear
-                </button>
-
-                <button
-                  onClick={applyFilters}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Apply Filters
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Test Order Popup */}
-      {showCreatePopup && (
-        <CreateTestOrderPopup
-          onClose={() => setShowCreatePopup(false)}
-          onSave={handleCreateReport}
-        />
-      )}
-
-      {/* Edit Popup */}
-      {showEditPopup && selectedOrderForEdit && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
-            <div
-              className="w-[505px] max-w-[90vw] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center pb-3 mb-4">
-                <h2
-                  className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  Edit Test Order
-                </h2>
-                <button
-                  onClick={() => setShowEditPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
-                >
-                  <X size={16} className="text-black dark:text-white" />
-                </button>
-              </div>
-
-              {/* Form Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Patient Name */}
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Patient Name
-                  </label>
-                  <input
-                    name="patientName"
-                    value={formData.patientName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, patientName: e.target.value })
-                    }
-                    placeholder="Enter patient name"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  {errors.patientName && (
-                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                      {errors.patientName}
-                    </p>
-                  )}
-                </div>
-
-                {/* Patient ID */}
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Patient ID
-                  </label>
-                  <input
-                    name="patientId"
-                    value={formData.patientId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, patientId: e.target.value })
-                    }
-                    placeholder="Enter patient ID"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  {errors.patientId && (
-                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                      {errors.patientId}
-                    </p>
-                  )}
-                </div>
-
-                {/* Department Dropdown */}
                 <Dropdown
                   label="Department"
-                  value={formData.department}
-                  onChange={(val) =>
-                    setFormData({ ...formData, department: val })
-                  }
-                  options={departments}
-                  error={errors.department}
+                  value={filterDepartment}
+                  onChange={setFilterDepartment}
+                  options={departmentOptions}
                   className="w-[228px] h-[32px] mt-1"
                 />
-
-                {/* Test Type */}
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Test Type
-                  </label>
-                  <input
-                    name="testType"
-                    value={formData.testType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, testType: e.target.value })
-                    }
-                    placeholder="Enter test type"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  {errors.testType && (
-                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                      {errors.testType}
-                    </p>
-                  )}
-                </div>
-
-                {/* Status Dropdown */}
                 <Dropdown
-                  label="Status"
-                  value={formData.status}
-                  onChange={(val) => setFormData({ ...formData, status: val })}
-                  options={statusOptions.slice(1)}
-                  error={errors.status}
+                  label="Payment Method"
+                  value={filterPaymentMethod}
+                  onChange={setFilterPaymentMethod}
+                  options={paymentMethodOptions}
                   className="w-[228px] h-[32px] mt-1"
                 />
               </div>
-
-              {/* Buttons */}
-              <div className="flex justify-center gap-4 mt-8 flex-wrap md:flex-nowrap">
+              <div className="flex justify-center gap-4 mt-8">
                 <button
-                  onClick={() => setShowEditPopup(false)}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  onClick={handleClearFilter}
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Cancel
                 </button>
-
                 <button
-                  onClick={handleSaveEdit}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  onClick={handleApplyFilter}
+                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Update
@@ -1199,29 +707,8 @@ const LabReport = () => {
           </div>
         </div>
       )}
-
-      {/* Delete Popup */}
-      {showDeletePopup && selectedOrderForDelete && (
-        <DeleteLabReportPopup
-          order={selectedOrderForDelete}
-          onClose={() => {
-            setShowDeletePopup(false);
-            setSelectedOrderForDelete(null);
-          }}
-          onConfirm={async (id) => {
-            try {
-              await handleDeleteReport(id);
-              setShowDeletePopup(false);
-              setSelectedOrderForDelete(null);
-            } catch (error) {
-              // Error is handled in the delete function
-              console.error("Delete failed:", error);
-            }
-          }}
-        />
-      )}
     </div>
   );
 };
 
-export default LabReport;
+export default BillingManagement;

@@ -1,23 +1,26 @@
-from fastapi import APIRouter, HTTPException
+#fastapi_app/routers/billing.py
+
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
-from HMS_backend.models import Invoice
+from HMS_backend.models import PharmacyInvoiceHistory, Patient
 from datetime import date
 from typing import List
-from django.forms.models import model_to_dict
 import csv
 import io
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 import openpyxl
+import os
+from zipfile import ZipFile
+import tempfile
 
 router = APIRouter(prefix="/billing", tags=["Billing Management"])
-
 
 # -------------------------------
 # Pydantic Schema
 # -------------------------------
 class InvoiceSchema(BaseModel):
     invoice_id: str
-    date: date
+    date: str  # Changed to str for JSON serialization
     patient_name: str
     patient_id: str
     department: str
@@ -25,86 +28,201 @@ class InvoiceSchema(BaseModel):
     payment_method: str
     status: str
 
+class InvoiceIds(BaseModel):
+    ids: List[str]
+
+# -------------------------------
+# Helper to get invoice data
+# -------------------------------
+def get_invoice_data(invoice):
+    dept = "Unknown"
+    try:
+        patient = Patient.objects.get(patient_unique_id=invoice.patient_id)
+        if patient.department:
+            dept = patient.department.name
+    except Patient.DoesNotExist:
+        pass
+    except Exception as e:
+        print(f"Error getting patient for {invoice.patient_id}: {e}")
+    
+    try:
+        date_str = invoice.bill_date.isoformat() if hasattr(invoice.bill_date, 'isoformat') else str(invoice.bill_date)
+    except:
+        date_str = str(invoice.bill_date)
+    
+    return {
+        "invoice_id": invoice.bill_no,
+        "date": date_str,
+        "patient_name": invoice.patient_name,
+        "patient_id": invoice.patient_id,
+        "department": dept,
+        "amount": float(invoice.net_amount),
+        "payment_method": invoice.payment_mode or "-",
+        "status": invoice.payment_status,
+    }
 
 # -------------------------------
 # CRUD Endpoints
 # -------------------------------
 @router.post("/", response_model=InvoiceSchema)
 def create_invoice(data: InvoiceSchema):
-    invoice = Invoice.objects.create(**data.dict())
-    return model_to_dict(invoice)
-
+    try:
+        # Note: This is simplified; in production, handle Patient creation/update for department, etc.
+        # For now, create without department (as it's not in model)
+        invoice = PharmacyInvoiceHistory.objects.create(
+            bill_no=data.invoice_id,
+            patient_name=data.patient_name,
+            patient_id=data.patient_id,
+            # Add other required fields with defaults or from data
+            age=0,  # Placeholder
+            doctor_name="Unknown",  # Placeholder
+            billing_staff="Unknown",  # Placeholder
+            staff_id="Unknown",  # Placeholder
+            patient_type="Outpatient",  # Default
+            address_text="",  # Placeholder
+            payment_type=data.payment_method,  # Map
+            payment_status=data.status,  # Map
+            payment_mode=data.payment_method,  # Map
+            bill_date=date.fromisoformat(data.date),
+            subtotal=data.amount,  # Simplified
+            cgst_percent=0, cgst_amount=0,
+            sgst_percent=0, sgst_amount=0,
+            discount_amount=0,
+            net_amount=data.amount,
+        )
+        return get_invoice_data(invoice)
+    except Exception as e:
+        print(f"Error creating invoice: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create invoice: {str(e)}")
 
 @router.get("/", response_model=List[InvoiceSchema])
 def list_invoices():
-    invoices = Invoice.objects.all()
-    return [model_to_dict(inv) for inv in invoices]
-
+    try:
+        invoices = PharmacyInvoiceHistory.objects.all()
+        data = [get_invoice_data(inv) for inv in invoices]
+        return data
+    except Exception as e:
+        print(f"Error in list_invoices: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch invoices: {str(e)}")
 
 @router.get("/{invoice_id}", response_model=InvoiceSchema)
 def get_invoice(invoice_id: str):
     try:
-        invoice = Invoice.objects.get(invoice_id=invoice_id)
-        return model_to_dict(invoice)
-    except Invoice.DoesNotExist:
+        invoice = PharmacyInvoiceHistory.objects.get(bill_no=invoice_id)
+        return get_invoice_data(invoice)
+    except PharmacyInvoiceHistory.DoesNotExist:
         raise HTTPException(status_code=404, detail="Invoice not found")
-
+    except Exception as e:
+        print(f"Error getting invoice {invoice_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get invoice: {str(e)}")
 
 @router.delete("/{invoice_id}")
 def delete_invoice(invoice_id: str):
     try:
-        invoice = Invoice.objects.get(invoice_id=invoice_id)
+        invoice = PharmacyInvoiceHistory.objects.get(bill_no=invoice_id)
         invoice.delete()
         return {"detail": f"Invoice {invoice_id} deleted successfully"}
-    except Invoice.DoesNotExist:
+    except PharmacyInvoiceHistory.DoesNotExist:
         raise HTTPException(status_code=404, detail="Invoice not found")
-
+    except Exception as e:
+        print(f"Error deleting invoice {invoice_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete invoice: {str(e)}")
 
 # -------------------------------
-# Export Endpoints
+# PDF Endpoints
+# -------------------------------
+@router.get("/pdf/{invoice_id}")
+def get_pdf(invoice_id: str):
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    INVOICE_DIR = os.path.join(BASE_DIR, "fastapi_app", "pharmacy", "invoices")
+    pdf_path = os.path.join(INVOICE_DIR, f"{invoice_id}.pdf")
+    if not os.path.exists(pdf_path):
+        raise HTTPException(status_code=404, detail="PDF not found")
+    return FileResponse(pdf_path, media_type="application/pdf", filename=f"{invoice_id}.pdf")
+
+@router.post("/download-selected")
+def download_selected(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks):
+    try:
+        # Correct BASE_DIR to project root
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        INVOICE_DIR = os.path.join(BASE_DIR, "fastapi_app", "pharmacy", "invoices")  # Add "fastapi_app"
+        
+        # Use NamedTemporaryFile for safety
+        with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_file:
+            zip_path = tmp_file.name
+        
+        with ZipFile(zip_path, "w") as zipf:
+            added = False
+            for invoice_id in invoice_ids.ids:
+                pdf_path = os.path.join(INVOICE_DIR, f"{invoice_id}.pdf")
+                if os.path.exists(pdf_path):
+                    zipf.write(pdf_path, f"{invoice_id}.pdf")
+                    added = True
+                else:
+                    print(f"PDF not found for {invoice_id} at {pdf_path}")
+            if not added:
+                os.remove(zip_path)
+                raise HTTPException(status_code=404, detail="No PDFs found for selected invoices")
+        
+        # Delete after response is sent
+        background_tasks.add_task(os.remove, zip_path)
+        return FileResponse(zip_path, media_type="application/zip", filename="selected_invoices.zip")
+    except Exception as e:
+        # Cleanup on error
+        if 'zip_path' in locals() and os.path.exists(zip_path):
+            os.remove(zip_path)
+        print(f"Error downloading selected PDFs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to download PDFs: {str(e)}")
+
+# -------------------------------
+# Export Endpoints (CSV/Excel)
 # -------------------------------
 @router.get("/export/csv")
 def export_invoices_csv():
-    invoices = Invoice.objects.all().values(
-        "invoice_id", "date", "patient_name", "patient_id",
-        "department", "amount", "payment_method", "status"
-    )
-
-    output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=invoices[0].keys() if invoices else [])
-    writer.writeheader()
-    writer.writerows(invoices)
-
-    output.seek(0)
-    return StreamingResponse(
-        iter([output.getvalue()]),
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=invoices.csv"}
-    )
-
+    try:
+        invoices = PharmacyInvoiceHistory.objects.all()
+        invoice_list = [get_invoice_data(inv) for inv in invoices]
+        if not invoice_list:
+            raise HTTPException(status_code=404, detail="No invoices found")
+        
+        output = io.StringIO()
+        fieldnames = list(invoice_list[0].keys())
+        writer = csv.DictWriter(output, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(invoice_list)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=invoices.csv"}
+        )
+    except Exception as e:
+        print(f"Error exporting CSV: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export CSV: {str(e)}")
 
 @router.get("/export/excel")
 def export_invoices_excel():
-    invoices = Invoice.objects.all().values(
-        "invoice_id", "date", "patient_name", "patient_id",
-        "department", "amount", "payment_method", "status"
-    )
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Invoices"
-
-    if invoices:
-        ws.append(list(invoices[0].keys()))  # headers
-        for row in invoices:
+    try:
+        invoices = PharmacyInvoiceHistory.objects.all()
+        invoice_list = [get_invoice_data(inv) for inv in invoices]
+        if not invoice_list:
+            raise HTTPException(status_code=404, detail="No invoices found")
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Invoices"
+        fieldnames = list(invoice_list[0].keys())
+        ws.append(fieldnames)
+        for row in invoice_list:
             ws.append(list(row.values()))
-
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=invoices.xlsx"}
-    )
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": "attachment; filename=invoices.xlsx"}
+        )
+    except Exception as e:
+        print(f"Error exporting Excel: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export Excel: {str(e)}")

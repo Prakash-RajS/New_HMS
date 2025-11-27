@@ -85,6 +85,11 @@ app.mount(
     StaticFiles(directory=STAFF_PICTURES_DIR),
     name="staffs_pictures"
 )
+INVOICE_DIR = os.path.abspath("fastapi_app/pharmacy/invoices")
+os.makedirs(INVOICE_DIR, exist_ok=True)
+
+app.mount("/invoices", StaticFiles(directory=INVOICE_DIR), name="invoices")
+
 
 # ==================== HEALTH CHECK ====================
 @app.get("/")
