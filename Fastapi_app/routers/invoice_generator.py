@@ -1,212 +1,414 @@
+# from fastapi import APIRouter, HTTPException
+# from fastapi.responses import StreamingResponse
+# from pydantic import BaseModel
+# from datetime import date as dt_date
+# from typing import List
+# import io
+# from pathlib import Path
+
+# # Django imports
+# from HMS_backend.models import Invoice
+# from django.forms.models import model_to_dict
+# from django.core.files.base import ContentFile
+
+# # PDF
+# from jinja2 import Environment, FileSystemLoader
+# from xhtml2pdf import pisa
+
+
+# router = APIRouter(prefix="/invoices", tags=["Invoice Generator"])
+
+
+# # ==================== Pydantic Schemas ====================
+# class ItemSchema(BaseModel):
+#     desc: str
+#     qty: int
+#     unit_price: float
+
+#     @property
+#     def total(self) -> float:
+#         return round(self.qty * self.unit_price, 2)
+
+
+# class InvoiceCreateInputSchema(BaseModel):
+#     date: dt_date
+#     patient_name: str
+#     patient_id: str
+#     department: str
+#     payment_method: str
+#     status: str = "PAID"
+
+#     admission_date: dt_date
+#     discharge_date: dt_date
+#     doctor: str
+#     phone: str
+#     email: str
+#     address: str
+#     items: List[ItemSchema]
+#     tax_percent: float = 18.0
+#     transaction_id: str | None = None
+#     payment_date: str | None = None
+
+#     @property
+#     def subtotal(self) -> float:
+#         return round(sum(item.total for item in self.items), 2)
+
+#     @property
+#     def tax(self) -> float:
+#         return round(self.subtotal * self.tax_percent / 100, 2)
+
+#     @property
+#     def amount(self) -> float:
+#         return round(self.subtotal + self.tax, 2)
+
+
+# class InvoiceResponseSchema(InvoiceCreateInputSchema):
+#     invoice_id: str
+#     items: List[ItemSchema]
+
+
+# # ==================== Helper: Number to Words ====================
+# def number_to_words(amount: float) -> str:
+#     ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
+#     teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+#              "Seventeen", "Eighteen", "Nineteen"]
+#     tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+#     def helper(n: int) -> str:
+#         if n == 0: return ""
+#         if n < 10: return ones[n]
+#         if n < 20: return teens[n-10]
+#         if n < 100: return tens[n//10] + (" " + ones[n%10] if n%10 else "")
+#         if n < 1000: return ones[n//100] + " Hundred" + (" " + helper(n%100) if n%100 else "")
+#         return "Large Number"
+
+#     integer = int(amount)
+#     cents = round((amount - integer) * 100)
+#     result = helper(integer) + " Dollars"
+#     if cents:
+#         result += f" and {cents} Cents"
+#     return result.strip() + " only"
+
+
+# # ==================== PDF Renderer ====================
+# def _get_template_dir() -> Path:
+#     this_file = Path(__file__).resolve()
+#     candidate = this_file.parent.parent / "frontend"
+#     if not candidate.is_dir():
+#         raise RuntimeError("frontend/ folder not found")
+#     return candidate
+
+
+# def render_pdf(data: dict) -> bytes:
+#     env = Environment(loader=FileSystemLoader(str(_get_template_dir())))
+#     template = env.get_template("invoice_template.html")
+#     html = template.render(**data)
+
+#     buffer = io.BytesIO()
+#     pisa_status = pisa.CreatePDF(html, dest=buffer, encoding="UTF-8")
+#     if pisa_status.err:
+#         raise RuntimeError(f"PDF error: {pisa_status.err}")
+#     buffer.seek(0)
+#     return buffer.read()
+
+
+# # ==================== Endpoints ====================
+# @router.post("/", response_model=InvoiceResponseSchema)
+# def create_invoice(payload: InvoiceCreateInputSchema):
+#     line_items = [
+#         {"desc": i.desc, "qty": i.qty, "unit_price": i.unit_price, "total": i.total}
+#         for i in payload.items
+#     ]
+
+#     inv = Invoice.objects.create(
+#         date=payload.date,
+#         patient_name=payload.patient_name,
+#         patient_id=payload.patient_id,
+#         department=payload.department,
+#         amount=payload.amount,
+#         payment_method=payload.payment_method,
+#         status=payload.status,
+#         admission_date=payload.admission_date,
+#         discharge_date=payload.discharge_date,
+#         doctor=payload.doctor,
+#         phone=payload.phone,
+#         email=payload.email,
+#         address=payload.address,
+#         invoice_items=line_items,
+#         tax_percent=payload.tax_percent,
+#         transaction_id=payload.transaction_id,
+#         payment_date=payload.payment_date,
+#     )
+
+#     data = model_to_dict(inv)
+#     data["items"] = [
+#         ItemSchema(desc=item["desc"], qty=item["qty"], unit_price=item["unit_price"])
+#         for item in data.pop("invoice_items", [])
+#     ]
+#     return InvoiceResponseSchema(**data)
+
+
+# @router.get("/{invoice_id}/pdf")
+# def download_pdf(invoice_id: str):
+#     try:
+#         inv = Invoice.objects.get(invoice_id=invoice_id)
+#     except Invoice.DoesNotExist:
+#         raise HTTPException(404, "Invoice not found")
+
+#     line_items = inv.invoice_items
+#     subtotal = sum(i["total"] for i in line_items)
+#     tax = round(subtotal * float(inv.tax_percent) / 100, 2)
+
+#     template_data = {
+#         "invoice": {
+#             "invoice_id": inv.invoice_id,
+#             "date": inv.date,
+#             "patient_name": inv.patient_name,
+#             "patient_id": inv.patient_id,
+#             "department": inv.department,
+#             "amount": float(inv.amount),
+#             "payment_method": inv.payment_method,
+#             "status": inv.status,
+#             "admission_date": inv.admission_date,
+#             "discharge_date": inv.discharge_date,
+#             "doctor": inv.doctor,
+#             "phone": inv.phone,
+#             "email": inv.email,
+#             "address": inv.address,
+#             "items": line_items,
+#             "tax_percent": float(inv.tax_percent),
+#             "subtotal": subtotal,
+#             "tax": tax,
+#             "amount_in_words": number_to_words(float(inv.amount)),
+#             "transaction_id": inv.transaction_id or "N/A",
+#             "payment_date": inv.payment_date or "N/A",
+#         }
+#     }
+
+#     # ✅ Generate PDF
+#     pdf_bytes = render_pdf(template_data)
+
+#     # ✅ Save PDF file
+#     current_dir = Path(__file__).resolve().parent
+#     output_dir = current_dir / "generated_invoices"
+#     output_dir.mkdir(parents=True, exist_ok=True)
+
+#     pdf_filename = f"invoice_{invoice_id}.pdf"
+#     output_path = output_dir / pdf_filename
+
+#     with open(output_path, "wb") as f:
+#         f.write(pdf_bytes)
+
+#     # ✅ Save path in DB if not saved
+#     if not inv.pdf_file:
+#         inv.pdf_file.save(pdf_filename, ContentFile(pdf_bytes))
+#         inv.save()
+
+#     # ✅ Return response
+#     return StreamingResponse(
+#         io.BytesIO(pdf_bytes),
+#         media_type="application/pdf",
+#         headers={"Content-Disposition": f'attachment; filename="{pdf_filename}"'}
+#     )
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from datetime import date as dt_date
-from typing import List
-import io
-from pathlib import Path
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, EmailStr
+from typing import List, Optional
+from decimal import Decimal
+from datetime import date
+import os
+import sys
 
-# Django imports
-from HMS_backend.models import Invoice
-from django.forms.models import model_to_dict
-from django.core.files.base import ContentFile
+# ----------------- Django setup -----------------
+import django
 
-# PDF
-from jinja2 import Environment, FileSystemLoader
-from xhtml2pdf import pisa
+# Adjust path to point to NEW_HMS-main
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(BASE_DIR)
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
+django.setup()
+
+from HMS_backend.models import Invoice, Patient
+
+# ----------------- Path Setup -----------------
+# APP_DIR = fastapi_app/
+APP_DIR = os.path.join(BASE_DIR, "fastapi_app")
+TEMPLATE_DIR = os.path.join(APP_DIR, "frontend")
+PDF_OUTPUT_DIR = os.path.join(APP_DIR, "invoices_generator")
+
+# Ensure output directory exists
+os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
+
+# ----------------- Jinja2 setup -----------------
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+env = Environment(
+    loader=FileSystemLoader(TEMPLATE_DIR),
+    autoescape=select_autoescape(["html", "xml"])
+)
+
+# ----------------- WeasyPrint -----------------
+from weasyprint import HTML
+
+# ----------------- Num2Words -----------------
+# INSTALL: pip install num2words
+try:
+    from num2words import num2words
+except ImportError:
+    num2words = None
+    print("WARNING: num2words library not found. Run 'pip install num2words'")
+
+router = APIRouter()
 
 
-router = APIRouter(prefix="/invoices", tags=["Invoice Generator"])
+# ===================== Pydantic Schemas =====================
+
+class InvoiceItemIn(BaseModel):
+    description: str
+    quantity: int
+    unit_price: Decimal
 
 
-# ==================== Pydantic Schemas ====================
-class ItemSchema(BaseModel):
-    desc: str
-    qty: int
-    unit_price: float
-
-    @property
-    def total(self) -> float:
-        return round(self.qty * self.unit_price, 2)
-
-
-class InvoiceCreateInputSchema(BaseModel):
-    date: dt_date
+class InvoiceCreateIn(BaseModel):
+    date: date
     patient_name: str
     patient_id: str
     department: str
     payment_method: str
-    status: str = "PAID"
+    status: str = "Paid"
 
-    admission_date: dt_date
-    discharge_date: dt_date
+    admission_date: date
+    discharge_date: Optional[date] = None
     doctor: str
     phone: str
-    email: str
+    email: EmailStr
     address: str
-    items: List[ItemSchema]
-    tax_percent: float = 18.0
-    transaction_id: str | None = None
-    payment_date: str | None = None
 
-    @property
-    def subtotal(self) -> float:
-        return round(sum(item.total for item in self.items), 2)
-
-    @property
-    def tax(self) -> float:
-        return round(self.subtotal * self.tax_percent / 100, 2)
-
-    @property
-    def amount(self) -> float:
-        return round(self.subtotal + self.tax, 2)
+    invoice_items: List[InvoiceItemIn]
+    tax_percent: Decimal = Decimal("18.0")
+    transaction_id: Optional[str] = None
+    payment_date: Optional[str] = None
 
 
-class InvoiceResponseSchema(InvoiceCreateInputSchema):
-    invoice_id: str
-    items: List[ItemSchema]
+# ===================== Helper =====================
+
+def amount_to_words(amount: Decimal) -> str:
+    """
+    Converts numeric amount to words using num2words library.
+    Example: 1829 -> "One Thousand Eight Hundred Twenty-Nine Only"
+    """
+    if num2words:
+        try:
+            words = num2words(amount, lang='en')
+            return f"{words.title()} Only"
+        except Exception as e:
+            print(f"Error converting words: {e}")
+            return f"{amount} Only"
+    else:
+        return f"{amount} Only"
 
 
-# ==================== Helper: Number to Words ====================
-def number_to_words(amount: float) -> str:
-    ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"]
-    teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
-             "Seventeen", "Eighteen", "Nineteen"]
-    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+# ===================== API =====================
+@router.post("/hospital-invoices/generate", response_class=FileResponse)
+def generate_invoice_pdf(payload: InvoiceCreateIn):
+    if not payload.invoice_items:
+        raise HTTPException(status_code=400, detail="At least one invoice item is required.")
 
-    def helper(n: int) -> str:
-        if n == 0: return ""
-        if n < 10: return ones[n]
-        if n < 20: return teens[n-10]
-        if n < 100: return tens[n//10] + (" " + ones[n%10] if n%10 else "")
-        if n < 1000: return ones[n//100] + " Hundred" + (" " + helper(n%100) if n%100 else "")
-        return "Large Number"
+    # Fetch patient to get phone number
+    try:
+        patient = Patient.objects.get(patient_unique_id=payload.patient_id)
+    except Patient.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Patient not found")
 
-    integer = int(amount)
-    cents = round((amount - integer) * 100)
-    result = helper(integer) + " Dollars"
-    if cents:
-        result += f" and {cents} Cents"
-    return result.strip() + " only"
+    # ---- Calculations ----
+    subtotal = sum(
+        (item.quantity * item.unit_price for item in payload.invoice_items),
+        Decimal("0.00")
+    )
+    tax_amount = (subtotal * payload.tax_percent / Decimal("100")).quantize(Decimal("0.01"))
+    grand_total = (subtotal + tax_amount).quantize(Decimal("0"))
 
+    # ---- Build JSON-safe invoice_items ----
+    items_data = []
+    for item in payload.invoice_items:
+        items_data.append({
+            "description": item.description,
+            "quantity": int(item.quantity),
+            "unit_price": float(item.unit_price),
+            "total": float(item.quantity * item.unit_price),
+        })
 
-# ==================== PDF Renderer ====================
-def _get_template_dir() -> Path:
-    this_file = Path(__file__).resolve()
-    candidate = this_file.parent.parent / "frontend"
-    if not candidate.is_dir():
-        raise RuntimeError("frontend/ folder not found")
-    return candidate
-
-
-def render_pdf(data: dict) -> bytes:
-    env = Environment(loader=FileSystemLoader(str(_get_template_dir())))
-    template = env.get_template("invoice_template.html")
-    html = template.render(**data)
-
-    buffer = io.BytesIO()
-    pisa_status = pisa.CreatePDF(html, dest=buffer, encoding="UTF-8")
-    if pisa_status.err:
-        raise RuntimeError(f"PDF error: {pisa_status.err}")
-    buffer.seek(0)
-    return buffer.read()
-
-
-# ==================== Endpoints ====================
-@router.post("/", response_model=InvoiceResponseSchema)
-def create_invoice(payload: InvoiceCreateInputSchema):
-    line_items = [
-        {"desc": i.desc, "qty": i.qty, "unit_price": i.unit_price, "total": i.total}
-        for i in payload.items
-    ]
-
-    inv = Invoice.objects.create(
+    # ---- Save to Django model ----
+    django_invoice = Invoice(
         date=payload.date,
         patient_name=payload.patient_name,
         patient_id=payload.patient_id,
         department=payload.department,
-        amount=payload.amount,
+        amount=grand_total,
         payment_method=payload.payment_method,
         status=payload.status,
         admission_date=payload.admission_date,
         discharge_date=payload.discharge_date,
         doctor=payload.doctor,
-        phone=payload.phone,
-        email=payload.email,
+        phone=patient.phone_number if patient.phone_number else "N/A",
+        email=str(payload.email),
         address=payload.address,
-        invoice_items=line_items,
+        invoice_items=items_data,         # JSONField
         tax_percent=payload.tax_percent,
         transaction_id=payload.transaction_id,
         payment_date=payload.payment_date,
     )
+    django_invoice.save() 
 
-    data = model_to_dict(inv)
-    data["items"] = [
-        ItemSchema(desc=item["desc"], qty=item["qty"], unit_price=item["unit_price"])
-        for item in data.pop("invoice_items", [])
-    ]
-    return InvoiceResponseSchema(**data)
+    # Auto-generate transaction_id if not provided
+    if not django_invoice.transaction_id:
+        django_invoice.transaction_id = f"TXN{str(django_invoice.invoice_id).zfill(6)}"
+        django_invoice.save(update_fields=["transaction_id"])
 
-
-@router.get("/{invoice_id}/pdf")
-def download_pdf(invoice_id: str):
+    # ---- Render HTML template ----
     try:
-        inv = Invoice.objects.get(invoice_id=invoice_id)
-    except Invoice.DoesNotExist:
-        raise HTTPException(404, "Invoice not found")
+        template = env.get_template("invoice_template.html")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Template error: {e}")
 
-    line_items = inv.invoice_items
-    subtotal = sum(i["total"] for i in line_items)
-    tax = round(subtotal * float(inv.tax_percent) / 100, 2)
+    # Pass all data to the template
+    html_string = template.render(
+        invoice_number=django_invoice.invoice_id, 
+        invoice=django_invoice,
+        subtotal=subtotal,
+        tax_amount=tax_amount,
+        grand_total=grand_total,
+        amount_in_words=amount_to_words(grand_total), # Converts number to words
+        transaction_id=django_invoice.transaction_id,
 
-    template_data = {
-        "invoice": {
-            "invoice_id": inv.invoice_id,
-            "date": inv.date,
-            "patient_name": inv.patient_name,
-            "patient_id": inv.patient_id,
-            "department": inv.department,
-            "amount": float(inv.amount),
-            "payment_method": inv.payment_method,
-            "status": inv.status,
-            "admission_date": inv.admission_date,
-            "discharge_date": inv.discharge_date,
-            "doctor": inv.doctor,
-            "phone": inv.phone,
-            "email": inv.email,
-            "address": inv.address,
-            "items": line_items,
-            "tax_percent": float(inv.tax_percent),
-            "subtotal": subtotal,
-            "tax": tax,
-            "amount_in_words": number_to_words(float(inv.amount)),
-            "transaction_id": inv.transaction_id or "N/A",
-            "payment_date": inv.payment_date or "N/A",
-        }
-    }
+        # Date Formatting
+        invoice_date_display=django_invoice.date.strftime("%B %d, %Y"),
+        admission_date_display=django_invoice.admission_date.strftime("%d-%m-%Y"),
+        discharge_date_display=django_invoice.discharge_date.strftime("%d-%m-%Y")
+            if django_invoice.discharge_date else "-",
 
-    # ✅ Generate PDF
-    pdf_bytes = render_pdf(template_data)
+        # Address Formatting
+        invoice_address_html=django_invoice.address.replace("\n", "<br/>") if django_invoice.address else "",
+    )
 
-    # ✅ Save PDF file
-    current_dir = Path(__file__).resolve().parent
-    output_dir = current_dir / "generated_invoices"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    # Define PDF filename
+    pdf_filename = f"HS_invoice_{django_invoice.invoice_id}.pdf"
+    pdf_path = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
 
-    pdf_filename = f"invoice_{invoice_id}.pdf"
-    output_path = output_dir / pdf_filename
+    # Generate PDF
+    try:
+        # base_url=APP_DIR allows WeasyPrint to find the 'invoices_statics' folder
+        HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
 
-    with open(output_path, "wb") as f:
-        f.write(pdf_bytes)
+    # Update model with PDF path
+    django_invoice.pdf_file.name = f"invoices_generator/{pdf_filename}"
+    django_invoice.save(update_fields=["pdf_file"])
 
-    # ✅ Save path in DB if not saved
-    if not inv.pdf_file:
-        inv.pdf_file.save(pdf_filename, ContentFile(pdf_bytes))
-        inv.save()
-
-    # ✅ Return response
-    return StreamingResponse(
-        io.BytesIO(pdf_bytes),
+    return FileResponse(
+        pdf_path,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{pdf_filename}"'}
+        filename=pdf_filename,
     )

@@ -25,20 +25,38 @@ body {
 }
 
 /* ================================
-   FIXED A4 PAGE HEIGHT (Option A)
+   FIXED A4 PAGE HEIGHT
    ================================ */
 .a4 {
     width: 794px;
-    min-height: 1123px;
+    height: 1123px; /* Fixed A4 Height */
     position: relative;
     margin: 0 auto;
     background: white;
-    padding-bottom: 0;
     box-sizing: border-box;
     page-break-after: always;
+    overflow: hidden; 
 }
 .a4:last-child {
     page-break-after: auto;
+}
+
+/* ================================
+   WATERMARK (CENTER OF PAGE)
+   ================================ */
+.a4::before {
+    content: "";
+    position: absolute;
+    top: 15%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* Centered Watermark */
+    background: url("images/stackly_logo.png") no-repeat center center;
+    background-size: 450px;
+    opacity: 0.28;
+    z-index: 0;
+    pointer-events: none;
 }
 
 /* Reserve space above footer so content doesn’t go under it */
@@ -46,10 +64,12 @@ body {
     min-height: 100%;
     box-sizing: border-box;
     padding-bottom: 120px; /* ≈ footer height */
+    position: relative;
+    z-index: 2; /* Content sits above watermark */
 }
 
 /* ==========================================================
-   HEADER (Left dark green block + Right ribbon with diamond)
+   HEADER
    ========================================================== */
 
 .header-wrapper {
@@ -101,8 +121,7 @@ body {
     width: 13px;
 }
 
-/* ------------------ RIGHT RIBBON WITH DIAMOND CUT ------------------ */
-
+/* RIGHT RIBBON */
 .header-right {
     position: relative;
 }
@@ -115,7 +134,6 @@ body {
     margin-bottom: 10px;
 }
 
-/* H1 – perfect horizontal diamond cut */
 .ribbon::after {
     content: "";
     position: absolute;
@@ -171,6 +189,8 @@ body {
     border: 2px solid var(--green-mid);
     border-top: none;
     border-radius: 0 0 10px 10px;
+    /* Semi-transparent white so watermark shows through slightly */
+    background: rgba(255, 255, 255, 0.85); 
 }
 
 .patient-row {
@@ -199,7 +219,7 @@ body {
 }
 
 /* ==========================================================
-   MEDICINE & DRUGS TITLE 
+   MEDICINE TITLE 
    ========================================================== */
 
 .med-title-wrap {
@@ -237,20 +257,8 @@ body {
     border-radius: 6px;
     overflow: hidden;
     position: relative;
-}
-
-/* Watermark */
-.table-wrapper::before {
-    content: "";
-    background: url("images/stackly_logo.png") no-repeat center;
-    background-size: 270px;
-    opacity: 0.16;
-    position: absolute;
-    top: 40px;
-    left: 0;
-    width: 100%;
-    height: 85%;
-    z-index: 0;
+    /* Semi-transparent white background */
+    background: rgba(255, 255, 255, 0.6); 
 }
 
 /* MAIN TABLE */
@@ -334,9 +342,12 @@ body {
    TOTAL SECTION — ONLY LAST PAGE
    ========================================================== */
 
+/* UPDATED: White background with transparency 
+*/
 .amount-bar {
     margin: 10px 22px 0 22px;
-    background: var(--green-light);
+    /* Was --green-light, now White Transparent */
+    /* background: rgba(255, 255, 255, 0.85);  */
     border-left: 6px solid var(--green-mid);
     padding: 7px 12px;
     font-size: 12px;
@@ -416,7 +427,9 @@ body {
     text-align: right;
 }
 
-/* GENERATED INFO */
+/* UPDATED: Generated Info Box 
+   White background with transparency
+*/
 .generated-box {
     width: 86%;
     margin: 16px auto 0 auto;
@@ -426,29 +439,9 @@ body {
     text-align: center;
     font-size: 11.5px;
     font-weight: 600;
-    background: #FBFBFB;
+    /* Was #FBFBFB, now White Transparent */
+    /* background: rgba(255, 255, 255, 0.85); */
     line-height: 1.40;
-}
-
-/* ==========================================================
-   A4 + PAGE-INNER (FOOTER ONLY ON LAST PAGE)
-   ========================================================== */
-
-.a4 {
-    width: 794px;
-    height: 1123px;
-    position: relative;
-    background: white;
-    margin: 0 auto;
-    box-sizing: border-box;
-}
-
-/* inner content space reserved for footer (if present) */
-.page-inner {
-    position: relative;
-    height: 100%;
-    padding-bottom: 120px; /* footer height space */
-    box-sizing: border-box;
 }
 
 /* FOOTER STRIP */
@@ -466,6 +459,7 @@ body {
     position: absolute;
     bottom: 0;
     left: 0;
+    z-index: 10;
 }
 
 .footer-strip div {
@@ -480,9 +474,7 @@ body {
 <body>
 
 {# =========================================
-   PAGINATION LOGIC:
-   - First page: 15 items
-   - Next pages: 21 items
+   PAGINATION LOGIC
    ========================================= #}
 
 {% set first_page_size = 15 %}
@@ -493,10 +485,8 @@ body {
 <div class="a4">
   <div class="page-inner">
 
-    <!-- ==================== HEADER FIRST PAGE ==================== -->
     <div class="header-wrapper">
 
-        <!-- LEFT BRAND BLOCK -->
         <div class="header-left">
             <img src="images/stackly_logo.png" alt="logo">
 
@@ -519,7 +509,6 @@ body {
             </div>
         </div>
 
-        <!-- RIGHT SIDE -->
         <div class="header-right">
 
             <div class="ribbon"></div>
@@ -550,7 +539,6 @@ body {
         </div>
     </div>
 
-    <!-- ==================== PATIENT BOX ==================== -->
     <div class="patient-box">
         <div class="patient-row">
 
@@ -582,7 +570,6 @@ body {
         </div>
     </div>
 
-    <!-- FIRST PAGE TITLE -->
     <div class="med-title-wrap">
         <div class="med-title">Medicine &amp; Drugs</div>
     </div>
@@ -606,7 +593,6 @@ body {
             <tbody>
             {% for item in first_page_items %}
             <tr>
-                <!-- Global S.no for first page -->
                 <td class="col-center">{{ loop.index }}</td>
 
                 <td class="col-left">
@@ -668,9 +654,7 @@ body {
 
     {% endif %}
 
-  </div> <!-- end .page-inner -->
-
-  {# FOOTER ONLY IF SINGLE-PAGE INVOICE #}
+  </div> {# FOOTER ONLY IF SINGLE-PAGE INVOICE #}
   {% if total_items <= first_page_size %}
   <div class="footer-strip">
       <div>Online consultation 24/7</div>
@@ -679,9 +663,7 @@ body {
   </div>
   {% endif %}
 
-</div>  <!-- end FIRST PAGE -->
-
-{# ---------- REMAINING PAGES IF MORE THAN 15 ITEMS ---------- #}
+</div>  {# ---------- REMAINING PAGES IF MORE THAN 15 ITEMS ---------- #}
 {% if total_items > first_page_size %}
 
     {% set remaining_items = items[first_page_size:] %}
@@ -780,9 +762,7 @@ body {
 
     {% endif %}
 
-  </div> <!-- end .page-inner -->
-
-  {# FOOTER ONLY ON LAST OVERALL PAGE (multi-page case) #}
+  </div> {# FOOTER ONLY ON LAST OVERALL PAGE (multi-page case) #}
   {% if page_no == remaining_pages - 1 %}
   <div class="footer-strip">
       <div>Online consultation 24/7</div>
@@ -791,9 +771,7 @@ body {
   </div>
   {% endif %}
 
-</div>  <!-- end .a4 for remaining pages -->
-
-    {% endfor %}
+</div>  {% endfor %}
 {% endif %}
 
 </body>
