@@ -474,7 +474,7 @@ const API_BASE_URL = "http://localhost:8000";
           </div>
 
           {/* Mail */}
-          <div className="relative" ref={mailRef}>
+          {/* <div className="relative" ref={mailRef}>
             <button
               onClick={toggleMail}
               className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
@@ -556,7 +556,7 @@ const API_BASE_URL = "http://localhost:8000";
                 </div>
               </div>
             )}
-          </div>
+          </div> */}
 
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
 

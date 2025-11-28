@@ -5,7 +5,6 @@ import { successToast, errorToast } from "../../../components/Toast.jsx";
 import {
   Plus,
   Search,
-  MoreHorizontal,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -92,7 +91,6 @@ const LabReport = () => {
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [selectedOrderForEdit, setSelectedOrderForEdit] = useState(null);
-  const [showActionMenu, setShowActionMenu] = useState(null);
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [selectedOrderForDelete, setSelectedOrderForDelete] = useState(null);
   const [formData, setFormData] = useState({
@@ -107,9 +105,6 @@ const LabReport = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const itemsPerPage = 15;
-
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
 
   // === Status colors ===
   const statusColors = {
@@ -348,10 +343,6 @@ const LabReport = () => {
     }
   };
 
-  const toggleActionMenu = (id, buttonEl) => {
-    setShowActionMenu(showActionMenu === id ? null : id);
-  };
-
   const openEditPopup = (order) => {
     setSelectedOrderForEdit(order);
     setFormData({
@@ -362,13 +353,11 @@ const LabReport = () => {
       status: order.status,
     });
     setShowEditPopup(true);
-    setShowActionMenu(null);
   };
 
   const openDeletePopup = (order) => {
     setSelectedOrderForDelete(order);
     setShowDeletePopup(true);
-    setShowActionMenu(null);
   };
 
   const validateForm = () => {
@@ -399,31 +388,6 @@ const LabReport = () => {
   const departments = [...new Set(testOrders.map((order) => order.department))];
   const statusOptions = ["All", "pending", "inprogress", "completed"];
   const statusDisplayOptions = ["All", "Pending", "In Progress", "Completed"];
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
-      ) {
-        setShowActionMenu(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showActionMenu]);
-
-  const canOpenDown = (btn) => {
-    if (!btn) return false;
-    const rect = btn.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    return spaceBelow >= 150; // dropdown height
-  };
 
   const [year, setYear] = useState("2025");
   const [month, setMonth] = useState("Aug");
@@ -552,7 +516,7 @@ const LabReport = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
+      {/* <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
         <div className="flex gap-3 flex-wrap md:flex-nowrap">
           <button
             className="flex items-center justify-center gap-2 min-w-[164px] h-[32px] 
@@ -642,7 +606,7 @@ const LabReport = () => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Recent Test Orders & Clear Filters */}
       <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
@@ -785,108 +749,72 @@ const LabReport = () => {
                   </td>
                 </tr>
               ) : (
-                displayedData.map((order, idx) => {
-                  const openDown = idx < displayedData.length - 3;
-                  return (
-                    <tr
-                      key={order.id}
-                      className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                displayedData.map((order, idx) => (
+                  <tr
+                    key={order.id}
+                    className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                  >
+                    <td className="py-3 px-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedOrders.includes(order.id)}
+                        onChange={() => toggleSelectOrder(order.id)}
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                      />
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-800 dark:text-white font-mono">
+                      {order.orderId}
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">
+                      {order.patientName}
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">
+                      {order.patientId}
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">
+                      {order.department}
+                    </td>
+
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">
+                      {order.testType}
+                    </td>
+
+                    <td
+                      className={`py-3 px-4 font-medium ${
+                        statusColors[order.status]
+                      }`}
                     >
-                      <td className="py-3 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => toggleSelectOrder(order.id)}
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                        />
-                      </td>
+                      {statusDisplayMap[order.status]}
+                    </td>
 
-                      <td className="py-3 px-4 text-gray-800 dark:text-white font-mono">
-                        {order.orderId}
-                      </td>
+                    <td className="py-3 px-4 text-gray-800 dark:text-white">
+                      {order.createdAt
+                        ? new Date(order.createdAt).toLocaleDateString()
+                        : "N/A"}
+                    </td>
 
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.patientName}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.patientId}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.department}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.testType}
-                      </td>
-
-                      <td
-                        className={`py-3 px-4 font-medium ${
-                          statusColors[order.status]
-                        }`}
-                      >
-                        {statusDisplayMap[order.status]}
-                      </td>
-
-                      <td className="py-3 px-4 text-gray-800 dark:text-white">
-                        {order.createdAt
-                          ? new Date(order.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-
-                      {/* ✅ SIMPLE FIX - Using higher z-index and proper positioning */}
-                      <td className="py-3 px-4 relative">
-                        <div className="flex justify-center">
-                          <button
-                            ref={showActionMenu === order.id ? buttonRef : null}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleActionMenu(order.id, e.currentTarget);
-                            }}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors relative z-10"
-                          >
-                            <MoreHorizontal className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                          </button>
-                        </div>
-
-                        {showActionMenu === order.id && (
-                          <div
-                            ref={menuRef}
-                            className="absolute z-[1000] min-w-[160px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3A3A3A] rounded-lg shadow-xl right-4"
-                            style={{
-                              ...(openDown
-                                ? { top: "100%", marginTop: "4px" }
-                                : { bottom: "100%", marginBottom: "4px" }),
-                            }}
-                          >
-                            <button
-                              onClick={() => {
-                                openEditPopup(order);
-                                setShowActionMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] w-full text-left rounded-t-lg transition-colors"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              Edit
-                            </button>
-
-                            <button
-                              onClick={() => {
-                                openDeletePopup(order);
-                                setShowActionMenu(null);
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-[#FF4D4D1A] dark:hover:bg-[#FF4D4D33] w-full text-left rounded-b-lg transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEditPopup(order)}
+                          className="p-1 rounded hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] transition-colors text-[#08994A] dark:text-[#0EFF7B]"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openDeletePopup(order)}
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
@@ -894,7 +822,7 @@ const LabReport = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-[#000000] rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
+      <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
         <div className="text-sm text-gray-600 dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
