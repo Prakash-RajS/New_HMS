@@ -222,25 +222,22 @@ import sys
 # ----------------- Django setup -----------------
 import django
 
-# Adjust path to point to NEW_HMS-main
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(BASE_DIR)
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
 django.setup()
 
-from HMS_backend.models import Invoice, Patient
+from HMS_backend.models import HospitalInvoiceHistory, Patient
 
-# ----------------- Path Setup -----------------
-# APP_DIR = fastapi_app/
+# ----------------- Paths -----------------
 APP_DIR = os.path.join(BASE_DIR, "fastapi_app")
 TEMPLATE_DIR = os.path.join(APP_DIR, "frontend")
 PDF_OUTPUT_DIR = os.path.join(APP_DIR, "invoices_generator")
 
-# Ensure output directory exists
 os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
 
-# ----------------- Jinja2 setup -----------------
+# ----------------- Jinja2 -----------------
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 env = Environment(
@@ -252,12 +249,10 @@ env = Environment(
 from weasyprint import HTML
 
 # ----------------- Num2Words -----------------
-# INSTALL: pip install num2words
 try:
     from num2words import num2words
-except ImportError:
+except:
     num2words = None
-    print("WARNING: num2words library not found. Run 'pip install num2words'")
 
 router = APIRouter()
 
@@ -268,7 +263,6 @@ class InvoiceItemIn(BaseModel):
     description: str
     quantity: int
     unit_price: Decimal
-
 
 class InvoiceCreateIn(BaseModel):
     date: date
@@ -294,53 +288,46 @@ class InvoiceCreateIn(BaseModel):
 # ===================== Helper =====================
 
 def amount_to_words(amount: Decimal) -> str:
-    """
-    Converts numeric amount to words using num2words library.
-    Example: 1829 -> "One Thousand Eight Hundred Twenty-Nine Only"
-    """
     if num2words:
         try:
-            words = num2words(amount, lang='en')
-            return f"{words.title()} Only"
-        except Exception as e:
-            print(f"Error converting words: {e}")
+            return f"{num2words(amount, lang='en').title()} Only"
+        except:
             return f"{amount} Only"
-    else:
-        return f"{amount} Only"
+    return f"{amount} Only"
 
 
 # ===================== API =====================
+
 @router.post("/hospital-invoices/generate", response_class=FileResponse)
 def generate_invoice_pdf(payload: InvoiceCreateIn):
+
     if not payload.invoice_items:
         raise HTTPException(status_code=400, detail="At least one invoice item is required.")
 
-    # Fetch patient to get phone number
+    # Fetch patient
     try:
         patient = Patient.objects.get(patient_unique_id=payload.patient_id)
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found")
 
     # ---- Calculations ----
-    subtotal = sum(
-        (item.quantity * item.unit_price for item in payload.invoice_items),
-        Decimal("0.00")
-    )
+    subtotal = sum((item.quantity * item.unit_price for item in payload.invoice_items), Decimal("0.00"))
     tax_amount = (subtotal * payload.tax_percent / Decimal("100")).quantize(Decimal("0.01"))
     grand_total = (subtotal + tax_amount).quantize(Decimal("0"))
 
-    # ---- Build JSON-safe invoice_items ----
-    items_data = []
-    for item in payload.invoice_items:
-        items_data.append({
-            "description": item.description,
-            "quantity": int(item.quantity),
-            "unit_price": float(item.unit_price),
-            "total": float(item.quantity * item.unit_price),
-        })
+    # Convert items to JSON-serializable
+    items_data = [
+        {
+            "description": i.description,
+            "quantity": int(i.quantity),
+            "unit_price": float(i.unit_price),
+            "total": float(i.quantity * i.unit_price)
+        }
+        for i in payload.invoice_items
+    ]
 
-    # ---- Save to Django model ----
-    django_invoice = Invoice(
+    # ---- Save invoice ----
+    invoice = HospitalInvoiceHistory(
         date=payload.date,
         patient_name=payload.patient_name,
         patient_id=payload.patient_id,
@@ -348,67 +335,56 @@ def generate_invoice_pdf(payload: InvoiceCreateIn):
         amount=grand_total,
         payment_method=payload.payment_method,
         status=payload.status,
+
         admission_date=payload.admission_date,
         discharge_date=payload.discharge_date,
         doctor=payload.doctor,
         phone=patient.phone_number if patient.phone_number else "N/A",
         email=str(payload.email),
         address=payload.address,
-        invoice_items=items_data,         # JSONField
+
+        invoice_items=items_data,
         tax_percent=payload.tax_percent,
         transaction_id=payload.transaction_id,
         payment_date=payload.payment_date,
     )
-    django_invoice.save() 
+    invoice.save()
 
-    # Auto-generate transaction_id if not provided
-    if not django_invoice.transaction_id:
-        django_invoice.transaction_id = f"TXN{str(django_invoice.invoice_id).zfill(6)}"
-        django_invoice.save(update_fields=["transaction_id"])
+    # Auto-generate transaction ID if missing
+    if not invoice.transaction_id:
+        invoice.transaction_id = f"TXN_{invoice.invoice_id}"
+        invoice.save(update_fields=["transaction_id"])
 
-    # ---- Render HTML template ----
-    try:
-        template = env.get_template("invoice_template.html")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Template error: {e}")
-
-    # Pass all data to the template
+    # ---- Render HTML ----
+    template = env.get_template("invoice_template.html")
     html_string = template.render(
-        invoice_number=django_invoice.invoice_id, 
-        invoice=django_invoice,
+        invoice_number=invoice.invoice_id,
+        invoice=invoice,
         subtotal=subtotal,
         tax_amount=tax_amount,
         grand_total=grand_total,
-        amount_in_words=amount_to_words(grand_total), # Converts number to words
-        transaction_id=django_invoice.transaction_id,
+        amount_in_words=amount_to_words(grand_total),
+        transaction_id=invoice.transaction_id,
 
-        # Date Formatting
-        invoice_date_display=django_invoice.date.strftime("%B %d, %Y"),
-        admission_date_display=django_invoice.admission_date.strftime("%d-%m-%Y"),
-        discharge_date_display=django_invoice.discharge_date.strftime("%d-%m-%Y")
-            if django_invoice.discharge_date else "-",
-
-        # Address Formatting
-        invoice_address_html=django_invoice.address.replace("\n", "<br/>") if django_invoice.address else "",
+        invoice_date_display=invoice.date.strftime("%B %d, %Y"),
+        admission_date_display=invoice.admission_date.strftime("%d-%m-%Y"),
+        discharge_date_display=invoice.discharge_date.strftime("%d-%m-%Y") if invoice.discharge_date else "-",
+        invoice_address_html=invoice.address.replace("\n", "<br/>"),
     )
 
-    # Define PDF filename
-    pdf_filename = f"HS_invoice_{django_invoice.invoice_id}.pdf"
+    # ---- PDF Name (Matches Invoice ID) ----
+    pdf_filename = f"{invoice.invoice_id}.pdf"
     pdf_path = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
 
-    # Generate PDF
-    try:
-        # base_url=APP_DIR allows WeasyPrint to find the 'invoices_statics' folder
-        HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+    # ---- Generate PDF ----
+    HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
 
-    # Update model with PDF path
-    django_invoice.pdf_file.name = f"invoices_generator/{pdf_filename}"
-    django_invoice.save(update_fields=["pdf_file"])
+    invoice.pdf_file.name = f"invoices_generator/{pdf_filename}"
+    invoice.save(update_fields=["pdf_file"])
 
     return FileResponse(
         pdf_path,
         media_type="application/pdf",
-        filename=pdf_filename,
+        filename=pdf_filename
     )
+

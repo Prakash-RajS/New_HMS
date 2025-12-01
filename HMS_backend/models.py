@@ -889,7 +889,9 @@ class MedicineAllocation(models.Model):
     def __str__(self):
         return f"{self.medicine_name} for {self.patient.full_name} ({self.allocation_date})"
     
-class Invoice(models.Model):
+# HMS_backend/models.py
+
+class HospitalInvoiceHistory(models.Model):
     STATUS_CHOICES = [
         ("Paid", "Paid"),
         ("Unpaid", "Unpaid"),
@@ -907,12 +909,12 @@ class Invoice(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
 
     # ---- Extra fields ----
-    admission_date = models.DateField(default=timezone.now)  # ✅ Default for old data
+    admission_date = models.DateField(default=timezone.now)
     discharge_date = models.DateField(null=True, blank=True)
     doctor = models.CharField(max_length=100, default="N/A")
     phone = models.CharField(max_length=20, default="N/A")
     email = models.CharField(max_length=100, default="N/A")
-    address = models.TextField(default="N/A")  # ✅ Default value
+    address = models.TextField(default="N/A")
 
     invoice_items = models.JSONField(default=list)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=18.0)
@@ -923,7 +925,7 @@ class Invoice(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "invoices"
+        db_table = "hospital_invoice_history"
         ordering = ["-date", "-created_at"]
 
     def __str__(self):
@@ -931,13 +933,15 @@ class Invoice(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_id:
-            last = Invoice.objects.order_by('-id').first()
-            if last and last.invoice_id.startswith('INV'):
-                num = int(last.invoice_id[3:]) + 1
+            last = HospitalInvoiceHistory.objects.order_by('-id').first()
+            if last and last.invoice_id.startswith("HS_INV_"):
+                num = int(last.invoice_id.split("_")[-1]) + 1
             else:
                 num = 1
-            self.invoice_id = f"INV{num:04d}"
+            self.invoice_id = f"HS_INV_{num:04d}"
         super().save(*args, **kwargs)
+
+
         
 class PharmacyInvoiceHistory(models.Model):
     """Main invoice table for pharmacy billing"""

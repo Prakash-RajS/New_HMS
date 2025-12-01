@@ -46,7 +46,7 @@ const DepartmentList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [menuOpenFor, setMenuOpenFor] = useState(null);
   const [bulkStatus, setBulkStatus] = useState(null);
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortOrder, setSortOrder] = useState("A-to-Z");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,113 +83,52 @@ const DepartmentList = () => {
     }
   }, []);
 
-  const updateDepartmentStatus = useCallback(
-    async (departmentId, newStatus) => {
-      try {
-        const response = await fetch(
-          `${API_BASE}/departments/${departmentId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              status: newStatus.toLowerCase(),
-            }),
-          }
-        );
-        if (!response.ok) {
-          throw new Error("Failed to update status");
-        }
-        await fetchDepartments(); // Refresh list
-      } catch (err) {
-        console.error("Update error:", err);
-      }
-    },
-    [fetchDepartments]
-  );
-
-  const deleteDepartment = useCallback(
-    async (departmentId, departmentName = "Department") => {
-      try {
-        const response = await fetch(
-          `${API_BASE}/departments/${departmentId}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-
-          if (response.status === 409) {
-            // Department has references - show helpful message
-            errorToast(
-              errorData.detail ||
-                "This department cannot be deleted because it is being used by other records. Please reassign those records first."
-            );
-            throw new Error(errorData.detail || "Department has references");
-          } else if (response.status === 404) {
-            errorToast("Department not found.");
-            throw new Error("Department not found");
-          } else {
-            errorToast(errorData.detail || "Failed to delete department.");
-            throw new Error(errorData.detail || "Failed to delete department");
-          }
-        }
-
-        const result = await response.json();
-        successToast(
-          result.message || `"${departmentName}" deleted successfully!`
-        );
-
-        // Refresh list
-        await fetchDepartments();
-      } catch (err) {
-        // Only show toast if not already shown above
-        if (
-          !err.message.includes("references") &&
-          !err.message.includes("not found")
-        ) {
-          errorToast("Network error. Please try again.");
-        }
-        console.error("Delete error:", err);
-        throw err; // Re-throw to let the caller handle it
-      }
-    },
-    [fetchDepartments]
-  );
-
-  // Enhanced delete function with reference check
-  const handleDeleteWithCheck = async (department) => {
+  const updateDepartmentStatus = useCallback(async (departmentId, newStatus) => {
     try {
-      // Check references first
-      const response = await fetch(
-        `${API_BASE}/departments/${department.id}/references`
-      );
-      if (response.ok) {
-        const referenceCheck = await response.json();
+      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: newStatus.toLowerCase(),
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+      await fetchDepartments(); // Refresh list
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  }, [fetchDepartments]);
 
-        if (!referenceCheck.can_delete) {
-          // Show detailed warning about what's referencing the department
-          const referenceDetails = Object.entries(referenceCheck.references)
-            .map(([model, count]) => `${count} ${model.replace("_", " ")}`)
-            .join(", ");
+  const deleteDepartment = useCallback(async (departmentId, departmentName = "Department") => {
+    try {
+      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
+        method: "DELETE",
+      });
 
-          errorToast(
-            `Cannot delete "${department.name}". It is referenced by: ${referenceDetails}. ` +
-              `Please reassign these records to another department first.`
-          );
-          return;
+      if (!response.ok) {
+        if (response.status === 404) {
+          errorToast("Department not found.");
+          throw new Error("Department not found");
         }
+        errorToast("Failed to delete department.");
+        throw new Error("Failed to delete department");
       }
 
-      // If no references or user confirms, proceed with deletion
-      await deleteDepartment(department.id, department.name);
-    } catch (error) {
-      console.error("Error checking references:", error);
-      // If reference check fails, proceed with deletion and let the backend handle it
-      await deleteDepartment(department.id, department.name);
+      // SUCCESS TOAST
+      successToast(`"${departmentName}" deleted successfully!`);
+
+      // Refresh list
+      await fetchDepartments();
+    } catch (err) {
+      // Only show toast if not already shown above
+      if (!err.message.includes("not found") && !err.message.includes("delete")) {
+        errorToast("Network error. Please try again.");
+      }
+      console.error("Delete error:", err);
     }
-  };
+  }, [fetchDepartments]);
 
   // Initial fetch
   useEffect(() => {
@@ -198,34 +137,27 @@ const DepartmentList = () => {
 
   // Add Department callback
   const handleAddDepartment = useCallback((newDept) => {
-    setDepartments((prev) => [
-      ...prev,
-      {
-        id: newDept.id,
-        name: newDept.name,
-        description: newDept.description || "",
-        status:
-          newDept.status.charAt(0).toUpperCase() + newDept.status.slice(1),
-      },
-    ]);
+    setDepartments((prev) => [...prev, {
+      id: newDept.id,
+      name: newDept.name,
+      description: newDept.description || "",
+      status: newDept.status.charAt(0).toUpperCase() + newDept.status.slice(1),
+    }]);
   }, []);
 
   // Bulk Status Change
-  const handleBulkStatusChange = useCallback(
-    (newStatus) => {
-      if (selectedDepartments.length === 0) return;
-
-      const updates = selectedDepartments.map((id) =>
-        updateDepartmentStatus(id, newStatus)
-      );
-
-      Promise.all(updates).then(() => {
-        setSelectedDepartments([]);
-        setBulkStatus(null);
-      });
-    },
-    [selectedDepartments, updateDepartmentStatus]
-  );
+  const handleBulkStatusChange = useCallback((newStatus) => {
+    if (selectedDepartments.length === 0) return;
+    
+    const updates = selectedDepartments.map(id => 
+      updateDepartmentStatus(id, newStatus)
+    );
+    
+    Promise.all(updates).then(() => {
+      setSelectedDepartments([]);
+      setBulkStatus(null);
+    });
+  }, [selectedDepartments, updateDepartmentStatus]);
 
   const statusColors = {
     Active: "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white",
@@ -314,7 +246,7 @@ const DepartmentList = () => {
   const handleClearFilters = () => {
     setFiltersData({ name: "", status: "" });
     setSortOrder("A-to-Z");
-    setItemsPerPage(8);
+    setItemsPerPage(10);
     setSearchTerm("");
     setCurrentPage(1);
   };
@@ -370,6 +302,13 @@ const DepartmentList = () => {
   const applySettings = () => {
     setCurrentPage(1);
     setShowSettingsPopup(false);
+  };
+
+  // Function to determine dropdown position
+  const getDropdownPosition = (index) => {
+    // For the last 3-4 rows, show dropdown above the button
+    // Since we have 10 rows per page, show above for last 4 rows (index 6,7,8,9)
+    return index >= 6 ? "top" : "bottom";
   };
 
   if (loading) {
@@ -434,8 +373,7 @@ const DepartmentList = () => {
             onClick={() => setShowAddPopup(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300"
             style={{
-              background:
-                "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+              background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
             }}
           >
             <Plus size={18} className="text-white" /> Add Department
@@ -532,8 +470,8 @@ const DepartmentList = () => {
           </button>
         </div>
 
-        {/* Table Container */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-auto">
+        {/* Table Container - Added pb-8 for bottom spacing */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-8">
           <table className="w-full text-left text-sm min-w-[600px]">
             <thead className="bg-[#F5F6F5] dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
               <tr>
@@ -569,6 +507,8 @@ const DepartmentList = () => {
               {currentDepartments.length > 0 ? (
                 currentDepartments.map((dept, idx) => {
                   const IconComponent = departmentIcons[dept.name] || Activity;
+                  const dropdownPosition = getDropdownPosition(idx);
+                  
                   return (
                     <tr
                       key={dept.id}
@@ -591,10 +531,7 @@ const DepartmentList = () => {
                         </div>
                       </td>
                       <td className="font-medium px-4 text-black dark:text-white text-left">
-                        <IconComponent
-                          size={16}
-                          className="inline mr-2 text-[#08994A]"
-                        />
+                        <IconComponent size={16} className="inline mr-2 text-[#08994A]" />
                         {dept.name}
                       </td>
                       <td className="text-gray-600 dark:text-gray-400 px-4 max-w-xs truncate">
@@ -626,9 +563,9 @@ const DepartmentList = () => {
                         {menuOpenFor === dept.id && (
                           <div
                             className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-white dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${
-                              idx >= currentDepartments.length - 2
-                                ? "bottom-full mb-2"
-                                : "top-full mt-2"
+                              dropdownPosition === "top" 
+                                ? "bottom-full mb-0" 
+                                : "top-full mt-0"
                             }`}
                           >
                             <ul className="py-1">
@@ -683,8 +620,9 @@ const DepartmentList = () => {
               )}
             </tbody>
           </table>
-          {/* Pagination */}
-          <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          
+          {/* Pagination - Reduced top margin from mt-12 to mt-8 */}
+          <div className="flex items-center mt-7 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -735,7 +673,8 @@ const DepartmentList = () => {
         {/* Filter Popup */}
         {showFilterPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+            <div className="relative w-[350px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+              
               {/* Gradient Border */}
               <div
                 style={{
@@ -753,64 +692,58 @@ const DepartmentList = () => {
                   zIndex: 0,
                 }}
               ></div>
+
+              {/* Header */}
               <div className="flex justify-between items-center pb-3 mb-4">
-                <h3 className="text-black dark:text-white font-medium text-[16px]">
-                  Filter
-                </h3>
+                <h3 className="text-black dark:text-white font-medium text-[16px]">Filter</h3>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] 
+                           bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center 
+                           hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] 
+                           hover:text-[#08994A] dark:hover:text-white"
                 >
                   <X size={16} className="text-[#08994A] dark:text-white" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                {/* Department Name */}
-                <div className="flex flex-col w-[228px]">
-                  <label className="text-sm text-black dark:text-white mb-1">
-                    Department Name
-                  </label>
-                  <input
-                    name="name"
-                    value={filtersData.name}
-                    onChange={handleFilterChange}
-                    placeholder="Enter Name"
-                    className="w-full h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] 
-                 dark:border-[#3A3A3A] bg-white dark:bg-transparent 
-                 text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
-                 dark:placeholder-gray-500 outline-none text-sm"
-                  />
-                </div>
 
-                {/* Status Dropdown */}
-                <div className="flex flex-col w-[228px]">
-                  <label className="text-sm text-black dark:text-white mb-1">
-                    Status
-                  </label>
-                  <Dropdown
-                    value={filtersData.status}
-                    onChange={(val) => {
-                      setFiltersData({ ...filtersData, status: val });
-                      setCurrentPage(1);
-                    }}
-                    options={["Active", "Inactive"]}
-                  />
-                </div>
+              {/* Status Filter - Centered */}
+              <div className="flex flex-col items-center w-full">
+                <label className="text-sm text-black dark:text-white mb-1 self-start">
+                  Status
+                </label>
+                <Dropdown
+                  value={filtersData.status}
+                  onChange={(val) => {
+                    setFiltersData({ ...filtersData, status: val });
+                    setCurrentPage(1);
+                  }}
+                  options={["Active", "Inactive"]}
+                />
               </div>
 
-              <div className="flex justify-center gap-6 mt-8">
+              {/* Buttons */}
+              <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-[100px] h-[33px] rounded-[8px] border border-[#0EFF7B] 
+                           dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 
+                           text-black dark:text-white font-medium text-[14px] 
+                           hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] 
+                           hover:text-[#08994A] dark:hover:text-white"
                 >
                   Clear
                 </button>
+
                 <button
                   onClick={() => {
                     setShowFilterPopup(false);
                     setCurrentPage(1);
                   }}
-                  className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  className="w-[120px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] 
+                           dark:border-[#0EFF7B66] px-3 py-2 shadow text-white font-medium text-[14px]
+                           bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A]
+                           hover:scale-105 transition"
                   style={{
                     background:
                       "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
@@ -861,13 +794,7 @@ const DepartmentList = () => {
                   <label className="text-sm text-black dark:text-white">
                     Number of Lines
                   </label>
-                  <Listbox
-                    value={itemsPerPage}
-                    onChange={(v) => {
-                      setItemsPerPage(v);
-                      setCurrentPage(1);
-                    }}
-                  >
+                  <Listbox value={itemsPerPage} onChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}>
                     <div className="relative w-full min-w-0">
                       <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
                         {itemsPerPage}
@@ -875,8 +802,10 @@ const DepartmentList = () => {
                           <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                         </span>
                       </Listbox.Button>
-                      <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((option) => (
+                      <Listbox.Options 
+                        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
+                      >
+                        {[5, 6, 7, 8, 9, 10, 11, 12].map((option) => (
                           <Listbox.Option
                             key={option}
                             value={option}
@@ -902,9 +831,7 @@ const DepartmentList = () => {
 
                 {/* Order Dropdown */}
                 <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Order
-                  </label>
+                  <label className="text-sm text-black dark:text-white">Order</label>
                   <Dropdown
                     value={sortOrder}
                     onChange={(v) => {
@@ -930,8 +857,7 @@ const DepartmentList = () => {
                   onClick={applySettings}
                   className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{
-                    background:
-                      "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
                   }}
                 >
                   Apply
@@ -943,8 +869,8 @@ const DepartmentList = () => {
 
         {/* Popups */}
         {showAddPopup && (
-          <AddDepartmentPopup
-            onClose={() => setShowAddPopup(false)}
+          <AddDepartmentPopup 
+            onClose={() => setShowAddPopup(false)} 
             onSave={handleAddDepartment}
           />
         )}
@@ -960,7 +886,7 @@ const DepartmentList = () => {
             onClose={() => setShowDeletePopup(false)}
             department={selectedDepartment}
             onConfirm={() => {
-              handleDeleteWithCheck(selectedDepartment);
+              deleteDepartment(selectedDepartment.id);
               setShowDeletePopup(false);
             }}
           />

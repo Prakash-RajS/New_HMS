@@ -19,7 +19,7 @@ from HMS_backend.models import User
 # ==============================
 SECRET_KEY = "super_secret_123"  # same key used across all files
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 180
 
 # OAuth2 scheme to extract token from header
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
