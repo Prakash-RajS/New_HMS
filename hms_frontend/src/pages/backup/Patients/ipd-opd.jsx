@@ -4,11 +4,11 @@
 //   Search,
 //   Filter,
 //   Plus,
+//   Edit2,
 //   Trash2,
 //   X,
 //   ChevronDown,
 //   Calendar,
-//   Edit2,
 //   ChevronLeft,
 //   ChevronRight,
 // } from "lucide-react";
@@ -16,8 +16,8 @@
 // import EditPatient from "./EditPatient";
 // import DeletePatient from "./DeletePatient";
 
-// const AppointmentListOPD = () => {
-//   const [activeMainTab, setActiveMainTab] = useState("Out-Patients");
+// const AppointmentListIPD = () => {
+//   const [activeMainTab, setActiveMainTab] = useState("In-Patients");
 //   const [activeFilter, setActiveFilter] = useState("All");
 //   const [selectedAppointments, setSelectedAppointments] = useState([]);
 //   const [selectedAppointment, setSelectedAppointment] = useState(null);
@@ -34,8 +34,6 @@
 //     patientId: "",
 //     department: "",
 //     doctor: "",
-//     room: "",
-//     treatment: "",
 //     status: "",
 //     date: "",
 //   });
@@ -47,34 +45,34 @@
 //     {
 //       patient: "Prakash",
 //       date: "2025-07-12",
-//       time: "10:30 AM",
 //       patientId: "SAH257384",
 //       department: "Orthopedics",
 //       doctor: "Dr.Sravan",
 //       room: "RM 305",
 //       treatment: "Physiotherapy",
+//       discharge: "Pending",
 //       status: "Completed",
 //     },
 //     {
 //       patient: "Sravan",
 //       date: "2025-07-12",
-//       time: "11:00 AM",
 //       patientId: "SAH257385",
 //       department: "Neurology",
 //       doctor: "Dr.Naveen",
 //       room: "RM 405",
 //       treatment: "Medication",
+//       discharge: "In-progress",
 //       status: "Severe",
 //     },
 //     {
 //       patient: "Prakash",
 //       date: "2025-07-12",
-//       time: "02:00 PM",
 //       patientId: "SAH257386",
 //       department: "Cardiology",
 //       doctor: "Dr.Prakash",
 //       room: "N/A",
 //       treatment: "Surgery",
+//       discharge: "Done",
 //       status: "Cancelled",
 //     },
 //   ];
@@ -126,20 +124,6 @@
 //       if (filtersData.doctor && appt.doctor !== filtersData.doctor) {
 //         return false;
 //       }
-//       if (
-//         filtersData.room &&
-//         !appt.room.toLowerCase().includes(filtersData.room.toLowerCase())
-//       ) {
-//         return false;
-//       }
-//       if (
-//         filtersData.treatment &&
-//         !appt.treatment
-//           .toLowerCase()
-//           .includes(filtersData.treatment.toLowerCase())
-//       ) {
-//         return false;
-//       }
 //       if (filtersData.status && appt.status !== filtersData.status) {
 //         return false;
 //       }
@@ -165,16 +149,7 @@
 //     if (selectedAppointments.length === filteredAppointments.length) {
 //       setSelectedAppointments([]);
 //     } else {
-//       const startIndex = (currentPage - 1) * itemsPerPage;
-//       const endIndex = Math.min(
-//         startIndex + itemsPerPage,
-//         filteredAppointments.length
-//       );
-//       const pageIndices = Array.from(
-//         { length: endIndex - startIndex },
-//         (_, i) => startIndex + i
-//       );
-//       setSelectedAppointments(pageIndices);
+//       setSelectedAppointments(filteredAppointments.map((_, idx) => idx));
 //     }
 //   };
 
@@ -195,8 +170,6 @@
 //       patientId: "",
 //       department: "",
 //       doctor: "",
-//       room: "",
-//       treatment: "",
 //       status: "",
 //       date: "",
 //     });
@@ -223,7 +196,7 @@
 //               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
 //             </span>
 //           </Listbox.Button>
-//           <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+//           <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
 //             {options.map((option, idx) => (
 //               <Listbox.Option
 //                 key={idx}
@@ -249,9 +222,7 @@
 //   );
 
 //   return (
-//     <div
-//       className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
-//     >
+//     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
 //         style={{
@@ -281,7 +252,7 @@
 //       {/* Header */}
 //       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
 //         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-//           OPD - Patient Lists
+//           IPD - Patient Lists
 //         </h2>
 //         <button
 //           onClick={() => navigate("/patients/new-registration")}
@@ -337,8 +308,8 @@
 //                     : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
 //                 }`}
 //               onClick={() =>
-//                 tab === "In-Patients"
-//                   ? navigate("/patients/ipd-opd")
+//                 tab === "Out-Patients"
+//                   ? navigate("/patients/out-patients")
 //                   : setActiveMainTab(tab)
 //               }
 //             >
@@ -349,7 +320,7 @@
 
 //         {/* Search and Filter */}
 //         <div className="flex gap-4">
-//           <div className="flex items-center font-[Helvetica] w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
+//           <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
 //             <Search size={18} className="text-green-600 dark:text-green-400" />
 //             <input
 //               type="text"
@@ -359,14 +330,12 @@
 //               className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-48 leading-none tracking-normal"
 //             />
 //           </div>
-//           <div className="rounded-[8px] p-[1px] bg-gradient-to-b from-[#0EFF7B] to-[#08994A] shadow-[0_0_20px_0px_#00000066] dark:shadow-[0_0_20px_0_#FFFFFF33]">
-//             <button
-//               onClick={() => setShowFilterPopup(true)}
-//               className="h-[32px] w-[32px] rounded-[7px] bg-gray-100 dark:bg-[#1E1E1E] hover:bg-green-200 dark:hover:bg-green-900 transition-colors duration-200 flex items-center justify-center"
-//             >
-//               <Filter size={18} className="text-green-600 dark:text-green-400" />
-//             </button>
-//           </div>
+//           <button
+//             onClick={() => setShowFilterPopup(true)}
+//             className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
+//           >
+//             <Filter size={18} className="text-green-600 dark:text-green-400" />
+//           </button>
 //         </div>
 //       </div>
 
@@ -376,7 +345,7 @@
 //           {filters.map((f) => (
 //             <button
 //               key={f}
-//               className={`relative min-w-[162px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] gradient-border
+//               className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
 //                 ${
 //                   activeFilter === f
 //                     ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
@@ -390,7 +359,7 @@
 //         </div>
 //       </div>
 
-//       {/* Table */}
+//       {/* === TABLE === */}
 //       <div className="overflow-x-auto">
 //         <table className="w-full text-left text-sm">
 //           <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
@@ -401,11 +370,7 @@
 //                   className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
 //                   checked={
 //                     filteredAppointments.length > 0 &&
-//                     currentAppointments.every((_, idx) =>
-//                       selectedAppointments.includes(
-//                         (currentPage - 1) * itemsPerPage + idx
-//                       )
-//                     )
+//                     selectedAppointments.length === filteredAppointments.length
 //                   }
 //                   onChange={handleSelectAll}
 //                 />
@@ -416,7 +381,7 @@
 //               <th>Doctor</th>
 //               <th>Room no</th>
 //               <th>Treatment Type</th>
-//               <th>Appointment Date</th>
+//               <th>Discharge Status</th>
 //               <th>Status</th>
 //               <th className="text-center">Edit</th>
 //             </tr>
@@ -460,10 +425,7 @@
 //                       {appt.treatment}
 //                     </td>
 //                     <td className="text-black dark:text-white">
-//                       <div>{appt.date}</div>
-//                       <div className="text-xs text-gray-600 dark:text-gray-400">
-//                         {appt.time}
-//                       </div>
+//                       {appt.discharge}
 //                     </td>
 //                     <td>
 //                       <span
@@ -532,7 +494,7 @@
 //                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
 //             }`}
 //           >
-//             <ChevronLeft size={12} className="text-[#08994A] dark:text-black" />
+//             <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
 //           </button>
 //           <button
 //             onClick={() =>
@@ -547,38 +509,38 @@
 //           >
 //             <ChevronRight
 //               size={12}
-//               className="text-[#08994A] dark:text-black"
+//               className="text-[#08994A] dark:text-white"
 //             />
 //           </button>
 //         </div>
 //       </div>
 
-//       {/* Filter Popup */}
+//       {/* === FILTER POPUP === */}
 //       {showFilterPopup && (
 //         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-//           <div
-//             className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-//           >
+//           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
 //             <div
 //               className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
 //               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-//             >{/* Gradient Border */}
-//   <div
-//     style={{
-//       position: "absolute",
-//       inset: 0,
-//       borderRadius: "20px",
-//       padding: "2px",
-//       background:
-//         "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-//       WebkitMask:
-//         "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-//       WebkitMaskComposite: "xor",
-//       maskComposite: "exclude",
-//       pointerEvents: "none",
-//       zIndex: 0,
-//     }}
-//   ></div>
+//             >
+//               {" "}
+//               {/* Gradient Border */}
+//               <div
+//                 style={{
+//                   position: "absolute",
+//                   inset: 0,
+//                   borderRadius: "20px",
+//                   padding: "2px",
+//                   background:
+//                     "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+//                   WebkitMask:
+//                     "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+//                   WebkitMaskComposite: "xor",
+//                   maskComposite: "exclude",
+//                   pointerEvents: "none",
+//                   zIndex: 0,
+//                 }}
+//               ></div>
 //               <div className="flex justify-between items-center pb-3 mb-4">
 //                 <h3
 //                   className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
@@ -593,7 +555,6 @@
 //                   <X size={16} className="text-black dark:text-white" />
 //                 </button>
 //               </div>
-
 //               {/* Filter Form */}
 //               <div className="grid grid-cols-2 gap-6">
 //                 <div>
@@ -637,6 +598,14 @@
 //                   options={["Orthopedics", "Cardiology", "Neurology"]}
 //                 />
 //                 <Dropdown
+//                   label="Status"
+//                   value={filtersData.status}
+//                   onChange={(val) =>
+//                     setFiltersData({ ...filtersData, status: val })
+//                   }
+//                   options={["Completed", "Severe", "Normal", "Cancelled"]}
+//                 />
+//                 <Dropdown
 //                   label="Doctor"
 //                   value={filtersData.doctor}
 //                   onChange={(val) =>
@@ -648,46 +617,6 @@
 //                     "Dr.Naveen",
 //                     "Dr.Prakash",
 //                   ]}
-//                 />
-//                 <div>
-//                   <label
-//                     className="text-sm text-black dark:text-white"
-//                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-//                   >
-//                     Room No
-//                   </label>
-//                   <input
-//                     name="room"
-//                     value={filtersData.room}
-//                     onChange={handleFilterChange}
-//                     placeholder="enter room number"
-//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-//                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-//                   />
-//                 </div>
-//                 <div>
-//                   <label
-//                     className="text-sm text-black dark:text-white"
-//                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-//                   >
-//                     Treatment Type
-//                   </label>
-//                   <input
-//                     name="treatment"
-//                     value={filtersData.treatment}
-//                     onChange={handleFilterChange}
-//                     placeholder="enter treatment type"
-//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-//                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-//                   />
-//                 </div>
-//                 <Dropdown
-//                   label="Status"
-//                   value={filtersData.status}
-//                   onChange={(val) =>
-//                     setFiltersData({ ...filtersData, status: val })
-//                   }
-//                   options={["Completed", "Severe", "Normal", "Cancelled"]}
 //                 />
 //                 <div>
 //                   <label
@@ -709,7 +638,6 @@
 //                   </div>
 //                 </div>
 //               </div>
-
 //               {/* Buttons */}
 //               <div className="flex justify-center gap-2 mt-8">
 //                 <button
@@ -751,10 +679,9 @@
 //   );
 // };
 
-// export default AppointmentListOPD;
+// export default AppointmentListIPD;
 
-// src/components/AppointmentListOPD.jsx
-// src/components/AppointmentListOPD.jsx
+// src/components/AppointmentListIPD.jsx
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -771,12 +698,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import EditPatientPopup from "./EditPatient";
+import EditPatientPopup from "./EditPatient"; // <-- Updated import
 import DeletePatient from "./DeletePatient";
+import { successToast, errorToast } from "../../components/Toast.jsx";
 
 const API = "http://localhost:8000";
 
-const AppointmentListOPD = () => {
+const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -785,7 +713,7 @@ const AppointmentListOPD = () => {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const [activeTab, setActiveTab] = useState("Out-Patients");
+  const [activeTab, setActiveTab] = useState("In-Patients");
   const [activeFilter, setActiveFilter] = useState("All");
   const [selected, setSelected] = useState([]);
   const [selAppt, setSelAppt] = useState(null);
@@ -805,26 +733,25 @@ const AppointmentListOPD = () => {
   const navigate = useNavigate();
   const perPage = 10;
 
-  const statusFilters = ["All", "Completed", "Discharged"];
+  const statusFilters = ["All", "Active", "Completed", "Cancelled"];
 
-  // ---------- FETCH OPD ----------
-  const fetchOPD = async (p = 1, s = search) => {
+  // ---------- FETCH ----------
+  const fetchData = async (p = page, s = search) => {
     setLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API}/patients/opd`);
+      const url = new URL(`${API}/patients`);
       url.searchParams.set("page", p);
       url.searchParams.set("limit", perPage);
       if (s) url.searchParams.set("search", s);
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
       const json = await res.json();
 
       const mapped = (json.patients || []).map((p) => ({
-        id: p.id, // Django PK (1,2,3…)
-        patient: p.full_name || "Unknown",
+        id: p.id, // Django PK (normal id)
+        patient: p.full_name,
         date: p.date_of_registration
           ? new Date(p.date_of_registration).toLocaleDateString("en-GB")
           : "N/A",
@@ -833,8 +760,9 @@ const AppointmentListOPD = () => {
         doctor: p.staff__full_name || "N/A",
         room: p.room_number || "N/A",
         treatment: p.appointment_type || "N/A",
-        discharge: p.discharge || "Done",
-        status: p.casualty_status || "Completed",
+        discharge: p.discharge || "Pending",
+        status: p.casualty_status || "Active",
+        photo_url: p.photo_url || null,
       }));
 
       setAppointments(mapped);
@@ -843,7 +771,7 @@ const AppointmentListOPD = () => {
       setPage(json.page || p);
     } catch (e) {
       console.error(e);
-      setErr("Failed to load discharged patients");
+      setErr("Failed to load patients");
     } finally {
       setLoading(false);
     }
@@ -851,19 +779,14 @@ const AppointmentListOPD = () => {
 
   // Debounced search
   useEffect(() => {
-    const t = setTimeout(() => fetchOPD(1, search), 400);
+    const t = setTimeout(() => fetchData(1, search), 400);
     return () => clearTimeout(t);
   }, [search]);
 
   // Page change
   useEffect(() => {
-    fetchOPD(page, search);
+    fetchData(page, search);
   }, [page]);
-
-  // Reset page on filter change
-  useEffect(() => {
-    setPage(1);
-  }, [filters, activeFilter]);
 
   // ---------- FILTER ----------
   const filtered = useMemo(() => {
@@ -924,20 +847,37 @@ const AppointmentListOPD = () => {
     setPage(1);
   };
 
-  // ---------- REFRESH ----------
-  const refreshData = () => fetchOPD(page, search);
+  // ---------- REFRESH AFTER UPDATE ----------
+  const refreshData = async () => {
+    await fetchData(page, search);
+  };
 
   // ---------- DELETE ----------
   const onDelete = async () => {
+    if (!selAppt?.patientId) {
+      errorToast("No patient selected");
+      return;
+    }
+
     try {
-      const pid = selAppt?.patientId;
-      const r = await fetch(`${API}/patients/${pid}`, { method: "DELETE" });
-      if (!r.ok) throw new Error(await r.text());
-      await refreshData();
+      const pid = selAppt.patientId; // <-- correct ID
+      const r = await fetch(`${API}/patients/${pid}`, {
+        method: "DELETE",
+      });
+
+      if (!r.ok) {
+        const txt = await r.text();
+        throw new Error(txt || "Delete failed");
+      }
+
+      // ---- SUCCESS ----
+      successToast(`Patient "${selAppt.patient}" deleted successfully!`);
+      await refreshData(); // refresh current page
       setShowDel(false);
       setSelAppt(null);
     } catch (e) {
-      alert("Delete error: " + e.message);
+      console.error(e);
+      errorToast(e.message || "Failed to delete patient");
     }
   };
 
@@ -986,8 +926,9 @@ const AppointmentListOPD = () => {
   );
 
   const statusColors = {
+    Active: "bg-indigo-900 text-indigo-300",
     Completed: "bg-green-900 text-green-300",
-    Discharged: "bg-green-800 text-green-200",
+    Cancelled: "bg-gray-700 text-gray-300",
   };
 
   return (
@@ -1013,7 +954,7 @@ const AppointmentListOPD = () => {
       {/* Header */}
       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-          OPD - Discharged Patients
+          IPD - Patient Lists
         </h2>
         <button
           onClick={() => navigate("/patients/new-registration")}
@@ -1024,7 +965,7 @@ const AppointmentListOPD = () => {
         </button>
       </div>
 
-      {/* Totals */}
+      {/* Today's Total */}
       <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
@@ -1041,7 +982,7 @@ const AppointmentListOPD = () => {
               In-Patients
             </span>
             <span className="w-6 h-6 flex items-center text-[12px] font-[Helvetica] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#080C4C] dark:bg-[#0D7F41]">
-              —
+              {appointments.length}
             </span>
           </div>
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
@@ -1050,7 +991,7 @@ const AppointmentListOPD = () => {
               Out-Patients
             </span>
             <span className="w-6 h-6 flex items-center font-[Helvetica] justify-center text-[12px] text-white gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#7D3737] dark:bg-[#D97706]">
-              {appointments.length}
+              —
             </span>
           </div>
         </div>
@@ -1065,12 +1006,12 @@ const AppointmentListOPD = () => {
               className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
                 ${
                   activeTab === t
-                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white"
-                    : "bg-gray-100 text-gray-800 dark:bg-[#1E1E1E] dark:text-gray-300"
+                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
+                    : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
               onClick={() =>
-                t === "In-Patients"
-                  ? navigate("/patients/ipd-opd")
+                t === "Out-Patients"
+                  ? navigate("/patients/out-patients")
                   : setActiveTab(t)
               }
             >
@@ -1100,25 +1041,24 @@ const AppointmentListOPD = () => {
       </div>
 
       {/* Status Filters */}
-     <div className="w-full overflow-x-auto h-[50px] flex items-center mb-8 px-2 relative z-10">
-  {/* This wrapper ensures tabs take full width + scrollable */}
-  <div className="flex gap-3 w-full">
-    {statusFilters.map((f) => (
-      <button
-        key={f}
-        onClick={() => setActiveFilter(f)}
-        className={`relative flex-1 min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica] whitespace-nowrap
-          ${
-            activeFilter === f
-              ? "bg-[#08994A] text-white shadow-sm"
-              : "text-gray-800 hover:text-green-600 dark:text-white"
-          }`}
-      >
-        {f}
-      </button>
-    ))}
-  </div>
-</div>
+      <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
+        <div className="flex gap-3 min-w-full">
+          {statusFilters.map((f) => (
+            <button
+              key={f}
+              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                ${
+                  activeFilter === f
+                    ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
+                    : "text-gray-800 hover:text-green-600 font-[Helvetica] dark:text-white dark:hover:text-white"
+                }`}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1210,7 +1150,7 @@ const AppointmentListOPD = () => {
                               setSelAppt(a);
                               setShowEdit(true);
                             }}
-                            className="text-[#08994A] cursor-pointer"
+                            className="text-[#08994A] dark:text-blue-400 cursor-pointer"
                           />
                           <Trash2
                             size={16}
@@ -1218,7 +1158,7 @@ const AppointmentListOPD = () => {
                               setSelAppt(a);
                               setShowDel(true);
                             }}
-                            className="text-red-500 cursor-pointer"
+                            className="text-[#08994A] dark:text-gray-400 cursor-pointer"
                           />
                         </div>
                       </td>
@@ -1231,7 +1171,7 @@ const AppointmentListOPD = () => {
                     colSpan="10"
                     className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                   >
-                    No discharged patients
+                    No patients found
                   </td>
                 </tr>
               )}
@@ -1247,8 +1187,8 @@ const AppointmentListOPD = () => {
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
             {page}
           </span>{" "}
-          of {pages} ({total > 0 ? (page - 1) * perPage + 1 : 0}-
-          {Math.min(page * perPage, total)} of {total} Patients)
+          of {pages} ({(page - 1) * perPage + 1}-
+          {Math.min(page * perPage, total)} from {total} Patients)
         </div>
         <div className="flex items-center gap-x-2">
           <button
@@ -1302,7 +1242,7 @@ const AppointmentListOPD = () => {
 
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-                  Filter Discharged Patients
+                  Filter Appointment
                 </h3>
                 <button
                   onClick={() => setShowFilter(false)}
@@ -1347,7 +1287,7 @@ const AppointmentListOPD = () => {
                   label="Status"
                   value={filters.status}
                   onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["Completed", "Discharged"]}
+                  options={["Active", "Completed", "Cancelled"]}
                 />
                 <Dropdown
                   label="Doctor"
@@ -1380,7 +1320,7 @@ const AppointmentListOPD = () => {
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={clearFilters}
-                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent dark:text-white"
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent"
                 >
                   Clear
                 </button>
@@ -1396,19 +1336,19 @@ const AppointmentListOPD = () => {
         </div>
       )}
 
-      {/* ---------- EDIT POPUP ---------- */}
+      {/* EDIT POPUP – FIXED */}
       {showEdit && selAppt && (
         <EditPatientPopup
-          patientId={selAppt.id} // Django PK
+          patientId={selAppt.id} // Django normal ID
           onClose={() => {
             setShowEdit(false);
             setSelAppt(null);
           }}
-          onUpdate={refreshData} // Refresh after save
+          onUpdate={refreshData} // Refresh list
         />
       )}
 
-      {/* ---------- DELETE POPUP ---------- */}
+      {/* DELETE POPUP */}
       {showDel && selAppt && (
         <DeletePatient
           appointment={selAppt}
@@ -1423,4 +1363,4 @@ const AppointmentListOPD = () => {
   );
 };
 
-export default AppointmentListOPD;
+export default AppointmentListIPD;

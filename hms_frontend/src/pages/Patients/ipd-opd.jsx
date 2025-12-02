@@ -1042,15 +1042,14 @@ const AppointmentListIPD = () => {
 
       {/* Status Filters */}
       <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
-        <div className="flex gap-3 min-w-full">
+        <div className="w-full flex gap-3 justify-between">
           {statusFilters.map((f) => (
             <button
               key={f}
-              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-                ${
-                  activeFilter === f
-                    ? "bg-[#08994A] text-white font-[Helvetica] dark:bg-green-900 dark:text-white"
-                    : "text-gray-800 hover:text-green-600 font-[Helvetica] dark:text-white dark:hover:text-white"
+              className={`relative flex-1 min-w-0 h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica]
+        ${activeFilter === f
+                  ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
+                  : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
                 }`}
               onClick={() => setActiveFilter(f)}
             >
@@ -1075,11 +1074,9 @@ const AppointmentListIPD = () => {
                 <th className="py-3 px-2">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
-                    checked={
-                      current.length > 0 && selected.length === current.length
-                    }
+                    // checked={selectAll}
                     onChange={selectAll}
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th>Patient Name</th>

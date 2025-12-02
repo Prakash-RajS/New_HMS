@@ -957,13 +957,17 @@ const BillingManagement = () => {
                             {row.status}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer">
-                              <Eye
-                                size={16}
-                                className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                onClick={() => handleViewInvoice(row.id)}
-                              />
-                            </div>
+                            <div
+  title="View"
+  className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+>
+  <Eye
+    size={16}
+    className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+    onClick={() => handleViewInvoice(row.id)}
+  />
+</div>
+
                           </td>
                         </tr>
                       ))}

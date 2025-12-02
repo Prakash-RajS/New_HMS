@@ -1020,6 +1020,7 @@ const ProfileSection = () => {
           </button>
         </div>
       </div>
+      
 
       {/* ---------- FILTER POPUP ---------- */}
       {showFilterPopup && (

@@ -294,6 +294,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   const [doctors, setDoctors] = useState([]); // [{id, full_name}]
   const [loadingDept, setLoadingDept] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(false);
+  const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   // ── Load departments (once) ───────────────────────────────────────
@@ -308,10 +309,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       .then((data) => {
         if (mounted) setDepartments(Array.isArray(data) ? data : []);
       })
-      .catch((e) => {
-        console.error(e);
-        errorToast("Failed to load departments");
-      })
+      .catch((e) => console.error(e))
       .finally(() => {
         if (mounted) setLoadingDept(false);
       });
@@ -335,10 +333,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       .then((data) => {
         if (mounted) setDoctors(Array.isArray(data) ? data : []);
       })
-      .catch((e) => {
-        console.error(e);
-        errorToast("Failed to load doctors");
-      })
+      .catch((e) => console.error(e))
       .finally(() => {
         if (mounted) setLoadingDoc(false);
       });
@@ -348,28 +343,24 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
 
   // ── Save handler ───────────────────────────────────────────────────
   const handleSave = async () => {
-    // Validation with toast
-    if (!formData.patient_name.trim()) {
-      errorToast("Patient name is required");
-      return;
-    }
-    if (!formData.department_id) {
-      errorToast("Please select a department");
-      return;
-    }
-    if (!formData.staff_id) {
-      errorToast("Please select a doctor");
+    setError(null);
+    if (
+      !formData.patient_name ||
+      !formData.department_id ||
+      !formData.staff_id
+    ) {
+      setError("Patient name, department and doctor are required");
       return;
     }
 
     setSaving(true);
     try {
       const payload = {
-        patient_name: formData.patient_name.trim(),
+        patient_name: formData.patient_name,
         department_id: Number(formData.department_id),
         staff_id: Number(formData.staff_id),
-        room_no: formData.room_no || null,
-        phone_no: formData.phone_no || null,
+        room_no: formData.room_no || "",
+        phone_no: formData.phone_no || "",
         appointment_type: formData.appointment_type,
         status: formData.status,
       };
@@ -384,18 +375,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
         let msg = "Failed to create appointment";
         try {
           const err = await res.json();
-          msg = err.detail || err.message || JSON.stringify(err);
+          msg = err.detail || JSON.stringify(err);
         } catch {}
         throw new Error(msg);
       }
-
       successToast("Appointment added successfully!");
       onSuccess?.();
       onClose?.();
     } catch (e) {
-      const message = e.message || "Something went wrong. Please try again.";
-      errorToast(message);
-      console.error("Save error:", e);
+      errorToast(e.message || "Something went wrong");
+      setError(e.message);
     } finally {
       setSaving(false);
     }
@@ -421,28 +410,23 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                       bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-                       flex items-center justify-between group"
+                       bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
-            <span className="block truncate">
-              {loading ? (
-                <span className="text-gray-500">Loading…</span>
-              ) : value ? (
-                options.find((o) => String(o.id) === String(value))?.name ||
-                options.find((o) => String(o.id) === String(value))?.full_name ||
-                value
-              ) : (
-                placeholder
-              )}
-            </span>
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-           </span>
+            {loading ? (
+              <span className="text-gray-500">Loading…</span>
+            ) : value ? (
+              options.find((o) => String(o.id) === String(value))?.name ||
+              options.find((o) => String(o.id) === String(value))?.full_name ||
+              value
+            ) : (
+              placeholder
+            )}
+            <ChevronDown className="absolute inset-y-0 right-2 h-4 w-4 text-[#0EFF7B] pointer-events-none" />
           </Listbox.Button>
 
           <Listbox.Options
-            className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+            className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
                        shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
@@ -478,13 +462,11 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
       <div
         className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-                   bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-                   dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]
-                   overflow-visible"
+                      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+                      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
       >
         <div
-          className="w-[505px] h-[484px] rounded-[19px] bg-white dark:bg-[#000000] 
-                     text-black dark:text-white p-6 relative overflow-visible"
+          className="w-[505px] h-[484px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {/* Gradient inner border */}
@@ -518,6 +500,9 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
+
+          {/* Error */}
+          {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
 
           {/* Form Grid */}
           <div className="grid grid-cols-2 gap-6">
@@ -584,13 +569,10 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
               </label>
               <input
                 value={formData.phone_no}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (/^\d{0,10}$/.test(value)) {
-                    setFormData({ ...formData, phone_no: value });
-                  }
-                }}
-                placeholder="Enter phone no (10 digits)"
+                onChange={(e) =>
+                  setFormData({ ...formData, phone_no: e.target.value })
+                }
+                placeholder="Enter phone no"
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                            bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none"
@@ -611,28 +593,30 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 <div className="relative mt-1 w-[228px]">
                   <Listbox.Button
                     className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]
-                               flex items-center justify-between group"
+                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]"
                   >
-                    <span className="block truncate">
-                      {formData.appointment_type === "checkup"
-                        ? "Check-up"
-                        : formData.appointment_type === "followup"
-                        ? "Follow-up"
-                        : "Emergency"}
-                    </span>
-                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-           </span>
+                    {formData.appointment_type === "checkup"
+                      ? "Check-up"
+                      : formData.appointment_type === "followup"
+                      ? "Follow-up"
+                      : "Emergency"}
+                    <ChevronDown className="absolute inset-y-0 right-2 h-4 w-4 text-[#0EFF7B] pointer-events-none" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options
+                    className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                  >
                     {["checkup", "followup", "emergency"].map((v) => (
                       <Listbox.Option
                         key={v}
                         value={v}
                         className="cursor-pointer py-2 px-2 text-sm"
                       >
-                        {v === "checkup" ? "Check-up" : v === "followup" ? "Follow-up" : "Emergency"}
+                        {v === "checkup"
+                          ? "Check-up"
+                          : v === "followup"
+                          ? "Follow-up"
+                          : "Emergency"}
                       </Listbox.Option>
                     ))}
                   </Listbox.Options>
@@ -652,26 +636,30 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 <div className="relative mt-1 w-[228px]">
                   <Listbox.Button
                     className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]
-                               flex items-center justify-between group"
+                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]"
                   >
-                    <span className="block truncate">
-                      {formData.status === "new"
-                        ? "New"
-                        : formData.status === "normal"
-                        ? "Normal"
-                        : "Severe"}
-                    </span>
-                    <ChevronDown className="h-4 w-4 text-[#0EFF7B] flex-shrink-0 transition-transform group-hover:rotate-180" />
+                    {formData.status === "new"
+                      ? "New"
+                      : formData.status === "normal"
+                      ? "Normal"
+                      : "Severe"}
+                    <ChevronDown className="absolute inset-y-0 right-2 h-4 w-4 text-[#0EFF7B] pointer-events-none" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options
+                    className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                  >
                     {["new", "normal", "severe"].map((v) => (
                       <Listbox.Option
                         key={v}
                         value={v}
                         className="cursor-pointer py-2 px-2 text-sm"
                       >
-                        {v === "new" ? "New" : v === "normal" ? "Normal" : "Severe"}
+                        {v === "new"
+                          ? "New"
+                          : v === "normal"
+                          ? "Normal"
+                          : "Severe"}
                       </Listbox.Option>
                     ))}
                   </Listbox.Options>
@@ -681,7 +669,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-center gap-2 mt-5">
+          <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
               className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
@@ -696,7 +684,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
               className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                          bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                          shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
-                         hover:scale-105 transition disabled:opacity-70"
+                         hover:scale-105 transition"
             >
               {saving ? "Saving…" : "Add Appointment"}
             </button>

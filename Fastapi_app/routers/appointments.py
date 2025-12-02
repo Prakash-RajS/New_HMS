@@ -18,7 +18,7 @@ class AppointmentCreate(BaseModel):
     room_no: str
     phone_no: str
     appointment_type: Literal["checkup", "followup", "emergency"]
-    status: Literal["new", "normal", "severe"] = "new"
+    status: Literal["new", "normal", "severe","active","inactive","completed","cancelled","emergency"] = "new"
 
 class AppointmentUpdate(BaseModel):
     patient_name: Optional[str] = None
@@ -27,7 +27,7 @@ class AppointmentUpdate(BaseModel):
     room_no: Optional[str] = None
     phone_no: Optional[str] = None
     appointment_type: Optional[Literal["checkup", "followup", "emergency"]] = None
-    status: Optional[Literal["new", "normal", "severe", "completed", "cancelled"]] = None
+    status: Optional[Literal["new", "normal", "severe", "completed", "cancelled","active","inactive","emergency"]] = None
     appointment_date: Optional[date] = None
 
     @validator("appointment_date")

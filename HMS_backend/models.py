@@ -89,6 +89,11 @@ class Appointment(models.Model):
         ("new", "New"),
         ("normal", "Normal"),
         ("severe", "Severe"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+        ("active", "Active"),
+        ("inactive", "Inactive"),
+        ("emergency", "Emergency"),
     )
 
     patient_name = models.CharField(max_length=200)
@@ -889,8 +894,6 @@ class MedicineAllocation(models.Model):
     def __str__(self):
         return f"{self.medicine_name} for {self.patient.full_name} ({self.allocation_date})"
     
-# HMS_backend/models.py
-
 class HospitalInvoiceHistory(models.Model):
     STATUS_CHOICES = [
         ("Paid", "Paid"),
@@ -940,8 +943,6 @@ class HospitalInvoiceHistory(models.Model):
                 num = 1
             self.invoice_id = f"HS_INV_{num:04d}"
         super().save(*args, **kwargs)
-
-
         
 class PharmacyInvoiceHistory(models.Model):
     """Main invoice table for pharmacy billing"""
@@ -1009,3 +1010,10 @@ class PharmacyInvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.drug_name} ({self.item_code})"
+    
+# HMS_backend/models.py
+
+
+
+
+        

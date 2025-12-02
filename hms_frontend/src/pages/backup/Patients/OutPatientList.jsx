@@ -1100,25 +1100,24 @@ const AppointmentListOPD = () => {
       </div>
 
       {/* Status Filters */}
-     <div className="w-full overflow-x-auto h-[50px] flex items-center mb-8 px-2 relative z-10">
-  {/* This wrapper ensures tabs take full width + scrollable */}
-  <div className="flex gap-3 w-full">
-    {statusFilters.map((f) => (
-      <button
-        key={f}
-        onClick={() => setActiveFilter(f)}
-        className={`relative flex-1 min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica] whitespace-nowrap
-          ${
-            activeFilter === f
-              ? "bg-[#08994A] text-white shadow-sm"
-              : "text-gray-800 hover:text-green-600 dark:text-white"
-          }`}
-      >
-        {f}
-      </button>
-    ))}
-  </div>
-</div>
+      <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
+        <div className="flex gap-3 min-w-full">
+          {statusFilters.map((f) => (
+            <button
+              key={f}
+              className={`relative min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                ${
+                  activeFilter === f
+                    ? "bg-[#08994A] text-white"
+                    : "text-gray-800 hover:text-green-600 dark:text-white"
+                }`}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto">

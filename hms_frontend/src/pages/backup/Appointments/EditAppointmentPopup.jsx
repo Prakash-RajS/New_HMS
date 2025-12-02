@@ -386,9 +386,7 @@ export default function EditAppointmentPopup({
             ) : (
               placeholder
             )}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                        <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                       </span>
+            <ChevronDown className="absolute inset-y-0 right-2 h-4 w-4 text-[#0EFF7B] pointer-events-none" />
           </Listbox.Button>
 
           <Listbox.Options
@@ -612,7 +610,7 @@ export default function EditAppointmentPopup({
               label="Status"
               value={formData.status}
               onChange={(v) => setFormData({ ...formData, status: v })}
-              options={["new", "normal", "severe", "completed", "cancelled", "emergency", "inactive", "active"]}
+              options={["new", "normal", "severe", "completed", "cancelled"]}
               placeholder="Select Status"
             />
 

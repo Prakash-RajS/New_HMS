@@ -249,7 +249,8 @@ from fastapi_app.routers import (
     blood_donor, labreport, bed_group_list, staffmanagement, payroll,
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
-    pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing, hospital_billing
+    pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing, hospital_billing,
+    dashboard
 )
 
 @asynccontextmanager
@@ -412,6 +413,7 @@ app.include_router(invoice_generator.router)
 app.include_router(notifications.router)
 app.include_router(invoice_pharmacy_billing.router)
 app.include_router(hospital_billing.router)
+app.include_router(dashboard.router)
 
 # Make notify_clients available to routers
 app.state.notify_clients = notify_clients

@@ -185,7 +185,6 @@ const DateField = ({ label, value, onChange, placeholder }) => {
 
   return (
     <div className="space-y-1 w-full">
-      
       <label
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -424,7 +423,8 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   /* ---------- Render ---------- */
   return (
-       <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col relative">
+      {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -433,12 +433,10 @@ export default function NewRegistration({ isSidebarOpen }) {
           zIndex: 0,
         }}
       ></div>
-      {/* Gradient Border */}
+
       <div
+        className="absolute inset-0 rounded-[10px] pointer-events-none"
         style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "10px",
           padding: "2px",
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
@@ -446,7 +444,6 @@ export default function NewRegistration({ isSidebarOpen }) {
             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
-          pointerEvents: "none",
           zIndex: 0,
         }}
       ></div>
@@ -532,43 +529,16 @@ export default function NewRegistration({ isSidebarOpen }) {
                 label="Phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => {
-                  const value = e.target.value;
-
-                  // allow only digits and max 10 characters
-                  if (/^\d{0,10}$/.test(value)) {
-                    handleChange("phone")(e);
-                  }
-                }}
-                placeholder="Enter 10 digit phone no"
+                onChange={handleChange("phone")}
+                placeholder="Enter phone"
               />
-
               <InputField
-  label="Email ID"
-  type="email"
-  value={formData.email}
-  onChange={(e) => {
-    const value = e.target.value;
-
-    // Allow typing anything normally
-    handleChange("email")(e);
-
-    // If user completed email and it's NOT Gmail → block it
-    const fullEmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-    // If user types a @ and finishes domain incorrectly → reset it
-    if (value.includes("@") && !value.endsWith("@gmail.com")) {
-      if (value.length >= "@gmail.com".length) {
-        setFormData((prev) => ({
-          ...prev,
-          email: prev.email.replace(/@.*/, "@gmail.com")
-        }));
-      }
-    }
-  }}
-  placeholder="Enter email"
-/>
-
+                label="Email ID"
+                type="email"
+                value={formData.email}
+                onChange={handleChange("email")}
+                placeholder="Enter email"
+              />
               <InputField
                 label="National ID"
                 value={formData.nid}

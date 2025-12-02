@@ -908,7 +908,6 @@ const AppointmentList = () => {
     { label: "Severe", value: "severe" },
     { label: "Completed", value: "completed" },
     { label: "Cancelled", value: "cancelled" },
-    
   ];
 
   // === Status mapping for display ===
@@ -918,8 +917,6 @@ const AppointmentList = () => {
     severe: "Severe",
     completed: "Completed",
     cancelled: "Cancelled",
-    
-    
   };
 
   // === Date utilities ===
@@ -1270,7 +1267,8 @@ const AppointmentList = () => {
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
-     <div
+    
+      <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
           background:
@@ -1295,7 +1293,6 @@ const AppointmentList = () => {
           zIndex: 0,
         }}
       ></div>
-
       {/* Header */}
       <div className="flex justify-between items-center mt-4 mb-2 relative z-10">
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
@@ -1436,15 +1433,18 @@ const AppointmentList = () => {
           <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
-               <input
-                    type="checkbox"
-                    // checked={selectAll}
-                    onChange={handleSelectAll}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                  />
+                <input
+                  type="checkbox"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black"
+                  checked={
+                    currentAppointments.length > 0 &&
+                    selectedAppointments.length === currentAppointments.length
+                  }
+                  onChange={handleSelectAll}
+                />
               </th>
               <th>Patient Name</th>
-              <th>Patient ID</th>
+              <th>Appointment ID</th>
               <th>Department</th>
               <th>Doctor</th>
               <th>Room no</th>
@@ -1464,7 +1464,7 @@ const AppointmentList = () => {
                   <td className="px-2">
                     <input
                       type="checkbox"
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B]"
                       checked={selectedAppointments.includes(idx)}
                       onChange={() => handleCheckboxChange(idx)}
                     />
@@ -1553,7 +1553,48 @@ const AppointmentList = () => {
       </div>
 
       {/* Pagination */}
-    
+      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+        <div className="text-sm text-black dark:text-white">
+          Page{" "}
+          <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
+            {currentPage}
+          </span>{" "}
+          of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
+          {Math.min(currentPage * itemsPerPage, filteredAppointments.length)}{" "}
+          from {filteredAppointments.length} Patients)
+        </div>
+
+        <div className="flex items-center gap-x-2">
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              currentPage === 1
+                ? "bg-[#0EFF7B1A] opacity-50"
+                : "bg-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+            }`}
+          >
+            <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
+          </button>
+
+          <button
+            onClick={() =>
+              setCurrentPage(Math.min(totalPages, currentPage + 1))
+            }
+            disabled={currentPage === totalPages}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              currentPage === totalPages
+                ? "bg-[#0EFF7B1A] opacity-50"
+                : "bg-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+            }`}
+          >
+            <ChevronRight
+              size={12}
+              className="text-[#08994A] dark:text-white"
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Filter Popup */}
       {showFilterPopup && (
