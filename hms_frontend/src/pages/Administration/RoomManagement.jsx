@@ -7,11 +7,10 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Edit,
-  X,
+  Trash2,
 } from "lucide-react";
-import { Listbox, Menu, Transition } from "@headlessui/react";
+import { Listbox } from "@headlessui/react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import AdmitPatientPopup from "./AdmitPatientPopup";
 import EditAdmitPatientPopup from "./EditAdmitPatientPopup";
@@ -207,75 +206,6 @@ const RoomManagement = () => {
   const handleBedListClick = () => navigate("/Administration/BedList");
   const handleRoomManagementClick = () =>
     navigate("/Administration/roommanagement");
-
-  // MENU OPENS ABOVE 3 DOTS
-  // MENU OPENS ABOVE 3 DOTS
-  const ActionMenu = ({ room, index }) => {
-    // Calculate if it's in the last 3 rows to show menu above
-    const isLastThreeRows = index >= currentRooms.length - 3;
-
-    return (
-      <Menu as="div" className="relative inline-block text-left">
-        <Menu.Button className="text-gray-600 dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
-          <MoreHorizontal size={18} />
-        </Menu.Button>
-        <Transition
-          as={Fragment}
-          enter="transition ease-out duration-100"
-          enterFrom="transform opacity-0 scale-95"
-          enterTo="transform opacity-100 scale-100"
-          leave="transition ease-in duration-75"
-          leaveFrom="transform opacity-100 scale-100"
-          leaveTo="transform opacity-0 scale-95"
-        >
-          <Menu.Items
-            className={`absolute right-0 ${
-              isLastThreeRows ? "bottom-full mb-2" : "mt-2"
-            } w-36 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg focus:outline-none z-50 origin-bottom-right`}
-          >
-            <div className="p-1">
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => handleEditClick(room)}
-                    className={`${
-                      active
-                        ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
-                        : ""
-                    } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                  >
-                    <Edit
-                      size={16}
-                      className="mr-2 text-blue-500 dark:text-blue-400"
-                    />
-                    Edit
-                  </button>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => handleDischargeClick(room)}
-                    className={`${
-                      active
-                        ? "bg-[#0EFF7B1A] dark:bg-gray-800 dark:hover:bg-[#0EFF7B1A]"
-                        : ""
-                    } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                  >
-                    <X
-                      size={16}
-                      className="mr-2 text-red-500 dark:text-red-400"
-                    />
-                    Discharge
-                  </button>
-                )}
-              </Menu.Item>
-            </div>
-          </Menu.Items>
-        </Transition>
-      </Menu>
-    );
-  };
 
   const FilterPopover = ({ isOpen, onClose }) => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
@@ -600,7 +530,7 @@ const RoomManagement = () => {
                       <th>Patients</th>
                       <th>Admit</th>
                       <th>Status</th>
-                      <th className="text-center">...</th>
+                      <th className="text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-white dark:bg-black">
@@ -646,8 +576,39 @@ const RoomManagement = () => {
                             {room.status}
                           </td>
                           <td className="text-center">
-                            <ActionMenu room={room} index={index} />
-                          </td>
+  <div className="flex justify-center gap-2">
+    
+    {/* Edit Button */}
+    <div
+      className="w-8 h-8 flex items-center justify-center rounded-full 
+                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
+                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+      onClick={() => handleEditClick(room)}
+    >
+      <Edit
+        size={16}
+        className="text-[#08994A] dark:text-[#0EFF7B] 
+                   hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+      />
+    </div>
+
+    {/* Delete / Discharge Button */}
+    <div
+      className="w-8 h-8 flex items-center justify-center rounded-full 
+                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
+                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+      onClick={() => handleDischargeClick(room)}
+    >
+      <Trash2
+        size={16}
+        className="text-red-600 dark:text-red-500 
+                   hover:text-red-700 dark:hover:text-red-400"
+      />
+    </div>
+
+  </div>
+</td>
+
                         </tr>
                       ))
                     ) : (

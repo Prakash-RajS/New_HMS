@@ -1011,7 +1011,7 @@ class PharmacyInvoiceItem(models.Model):
     def __str__(self):
         return f"{self.drug_name} ({self.item_code})"
     
-# HMS_backend/models.py
+
 
 
 

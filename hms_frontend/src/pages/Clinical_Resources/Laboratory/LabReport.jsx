@@ -14,7 +14,7 @@ import {
   CheckSquare,
   X,
   Calendar,
-  Edit2,
+  Edit,
   Trash2,
   FileText,
 } from "lucide-react";
@@ -798,21 +798,48 @@ const LabReport = () => {
                     </td>
 
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditPopup(order)}
-                          className="p-1 rounded hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] transition-colors text-[#08994A] dark:text-[#0EFF7B]"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openDeletePopup(order)}
-                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors text-red-600 dark:text-red-400"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+  <div className="flex items-center gap-2">
+
+    {/* Edit Button */}
+    <div
+      className="w-8 h-8 flex items-center justify-center rounded-full 
+                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
+                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer 
+                 hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
+      onClick={() => openEditPopup(order)}
+    >
+      <Edit
+        size={18}
+        className="text-[#08994A] dark:text-[#0EFF7B] 
+                   hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+      />
+    </div>
+
+    {/* Delete Button */}
+    <div
+    title=""
+      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
+                 border border-red-500/20 dark:border-red-500/20 
+                 bg-red-500/10 dark:bg-red-500/10 cursor-pointer 
+                 hover:bg-red-500/20 dark:hover:bg-red-500/20"
+      onClick={() => openDeletePopup(order)}
+    >
+      <Trash2
+        size={18}
+        className="text-red-600 dark:text-red-400 
+                   hover:text-red-700 dark:hover:text-red-300"
+      />
+      <span className="absolute right-1 z-100 right-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150 z-[999999]">
+                    Delete
+                  </span>
+    </div>
+
+  </div>
+</td>
+
                   </tr>
                 ))
               )}

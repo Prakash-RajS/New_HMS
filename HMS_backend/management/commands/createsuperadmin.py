@@ -23,19 +23,19 @@ class Command(BaseCommand):
         phone = input("Enter phone (unique): ").strip()
         email = input("Enter email (unique): ").strip()
 
-        # --- Validate department ---
-        try:
-            department = Department.objects.first()
-            if department is None:
-                self.stdout.write(self.style.ERROR(
-                    "❌ No department found. Please create at least one department."
-                ))
-                return
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Department error: {e}"))
-            return
+        # --- Step 4: Department Auto-Create ---
+        department = Department.objects.first()
 
-        # --- Step 4: Create superuser ---
+        if department is None:
+            self.stdout.write(self.style.WARNING("⚠ No department found. Creating default Admin department..."))
+            department = Department.objects.create(
+                name="Admin",
+                status="active",
+                description="Default admin department"
+            )
+            self.stdout.write(self.style.SUCCESS("✔ Default Admin department created."))
+
+        # --- Step 5: Validations ---
         if User.objects.filter(username=username).exists():
             self.stdout.write(self.style.ERROR("❌ Username already exists"))
             return
@@ -48,29 +48,30 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("❌ Email already exists"))
             return
 
-        # Create Staff entry first
+        # --- Step 6: Create Staff ---
         staff = Staff.objects.create(
             full_name=full_name,
             designation=designation,
             phone=phone,
             email=email,
             department=department,
+            status="Active",
         )
 
-        # Create superuser and link staff
+        # --- Step 7: Create Superuser (Admin Role) ---
         user = User.objects.create_superuser(
-                username=username,
-                password=password
-            )
+            username=username,
+            password=password
+        )
+
+        # Set admin role + link staff
+        user.role = "admin"              # ← you mentioned this
         user.staff = staff
+        user.is_staff = True
+        user.is_superuser = True
         user.save()
 
-        self.stdout.write(self.style.SUCCESS(
-            f"\n✅ Superadmin created successfully!"
-        ))
-        self.stdout.write(self.style.SUCCESS(
-            f"Admin Username: {username}"
-        ))
-        self.stdout.write(self.style.SUCCESS(
-            f"Linked Staff ID: {staff.id}\n"
-        ))
+        self.stdout.write(self.style.SUCCESS("\n✅ Superadmin created successfully!"))
+        self.stdout.write(self.style.SUCCESS(f"Admin Username: {username}"))
+        self.stdout.write(self.style.SUCCESS(f"Linked Staff ID: {staff.id}"))
+        self.stdout.write(self.style.SUCCESS(f"Department Assigned: {department.name}\n"))

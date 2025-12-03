@@ -760,10 +760,16 @@ const BillingManagement = () => {
         <button
         
           onClick={handleGenerateBill}
-          className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
+          className="relative group w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           + Generate Bill
+          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Generate Bill
+          </span>
         </button>
       </div>
       <div className="flex flex-col lg:flex-row gap-6 mb-6">
@@ -846,8 +852,14 @@ const BillingManagement = () => {
             <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
               <span className="text-black dark:text-white text-base font-medium">Pharmacy Invoices</span>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full w-full sm:w-auto">
+                <div className="relative group flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full w-full sm:w-auto">
                   <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+                  </span>
                   <input
                     type="text"
                     placeholder="Search..."
@@ -857,36 +869,66 @@ const BillingManagement = () => {
                   />
                 </div>
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleFilter}
                 >
                   <Filter size={16} className="text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+                  </span>
                 </div>
                 <div
-                  className="flex items-center justify-center bg-[#FF00001A] dark:bg-[#FF00001A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#FF000033] dark:hover:bg-[#FF000033]"
+                  className="relative group flex items-center justify-center bg-[#FF00001A] dark:bg-[#FF00001A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#FF000033] dark:hover:bg-[#FF000033]"
                   onClick={handleDelete}
                 >
                   <Trash2 size={16} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+                  </span>
                 </div>
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handlePDFPrint}
                 >
                   <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Print
+                  </span>
                 </div>
                 <div
-                title="Download"
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                title=""
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handlePDFDownload}
                 >
                   <Download size={16} className="text-green-600 dark:text-green-500 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968] hover:text-green-700 dark:hover:text-green-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Download
+                  </span>
                 </div>
                 <div
-                title="Export"
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                title=""
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleExport}
                 >
                   <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Export
+                  </span>
                 </div>
               </div>
             </div>
@@ -961,14 +1003,20 @@ const BillingManagement = () => {
                           </td>
                           <td className="px-3 py-3">
                             <div
-  title="View"
-  className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+  title=""
+  className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
 >
   <Eye
     size={16}
     className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
     onClick={() => handleViewInvoice(row.id)}
   />
+  <span className="absolute left-14 z-100 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150 z-[999999]">
+                    View
+                  </span>
 </div>
 
                           </td>
@@ -1032,8 +1080,14 @@ const BillingManagement = () => {
 
               <div className="flex items-center gap-2">
                 {/* Search */}
-                <div className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full w-full sm:w-auto">
+                <div className="relative group flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full w-full sm:w-auto">
                   <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+                  </span>
                   <input
                     type="text"
                     placeholder="Search..."
@@ -1045,42 +1099,71 @@ const BillingManagement = () => {
 
                 {/* Filter */}
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleHospitalFilter}
                 >
                   <Filter size={16} className="text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+                  </span>
                 </div>
 
                 {/* Delete */}
                 <div
-                  className="flex items-center justify-center bg-[#FF00001A] dark:bg-[#FF00001A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#FF000033] dark:hover:bg-[#FF000033]"
+                  className="relative group flex items-center justify-center bg-[#FF00001A] dark:bg-[#FF00001A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#FF000033] dark:hover:bg-[#FF000033]"
                   onClick={handleHospitalDelete}
                 >
                   <Trash2 size={16} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+                  </span>
                 </div>
 
                 {/* Print */}
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleHospitalPDFPrint}
                 >
-                  <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" />
+                  <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" /><span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Print
+                  </span>
                 </div>
 
                 {/* Download PDF */}
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleHospitalPDFDownload}
                 >
                   <Download size={16} className="text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Download
+                  </span>
                 </div>
 
                 {/* Export CSV/Excel */}
                 <div
-                  className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
+                  className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleHospitalExport}
                 >
                   <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400" />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Export
+                  </span>
                 </div>
               </div>
             </div>
@@ -1155,14 +1238,23 @@ const BillingManagement = () => {
                             {row.status}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer">
-                              <Eye
-                                size={16}
-                                className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                onClick={() => handleHospitalViewInvoice(row.id)}
-                              />
-                            </div>
-                          </td>
+                            <div
+  title=""
+  className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+>
+  <Eye
+    size={16}
+    className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+    onClick={() => handleHospitalViewInvoice(row.id)}
+  />
+  <span className="absolute left-14 z-100 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150 z-[999999]">
+                    View
+                  </span>
+</div></td>
+                          
                         </tr>
                       ))}
                     </tbody>
