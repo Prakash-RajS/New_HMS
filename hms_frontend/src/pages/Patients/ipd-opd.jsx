@@ -733,7 +733,7 @@ const AppointmentListIPD = () => {
   const navigate = useNavigate();
   const perPage = 10;
 
-  const statusFilters = ["All", "Active", "Completed", "Cancelled"];
+  const statusFilters = ["All", "New","Normal","Severe", "Completed", "Cancelled"];
 
   // ---------- FETCH ----------
   const fetchData = async (p = page, s = search) => {
@@ -926,10 +926,18 @@ const AppointmentListIPD = () => {
   );
 
   const statusColors = {
-    Active: "bg-indigo-900 text-indigo-300",
-    Completed: "bg-green-900 text-green-300",
-    Cancelled: "bg-gray-700 text-gray-300",
-  };
+  All: "bg-slate-700 text-slate-300",
+
+  New: "bg-blue-900 text-blue-300",
+
+  Normal: "bg-green-900 text-green-300",
+
+  Severe: "bg-red-900 text-red-300",
+
+  Completed: "bg-emerald-900 text-emerald-300",
+
+  Cancelled: "bg-gray-700 text-gray-300",
+};
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
@@ -1046,7 +1054,7 @@ const AppointmentListIPD = () => {
           {statusFilters.map((f) => (
             <button
               key={f}
-              className={`relative flex-1 min-w-0 h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica]
+              className={`relative flex-1 min-w-[142px] mx-auto  h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica]
         ${activeFilter === f
                   ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
                   : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
@@ -1284,7 +1292,7 @@ const AppointmentListIPD = () => {
                   label="Status"
                   value={filters.status}
                   onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["Active", "Completed", "Cancelled"]}
+                  options={["New", "Normal", "Severe", "Completed", "Cancelled"]}
                 />
                 <Dropdown
                   label="Doctor"
@@ -1313,7 +1321,6 @@ const AppointmentListIPD = () => {
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={clearFilters}

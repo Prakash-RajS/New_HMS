@@ -758,6 +758,7 @@ const BillingManagement = () => {
           Billing Management
         </h1>
         <button
+        
           onClick={handleGenerateBill}
           className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -874,16 +875,18 @@ const BillingManagement = () => {
                   <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" />
                 </div>
                 <div
+                title="Download"
                   className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handlePDFDownload}
                 >
-                  <Download size={16} className="text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400" />
+                  <Download size={16} className="text-green-600 dark:text-green-500 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968] hover:text-green-700 dark:hover:text-green-400" />
                 </div>
                 <div
+                title="Export"
                   className="flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleExport}
                 >
-                  <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400" />
+                  <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]" />
                 </div>
               </div>
             </div>

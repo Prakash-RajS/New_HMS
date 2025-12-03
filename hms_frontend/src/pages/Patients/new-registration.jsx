@@ -1,16 +1,12 @@
 // src/components/patients/NewRegistration.jsx
 import React, { useEffect, useState } from "react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
-
 const API_BASE = "http://localhost:8000";
-
+const BED_API = "http://127.0.0.1:8000/bedgroups";
 const formatToYMD = (dateStr) => {
   if (!dateStr) return "";
   const parts = dateStr.split("/");
@@ -18,19 +14,16 @@ const formatToYMD = (dateStr) => {
   const [m, d, y] = parts;
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 };
-
 const safeStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
-
 /* ---------- Photo Upload ---------- */
-const PhotoUploadBox = ({ photoPreview, setPhotoPreview, setPhotoFile }) => {
+const PhotoUploadBox = ({ photoPreview, setPhotoPreview, onFileSelect, error = null }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setPhotoPreview(URL.createObjectURL(file));
-      setPhotoFile(file);
+      onFileSelect(file);
     }
   };
-
   return (
     <div className="flex justify-center md:justify-end">
       <input
@@ -56,10 +49,10 @@ const PhotoUploadBox = ({ photoPreview, setPhotoPreview, setPhotoFile }) => {
           <span className="text-xs md:text-sm">+ Add Photo</span>
         )}
       </label>
+      {error && <p className="text-red-500 text-xs mt-1 w-32 text-center">{error}</p>}
     </div>
   );
 };
-
 /* ---------- Dropdown ---------- */
 const Dropdown = ({
   label,
@@ -70,13 +63,15 @@ const Dropdown = ({
   nameField = "name",
   loading = false,
   placeholder = "Select",
+  required = false,
+  error = null,
 }) => (
   <div className="space-y-1 w-full">
     <label
       className="text-sm text-black dark:text-white"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
-      {label}
+      {label} {required ? "*" : ""}
     </label>
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
@@ -139,10 +134,10 @@ const Dropdown = ({
         </Listbox.Options>
       </div>
     </Listbox>
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
-
-/* ---------- Input & Date ---------- */
+/* ---------- Input ---------- */
 const InputField = ({
   label,
   name,
@@ -150,13 +145,15 @@ const InputField = ({
   onChange,
   placeholder,
   type = "text",
+  required = false,
+  error = null,
 }) => (
   <div className="space-y-1 w-full">
     <label
       className="text-sm text-black dark:text-white"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
-      {label}
+      {label} {required ? "*" : ""}
     </label>
     <input
       type={type}
@@ -164,70 +161,51 @@ const InputField = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
+      required={required}
       className="w-full h-[33px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                  bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
-
-const DateField = ({ label, value, onChange, placeholder }) => {
-  const parseDate = (dateStr) => {
-    if (!dateStr) return null;
-    const [m, d, y] = dateStr.split("/").map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.getFullYear() === y &&
-      date.getMonth() === m - 1 &&
-      date.getDate() === d
-      ? date
-      : null;
+/* ---------- Date Field (Native Style) ---------- */
+const DateField = ({ label, value, onChange, placeholder, required = false, error = null }) => {
+  const dateRef = React.useRef(null);
+  const handleDateChange = (e) => {
+    onChange(e.target.value);
   };
-
+  const handleClick = () => {
+    dateRef.current?.showPicker();
+  };
   return (
     <div className="space-y-1 w-full">
-      
       <label
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
-        {label}
+        {label} {required ? "*" : ""}
       </label>
-      <div className="relative">
-        <DatePicker
-          selected={parseDate(value)}
-          onChange={(date) => {
-            const formatted = date
-              ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-                  date.getDate()
-                ).padStart(2, "0")}/${date.getFullYear()}`
-              : "";
-            onChange(formatted);
-          }}
-          dateFormat="MM/dd/yyyy"
-          placeholderText={placeholder}
+      <div className="relative cursor-pointer" onClick={handleClick}>
+        <input
+          type="date"
+          ref={dateRef}
+          value={value}
+          onChange={handleDateChange}
+          required={required}
           className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
-          wrapperClassName="w-full"
-          popperClassName="z-50"
-          customInput={
-            <input
-              style={{
-                paddingRight: "2.5rem",
-                fontSize: "14px",
-                fontFamily: "Helvetica, Arial, sans-serif",
-              }}
-            />
-          }
+                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         />
         <Calendar
           size={18}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
         />
       </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
 };
-
 /* ---------- Main Component ---------- */
 export default function NewRegistration({ isSidebarOpen }) {
   const [formData, setFormData] = useState({
@@ -259,21 +237,52 @@ export default function NewRegistration({ isSidebarOpen }) {
     department_id: "",
     staff_id: "",
   });
-
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [availableBeds, setAvailableBeds] = useState([]);
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [loadingStaff, setLoadingStaff] = useState(false);
+  const [loadingBeds, setLoadingBeds] = useState(false);
+  const [errors, setErrors] = useState({});
+  const styleRef = React.useRef(null);
   const navigate = useNavigate();
-
   const maritalStatusOptions = ["Single", "Married", "Divorced", "Widowed"];
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const consultationTypes = ["General", "Specialist", "Emergency"];
   const appointmentTypes = ["In-person", "Online", "Follow-up"];
   const casualtyTypes = ["Yes", "No"];
-
+  const requiredFields = {
+    fullname: "Full name is required",
+    dob: "Date of birth is required",
+    gender: "Gender is required",
+    age: "Age is required",
+    maritalStatus: "Marital status is required",
+    address: "Address is required",
+    phone: "Phone number is required",
+    email: "Email is required",
+    nid: "National ID is required",
+    city: "City is required",
+    country: "Country is required",
+    dor: "Date of registration is required",
+    occupation: "Occupation is required",
+    weight: "Weight is required",
+    height: "Height is required",
+    bloodGroup: "Blood group is required",
+    bp: "Blood pressure is required",
+    temperature: "Temperature is required",
+    consultType: "Consultation type is required",
+    department_id: "Department is required",
+    staff_id: "Consulting doctor is required",
+    apptType: "Appointment type is required",
+    admitDate: "Admit date is required",
+    roomNo: "Room / Bed No is required",
+    testReport: "Test report is required",
+    casualty: "Casualty status is required",
+    reason: "Reason for visit is required",
+    photo: "Photo is required",
+  };
   /* ---------- Load Departments ---------- */
   useEffect(() => {
     let mounted = true;
@@ -297,7 +306,37 @@ export default function NewRegistration({ isSidebarOpen }) {
       mounted = false;
     };
   }, []);
-
+  /* ---------- Load Available Beds ---------- */
+  useEffect(() => {
+    let mounted = true;
+    setLoadingBeds(true);
+    fetch(`${BED_API}/all`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load beds");
+        return r.json();
+      })
+      .then((data) => {
+        if (mounted) {
+          const beds = data.flatMap((group) =>
+            group.beds
+              .filter((bed) => !bed.is_occupied)
+              .map((bed) => ({
+                id: bed.bed_number.toString(),
+                name: `${group.bedGroup} - ${bed.bed_number}`,
+              }))
+          );
+          setAvailableBeds(beds);
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+        errorToast("Failed to load beds");
+      })
+      .finally(() => {
+        if (mounted) setLoadingBeds(false);
+      });
+    return () => (mounted = false);
+  }, []);
   /* ---------- Load Staff ---------- */
   useEffect(() => {
     if (!formData.department_id) {
@@ -326,16 +365,68 @@ export default function NewRegistration({ isSidebarOpen }) {
       mounted = false;
     };
   }, [formData.department_id]);
-
+  // Add CSS to hide default date picker icon
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      input[type="date"]::-webkit-calendar-picker-indicator {
+        display: none;
+        -webkit-appearance: none;
+      }
+      input[type="date"] {
+        -moz-appearance: textfield;
+      }
+    `;
+    document.head.appendChild(style);
+    styleRef.current = style;
+    return () => {
+      if (styleRef.current) {
+        document.head.removeChild(styleRef.current);
+      }
+    };
+  }, []);
   const handleChange = (field) => (e) => {
-    const val = e?.target?.value ?? e;
+    const val = e.target.value;
     setFormData((prev) => ({ ...prev, [field]: val }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
-
-  const handleDropdownChange = (field, value) => {
+  const handleDropdownChange = (field) => (value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
-
+  const handleDateChange = (field) => (date) => {
+    setFormData((prev) => ({ ...prev, [field]: date }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+  const validateForm = () => {
+    const newErrors = {};
+    Object.entries(requiredFields).forEach(([field, msg]) => {
+      let value;
+      if (field === "photo") {
+        value = photoFile;
+      } else {
+        value = formData[field];
+      }
+      if (!value || (typeof value === "string" && !value.trim())) {
+        newErrors[field] = msg;
+      }
+    });
+    // Additional validations
+    if (formData.phone && formData.phone.length !== 10) {
+      newErrors.phone = "Phone number must be 10 digits";
+    }
+    if (formData.email && !formData.email.endsWith("@gmail.com")) {
+      newErrors.email = "Email must be a Gmail address";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
   const handleClear = () => {
     setFormData({
       fullname: "",
@@ -368,14 +459,19 @@ export default function NewRegistration({ isSidebarOpen }) {
     });
     setPhotoPreview(null);
     setPhotoFile(null);
+    setErrors({});
   };
-
   /* ---------- Submit with Toast ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const isValid = validateForm();
+    if (!isValid) {
+      errorToast("Please fill all required fields correctly.");
+      return;
+    }
     const body = new FormData();
     body.append("full_name", safeStr(formData.fullname));
-    body.append("date_of_birth", formatToYMD(formData.dob));
+    body.append("date_of_birth", formData.dob || "");
     body.append("gender", safeStr(formData.gender));
     body.append("age", safeStr(formData.age));
     body.append("marital_status", safeStr(formData.maritalStatus));
@@ -385,7 +481,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("national_id", safeStr(formData.nid));
     body.append("city", safeStr(formData.city));
     body.append("country", safeStr(formData.country));
-    body.append("date_of_registration", formatToYMD(formData.dor));
+    body.append("date_of_registration", formData.dor || "");
     body.append("occupation", safeStr(formData.occupation));
     body.append("weight_in_kg", safeStr(formData.weight));
     body.append("height_in_cm", safeStr(formData.height));
@@ -394,7 +490,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("body_temperature", safeStr(formData.temperature));
     body.append("consultation_type", safeStr(formData.consultType));
     body.append("appointment_type", safeStr(formData.apptType));
-    body.append("admission_date", formatToYMD(formData.admitDate));
+    body.append("admission_date", formData.admitDate || "");
     body.append("room_number", safeStr(formData.roomNo));
     body.append("test_report_details", safeStr(formData.testReport));
     body.append("casualty_status", safeStr(formData.casualty));
@@ -402,26 +498,21 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("department_id", safeStr(formData.department_id));
     body.append("staff_id", safeStr(formData.staff_id));
     if (photoFile) body.append("photo", photoFile);
-
     try {
       const res = await fetch(`${API_BASE}/patients/register`, {
         method: "POST",
         body,
       });
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.detail || "Registration failed");
-
       // SUCCESS TOAST
       successToast(`Patient registered: ${data.patient_id}`);
-
       handleClear();
     } catch (err) {
       // ERROR TOAST
       errorToast(`Registration failed: ${err.message}`);
     }
   };
-
   /* ---------- Render ---------- */
   return (
        <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
@@ -450,7 +541,6 @@ export default function NewRegistration({ isSidebarOpen }) {
           zIndex: 0,
         }}
       ></div>
-
       <div className="mt-4 mb-6">
         <button
           onClick={() => navigate(-1)}
@@ -463,22 +553,32 @@ export default function NewRegistration({ isSidebarOpen }) {
           <ArrowLeft size={18} /> Back
         </button>
       </div>
-
       <div className="grid grid-cols-1 gap-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
+          <div className="md:flex-1">
             <h2 className="text-2xl font-bold">New Registration</h2>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               Input new patient details carefully
             </p>
           </div>
-          <PhotoUploadBox
-            photoPreview={photoPreview}
-            setPhotoPreview={setPhotoPreview}
-            setPhotoFile={setPhotoFile}
-          />
+          <div className="flex flex-col items-end gap-1">
+            {/* <label
+              className="text-sm text-black dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Photo *
+            </label> */}
+            <PhotoUploadBox
+              photoPreview={photoPreview}
+              setPhotoPreview={setPhotoPreview}
+              onFileSelect={(file) => {
+                setPhotoFile(file);
+                setErrors((prev) => ({ ...prev, photo: "" }));
+              }}
+              error={errors.photo}
+            />
+          </div>
         </div>
-
         <form
           onSubmit={handleSubmit}
           className="space-y-8"
@@ -493,21 +593,26 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.fullname}
                 onChange={handleChange("fullname")}
                 placeholder="Enter full name"
+                required
+                error={errors.fullname}
               />
               <DateField
                 label="Date of Birth"
                 value={formData.dob}
-                onChange={(v) => setFormData((p) => ({ ...p, dob: v }))}
-                placeholder="MM/DD/YYYY"
+                onChange={handleDateChange("dob")}
+                required
+                error={errors.dob}
               />
               <Dropdown
                 label="Gender"
                 value={formData.gender}
-                onChange={(v) => handleDropdownChange("gender", v)}
+                onChange={handleDropdownChange("gender")}
                 options={["Male", "Female", "Other"].map((g) => ({
                   id: g,
                   name: g,
                 }))}
+                required
+                error={errors.gender}
               />
               <InputField
                 label="Age"
@@ -515,18 +620,24 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.age}
                 onChange={handleChange("age")}
                 placeholder="Enter age"
+                required
+                error={errors.age}
               />
               <Dropdown
                 label="Marital Status"
                 value={formData.maritalStatus}
-                onChange={(v) => handleDropdownChange("maritalStatus", v)}
+                onChange={handleDropdownChange("maritalStatus")}
                 options={maritalStatusOptions.map((m) => ({ id: m, name: m }))}
+                required
+                error={errors.maritalStatus}
               />
               <InputField
                 label="Address"
                 value={formData.address}
                 onChange={handleChange("address")}
                 placeholder="Enter address"
+                required
+                error={errors.address}
               />
               <InputField
                 label="Phone"
@@ -534,28 +645,25 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.phone}
                 onChange={(e) => {
                   const value = e.target.value;
-
                   // allow only digits and max 10 characters
                   if (/^\d{0,10}$/.test(value)) {
                     handleChange("phone")(e);
                   }
                 }}
                 placeholder="Enter 10 digit phone no"
+                required
+                error={errors.phone}
               />
-
               <InputField
   label="Email ID"
   type="email"
   value={formData.email}
   onChange={(e) => {
     const value = e.target.value;
-
     // Allow typing anything normally
     handleChange("email")(e);
-
     // If user completed email and it's NOT Gmail → block it
     const fullEmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
     // If user types a @ and finishes domain incorrectly → reset it
     if (value.includes("@") && !value.endsWith("@gmail.com")) {
       if (value.length >= "@gmail.com".length) {
@@ -567,37 +675,47 @@ export default function NewRegistration({ isSidebarOpen }) {
     }
   }}
   placeholder="Enter email"
+  required
+  error={errors.email}
 />
-
               <InputField
                 label="National ID"
                 value={formData.nid}
                 onChange={handleChange("nid")}
                 placeholder="Enter NID"
+                required
+                error={errors.nid}
               />
               <InputField
                 label="City"
                 value={formData.city}
                 onChange={handleChange("city")}
                 placeholder="City"
+                required
+                error={errors.city}
               />
               <InputField
                 label="Country"
                 value={formData.country}
                 onChange={handleChange("country")}
                 placeholder="Country"
+                required
+                error={errors.country}
               />
               <DateField
                 label="Date of Registration"
                 value={formData.dor}
-                onChange={(v) => setFormData((p) => ({ ...p, dor: v }))}
-                placeholder="MM/DD/YYYY"
+                onChange={handleDateChange("dor")}
+                required
+                error={errors.dor}
               />
               <InputField
                 label="Occupation"
                 value={formData.occupation}
                 onChange={handleChange("occupation")}
                 placeholder="Enter occupation"
+                required
+                error={errors.occupation}
               />
               <InputField
                 label="Weight (kg)"
@@ -605,6 +723,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.weight}
                 onChange={handleChange("weight")}
                 placeholder="kg"
+                required
+                error={errors.weight}
               />
               <InputField
                 label="Height (cm)"
@@ -612,10 +732,11 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.height}
                 onChange={handleChange("height")}
                 placeholder="cm"
+                required
+                error={errors.height}
               />
             </div>
           </div>
-
           {/* Medical Info */}
           <div>
             <h3 className="text-lg font-medium mb-2">Medical Info</h3>
@@ -623,14 +744,18 @@ export default function NewRegistration({ isSidebarOpen }) {
               <Dropdown
                 label="Blood Group"
                 value={formData.bloodGroup}
-                onChange={(v) => handleDropdownChange("bloodGroup", v)}
+                onChange={handleDropdownChange("bloodGroup")}
                 options={bloodGroups.map((b) => ({ id: b, name: b }))}
+                required
+                error={errors.bloodGroup}
               />
               <InputField
                 label="Blood Pressure"
                 value={formData.bp}
                 onChange={handleChange("bp")}
                 placeholder="e.g. 120/80"
+                required
+                error={errors.bp}
               />
               <InputField
                 label="Temperature"
@@ -638,24 +763,30 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.temperature}
                 onChange={handleChange("temperature")}
                 placeholder="°C"
+                required
+                error={errors.temperature}
               />
               <Dropdown
                 label="Consultation Type"
                 value={formData.consultType}
-                onChange={(v) => handleDropdownChange("consultType", v)}
+                onChange={handleDropdownChange("consultType")}
                 options={consultationTypes.map((c) => ({ id: c, name: c }))}
+                required
+                error={errors.consultType}
               />
               <Dropdown
                 label="Department"
                 value={formData.department_id}
-                onChange={(v) => handleDropdownChange("department_id", v)}
+                onChange={handleDropdownChange("department_id")}
                 options={departments}
                 loading={loadingDepts}
+                required
+                error={errors.department_id}
               />
               <Dropdown
                 label="Consulting Doctor"
                 value={formData.staff_id}
-                onChange={(v) => handleDropdownChange("staff_id", v)}
+                onChange={handleDropdownChange("staff_id")}
                 options={doctors.map((d) => ({
                   id: d.id,
                   display: `${d.full_name} – ${d.designation}`,
@@ -664,50 +795,69 @@ export default function NewRegistration({ isSidebarOpen }) {
                 placeholder="Select Department First"
                 idField="id"
                 nameField="display"
+                required
+                error={errors.staff_id}
               />
               <Dropdown
                 label="Appointment Type"
                 value={formData.apptType}
-                onChange={(v) => handleDropdownChange("apptType", v)}
+                onChange={handleDropdownChange("apptType")}
                 options={appointmentTypes.map((a) => ({ id: a, name: a }))}
+                required
+                error={errors.apptType}
               />
               <DateField
                 label="Admit Date"
                 value={formData.admitDate}
-                onChange={(v) => setFormData((p) => ({ ...p, admitDate: v }))}
-                placeholder="MM/DD/YYYY"
+                onChange={handleDateChange("admitDate")}
+                required
+                error={errors.admitDate}
               />
-              <InputField
-                label="Room No"
+              <Dropdown
+                label="Room / Bed No"
                 value={formData.roomNo}
-                onChange={handleChange("roomNo")}
-                placeholder="Room"
+                onChange={handleDropdownChange("roomNo")}
+                options={availableBeds}
+                placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
+                loading={loadingBeds}
+                required
+                error={errors.roomNo}
               />
               <InputField
                 label="Test Report"
                 value={formData.testReport}
                 onChange={handleChange("testReport")}
                 placeholder="Details"
+                required
+                error={errors.testReport}
               />
               <Dropdown
                 label="Casualty"
                 value={formData.casualty}
-                onChange={(v) => handleDropdownChange("casualty", v)}
+                onChange={handleDropdownChange("casualty")}
                 options={casualtyTypes.map((c) => ({ id: c, name: c }))}
+                required
+                error={errors.casualty}
               />
             </div>
             <div className="mt-4">
-              <label className="text-sm">Reason for Visit</label>
+              <label
+                className="text-sm text-black dark:text-white"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+              >
+                Reason for Visit *
+              </label>
               <textarea
                 value={formData.reason}
                 onChange={handleChange("reason")}
                 placeholder="Describe symptoms"
                 className="w-full h-20 mt-1 px-3 py-2 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                required
               />
+              {errors.reason && <p className="text-red-500 text-xs mt-1">{errors.reason}</p>}
             </div>
           </div>
-
           {/* Buttons */}
           <div className="flex justify-end gap-2 mt-8">
             <button
@@ -721,7 +871,7 @@ export default function NewRegistration({ isSidebarOpen }) {
               type="submit"
               className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B]"
             >
-              Add Patient
+              Add Patient..!
             </button>
           </div>
         </form>

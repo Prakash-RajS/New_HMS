@@ -1,3 +1,4 @@
+#fastapi_app/routers/bed_group_list.py
 from fastapi import APIRouter, HTTPException, status, Form
 from pydantic import BaseModel, ConfigDict
 from typing import List, Optional, Dict, Any
