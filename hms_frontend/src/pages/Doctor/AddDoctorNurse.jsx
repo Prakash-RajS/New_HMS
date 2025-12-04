@@ -842,7 +842,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   return (
-    <div className="w-full max-w-screen-2xl mb-4 mx-auto">
+    <div className="w-full max-w-screen-2xl mb-4 mx-auto font-[Helvetica]">
       <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
         {/* Dark Overlay */}
         <div

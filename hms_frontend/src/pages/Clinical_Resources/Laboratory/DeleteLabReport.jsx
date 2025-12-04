@@ -114,7 +114,7 @@ const DeleteLabReportPopup = ({ order, onClose, onConfirm }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       {/* Main Container */}
       <div className="relative w-[505px] h-auto rounded-[20px] bg-white dark:bg-[#000000] text-black dark:text-white p-6">
         {/* Gradient Border */}

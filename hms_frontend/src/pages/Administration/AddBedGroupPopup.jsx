@@ -89,7 +89,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 font-[Helvetica]">
       <div className="w-[420px] h-auto rounded-[20px]  
       bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-md backdrop-blur-md relative">
         {/* Gradient Border */}

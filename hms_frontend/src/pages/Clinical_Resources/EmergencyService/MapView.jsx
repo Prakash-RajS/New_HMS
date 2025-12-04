@@ -642,7 +642,7 @@ const MapView = ({ units = [], trips = [], livePositions = {} }) => {
         ))}
 
         {/* Legend */}
-        <div className="leaflet-bottom leaflet-left">
+        <div className="leaflet-bottom leaflet-left font-[Helvetica]">
           <div className="leaflet-control bg-white/95 p-3 rounded-lg shadow-lg m-2">
             <h4 className="font-bold text-sm mb-2">🚑 Vizag Live Tracking</h4>
             <div className="space-y-1 text-xs">

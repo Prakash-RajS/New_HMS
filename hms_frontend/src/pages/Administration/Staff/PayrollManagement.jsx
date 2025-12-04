@@ -122,7 +122,7 @@ const PayrollManagement = () => {
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-black text-black dark:text-white min-h-screen">
+    <div className="p-4 bg-white dark:bg-black text-black dark:text-white min-h-screen font-[Helvetica]">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-black dark:text-white">Payroll Management</h1>

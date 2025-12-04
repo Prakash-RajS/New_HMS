@@ -132,7 +132,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
         </div>
       </Listbox>
       {error && (
-        <p className="text-red-500 dark:text-red-400 text-xs mt-1 font-helvetica">
+        <p className="text-red-500 dark:text-red-400 text-xs mt-1 font-[Helvetica]">
           {error}
         </p>
       )}
@@ -140,9 +140,9 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
   );
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative font-helvetica">
+        <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative font-[Helvetica]">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-800">
             <h2 className="text-black dark:text-white font-medium text-[16px]">
@@ -183,7 +183,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
                 />
 
                 <div>
-                  <label className="text-sm text-black dark:text-white font-helvetica">
+                  <label className="text-sm text-black dark:text-white font-[Helvetica]">
                     Quantity {maxAvailableQuantity !== null && `(Max: ${maxAvailableQuantity})`}
                   </label>
                   <input

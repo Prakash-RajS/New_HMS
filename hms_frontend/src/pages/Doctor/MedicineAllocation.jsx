@@ -518,7 +518,7 @@ export default function ViewPatientProfile() {
                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-helvetica
+                transition-all duration-300 font-[Helvetica]
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!patientInfo.patientName ? "text-gray-500" : ""}
               `}
@@ -544,7 +544,7 @@ export default function ViewPatientProfile() {
                     value={name}
                     className={({ active, selected }) =>
                       `
-                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${
                           active
                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
@@ -591,7 +591,7 @@ export default function ViewPatientProfile() {
                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-helvetica
+                transition-all duration-300 font-[Helvetica]
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!patientInfo.patientID ? "text-gray-500" : ""}
               `}
@@ -617,7 +617,7 @@ export default function ViewPatientProfile() {
                     value={id}
                     className={({ active, selected }) =>
                       `
-                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${
                           active
                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
@@ -664,7 +664,7 @@ export default function ViewPatientProfile() {
                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-helvetica
+                transition-all duration-300 font-[Helvetica]
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!patientInfo.department ? "text-gray-500" : ""}
               `}
@@ -690,7 +690,7 @@ export default function ViewPatientProfile() {
                     value={dept}
                     className={({ active, selected }) =>
                       `
-                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${
                           active
                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
@@ -741,7 +741,7 @@ export default function ViewPatientProfile() {
                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-helvetica
+                transition-all duration-300 font-[Helvetica]
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!value ? "text-gray-500" : ""}
               `}
@@ -767,7 +767,7 @@ export default function ViewPatientProfile() {
                     value={option}
                     className={({ active, selected }) =>
                       `
-                        cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${
                           active
                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
@@ -798,7 +798,7 @@ export default function ViewPatientProfile() {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col relative">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
       {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -852,7 +852,7 @@ export default function ViewPatientProfile() {
               focus:outline-none
               focus:border-[#0EFF7B]
               transition-all
-              font-helvetica
+              font-[Helvetica]
             "
           />
           {searchQuery && filteredPatients.length > 0 && (
@@ -862,7 +862,7 @@ export default function ViewPatientProfile() {
                   key={patient.id}
                   onClick={() => handlePatientSelect(patient)}
                   className="
-                    cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                    cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                     text-black dark:text-white
                     hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                   "
@@ -884,7 +884,7 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* View Patient Profile Information */}
-      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-helvetica max-w-full relative">
+      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
         {/* Your existing patient profile content */}
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
           <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
@@ -912,7 +912,7 @@ export default function ViewPatientProfile() {
     </svg>
   </div>
 </div>
-          <span className="text-[#0EFF7B] text-[18px] font-semibold font-helvetica">
+          <span className="text-[#0EFF7B] text-[18px] font-semibold font-[Helvetica]">
             {fullPatient?.gender === "Female"
               ? "Mrs."
               : fullPatient?.gender === "Male"
@@ -922,11 +922,11 @@ export default function ViewPatientProfile() {
               patientInfo.patientName ||
               "Select a patient"}
           </span>
-          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-helvetica">
+          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
             ID:{" "}
             {fullPatient?.patient_unique_id || patientInfo.patientID || "N/A"}
           </span>
-          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-helvetica">
+          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
             {fullPatient?.email_address || "N/A"}
           </span>
         </div>
@@ -960,10 +960,10 @@ export default function ViewPatientProfile() {
               },
             ].map((item, idx) => (
               <div key={idx} className="flex flex-col items-center">
-                <span className="w-[100px] sm:w-[110px] h-[18px] font-helvetica text-[15px] leading-[100%] text-center text-[#0EFF7B]">
+                <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
                   {item.label}
                 </span>
-                <div className="w-[100px] sm:w-[110px] h-[16px] font-helvetica text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
+                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
                   {item.value}
                 </div>
               </div>
@@ -978,7 +978,7 @@ export default function ViewPatientProfile() {
     }
     navigate(`/patients/profile/${patientDbId}`);
   }}
-  className="relative group flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-helvetica"
+  className="relative group flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-[Helvetica]"
 >
   <span className="text-[15px] w-[calc(100%-34px)]">
     View more information
@@ -1004,29 +1004,29 @@ export default function ViewPatientProfile() {
         <div className="text-[14px] flex justify-center gap-3 sm:gap-6 mt-4 lg:mt-0">
           <div className="flex flex-col items-center space-y-3">
             <div className="flex flex-col items-center space-y-1">
-              <span className="text-black dark:text-white font-helvetica text-[14px]">
+              <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
                 Blood Pressure
               </span>
-              <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
+              <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
                 {fullPatient?.blood_pressure || "N/A"}{" "}
                 <span className="text-black dark:text-white">mmHg</span>
               </span>
             </div>
             <div className="flex flex-col items-center space-y-1">
-              <span className="text-black dark:text-white font-helvetica text-[14px]">
+              <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
                 Heart Rate
               </span>
-              <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
+              <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
                 {fullPatient?.heart_rate || "N/A"}{" "}
                 <span className="text-black dark:text-white">bpm</span>
               </span>
             </div>
           </div>
           <div className="flex flex-col items-center space-y-1">
-            <span className="text-black dark:text-white font-helvetica text-[14px]">
+            <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
               Temperature
             </span>
-            <span className="text-[#0EFF7B] font-semibold font-helvetica text-[14px]">
+            <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
               {fullPatient?.body_temperature
                 ? `${fullPatient.body_temperature}°F`
                 : "N/A"}
@@ -1036,8 +1036,8 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Medicine Allocation Form */}
-      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-helvetica">
+      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine Allocation
         </h2>
         <form onSubmit={handleSubmit}>
@@ -1167,7 +1167,7 @@ export default function ViewPatientProfile() {
                               border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
                               text-black dark:text-white text-left text-sm leading-none
                               shadow-[0_0_2.09px_#0EFF7B] outline-none
-                              transition-all duration-300 font-helvetica
+                              transition-all duration-300 font-[Helvetica]
                               ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                               ${!test.labTest ? "text-gray-500" : ""}
                             `}
@@ -1193,7 +1193,7 @@ export default function ViewPatientProfile() {
                                   value={option}
                                   className={({ active, selected }) =>
                                     `
-                                      cursor-pointer select-none py-2 px-3 text-sm font-helvetica
+                                      cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                                       ${
                                         active
                                           ? "bg-[#0EFF7B33] text-[#0EFF7B]"
@@ -1276,13 +1276,13 @@ export default function ViewPatientProfile() {
 
       {/* Medicine Allocation History with Actions */}
       {/* Medicine Allocation History with Actions */}
-<div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1200px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
-  <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-helvetica">
+<div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+  <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
     Medicine allocation history
   </h2>
   <div className="overflow-x-auto">
-    <table className="w-full min-w-[600px] border-collapse font-helvetica text-[13px] sm:text-[14px]">
-      <thead className="text-[#0EFF7B] font-helvetica dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+    <table className="w-full min-w-[600px] border-collapse font-[Helvetica] text-[13px] sm:text-[14px]">
+      <thead className="text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
         <tr className="text-left text-[#0EFF7B] border border-gray-300 dark:border-[#3C3C3C] text-center">
           <th className="py-1.5 px-2 sm:px-3">Patient Name</th>
           <th className="py-1.5 px-2 sm:px-3">Patient ID</th>

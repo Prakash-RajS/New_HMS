@@ -115,12 +115,12 @@ const DeletePatient = ({ appointment, onClose, onConfirm }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       {/* Gradient Border Container */}
       <div className="w-[505px] rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
         <div
           className="rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          style={{ fontFamily: "Helvetica" }}
         >
           {/* Inner Gradient Border */}
           <div

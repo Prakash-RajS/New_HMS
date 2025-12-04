@@ -38,7 +38,7 @@ const Toast = ({ message, type = "success", isOpen, onClose, duration = 3000 }) 
           exit={{ opacity: 0, x: 50 }}
           transition={{ duration: 0.35, ease: "easeInOut" }}
           className={clsx(
-            "fixed top-6 right-6 px-6 py-4 rounded-xl text-base font-semibold border shadow-2xl max-w-xs z-[9999]",
+            "fixed top-6 right-6 px-6 py-4 rounded-xl text-base font-[Helvetica] font-semibold border shadow-2xl max-w-xs z-[9999]",
             bgColor
           )}
         >

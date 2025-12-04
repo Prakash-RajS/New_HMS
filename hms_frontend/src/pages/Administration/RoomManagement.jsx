@@ -232,7 +232,7 @@ const RoomManagement = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
         <div className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
           <div
             style={{
@@ -367,8 +367,8 @@ const RoomManagement = () => {
   }
 
   return (
-    <div className="mt-[60px] h-100% mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[1400px] mx-auto dark:border-[#1E1E1E]">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    <div className="mt-[60px] h-100% mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{

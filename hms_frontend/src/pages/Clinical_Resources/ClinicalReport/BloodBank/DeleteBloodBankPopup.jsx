@@ -23,7 +23,7 @@ const DeleteBloodBankPopup = ({ onClose, onConfirm, data }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px]">
         <div className="w-[504px] bg-white dark:bg-[#000000E5] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
           {/* Gradient Border */}

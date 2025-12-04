@@ -281,7 +281,7 @@ const EditPatientPopup = ({
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 p-4 font-[Helvetica]">
       <div className="w-full max-w-4xl rounded-[20px] p-[1px] backdrop-blur-md shadow-xl bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
         <div className="rounded-[19px] bg-white dark:bg-[#000000] p-4 sm:p-6 shadow-lg">
           {/* Header */}

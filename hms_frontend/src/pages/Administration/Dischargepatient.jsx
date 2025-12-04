@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 
 const DischargePopup = ({ onClose, onConfirm }) => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="w-[504px] rounded-[20px] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
             {/* Gradient Border */}
   <div

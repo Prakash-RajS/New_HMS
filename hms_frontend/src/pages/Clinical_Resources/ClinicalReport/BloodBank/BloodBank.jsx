@@ -1365,7 +1365,7 @@ const BloodBank = () => {
   };
   /* ---------- UI ---------- */
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
       {/* Gradient overlay (dark mode) */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none hidden dark:block"

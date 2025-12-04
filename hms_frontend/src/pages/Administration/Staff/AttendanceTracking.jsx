@@ -359,7 +359,7 @@ const AttendanceTracking = () => {
   };
 
   return (
-    <div className="min-h-screen text-black dark:text-white p-6 bg-white dark:bg-black flex-1 w-full overflow-x-hidden">
+    <div className="min-h-screen text-black dark:text-white p-6 bg-white dark:bg-black flex-1 w-full overflow-x-hidden font-[Helvetica]">
       <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium mb-4 sm:mb-6 font-inter">
         Attendance Tracking
       </h1>

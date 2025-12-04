@@ -108,7 +108,7 @@ const DeleteAppointmentPopup = ({ onClose, onConfirm }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]">
         <div
           className="w-[504px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"

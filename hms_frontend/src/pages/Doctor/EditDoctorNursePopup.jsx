@@ -163,7 +163,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   if (!profile) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[9990]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[9990] font-[Helvetica]">
       <div className="w-[504px] h-[520px] rounded-[20px] bg-white dark:bg-[#000000E5] p-6 relative overflow-hidden">
         <div style={{ position: "absolute", inset: 0, borderRadius: "20px", padding: "2px", background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }}></div>
 

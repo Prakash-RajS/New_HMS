@@ -939,7 +939,7 @@ const ProfileSection = () => {
   ).length;
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -988,7 +988,7 @@ const ProfileSection = () => {
       <div className="mb-6 w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
-            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+            <span className="font-[Helvetica] font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Total Doctors
             </span>
             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#0EFF7B66] dark:border-[#0EFF7B66] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-r from-[#14DC6F] to-[#09753A] dark:from-[#14DC6F] dark:to-[#09753A]">
@@ -996,7 +996,7 @@ const ProfileSection = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+            <span className="font-[Helvetica] font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Total Nurse
             </span>
             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#2231FF] dark:border-[#2231FF] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#6E92FF] to-[#425899] dark:from-[#6E92FF] dark:to-[#425899]">
@@ -1004,7 +1004,7 @@ const ProfileSection = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-inter font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
+            <span className="font-[Helvetica] font-normal text-[14px] text-gray-600 dark:text-[#A0A0A0]">
               Other staff
             </span>
             <span className="w-6 h-6 flex items-center justify-center gap-1 rounded-[20px] border border-[#FF930E] dark:border-[#FF930E] p-1 text-xs font-normal text-white dark:text-white bg-gradient-to-b from-[#FF930E] to-[#995808] dark:from-[#FF930E] dark:to-[#995808]">

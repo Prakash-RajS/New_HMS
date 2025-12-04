@@ -177,8 +177,15 @@ const ProfileSection = () => {
 
   /* ==================== RENDER ==================== */
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
-      {/* Gradient Border */}
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+            zIndex: 0,
+          }}
+        ></div>{/* Gradient Border */}
       <div
         style={{
           position: "absolute",

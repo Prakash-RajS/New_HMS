@@ -244,7 +244,7 @@ const API_BASE_URL = "http://localhost:8000";
   const unreadMailsCount = mails.filter((m) => !m.read).length;
 
   return (
-    <div className="w-full">
+    <div className="w-full font-[Helvetica]">
       <header
         className="flex items-center justify-between p-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
         style={{
@@ -415,7 +415,7 @@ const API_BASE_URL = "http://localhost:8000";
             </button>
 
             {isNotificationOpen && (
-              <div className="absolute right-0 top-full mt-3 w-96 bg-white dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-3 w-96 bg-white dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <h3 className="font-semibold text-gray-800 dark:text-white">
@@ -579,9 +579,9 @@ const API_BASE_URL = "http://localhost:8000";
           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
           {/* Profile Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative font-[Helvetica]" ref={dropdownRef}>
             <div
-              className="relative group flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
+              className="relative group flex items-center gap-3 cursor-pointer group w-[163px] h-[32px] font-[Helvetica] "
               onClick={toggleDropdown}
             >
               <div className="relative w-8 h-8 min-w-8 min-h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0 border-2 border-white dark:border-gray-800">

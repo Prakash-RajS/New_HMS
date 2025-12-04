@@ -564,7 +564,7 @@ const StockInventory = () => {
 
   return (
     <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[1400px] mx-auto flex flex-col
+      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col
      bg-white dark:bg-transparent overflow-hidden relative"
     >
       {/* Error Display */}

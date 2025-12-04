@@ -805,7 +805,7 @@ const AppointmentListOPD = () => {
   const navigate = useNavigate();
   const perPage = 10;
 
-  const statusFilters = ["All", "Completed", "Discharged"];
+  const statusFilters = ["All", "New", "Normal", "Severe", "Completed", "Cancelled"];
 
   // ---------- FETCH OPD ----------
   const fetchOPD = async (p = 1, s = search) => {
@@ -986,13 +986,24 @@ const AppointmentListOPD = () => {
   );
 
   const statusColors = {
-    Completed: "bg-green-900 text-green-300",
-    Discharged: "bg-green-800 text-green-200",
+    All: "bg-slate-700 text-slate-300",
+    New: "bg-blue-900 text-blue-300",
+    Normal: "bg-green-900 text-green-300",
+    Severe: "bg-red-900 text-red-300",
+    Completed: "bg-emerald-900 text-emerald-300",
+    Cancelled: "bg-gray-700 text-gray-300",
   };
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
-      {/* Gradient Border */}
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+      <div
+          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+            zIndex: 0,
+          }}
+        ></div>{/* Gradient Border */}
       <div
         style={{
           position: "absolute",
@@ -1107,7 +1118,7 @@ const AppointmentListOPD = () => {
       <button
         key={f}
         onClick={() => setActiveFilter(f)}
-        className={`relative flex-1 min-w-[162px] h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px] font-[Helvetica] whitespace-nowrap
+        className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
           ${
             activeFilter === f
               ? "bg-[#08994A] text-white shadow-sm"
@@ -1135,7 +1146,7 @@ const AppointmentListOPD = () => {
                 <th className="py-3 px-2">
                   <input
                     type="checkbox"
-                    className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     checked={
                       current.length > 0 && selected.length === current.length
                     }
@@ -1165,7 +1176,7 @@ const AppointmentListOPD = () => {
                       <td className="px-2">
                         <input
                           type="checkbox"
-                          className="w-5 h-5 rounded-md border border-[#0EFF7B] dark:border-gray-600 accent-[#08994A] dark:accent-green-500 bg-white dark:bg-transparent focus:outline-none cursor-pointer transition-colors"
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           checked={selected.includes(gIdx)}
                           onChange={() => toggle(i)}
                         />

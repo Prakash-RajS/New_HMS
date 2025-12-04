@@ -100,7 +100,7 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-20 bg-opacity-50 z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-20 bg-opacity-50 z-50 font-[Helvetica]">
       <div className="w-[420px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
       bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
         {/* Gradient Border */}

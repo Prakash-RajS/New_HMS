@@ -730,7 +730,7 @@ const formatMessageType = (type) => {
     return <div className="p-10 text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col overflow-hidden relative">
       {/* Gradient Border */}
       <div
         style={{

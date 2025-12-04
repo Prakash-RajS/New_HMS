@@ -119,7 +119,7 @@ const AdministrativeDept = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-transparent text-black dark:text-white relative rounded-xl p-4 w-full max-w-[1400px] mx-auto dark:border-[#1E1E1E] flex flex-col">
+    <div className="bg-white dark:bg-transparent text-black dark:text-white relative rounded-xl p-4 w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] flex flex-col font-[Helvetica]">
       
       {/* Search and Pagination Header */}
       <div className="flex justify-between items-center mb-4 relative z-10">

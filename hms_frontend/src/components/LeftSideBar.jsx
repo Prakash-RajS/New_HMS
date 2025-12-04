@@ -496,7 +496,7 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
 
   return (
-    <li className="w-full font-['Inter']">
+    <li className="w-full font-[Helvetica]">
       {hasDropdown ? (
         <>
           <div
@@ -521,7 +521,7 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
                 }`}
               />
               {!isCollapsed && (
-                <span className={`${textSizeClass} font-['Inter']`}>
+                <span className={`${textSizeClass} font-[Helvetica]`}>
                   {item.name}
                 </span>
               )}
@@ -542,7 +542,7 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
             className="overflow-hidden transition-all duration-500 ease-in-out"
             style={{ maxHeight: isOpen ? "500px" : "0px" }}
           >
-            <ul className="mt-2 gap-[10px] flex flex-col gap-0.5 font-['Inter']">
+            <ul className="mt-2 gap-[10px] flex flex-col gap-0.5 font-[Helvetica]">
               {item.dropdown.map((subItem, subIdx) => (
                 <MenuItem
                   key={subIdx}
@@ -584,7 +584,7 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
                 }`}
               />
               {!isCollapsed && (
-                <span className={`${textSizeClass} font-['Inter']`}>
+                <span className={`${textSizeClass} font-[Helvetica]`}>
                   {item.name}
                 </span>
               )}

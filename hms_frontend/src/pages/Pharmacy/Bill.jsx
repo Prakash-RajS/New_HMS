@@ -449,7 +449,7 @@ const Bill = () => {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         {/* Gradient overlays */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -494,7 +494,7 @@ const Bill = () => {
                 placeholder="Search patient name or ID"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-[34px] p-[4.19px_16.75px] rounded border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white placeholder-[#5CD592] dark:placeholder-[#5CD592] focus:outline-none transition-all font-helvetica"
+                className="w-full h-[34px] p-[4.19px_16.75px] rounded border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white placeholder-[#5CD592] dark:placeholder-[#5CD592] focus:outline-none transition-all font-[Helvetica]"
               />
 
               {searchQuery && filteredPatients.length > 0 && (
@@ -521,11 +521,11 @@ const Bill = () => {
                   handlePatientSelect(patients.find((p) => p.full_name === v))
                 }
               >
-                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-helvetica text-left relative">
+                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
                   {patientInfo.patientName || "Select Name"}
                 </Listbox.Button>
 
-                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-helvetica">
+                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
                   {patients.map((p) => (
                     <Listbox.Option
                       key={p.id}
@@ -550,11 +550,11 @@ const Bill = () => {
                   )
                 }
               >
-                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-helvetica text-left relative">
+                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
                   {patientInfo.patientID || "Select ID"}
                 </Listbox.Button>
 
-                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-helvetica">
+                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
                   {patients.map((p) => (
                     <Listbox.Option
                       key={p.id}
@@ -729,7 +729,7 @@ const Bill = () => {
                       duration-300
                       px-3
                       pr-8
-                      font-helvetica
+                      font-[Helvetica]
                       text-sm
                       text-left
                       relative
@@ -764,7 +764,7 @@ const Bill = () => {
                       max-h-60
                       overflow-auto
                       text-sm
-                      font-helvetica
+                      font-[Helvetica]
                       top-[100%]
                       left-0
                     "
@@ -805,7 +805,7 @@ const Bill = () => {
                       outline-none
                       focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
                       transition-all duration-300
-                      px-3 pr-8 font-helvetica text-sm text-left relative
+                      px-3 pr-8 font-[Helvetica] text-sm text-left relative
                     "
                   >
                     {patientInfo.paymentType || "Full Payment"}
@@ -829,7 +829,7 @@ const Bill = () => {
                       absolute z-10 mt-1 w-full bg-white dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
-                      text-sm font-helvetica top-[100%] left-0
+                      text-sm font-[Helvetica] top-[100%] left-0
                     "
                   >
                     {paymentTypes.map((type) => (
@@ -868,7 +868,7 @@ const Bill = () => {
                       outline-none
                       focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
                       transition-all duration-300
-                      px-3 pr-8 font-helvetica text-sm text-left relative
+                      px-3 pr-8 font-[Helvetica] text-sm text-left relative
                     "
                   >
                     {patientInfo.paymentStatus || "Paid"}
@@ -892,7 +892,7 @@ const Bill = () => {
                       absolute z-10 mt-1 w-full bg-white dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
-                      text-sm font-helvetica top-[100%] left-0
+                      text-sm font-[Helvetica] top-[100%] left-0
                     "
                   >
                     {paymentStatuses.map((status) => (

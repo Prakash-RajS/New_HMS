@@ -438,7 +438,7 @@ const UserSettings = () => {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -647,7 +647,7 @@ const UserSettings = () => {
                 {users.map((u, i) => (
                   <tr
                     key={i}
-                    className="border-b h-[22px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
+                    className="border-b h-[22px] text-[15px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
                   >
                     {canManageUsers && (
                       <td className="p-3">
@@ -661,13 +661,13 @@ const UserSettings = () => {
                         </label>
                       </td>
                     )}
-                    <td className="p-3">
+                    <td className="p-3 ">
                       <div className="text-black dark:text-white">{u.name}</div>
                       <div className="text-gray-600 dark:text-gray-400 text-[12px]">
                         (ID: {u.id})
                       </div>
                     </td>
-                    <td className="p-3 text-black dark:text-white">
+                    <td className="p-3 text-black   dark:text-white">
                       {u.username}
                     </td>
                     <td className="p-3 text-black dark:text-white">
