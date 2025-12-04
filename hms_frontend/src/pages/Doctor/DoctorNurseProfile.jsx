@@ -1031,8 +1031,14 @@ const ProfileSection = () => {
           />
         </div>
         <div className="flex gap-4">
-          <div className="min-w-[315px] flex items-center bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-full px-3 py-1 border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] relative">
+          <div className="relative group min-w-[315px] flex items-center bg-[#0EFF7B1A] dark:bg-[#1E1E1E] rounded-full px-3 py-1 border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] relative">
             <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+              </span>
             <input
               type="text"
               placeholder="Search by name or department"
@@ -1043,9 +1049,15 @@ const ProfileSection = () => {
           </div>
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white px-4 py-2 rounded-full border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+            className="relative group flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white px-4 py-2 rounded-full border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
           >
             <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+              </span>
           </button>
         </div>
       </div>
@@ -1219,13 +1231,17 @@ const ProfileSection = () => {
               </div>
               <button
                 onClick={() => handleEditProfile(profile)}
-                className="absolute top-4 right-4 flex items-center gap-1 text-[#4D58FF] dark:text-[#6E92FF] text-[12px]"
+                className="absolute group top-4 right-4 flex items-center gap-1 text-[#4D58FF] dark:text-[#6E92FF] text-[12px]"
               >
                 <Edit size={16} />
                 <span>Edit</span>
+                <span className="absolute right-5 right-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">Edit</span>
               </button>
               <button
-                className="w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
+                className="relative group w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
                 onClick={() =>
                   navigate("/Doctors-Nurse/ViewProfile", {
                     state: { profile: profile.originalData },
@@ -1233,7 +1249,12 @@ const ProfileSection = () => {
                 }
               >
                 View profile
+                <span className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">View Profile</span>
               </button>
+              
             </div>
           ))
         ) : (

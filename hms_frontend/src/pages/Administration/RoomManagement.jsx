@@ -506,7 +506,7 @@ const RoomManagement = () => {
           onClose={() => setFilterOpen(false)}
         />
 
-        <Routes>
+        <Routes> 
           <Route
             path="/"
             element={
@@ -580,7 +580,7 @@ const RoomManagement = () => {
     
     {/* Edit Button */}
     <div
-      className="w-8 h-8 flex items-center justify-center rounded-full 
+      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
                  border border-[#08994A1A] dark:border-[#0EFF7B1A] 
                  bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
       onClick={() => handleEditClick(room)}
@@ -590,11 +590,20 @@ const RoomManagement = () => {
         className="text-[#08994A] dark:text-[#0EFF7B] 
                    hover:text-[#0cd968] dark:hover:text-[#0cd968]"
       />
+      <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-white dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150"
+  >
+    Edit
+  </span>
     </div>
 
     {/* Delete / Discharge Button */}
     <div
-      className="w-8 h-8 flex items-center justify-center rounded-full 
+      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
                  border border-[#08994A1A] dark:border-[#0EFF7B1A] 
                  bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
       onClick={() => handleDischargeClick(room)}
@@ -604,6 +613,15 @@ const RoomManagement = () => {
         className="text-red-600 dark:text-red-500 
                    hover:text-red-700 dark:hover:text-red-400"
       />
+      <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-white dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150"
+  >
+    Delete
+  </span>
     </div>
 
   </div>

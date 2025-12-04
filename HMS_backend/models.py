@@ -901,25 +901,23 @@ class HospitalInvoiceHistory(models.Model):
         ("Pending", "Pending"),
     ]
 
-    # ---- Core fields ----
     invoice_id = models.CharField(max_length=50, unique=True, blank=True)
     date = models.DateField()
     patient_name = models.CharField(max_length=100)
     patient_id = models.CharField(max_length=50)
     department = models.CharField(max_length=100)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)  # Total amount
     payment_method = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
 
-    # ---- Extra fields ----
     admission_date = models.DateField(default=timezone.now)
     discharge_date = models.DateField(null=True, blank=True)
     doctor = models.CharField(max_length=100, default="N/A")
     phone = models.CharField(max_length=20, default="N/A")
-    email = models.CharField(max_length=100, default="N/A")
+    email = models.CharField(max_length=100, default="patient@hospital.com")
     address = models.TextField(default="N/A")
 
-    invoice_items = models.JSONField(default=list)
+    # Removed: invoice_items = models.JSONField(...)
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=18.0)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     payment_date = models.CharField(max_length=50, blank=True, null=True)
@@ -937,11 +935,50 @@ class HospitalInvoiceHistory(models.Model):
     def save(self, *args, **kwargs):
         if not self.invoice_id:
             last = HospitalInvoiceHistory.objects.order_by('-id').first()
+            num = 1
             if last and last.invoice_id.startswith("HS_INV_"):
-                num = int(last.invoice_id.split("_")[-1]) + 1
-            else:
-                num = 1
+                try:
+                    num = int(last.invoice_id.split("_")[-1]) + 1
+                except:
+                    num = 1
             self.invoice_id = f"HS_INV_{num:04d}"
+
+        # Recalculate total amount from items if items exist
+        if self.pk:  # Only if invoice already exists (has items)
+            total = sum(item.amount for item in self.items.all())
+            tax_amount = total * (self.tax_percent / 100)
+            self.amount = total + tax_amount
+
+        super().save(*args, **kwargs)
+
+class HospitalInvoiceItem(models.Model):
+    """Line items for hospital invoices - normalized table"""
+    invoice = models.ForeignKey(
+        HospitalInvoiceHistory,
+        on_delete=models.CASCADE,
+        related_name="items"  # This allows invoice.items.all()
+    )
+    
+    s_no = models.PositiveSmallIntegerField(help_text="Serial number in invoice")
+    description = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "hospital_invoice_item"
+        ordering = ['s_no']
+        verbose_name = "Hospital Invoice Item"
+        verbose_name_plural = "Hospital Invoice Items"
+
+    def __str__(self):
+        return f"{self.s_no}. {self.description} - ${self.amount}"
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate amount
+        self.amount = self.quantity * self.unit_price
         super().save(*args, **kwargs)
         
 class PharmacyInvoiceHistory(models.Model):
@@ -1011,7 +1048,7 @@ class PharmacyInvoiceItem(models.Model):
     def __str__(self):
         return f"{self.drug_name} ({self.item_code})"
     
-
+# HMS_backend/models.py
 
 
 

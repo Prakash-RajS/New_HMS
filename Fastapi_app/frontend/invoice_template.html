@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <title>Stacklycare Invoice</title>
-
     <style>
         @page {
             size: A4;
@@ -22,7 +22,8 @@
             --table-line-color: #66BB6A;
         }
 
-        html, body {
+        html,
+        body {
             margin: 0;
             padding: 0;
             font-family: var(--font-main);
@@ -32,297 +33,453 @@
 
         .a4 {
             width: var(--page-width);
-            min-height: 1123px; 
-            height: auto; 
+            min-height: 1123px;
             margin: 0 auto;
-            background: #ffffff;
+            background: #fff;
             box-sizing: border-box;
             position: relative;
-            display: block; 
-            /* Kept mainly for browser view, print uses content-wrapper margin */
-            padding-bottom: 50px; 
+            padding-bottom: 50px;
         }
 
         .content-wrapper {
             padding: 0 32px;
             position: relative;
             z-index: 10;
-            /* --- FIX for footer overlap --- 
-               This margin reserves space at the bottom of the content flow 
-               so the table breaks before hitting the fixed footer. */
-            margin-bottom: 120px; 
+            margin-bottom: 120px;
         }
 
-        .fw-bold { font-weight: 700; }
-        .text-right { text-align: right; }
-        .text-muted { color: var(--text-muted); }
-        .icon-sm { width: 13px; vertical-align: middle; }
+        .fw-bold {
+            font-weight: 700;
+        }
 
-        /* --- FIXED WATERMARK --- */
+        .text-right {
+            text-align: right;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .icon-sm {
+            width: 13px;
+            vertical-align: middle;
+        }
+
+        /* Watermark */
         .watermark {
             position: fixed;
             top: 65%;
             left: 75%;
-            transform: translate(-50%, -50%); 
-            z-index: 9999; 
-            opacity: 0.15; 
-            pointer-events: none; 
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            opacity: 0.15;
+            pointer-events: none;
             width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            text-align: center;
         }
-        .watermark img { 
-            width: 400px; 
-            height: auto; 
+
+        .watermark img {
+            width: 400px;
+            height: auto;
         }
-        
-        /* HEADER */
+
+        /* Header */
         .header-grid {
             display: flex;
             justify-content: space-between;
-            width: 100%;
+            height: 170px;
             position: relative;
-            height: 170px; 
             overflow: hidden;
         }
 
         .header-background-layer {
             position: absolute;
-            top: 0; left: -100px; height: 100%; width: 70%; 
-            background: linear-gradient(135deg, #90e4b2);
-            transform: skewX(-20deg); transform-origin: top left;
-            z-index: 0; overflow: hidden; 
-        }
-
-        .header-background-layer::before {
-            content: "";
-            position: absolute;
-            top: 0; 
-            left: 0; 
-            width: 100%; 
+            top: 0;
+            left: -100px;
             height: 100%;
-            background-image: 
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"),
-                url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png"), url("invoices_statics/stacklycare_icon.png");
-            background-size: 12px 12px;
-            background-position:
-                4% 10%, 18% 13%, 32% 9%, 46% 12%, 60% 10%, 74% 13%, 88% 9%,
-                6% 28%, 20% 32%, 34% 26%, 48% 30%, 62% 28%, 76% 32%, 90% 26%,
-                8% 46%, 22% 50%, 36% 44%, 50% 48%, 64% 46%, 78% 50%, 92% 44%,
-                10% 78%, 24% 82%, 38% 76%, 52% 80%, 66% 78%, 80% 82%, 86% 76%;
-            background-repeat: no-repeat;
-            opacity: 0.45;
-            transform: skewX(20deg); 
-            pointer-events: none;
+            width: 70%;
+            background: linear-gradient(135deg, #90e4b2);
+            transform: skewX(-20deg);
+            z-index: 0;
         }
 
         .header-left-content {
-            position: absolute; top: 45px; left: 32px; 
-            display: flex; align-items: center; z-index: 10; 
+            position: absolute;
+            top: 45px;
+            left: 32px;
+            display: flex;
+            align-items: center;
+            z-index: 10;
         }
-        .header-logo img { width: 80px; height: auto; display: block; }
+
+        .header-logo img {
+            width: 80px;
+            height: auto;
+        }
+
         .brand-text {
-            font-size: 36px; font-weight: 700; letter-spacing: 0.5px; color: var(--green-main); margin-left: 15px; white-space: nowrap;
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--green-main);
+            margin-left: 15px;
         }
 
         .header-right {
-            margin-left: auto; padding: 35px 55px 0 0; position: relative; z-index: 5; text-align: right; width: auto; 
+            margin-left: auto;
+            padding: 35px 55px 0 0;
+            z-index: 5;
+            text-align: right;
         }
 
         .invoice-title {
-            font-size: 38px; font-weight: 800; color: var(--green-main); text-transform: uppercase;
-            text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 4px; margin-bottom: 15px;
+            font-size: 38px;
+            font-weight: 800;
+            color: var(--green-main);
+            text-transform: uppercase;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 4px;
+            margin-bottom: 15px;
         }
 
-        .invoice-meta-table { width: auto; font-size: 13px; border-collapse: collapse; margin-left: auto; }
+        .invoice-meta-table {
+            font-size: 13px;
+            border-collapse: collapse;
+            margin-left: auto;
+        }
+
         .invoice-meta-table td.label {
-            color: var(--green-main); font-weight: 700; padding: 4px 10px 4px 0; text-align: left; min-width: 100px;
-        }
-        .invoice-meta-table td.value { text-align: right; font-weight: 600; color: #000; padding: 4px 0; white-space: nowrap; }
-
-        /* INFO BLOCK */
-        .info-block { margin-top: 30px; } 
-
-        .info-grid-top { 
-            display: grid; 
-            grid-template-columns: 22% 15% 15% 15% 33%; 
-            column-gap: 16px; 
-            font-size: 11.5px; 
+            color: var(--green-main);
+            font-weight: 700;
+            padding: 4px 10px 4px 0;
+            text-align: left;
         }
 
-        .info-title { font-size: 12px; font-weight: 700; color: var(--green-main); margin-bottom: 4px; }
-        .hospital-name { font-size: 13px; font-weight: 800; }
-        .hospital-address { font-size: 11px; line-height: 1.3; margin-bottom: 4px; }
-
-        .contact-row-left { margin-top: 2px; font-size: 11px; display: flex; align-items: center; }
-        .contact-row-left img { margin-right: 6px; }
-
-        /* --- FIX for alignment --- 
-           Changed margin-right from 65px to 0 to align with the right edge */
-        .invoice-to-wrapper { text-align: right; overflow-wrap: break-word; margin-right: 65px; }
-
-        .contact-table-right { 
-            margin-left: auto; 
-            border-collapse: collapse; 
-            width: auto; 
-            padding: 0;
-        }
-        .contact-table-right td { 
-            padding: 2px 0; 
-            vertical-align: middle; 
-        }
-        .contact-text-cell { 
-            text-align: right; 
-            font-size: 11px; 
-            padding-right: 8px; 
-            white-space: nowrap; 
-        }
-        .contact-icon-cell { 
-            text-align: right; 
-            width: 16px; 
-            padding-right: 0; 
-        }
-        .contact-icon-cell img.icon-sm {
-            display: block;
-            margin-left: auto; 
+        .invoice-meta-table td.value {
+            text-align: right;
+            font-weight: 600;
         }
 
-        .info-label { font-size: 11.5px; font-weight: 700; color: var(--mild-green-text); margin-bottom: 4px; }
-        .info-value { font-size: 11.5px; font-weight: 600; }
+        /* Info Block */
+        .info-block {
+            margin-top: 30px;
+        }
+
+        .info-grid-top {
+            display: grid;
+            grid-template-columns: 22% 15% 15% 15% 33%;
+            column-gap: 16px;
+            font-size: 11.5px;
+        }
+
+        .info-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--green-main);
+            margin-bottom: 4px;
+        }
+
+        .hospital-name {
+            font-size: 13px;
+            font-weight: 800;
+        }
+
+        .hospital-address {
+            font-size: 11px;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+
+        .contact-row-left {
+            margin-top: 2px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+        }
+
+        .contact-row-left img {
+            margin-right: 6px;
+        }
+
+        .invoice-to-wrapper {
+            text-align: right;
+            margin-right: 65px;
+        }
+
+        .contact-table-right td {
+            padding: 2px 0;
+        }
+
+        .contact-text-cell {
+            text-align: right;
+            font-size: 11px;
+            padding-right: 8px;
+            white-space: nowrap;
+        }
+
+        .contact-icon-cell {
+            width: 16px;
+        }
+
+        .info-label {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--mild-green-text);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 11.5px;
+            font-weight: 600;
+        }
 
         .info-grid-bottom {
-            display: grid; 
-            grid-template-columns: 22% 15% 15% 15% 33%; 
-            column-gap: 16px; 
-            font-size: 11.5px; 
-            margin-top: -50px; 
+            display: grid;
+            grid-template-columns: 22% 15% 15% 15% 33%;
+            column-gap: 16px;
+            font-size: 11.5px;
+            margin-top: -50px;
             align-items: start;
         }
 
-        /* TREATMENT & CHARGES */
-        .treatment-charges { margin-top: 30px; } 
+        /* Table */
+        .treatment-charges {
+            margin-top: 30px;
+        }
+
         .treatment-charges-header {
-            background-color: var(--green-dark); color: #59dd75; font-size: 18px; font-weight: 600; text-align: center; padding: 8px 0; border-radius: 4px 4px 0 0; letter-spacing: 0.5px;
+            background-color: var(--green-dark);
+            color: #59dd75;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            padding: 8px 0;
+            border-radius: 4px 4px 0 0;
         }
+
         .info-strip {
-            background-color: var(--green-light); padding: 4px 12px; font-size: 10px; color: var(--text-muted); border-radius: 0 0 4px 4px; margin-bottom: 10px;
+            background-color: var(--green-light);
+            padding: 4px 12px;
+            font-size: 10px;
+            color: var(--text-muted);
+            border-radius: 0 0 4px 4px;
+            margin-bottom: 10px;
         }
 
-        /* TABLE */
-        /* TABLE */
-        .table-container { position: relative; }
         .charges-table {
-            width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; margin-top: 0px; position: relative; z-index: 1;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+            margin-top: 0;
         }
-        .charges-table thead { display: table-header-group; }
-        .charges-table tr { page-break-inside: avoid; }
-        
-        /* --- PAGINATION RULES (10 on first page, 17 on next) --- */
-        .charges-table tbody tr:nth-child(9) { page-break-after: always; }
-        .charges-table tbody tr:nth-child(25) { page-break-after: always; }
-        .charges-table tbody tr:nth-child(42) { page-break-after: always; }
-        .charges-table tbody tr:nth-child(59) { page-break-after: always; }
-        .charges-table tbody tr:nth-child(76) { page-break-after: always; }
-        
-        /* UPDATED: Changed text-align to center */
+
         .charges-table thead th {
-            font-size: 14px; font-weight: 700; color: var(--green-dark); padding: 8px 10px; 
-            text-align: center; /* Forces all headers to center */
-            position: relative; border-top: 2px solid var(--green-main); border-bottom: 2px solid var(--green-main);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--green-dark);
+            padding: 8px 10px;
+            text-align: center;
+            border-top: 2px solid var(--green-main);
+            border-bottom: 2px solid var(--green-main);
+            position: relative;
         }
+
         .charges-table thead th:not(:last-child):after {
-            content: ""; position: absolute; top: 0; right: 0; width: 2px; height: 100%; background-color: var(--green-main); transform: skewX(-25deg); transform-origin: bottom;
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--green-main);
+            transform: skewX(-25deg);
         }
 
-        .charges-table tbody td.desc-col { text-align: center; font-weight: 700; }
-        
-        .charges-table tbody tr td {
-            border-bottom: 1px solid var(--table-line-color); padding: 16.8px 10px; font-weight: 600; color: var(--green-dark);
+        .charges-table tbody td {
+            border-bottom: 1px solid var(--table-line-color);
+            padding: 16.8px 10px;
+            font-weight: 600;
+            color: var(--green-dark);
         }
-        
-        .charges-table td.sno-col { width: 8%; text-align: center; }
-        .charges-table td.desc-col { width: 45%; text-align: center; font-weight: 700; }
-        .charges-table td.qty-col { width: 12%; text-align: center; }
-        /* Values remain right aligned for readability */
-        .charges-table td.unit-col { width: 15%; text-align: right; padding-right: 15px; }
-        .charges-table td.total-col { width: 20%; text-align: right; padding-right: 15px; }
-        
-        /* UPDATED: Headers are now all centered by the main 'th' rule above. 
-           We only keep padding-right for the last two to balance the visual weight. */
-        .charges-table th:nth-child(1) { }
-        .charges-table th:nth-child(2) { }
-        .charges-table th:nth-child(3) { }
-        .charges-table th:nth-child(4) { padding-right: 15px; }
-        .charges-table th:nth-child(5) { padding-right: 15px; }
-        /* SUMMARY */
-        .summary-grid { display: grid; grid-template-columns: 55% 45%; margin-top: 15px; page-break-inside: avoid; }
-        .payment-details { padding: 10px 0; display: flex; flex-direction: column; }
-        .amount-in-words-label { font-size: 12px; font-weight: 700; color: var(--green-main); margin-bottom: 2px; }
-        .amount-in-words-value { font-size: 10px; font-weight: 700; margin-bottom: 10px; color: var(--mild-green-text); }
-        .payment-detail-row { display: flex; margin-bottom: 2px; }
-        .payment-label { font-size: 12px; font-weight: 700; color: var(--mild-green-text); width: 110px; }
-        .payment-value { font-size: 12px; font-weight: 600; }
 
-        .totals-box { display: flex; flex-direction: column; align-items: flex-end; margin-top: 5px; margin-right: -32px; }
-        .dual-ribbon-container { width: 100%; display: flex; justify-content: flex-end; margin-top: 0px; }
+        .charges-table td.sno-col {
+            width: 8%;
+            text-align: center;
+        }
+
+        .charges-table td.desc-col {
+            width: 45%;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .charges-table td.qty-col {
+            width: 12%;
+            text-align: center;
+        }
+
+        .charges-table td.unit-col {
+            width: 15%;
+            text-align: right;
+            padding-right: 15px;
+        }
+
+        .charges-table td.total-col {
+            width: 20%;
+            text-align: right;
+            padding-right: 15px;
+        }
+
+        /* Summary */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 55% 45%;
+            margin-top: 15px;
+            page-break-inside: avoid;
+        }
+
+        .payment-details {
+            padding: 10px 0;
+        }
+
+        .amount-in-words-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--green-main);
+            margin-bottom: 2px;
+        }
+
+        .amount-in-words-value {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--mild-green-text);
+            margin-bottom: 10px;
+        }
+
+        .payment-detail-row {
+            display: flex;
+            margin-bottom: 2px;
+        }
+
+        .payment-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--mild-green-text);
+            width: 110px;
+        }
+
+        .payment-value {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .totals-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: -32px;
+        }
+
         .dual-ribbon-block {
-            background-color: var(--green-dark); color: #ffffff; width: 280px; padding: 8px 20px 8px 25px; clip-path: polygon(25px 0%, 100% 0%, 100% 100%, 0% 100%); display: flex; flex-direction: column; gap: 2px; position: relative; 
+            background-color: var(--green-dark);
+            color: #fff;
+            width: 280px;
+            padding: 8px 20px 8px 25px;
+            clip-path: polygon(25px 0%, 100% 0%, 100% 100%, 0% 100%);
+            position: relative;
         }
+
         .dual-ribbon-block::before {
-            content: ""; position: absolute; top: 8px; bottom: 8px; right: 130px; width: 2px; background-color: var(--yellow-accent); z-index: 2;
+            content: "";
+            position: absolute;
+            top: 8px;
+            bottom: 8px;
+            right: 130px;
+            width: 2px;
+            background: var(--yellow-accent);
         }
-        .ribbon-row { display: flex; align-items: center; justify-content: space-between; }
-        .ribbon-label { font-size: 13px; font-weight: 700; text-align: left; }
-        .ribbon-val { font-size: 13px; font-weight: 700; text-align: right; width: 100px; padding-left: 10px; }
+
+        .ribbon-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ribbon-label,
+        .ribbon-val {
+            font-size: 13px;
+            font-weight: 700;
+        }
 
         .grand-total-row {
-            width: 305px; display: flex; justify-content: flex-end; align-items: center; margin-top: 8px; background-color: var(--green-dark); color: #ffffff; font-size: 20px; font-weight: 700; padding: 6px 20px 6px 0px; border-radius: 20px 0 0 20px; position: relative; height: 45px; margin-right: 0;
+            width: 305px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 8px;
+            background-color: var(--green-dark);
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 6px 20px 6px 0;
+            border-radius: 20px 0 0 20px;
+            height: 45px;
+            position: relative;
         }
+
         .grand-total-row::before {
-            content: ""; position: absolute; right: 145px; top: 20%; width: 2px; height: 60%; background-color: #ffffff; opacity: 0.8;
+            content: "";
+            position: absolute;
+            right: 145px;
+            top: 20%;
+            width: 2px;
+            height: 60%;
+            background: #fff;
+            opacity: 0.8;
         }
-        .grand-total-label { 
-            letter-spacing: 0.5px; 
-            padding-right: 35px; 
-            font-size: 20px; flex-grow: 1; text-align: right; 
-        }
-        .grand-total-value { width: 110px; text-align: right; font-size: 22px; }
 
-        /* BOTTOM */
-        .static-bottom-details {
-            display: grid; grid-template-columns: 65% 35%; align-items: end; margin-top: 20px; page-break-inside: avoid;
+        .grand-total-label {
+            padding-right: 35px;
+            font-size: 20px;
+            flex-grow: 1;
+            text-align: right;
         }
-        .terms-container { font-size: 9px; color: var(--mild-green-text); line-height: 1.4; }
-        .terms-heading { font-size: 11px; font-weight: 700; color: var(--green-main); margin-bottom: 4px; }
-        .terms-list { padding-left: 15px; margin: 0; list-style-type: decimal; }
-        .terms-list li { margin-bottom: 2px; }
-        .signature-box { text-align: right; padding-right: 120px; }
-        .signature-logo { width: 70px; height: auto; margin-bottom: 2px; }
-        .signature-label { font-size: 11px; font-weight: 600; color: #000; }
 
-        /* FIXED FOOTER */
-        .fixed-footer-container { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 999; }
-        .footer-bar { background-color: var(--green-dark); color: #ffffff; font-size: 10px; text-align: center; padding: 8px 0; width: 100%; position: relative; z-index: 20; }
-        
+        .grand-total-value {
+            width: 110px;
+            text-align: right;
+            font-size: 22px;
+        }
+
+        /* Footer */
+        .fixed-footer-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            z-index: 999;
+        }
+
+        .footer-bar {
+            background-color: var(--green-dark);
+            color: #fff;
+            font-size: 10px;
+            text-align: center;
+            padding: 8px 0;
+        }
+
         .flower-decoration {
-            position: absolute; 
-            bottom: 0; 
-            right: 0; 
-            width: 100px; 
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 100px;
             height: 100px;
-            background-color: rgba(13, 146, 74, 0.15); 
-            border-radius: 100% 0 0 0; 
-            z-index: 25; 
-            pointer-events: none;
+            background: rgba(13, 146, 74, 0.15);
+            border-radius: 100% 0 0 0;
         }
     </style>
 </head>
+
 <body>
     <div class="watermark">
         <img src="invoices_statics/stacklycare_icon.png" alt="watermark logo">
@@ -332,16 +489,28 @@
         <section class="header-grid">
             <div class="header-background-layer"></div>
             <div class="header-left-content">
-                <div class="header-logo"><img src="invoices_statics/stacklycare_icon.png" alt="Stacklycare logo" /></div>
+                <div class="header-logo"><img src="invoices_statics/stacklycare_icon.png" alt="logo" /></div>
                 <div class="brand-text">Stacklycare</div>
             </div>
             <div class="header-right">
                 <div class="invoice-title">INVOICE</div>
                 <table class="invoice-meta-table">
-                    <tr><td class="label">Invoice number:</td><td class="value">{{ invoice_number }}</td></tr>
-                    <tr><td class="label">Invoice Date:</td><td class="value">{{ invoice_date_display }}</td></tr>
-                    <tr><td class="label">Phone number:</td><td class="value">{{ invoice.phone }}</td></tr>
-                    <tr><td class="label">Email ID:</td><td class="value">{{ invoice.email }}</td></tr>
+                    <tr>
+                        <td class="label">Invoice number:</td>
+                        <td class="value">{{ invoice.invoice_id }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Invoice Date:</td>
+                        <td class="value">{{ invoice.date.strftime("%B %d, %Y") }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Phone number:</td>
+                        <td class="value">{{ invoice.phone }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Email ID:</td>
+                        <td class="value">{{ invoice.email }}</td>
+                    </tr>
                 </table>
             </div>
         </section>
@@ -352,41 +521,66 @@
                     <div>
                         <div class="info-title">Invoice from</div>
                         <div class="hospital-name">Stacklycare</div>
-                        <div class="hospital-address">5th street cross cut road,<br/>New city of Newyork<br/>USA</div>
-                        <div class="contact-row-left"><img class="icon-sm" src="invoices_statics/logo_mail.png" alt="mail" /><span>Stacklycare@gmail.com</span></div>
-                        <div class="contact-row-left"><img class="icon-sm" src="invoices_statics/logo_phone.png" alt="phone" /><span>+1-78654327-7896</span></div>
+                        <div class="hospital-address">5th street cross cut road,<br />New city of Newyork<br />USA</div>
+                        <div class="contact-row-left"><img class="icon-sm" src="invoices_statics/logo_mail.png"
+                                alt="mail" /><span>Stacklycare@gmail.com</span></div>
+                        <div class="contact-row-left"><img class="icon-sm" src="invoices_statics/logo_phone.png"
+                                alt="phone" /><span>+1-78654327-7896</span></div>
                     </div>
-                    <div><div class="info-label">Patient ID</div><div class="info-value">{{ invoice.patient_id }}</div></div>
-                    <div><div class="info-label">Admission Date</div><div class="info-value">{{ admission_date_display }}</div></div>
-                    <div><div class="info-label">Discharge Date</div><div class="info-value">{{ discharge_date_display }}</div></div>
+                    <div>
+                        <div class="info-label">Patient ID</div>
+                        <div class="info-value">{{ invoice.patient_id }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Admission Date</div>
+                        <div class="info-value">{{ invoice.admission_date.strftime("%d-%m-%Y") }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Discharge Date</div>
+                        <div class="info-value">{{ invoice.discharge_date.strftime("%d-%m-%Y") if invoice.discharge_date
+                            else "—" }}</div>
+                    </div>
                     <div class="invoice-to-wrapper">
                         <div class="info-title">Invoice to</div>
                         <div class="info-value fw-bold">{{ invoice.patient_name }}</div>
-                        <div class="hospital-address">{{ invoice.address.replace(',', ',<br>')|safe }}</div>
+                        <div class="hospital-address">{{ invoice.address|default("N/A")|replace("\n", "<br>")|safe }}
+                        </div>
                         <table class="contact-table-right">
                             <tr>
                                 <td class="contact-text-cell">{{ invoice.email }}</td>
-                                <td class="contact-icon-cell"><img class="icon-sm" src="invoices_statics/logo_mail.png" alt="mail" /></td>
+                                <td class="contact-icon-cell"><img class="icon-sm"
+                                        src="invoices_statics/logo_mail.png" /></td>
                             </tr>
                             <tr>
                                 <td class="contact-text-cell">{{ invoice.phone }}</td>
-                                <td class="contact-icon-cell"><img class="icon-sm" src="invoices_statics/logo_phone.png" alt="phone" /></td>
+                                <td class="contact-icon-cell"><img class="icon-sm"
+                                        src="invoices_statics/logo_phone.png" /></td>
                             </tr>
                         </table>
                     </div>
                 </div>
                 <div class="info-grid-bottom">
                     <div></div>
-                    <div><div class="info-label">Doctor</div><div class="info-value">{{ invoice.doctor }}</div></div>
-                    <div><div class="info-label">Department</div><div class="info-value">{{ invoice.department }}</div></div>
-                    <div><div class="info-label">Payment type</div><div class="info-value">{{ invoice.payment_method }}</div></div>
+                    <div>
+                        <div class="info-label">Doctor</div>
+                        <div class="info-value">{{ invoice.doctor }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Department</div>
+                        <div class="info-value">{{ invoice.department }}</div>
+                    </div>
+                    <div>
+                        <div class="info-label">Payment type</div>
+                        <div class="info-value">{{ invoice.payment_method }}</div>
+                    </div>
                     <div></div>
                 </div>
             </section>
 
             <section class="treatment-charges">
                 <div class="treatment-charges-header">Treatment & Charges</div>
-                <div class="info-strip">This information is for total invoice from the admission date in Stacklycare</div>
+                <div class="info-strip">This information is for total invoice from the admission date in Stacklycare
+                </div>
             </section>
 
             <div class="table-container">
@@ -401,13 +595,13 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in invoice.invoice_items %}
+                        {% for item in items %}
                         <tr>
-                            <td class="sno-col">{{ loop.index }}</td>
+                            <td class="sno-col">{{ item.s_no }}</td>
                             <td class="desc-col">{{ item.description }}</td>
                             <td class="qty-col">{{ item.quantity }}</td>
-                            <td class="unit-col">{{ item.unit_price }}</td>
-                            <td class="total-col">{{ item.total }}</td>
+                            <td class="unit-col">₹{{ "%.2f"|format(item.unit_price) }}</td>
+                            <td class="total-col">₹{{ "%.2f"|format(item.total) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -418,19 +612,27 @@
                 <div class="payment-details">
                     <div class="amount-in-words-label">Amount in words:</div>
                     <div class="amount-in-words-value">{{ amount_in_words }}</div>
-                    <div class="payment-detail-row"><div class="payment-label">Transaction ID:</div><div class="payment-value">{{ invoice.transaction_id if invoice.transaction_id else "-" }}</div></div>
-                    <div class="payment-detail-row"><div class="payment-label">Payment Date:</div><div class="payment-value">{{ invoice.payment_date if invoice.payment_date else "-" }}</div></div>
-                    <div class="payment-detail-row"><div class="payment-label">Payment Status:</div><div class="payment-value fw-bold">{{ invoice.status }}</div></div>
+                    <div class="payment-detail-row">
+                        <div class="payment-label">Transaction ID:</div>
+                        <div class="payment-value">{{ transaction_id|default("-") }}</div>
+                    </div>
+                    <div class="payment-detail-row">
+                        <div class="payment-label">Payment Status:</div>
+                        <div class="payment-value fw-bold">{{ invoice.status }}</div>
+                    </div>
                 </div>
                 <div class="totals-box">
                     <div class="dual-ribbon-container">
                         <div class="dual-ribbon-block">
-                            <div class="ribbon-row"><span class="ribbon-label">Subtotal</span><span class="ribbon-val">$ {{ subtotal }}</span></div>
-                            <div class="ribbon-row"><span class="ribbon-label">Tax ({{ invoice.tax_percent }}%)</span><span class="ribbon-val">$ {{ tax_amount }}</span></div>
+                            <div class="ribbon-row"><span class="ribbon-label">Subtotal</span><span class="ribbon-val">₹
+                                    {{ "%.2f"|format(subtotal) }}</span></div>
+                            <div class="ribbon-row"><span class="ribbon-label">Tax ({{ tax_percent }}%)</span><span
+                                    class="ribbon-val">₹ {{ "%.2f"|format(tax_amount) }}</span></div>
                         </div>
                     </div>
                     <div class="grand-total-row">
-                        <div class="grand-total-label">Grand total</div><div class="grand-total-value">$ {{ grand_total }}</div>
+                        <div class="grand-total-label">Grand total</div>
+                        <div class="grand-total-value">₹ {{ "%.2f"|format(grand_total) }}</div>
                     </div>
                 </div>
             </section>
@@ -439,7 +641,8 @@
                 <div class="terms-container">
                     <div class="terms-heading">Terms and Conditions</div>
                     <ol class="terms-list">
-                        <li>All payments must be made in full at the time of discharge unless prior arrangements have been approved.</li>
+                        <li>All payments must be made in full at the time of discharge unless prior arrangements have
+                            been approved.</li>
                         <li>Final charges are based on actual services, medications, and consumables used.</li>
                         <li>The hospital is not responsible for insurance rejections or delays.</li>
                     </ol>
@@ -449,15 +652,16 @@
                     <div class="signature-label">Authorized Signature</div>
                 </div>
             </div>
-        </div> 
+        </div>
 
         <div class="fixed-footer-container">
             <div class="flower-decoration"></div>
             <div class="footer-bar">
-                Generated on {{ invoice_date_display }} – Stacklycare hospital <br/> 
+                Generated on {{ today }} – Stacklycare hospital <br />
                 Thank you for choosing Stacklycare. Wishing you speedy recovery
             </div>
         </div>
-    </div> 
+    </div>
 </body>
+
 </html>

@@ -358,7 +358,7 @@ const ProfileSection = () => {
 
               {/* ---------- VIEW PROFILE ---------- */}
               <button
-                className="mt-2 text-[14px] text-[#08994A] dark:text-[#0EFF7B] underline hover:text-green-800 dark:hover:text-[#0EFF7B1A]"
+                className="mt-2 text-[14px] text-[#08994A] dark:text-[#0EFF7B] underline hover:text-green-800 dark:hover:text-[#06A24E]"
                 onClick={() => {
                   if (!p.pk) return;
                   navigate(`/patients/profile/${p.pk}`);

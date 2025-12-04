@@ -916,7 +916,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
-  ChevronDown, // ← FIXED: Added import
+  ChevronDown,
 } from "lucide-react";
 import BP from "../../assets/BP.png";
 import HR from "../../assets/HR.png";
@@ -939,6 +939,8 @@ export default function ViewPatientProfile() {
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [testReports, setTestReports] = useState([]);
+  const [invoices, setInvoices] = useState([]); // Dynamic invoices
+  const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -954,68 +956,6 @@ export default function ViewPatientProfile() {
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
 
-  // Mock Invoices
-  const invoices = [
-    {
-      invoice_number: "#123456",
-      date: "20 Jul 2025",
-      patient: {
-        name: "Harry Wilson",
-        address: "11 Rosewood Drive, New York, NY 45568",
-        phone: "(555) 595-5999",
-      },
-      doctor: {
-        name: "Dr. Alanah",
-        specialty: "Cardiologist",
-        hospital: "Stacklycare, USA",
-      },
-      items: [
-        {
-          sn: 1,
-          item: "Consultation",
-          qty: "-",
-          price: "-",
-          tax: "120.00",
-          total: "1500.00",
-        },
-        {
-          sn: 2,
-          item: "Blood test (CBC)",
-          qty: 3,
-          price: "1500",
-          tax: "80.00",
-          total: "4500.00",
-        },
-        {
-          sn: 3,
-          item: "X-ray chest",
-          qty: "-",
-          price: "-",
-          tax: "50.00",
-          total: "3500.00",
-        },
-        {
-          sn: 4,
-          item: "Medicines",
-          qty: 8,
-          price: "1000",
-          tax: "450.00",
-          total: "8000.00",
-        },
-        {
-          sn: 5,
-          item: "Room charges (5 days)",
-          qty: 5,
-          price: "2500",
-          tax: "450.00",
-          total: "12500.00",
-        },
-      ],
-      total: "30000.00",
-      grand_total: "41500.00",
-    },
-  ];
-
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -1023,7 +963,7 @@ export default function ViewPatientProfile() {
         const res = await axios.get(
           `${API_BASE}/medicine_allocation/departments/`
         );
-        setDepartments(res.data);
+        setDepartments(["All", ...res.data]);
       } catch (err) {
         console.error("Failed to load departments", err);
         setDepartments(["All", "Pathology", "Radiology"]);
@@ -1031,35 +971,6 @@ export default function ViewPatientProfile() {
     };
     fetchDepartments();
   }, []);
-
-  // Reusable Listbox Component
-  const FilterListbox = ({ value, onChange, options, label }) => (
-    <Listbox value={value} onChange={onChange}>
-      <div className="relative w-[164px]">
-        <Listbox.Button className="w-full h-[40px] rounded-[8px] bg-[#025126] dark:bg-[#025126] text-white dark:text-white text-[16px] flex items-center justify-between px-4 border border-[#0EFF7B] dark:border-[#0EFF7B]">
-          {value || `All ${label}s`}
-          <ChevronDown className="h-5 w-5 text-[#0EFF7B]" />
-        </Listbox.Button>
-        <Listbox.Options className="absolute mt-1 min-w-full w-full rounded-md bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-auto">
-          {options.map((opt) => (
-            <Listbox.Option
-              key={opt}
-              value={opt}
-              className={({ active }) =>
-                `cursor-pointer select-none py-2 px-4 text-sm ${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                }`
-              }
-            >
-              {opt}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </div>
-    </Listbox>
-  );
 
   // Fetch Patient
   useEffect(() => {
@@ -1076,14 +987,14 @@ export default function ViewPatientProfile() {
     fetchPatient();
   }, [patient_id]);
 
-  // Fetch Tab Data
+  // Fetch All Data including Invoices
   useEffect(() => {
     if (!patient) return;
 
     const fetchTabData = async () => {
       setDataLoading(true);
       try {
-        const [diagRes, presRes, testRes] = await Promise.all([
+        const [diagRes, presRes, testRes, invRes] = await Promise.all([
           axios.get(`${API_BASE}/medicine_allocation/${patient_id}/diagnoses/`),
           axios.get(
             `${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`
@@ -1091,11 +1002,20 @@ export default function ViewPatientProfile() {
           axios.get(
             `${API_BASE}/medicine_allocation/${patient_id}/test-reports/`
           ),
+          axios.get(
+            `${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`
+          ),
         ]);
 
-        setDiagnoses(diagRes.data);
-        setPrescriptions(presRes.data);
-        setTestReports(testRes.data);
+        setDiagnoses(diagRes.data || []);
+        setPrescriptions(presRes.data || []);
+        setTestReports(testRes.data || []);
+        setInvoices(invRes.data || []);
+
+        // Auto-select latest invoice
+        if (invRes.data.length > 0) {
+          setSelectedInvoiceIndex(0);
+        }
       } catch (err) {
         console.error("Failed to load tab data", err);
       } finally {
@@ -1118,7 +1038,6 @@ export default function ViewPatientProfile() {
 
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
-
   const filteredTests = testReports.filter(
     (t) =>
       (selectedMonth === "All" || t.month === selectedMonth) &&
@@ -1126,6 +1045,38 @@ export default function ViewPatientProfile() {
       (selectedStatus === "All" || t.status === selectedStatus)
   );
   const currentTests = paginate(filteredTests, currentTestPage);
+
+  const currentInvoice =
+    invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
+
+  // Reusable Listbox Component
+  const FilterListbox = ({ value, onChange, options, label }) => (
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative w-[164px]">
+        <Listbox.Button className="w-full h-[40px] rounded-[8px] bg-[#025126] text-white text-[16px] flex items-center justify-between px-4 border border-[#0EFF7B]">
+          {value || `All ${label}s`}
+          <ChevronDown className="h-5 w-5 text-[#0EFF7B]" />
+        </Listbox.Button>
+        <Listbox.Options className="absolute mt-1 w-full rounded-md bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] max-h-60 overflow-auto">
+          {options.map((opt) => (
+            <Listbox.Option
+              key={opt}
+              value={opt}
+              className={({ active }) =>
+                `cursor-pointer select-none py-2 px-4 text-sm ${
+                  active
+                    ? "bg-[#0EFF7B1A] text-[#08994A]"
+                    : "text-black dark:text-white"
+                }`
+              }
+            >
+              {opt}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+  );
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
@@ -1190,9 +1141,6 @@ export default function ViewPatientProfile() {
           <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">
             {patient.email_address || "—"}
           </span>
-          {/* <button className="mt-1 text-[#08994A] dark:text-blue-400 underline text-xs hover:text-green-800 dark:hover:text-blue-300">
-            Edit
-          </button> */}
         </div>
 
         <div className="w-[1px] h-[187px] bg-gray-300 dark:bg-[#A0A0A0] mr-6" />
@@ -1242,7 +1190,7 @@ export default function ViewPatientProfile() {
           ].map((vital, i) => (
             <div
               key={i}
-              className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF dad's] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+              className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
               style={{
                 backgroundColor: "rgba(14, 255, 123, 0.02)",
                 fontFamily: "Helvetica, sans-serif",
@@ -1318,7 +1266,6 @@ export default function ViewPatientProfile() {
           </div>
         </div>
 
-        {/* Loading */}
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             Loading records...
@@ -1486,83 +1433,428 @@ export default function ViewPatientProfile() {
           </div>
         )}
 
-        {/* === INVOICE TAB === */}
-        {activeTab === "Invoice" &&
-          invoices.map((inv, i) => (
-            <div
-              key={i}
-              className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent"
-            >
-              <div className="flex justify-between mb-6">
-                <div>
-                  <p className="text-[#0EFF7B] font-semibold">
-                    Invoice #{inv.invoice_number}
-                  </p>
-                  <p>Date: {inv.date}</p>
-                </div>
-                <div className="bg-[#0EFF7B] text-black px-6 py-3 rounded-lg font-semibold">
-                  Grand total: ${inv.grand_total}
-                </div>
-              </div>
-              <div className="flex flex-col lg:flex-row justify-between mb-6 gap-6">
-                <div className="flex-1 border-l-2 border-[#0EFF7B] pl-4">
-                  <p className="text-[#0EFF7B] font-semibold mb-2">
-                    PATIENT INFORMATION
-                  </p>
-                  <p>{inv.patient.name}</p>
-                  <p>{inv.patient.address}</p>
-                  <p>{inv.patient.phone}</p>
-                </div>
-                <div className="text-gray-700 dark:text-gray-300">
-                  <p>Date issued: {inv.date}</p>
-                  <p>Age/gender: 45/Male</p>
-                  <p>Admission: {patient.admission_date}</p>
-                </div>
-                <div className="flex-1 border-l-2 border-[#0EFF7B] pl-4">
-                  <p className="text-[#0EFF7B] font-semibold mb-2">
-                    DOCTOR INFORMATION
-                  </p>
-                  <p>{inv.doctor.name}</p>
-                  <p>{inv.doctor.specialty}</p>
-                  <p>{inv.doctor.hospital}</p>
-                </div>
-              </div>
-              <table className="min-w-full border-separate border-spacing-x-1 bg-transparent text-black dark:text-white">
-                <thead>
-                  <tr className="text-left text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                    <th className="py-3">Serial No.</th>
-                    <th className="py-3">Service / Item</th>
-                    <th className="py-3">Qty</th>
-                    <th className="py-3">Unit price</th>
-                    <th className="py-3">Tax</th>
-                    <th className="py-3">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inv.items.map((row) => (
-                    <tr
-                      key={row.sn}
-                      className="border-b border-gray-200 dark:border-gray-700"
+        {/* === INVOICE TAB - DYNAMIC & ITEMIZED === */}
+        {/* === INVOICE TAB - DYNAMIC & ITEMIZED === */}
+        {activeTab === "Invoice" && !dataLoading && (
+          <div className="overflow-x-auto rounded-xl p-6 mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
+            {invoices.length === 0 ? (
+              <p className="text-center py-20 text-gray-600 dark:text-gray-400 italic text-lg font-medium">
+                No invoices found
+              </p>
+            ) : (
+              <>
+                {/* Invoice Selector - Same as before */}
+                {/* INVOICE SELECTOR - Beautiful Listbox Style (Right Aligned) */}
+                <div className="flex justify-end mb-8">
+                  <div className="relative min-w-[300px] w-[380px] lg:w-[420px]">
+                    <Listbox
+                      value={selectedInvoiceIndex}
+                      onChange={(value) => setSelectedInvoiceIndex(value)}
                     >
-                      <td className="py-3">{row.sn}.</td>
-                      <td className="py-3">{row.item}</td>
-                      <td className="py-3">{row.qty}</td>
-                      <td className="py-3">{row.price}</td>
-                      <td className="py-3">{row.tax}</td>
-                      <td className="py-3">{row.total}</td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <td colSpan="5" className="text-right font-semibold py-3">
-                      Total
-                    </td>
-                    <td className="py-3 font-semibold">{inv.total}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          ))}
+                      <Listbox.Button
+                        className="
+          w-full
+          h-[48px]
+          rounded-xl
+          border-2
+          border-[#0EFF7B]
+          bg-[#025126]
+          text-white
+          shadow-[0_0_8px_#0EFF7B40]
+          outline-none
+          focus:border-[#0EFF7B]
+          focus:shadow-[0_0_12px_#0EFF7B60]
+          transition-all
+          duration-300
+          px-6
+          pr-12
+          font-medium
+          text-sm
+          text-left
+          relative
+          hover:shadow-[0_0_16px_#0EFF7B50]
+          flex
+          items-center
+          justify-between
+        "
+                      >
+                        <span className="truncate">
+                          {invoices.length > 0
+                            ? `${invoices[
+                                selectedInvoiceIndex
+                              ]?.type.toUpperCase()} • ${
+                                invoices[selectedInvoiceIndex]?.invoice_number
+                              } • ${
+                                invoices[selectedInvoiceIndex]?.display_date
+                              }`
+                            : "Select Invoice"}
+                        </span>
 
+                        {/* Custom Arrow */}
+                        <svg
+                          className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0EFF7B] pointer-events-none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={3}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </Listbox.Button>
+
+                      <Listbox.Options
+                        className="
+          absolute
+          z-50
+          mt-2
+          w-full
+          bg-white dark:bg-black
+          border-2 border-[#0EFF7B]
+          rounded-xl
+          shadow-2xl
+          shadow-[#0EFF7B]/30
+          max-h-80
+          overflow-auto
+          text-sm
+          font-medium
+          py-2
+          top-[100%]
+          left-0
+          ring-0
+        "
+                      >
+                        {invoices.length === 0 ? (
+                          <div className="px-6 py-4 text-center text-gray-500 italic">
+                            No invoices found
+                          </div>
+                        ) : (
+                          invoices.map((inv, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              value={idx}
+                              className={({ active }) =>
+                                `
+                cursor-pointer
+                select-none
+                px-6
+                py-3
+                transition-all
+                duration-200
+                flex
+                items-center
+                justify-between
+                ${
+                  active
+                    ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
+                    : "text-gray-800 dark:text-gray-200"
+                }
+              `
+                              }
+                            >
+                              {({ selected }) => (
+                                <>
+                                  <span
+                                    className={
+                                      selected ? "font-bold" : "font-medium"
+                                    }
+                                  >
+                                    {inv.type.toUpperCase()} •{" "}
+                                    {inv.invoice_number} • {inv.display_date}
+                                  </span>
+                                  {selected && (
+                                    <svg
+                                      className="w-5 h-5 text-[#0EFF7B]"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </>
+                              )}
+                            </Listbox.Option>
+                          ))
+                        )}
+                      </Listbox.Options>
+                    </Listbox>
+                  </div>
+                </div>
+
+                {currentInvoice && (
+                  <>
+                    {/* Modern Header */}
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
+                      <div>
+                        <h2 className="text-4xl font-bold text-[#0EFF7B] tracking-tight">
+                          Invoice #{currentInvoice.invoice_number}
+                        </h2>
+                        <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
+                          Issued: {currentInvoice.display_date} •{" "}
+                          {currentInvoice.type.toUpperCase()} Invoice
+                        </p>
+                      </div>
+                      <div className="bg-[#0EFF7B] text-black px-10 py-5 rounded-2xl font-bold text-2xl shadow-xl">
+                        Grand Total: $
+                        {currentInvoice.grand_total ||
+                          currentInvoice.net_amount ||
+                          "0.00"}
+                      </div>
+                    </div>
+
+                    {/* Patient, Age/Gender, Doctor Info - Beautiful 3-column layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-2xl p-8 border border-[#0EFF7B]/20 shadow-xl">
+                      {/* Patient Info */}
+                      <div className="border-l-4 border-[#0EFF7B] pl-6">
+                        <h3 className="text-xl font-bold text-[#0EFF7B] mb-4 tracking-wide">
+                          PATIENT INFORMATION
+                        </h3>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {currentInvoice.patient_name || patient.full_name}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          ID: {currentInvoice.patient_id}
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">
+                          {currentInvoice.patient?.address ||
+                            patient.address ||
+                            "—"}
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {currentInvoice.patient?.phone ||
+                            patient.phone_number ||
+                            "—"}
+                        </p>
+                      </div>
+
+                      {/* Age, Gender, Admission */}
+                      <div className="text-center space-y-6">
+                        <div>
+                          <p className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Age / Gender
+                          </p>
+                          <p className="text-2xl font-bold text-[#0EFF7B] mt-2">
+                            {patient.age} yrs / {patient.gender}
+                          </p>
+                        </div>
+                        {currentInvoice.admission_date && (
+                          <div>
+                            <p className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                              Admission Date
+                            </p>
+                            <p className="text-xl font-semibold text-gray-900 dark:text-white mt-2">
+                              {currentInvoice.admission_date}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Doctor Info */}
+                      <div className="border-l-4 border-[#0EFF7B] pl-6">
+                        <h3 className="text-xl font-bold text-[#0EFF7B] mb-4 tracking-wide">
+                          DOCTOR INFORMATION
+                        </h3>
+                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {currentInvoice.doctor ||
+                            currentInvoice.doctor_name ||
+                            "—"}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                          {patient.department?.name || "General Medicine"}
+                        </p>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">
+                          Stacklycare Hospital
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Items Table - Clean & Modern */}
+                    <div className="overflow-x-auto rounded-2xl border border-[#0EFF7B]/20 shadow-xl bg-white dark:bg-[#0F0F0F]">
+                      <table className="min-w-full">
+                        <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
+                          <tr>
+                            <th className="py-5 px-6 text-left font-semibold">
+                              S/N
+                            </th>
+                            <th className="py-5 px-6 text-left font-semibold">
+                              Service / Item
+                            </th>
+                            <th className="py-5 px-6 text-center font-semibold">
+                              Qty
+                            </th>
+                            <th className="py-5 px-6 text-right font-semibold">
+                              Unit Price
+                            </th>
+                            <th className="py-5 px-6 text-right font-semibold">
+                              Discount
+                            </th>
+                            <th className="py-5 px-6 text-right font-semibold">
+                              Tax
+                            </th>
+                            <th className="py-5 px-6 text-right font-semibold">
+                              Line Total
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                          {currentInvoice.items &&
+                          currentInvoice.items.length > 0 ? (
+                            currentInvoice.items.map((item, index) => (
+                              <tr
+                                key={index}
+                                className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors duration-200"
+                              >
+                                <td className="py-5 px-6 text-gray-700 dark:text-gray-300">
+                                  {item.sn || item.sl_no || index + 1}
+                                </td>
+                                <td className="py-5 px-6 font-medium text-gray-900 dark:text-white">
+                                  {item.item ||
+                                    item.drug_name ||
+                                    item.description ||
+                                    "Service Charge"}
+                                </td>
+                                <td className="py-5 px-6 text-center text-gray-800 dark:text-gray-200">
+                                  {item.qty || item.quantity || 1}
+                                </td>
+                                <td className="py-5 px-6 text-right text-gray-800 dark:text-gray-200">
+                                  ${item.price || item.unit_price || "0.00"}
+                                </td>
+                                <td className="py-5 px-6 text-right text-gray-600 dark:text-gray-400">
+                                  {item.discount || item.discount_pct
+                                    ? `${item.discount || item.discount_pct}%`
+                                    : "—"}
+                                </td>
+                                <td className="py-5 px-6 text-right text-gray-600 dark:text-gray-400">
+                                  {item.tax || item.tax_pct
+                                    ? `${item.tax || item.tax_pct}%`
+                                    : "—"}
+                                </td>
+                                <td className="py-5 px-6 text-right font-bold text-[#0EFF7B]">
+                                  ${item.total || item.line_total || "0.00"}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td
+                                colSpan="7"
+                                className="text-center py-16 text-gray-500"
+                              >
+                                No item details available
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Totals Summary - Elegant Box */}
+                    <div className="mt-10 flex justify-end">
+                      <div className="w-full max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-2xl p-8 border-2 border-[#0EFF7B]/30 shadow-2xl">
+                        <div className="space-y-4">
+                          <div className="flex justify-between text-lg">
+                            <span className="font-medium">Subtotal</span>
+                            <span className="font-semibold">
+                              $
+                              {currentInvoice.subtotal ||
+                                currentInvoice.amount ||
+                                "0.00"}
+                            </span>
+                          </div>
+
+                          {currentInvoice.type === "pharmacy" && (
+                            <>
+                              {currentInvoice.cgst_amount > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span>
+                                    CGST ({currentInvoice.cgst_percent || 9}%)
+                                  </span>
+                                  <span>
+                                    ${currentInvoice.cgst_amount || "0.00"}
+                                  </span>
+                                </div>
+                              )}
+                              {currentInvoice.sgst_amount > 0 && (
+                                <div className="flex justify-between text-sm">
+                                  <span>
+                                    SGST ({currentInvoice.sgst_percent || 9}%)
+                                  </span>
+                                  <span>
+                                    ${currentInvoice.sgst_amount || "0.00"}
+                                  </span>
+                                </div>
+                              )}
+                              {currentInvoice.discount_amount > 0 && (
+                                <div className="flex justify-between text-sm text-red-600 font-medium">
+                                  <span>Discount</span>
+                                  <span>
+                                    -${currentInvoice.discount_amount || "0.00"}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {currentInvoice.type === "hospital" &&
+                            currentInvoice.tax_amount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span>
+                                  Tax ({currentInvoice.tax_percent || 18}%)
+                                </span>
+                                <span>
+                                  ${currentInvoice.tax_amount || "0.00"}
+                                </span>
+                              </div>
+                            )}
+
+                          <div className="border-t-2 border-[#0EFF7B]/50 pt-6 mt-6">
+                            <div className="flex justify-between text-2xl font-bold text-[#0EFF7B]">
+                              <span>Grand Total</span>
+                              <span>
+                                $
+                                {currentInvoice.grand_total ||
+                                  currentInvoice.net_amount ||
+                                  "0.00"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Payment Status */}
+                    <div className="mt-10 text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                      <p>
+                        Payment Method:{" "}
+                        <strong className="text-gray-900 dark:text-white">
+                          {currentInvoice.payment_method ||
+                            currentInvoice.payment_mode ||
+                            "Cash"}
+                        </strong>
+                      </p>
+                      <p>
+                        Status:{" "}
+                        <strong className="text-green-600 text-lg font-bold">
+                          {currentInvoice.status ||
+                            currentInvoice.payment_status ||
+                            "Paid"}
+                        </strong>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )}
         {/* === TEST REPORTS TAB === */}
         {activeTab === "Test Reports" && !dataLoading && (
           <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">

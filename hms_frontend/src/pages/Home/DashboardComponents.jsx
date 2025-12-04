@@ -181,22 +181,23 @@ const DashboardComponents = () => {
 
   // Loading skeleton
   if (loading && !dashboardData) {
-    return (
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black rounded-xl p-6 w-full max-w-[1400px] mx-auto">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-32 bg-gray-300 dark:bg-gray-700 rounded-lg"
-              ></div>
-            ))}
-          </div>
-        </div>
+  return (
+    <div className="mt-[80px] mb-4 rounded-xl p-6 w-full max-w-[1400px] mx-auto flex justify-center items-center">
+      <div className="flex flex-col items-center gap-3">
+
+        {/* Green Spinner */}
+        <div className="w-8 h-8 border-4 border-[#0EFF7B20] border-t-[#0EFF7B] rounded-full animate-spin shadow-[0_0_10px_#0EFF7B80]"></div>
+
+        {/* Loading Text */}
+        <p className="text-sm text-[#0EFF7B] opacity-90">
+          Loading...
+        </p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+
 
   return (
     <div className="relative">

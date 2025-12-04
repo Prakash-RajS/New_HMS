@@ -984,13 +984,19 @@ const formatMessageType = (type) => {
             <button
               onClick={() => selectedRows.size > 0 && setIsDeleteOpen(true)}
               disabled={selectedRows.size === 0}
-              className={`w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center transition ${
+              className={`relative group w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center transition ${
                 selectedRows.size > 0
                   ? "text-red-600 hover:bg-red-100"
                   : "text-[#0EFF7B]"
               }`}
             >
               <Trash2 size={18} />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+                  </span>
             </button>
 
             {activeTab === "Ambulance Units" ? (
@@ -999,11 +1005,12 @@ const formatMessageType = (type) => {
                 className="flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
               >
                 Add Unit
+                
               </button>
             ) : activeTab === "Dispatch Log" ? (
               <button
                 onClick={() => handleOpenEditDispatch()}
-                className="flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
+                className="relative group flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
               >
                 Add Dispatch
               </button>
@@ -1141,21 +1148,33 @@ const formatMessageType = (type) => {
                         <td className="px-3 py-3 flex justify-center gap-2">
                           <button
                             onClick={() => handleOpenEditUnit(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Edit
                               size={14}
                               className="text-[#08994A] dark:text-[#0EFF7B]"
                             />
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                           </button>
                           <button
                             onClick={() => handleDelete(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Trash2
                               size={14}
                               className="text-red-600 dark:text-red-500"
                             />
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                           </button>
                         </td>
                       </tr>
@@ -1188,29 +1207,47 @@ const formatMessageType = (type) => {
                           {row.status}
                         </td>
                         <td className="px-3 py-3 flex justify-end gap-2">
-                          <button className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
+                          <button className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
                             <Phone
                               size={14}
                               className="text-[#08994A] dark:text-[#0EFF7B]"
                             />
+                            <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Phone
+              </span>
                           </button>
                           <button
                             onClick={() => handleOpenEditDispatch(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Edit
                               size={14}
                               className="text-[#08994A] dark:text-[#0EFF7B]"
                             />
+                            <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                           </button>
                           <button
                             onClick={() => handleDelete(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Trash2
                               size={14}
                               className="text-red-600 dark:text-red-500"
                             />
+                            <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                           </button>
                         </td>
                       </tr>
@@ -1270,21 +1307,33 @@ const formatMessageType = (type) => {
                         <td className="px-3 py-3 flex justify-center gap-2">
                           <button
                             onClick={() => handleOpenEditTrip(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Edit
                               size={14}
                               className="text-[#08994A] dark:text-[#0EFF7B]"
                             />
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                           </button>
                           <button
                             onClick={() => handleDelete(row)}
-                            className="w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                           >
                             <Trash2
                               size={14}
                               className="text-red-600 dark:text-red-500"
                             />
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                           </button>
                         </td>
                       </tr>

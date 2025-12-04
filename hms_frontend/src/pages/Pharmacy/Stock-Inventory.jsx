@@ -1057,11 +1057,17 @@ const StockInventory = () => {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[229px] max-w-md">
+            <div className="relative group flex items-center gap-2 bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 min-w-[229px] max-w-md">
               <Search
                 size={16}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+                  </span>
               <input
                 type="text"
                 placeholder="Search Product Name.."
@@ -1074,9 +1080,15 @@ const StockInventory = () => {
             <div className="relative">
               <button
                 onClick={() => setShowFilterPopup(!showFilterPopup)}
-                className="bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
+                className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
               >
                 <Filter size={16} className="text-[#0EFF7B]" />
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+                  </span>
               </button>
               {showFilterPopup && (
                 <div className="absolute top-full mt-4 left-[-110px] w-[188px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
@@ -1137,7 +1149,7 @@ const StockInventory = () => {
               }
               disabled={selectedRows.length === 0}
               className={`
-                flex items-center justify-center
+                relative group flex items-center justify-center
                 w-[32px] h-[32px]
                 rounded-[20px]
                 bg-gray-100 dark:bg-[#0EFF7B1A]
@@ -1150,6 +1162,12 @@ const StockInventory = () => {
               `}
             >
               <Trash2 size={16} className="text-[#0EFF7B]" />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete  
+                  </span>
             </button>
           </div>
         </div>

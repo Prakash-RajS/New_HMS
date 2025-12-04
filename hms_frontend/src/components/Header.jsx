@@ -362,31 +362,43 @@ const API_BASE_URL = "http://localhost:8000";
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
+            className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
           >
             {theme === "dark" ? (
               <Sun size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
             ) : (
               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
             )}
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Dark/Light
+              </span>
           </button>
 
           {/* Security */}
           <button
             onClick={() => navigate("/security")}
-            className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
+            className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors"
           >
             <Settings
               size={20}
               className="text-[#08994A] dark:text-[#0EFF7B]"
             />
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Settings
+              </span>
           </button>
 
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={toggleNotification}
-              className="p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
+              className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 hover:text-white transition-colors relative"
             >
               <Bell size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
               {unreadCount > 0 && (
@@ -394,6 +406,12 @@ const API_BASE_URL = "http://localhost:8000";
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Notifications
+              </span>
             </button>
 
             {isNotificationOpen && (
@@ -563,7 +581,7 @@ const API_BASE_URL = "http://localhost:8000";
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <div
-              className="flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
+              className="relative group flex items-center gap-3 cursor-pointer group w-[163px] h-[32px]"
               onClick={toggleDropdown}
             >
               <div className="relative w-8 h-8 min-w-8 min-h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0 border-2 border-white dark:border-gray-800">
@@ -602,7 +620,14 @@ const API_BASE_URL = "http://localhost:8000";
               >
                 <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+              <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    View Profile
+              </span>
             </div>
+            
 
             {isDropdownOpen && (
               <div className="absolute right-0 top-full mt-3 w-48 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">

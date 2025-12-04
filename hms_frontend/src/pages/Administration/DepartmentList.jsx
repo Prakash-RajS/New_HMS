@@ -148,11 +148,11 @@ const DepartmentList = () => {
   // Bulk Status Change
   const handleBulkStatusChange = useCallback((newStatus) => {
     if (selectedDepartments.length === 0) return;
-    
-    const updates = selectedDepartments.map(id => 
+
+    const updates = selectedDepartments.map(id =>
       updateDepartmentStatus(id, newStatus)
     );
-    
+
     Promise.all(updates).then(() => {
       setSelectedDepartments([]);
       setBulkStatus(null);
@@ -279,14 +279,12 @@ const DepartmentList = () => {
                 key={idx}
                 value={val}
                 className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active
-                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                      : "text-black dark:text-white"
-                  } ${
-                    selected
-                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                      : ""
+                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${active
+                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                    : "text-black dark:text-white"
+                  } ${selected
+                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                    : ""
                   }`
                 }
               >
@@ -418,10 +416,9 @@ const DepartmentList = () => {
                     key={idx}
                     value={option}
                     className={({ active }) =>
-                      `cursor-pointer select-none py-2 px-4 text-sm ${
-                        active
-                          ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                          : "text-black dark:text-white"
+                      `cursor-pointer select-none py-2 px-4 text-sm ${active
+                        ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                        : "text-black dark:text-white"
                       }`
                     }
                   >
@@ -458,15 +455,31 @@ const DepartmentList = () => {
 
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+            className="relative group flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
           >
             <Filter size={18} className="text-[#08994A] dark:text-white" />
+
+            <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+  px-3 py-1 text-xs rounded-md shadow-md
+  bg-white dark:bg-black text-black dark:text-white opacity-0 
+  group-hover:opacity-100 transition-all duration-150 
+  z-50">
+              Filter
+            </span>
           </button>
           <button
             onClick={() => setShowSettingsPopup(true)}
-            className="flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+            className="relative group flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
           >
             <Settings size={18} className="text-[#08994A] dark:text-white" />
+
+            <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+  px-3 py-1 text-xs rounded-md shadow-md
+  bg-white dark:bg-black text-black dark:text-white opacity-0 
+  group-hover:opacity-100 transition-all duration-150 
+  z-50">
+              Settings
+            </span>
           </button>
         </div>
 
@@ -489,7 +502,7 @@ const DepartmentList = () => {
                     {selectedDepartments.length > 0 &&
                       currentDepartments.length > 0 &&
                       selectedDepartments.length ===
-                        currentDepartments.length && (
+                      currentDepartments.length && (
                         <Check
                           size={16}
                           className="text-white absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none"
@@ -508,7 +521,7 @@ const DepartmentList = () => {
                 currentDepartments.map((dept, idx) => {
                   const IconComponent = departmentIcons[dept.name] || Activity;
                   const dropdownPosition = getDropdownPosition(idx);
-                  
+
                   return (
                     <tr
                       key={dept.id}
@@ -539,9 +552,8 @@ const DepartmentList = () => {
                       </td>
                       <td className="px-4">
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            statusColors[dept.status]
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs ${statusColors[dept.status]
+                            }`}
                         >
                           {dept.status}
                         </span>
@@ -562,11 +574,10 @@ const DepartmentList = () => {
                         </div>
                         {menuOpenFor === dept.id && (
                           <div
-                            className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-white dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${
-                              dropdownPosition === "top" 
-                                ? "bottom-full mb-0" 
-                                : "top-full mt-0"
-                            }`}
+                            className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-white dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${dropdownPosition === "top"
+                              ? "bottom-full mb-0"
+                              : "top-full mt-0"
+                              }`}
                           >
                             <ul className="py-1">
                               <li>
@@ -620,7 +631,7 @@ const DepartmentList = () => {
               )}
             </tbody>
           </table>
-          
+
           {/* Pagination - Reduced top margin from mt-12 to mt-8 */}
           <div className="flex items-center mt-7 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
@@ -639,11 +650,10 @@ const DepartmentList = () => {
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-                  currentPage === 1
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
-                    : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-                }`}
+                className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === 1
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  }`}
               >
                 <ChevronLeft
                   size={12}
@@ -655,11 +665,10 @@ const DepartmentList = () => {
                   setCurrentPage(Math.min(totalPages, currentPage + 1))
                 }
                 disabled={currentPage === totalPages}
-                className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-                  currentPage === totalPages
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
-                    : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-                }`}
+                className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === totalPages
+                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-black dark:text-white opacity-50"
+                  : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  }`}
               >
                 <ChevronRight
                   size={12}
@@ -674,7 +683,7 @@ const DepartmentList = () => {
         {showFilterPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
             <div className="relative w-[350px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
-              
+
               {/* Gradient Border */}
               <div
                 style={{
@@ -802,7 +811,7 @@ const DepartmentList = () => {
                           <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                         </span>
                       </Listbox.Button>
-                      <Listbox.Options 
+                      <Listbox.Options
                         className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
                       >
                         {[5, 6, 7, 8, 9, 10, 11, 12].map((option) => (
@@ -810,14 +819,12 @@ const DepartmentList = () => {
                             key={option}
                             value={option}
                             className={({ active, selected }) =>
-                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                                active
-                                  ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                                  : "text-black dark:text-white"
-                              } ${
-                                selected
-                                  ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                                  : ""
+                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${active
+                                ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                : "text-black dark:text-white"
+                              } ${selected
+                                ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                : ""
                               }`
                             }
                           >
@@ -869,8 +876,8 @@ const DepartmentList = () => {
 
         {/* Popups */}
         {showAddPopup && (
-          <AddDepartmentPopup 
-            onClose={() => setShowAddPopup(false)} 
+          <AddDepartmentPopup
+            onClose={() => setShowAddPopup(false)}
             onSave={handleAddDepartment}
           />
         )}

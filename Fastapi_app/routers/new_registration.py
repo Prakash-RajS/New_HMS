@@ -855,7 +855,7 @@ async def get_patient(patient_id: str = Path(...)):
             "bed_group": None,
             "bed_number": None,
         }
-
+        p["staff__full_name"] = patient.staff.full_name if patient.staff else None
         bed = await run_in_threadpool(lambda: patient.beds.first())
         if bed:
             await run_in_threadpool(lambda: bed.bed_group.refresh_counts())

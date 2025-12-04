@@ -534,23 +534,35 @@ const UserSettings = () => {
               />
             )}
             <div
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+              className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
               onClick={() => setShowUserSearch(!showUserSearch)}
             >
               <Search
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+              </span>
             </div>
             {canManageUsers && (
               <div
-                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+                className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                 onClick={handleDeleteSelectedUsers}
               >
                 <Trash2
                   size={18}
                   className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
                 />
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+                </span>
               </div>
             )}
           </div>
@@ -673,7 +685,7 @@ const UserSettings = () => {
                     {canManageUsers && (
                       <td className="p-3 flex justify-end gap-2">
                         <div
-                          className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                           onClick={() => {
                             setEditUser(u);
                             setShowEditUserPopup(true);
@@ -683,9 +695,15 @@ const UserSettings = () => {
                             size={18}
                             className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
                           />
+                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                            px-3 py-1 text-xs rounded-md shadow-md
+                            bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                            transition-all duration-150">
+                            Edit
+                          </span>
                         </div>
                         <div
-                          className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
                           onClick={() => {
                             setDeleteUser(u);
                             setShowDeleteUserPopup(true);
@@ -695,6 +713,12 @@ const UserSettings = () => {
                             size={18}
                             className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
                           />
+                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                            px-3 py-1 text-xs rounded-md shadow-md
+                            bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                            transition-all duration-150">
+                            Delete
+                        </span>
                         </div>
                       </td>
                     )}

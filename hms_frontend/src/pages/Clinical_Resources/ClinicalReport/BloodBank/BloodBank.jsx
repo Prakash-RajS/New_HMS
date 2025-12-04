@@ -1465,19 +1465,31 @@ const BloodBank = () => {
                 </div>
               )}
               <button
-                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                 onClick={() => setShowBloodSearch(!showBloodSearch)}
               >
                 <Search size={18} className="text-[#08994A]" />
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+                  </span>
               </button>
               <button
-                className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                 onClick={() => {
                   setTempBloodStatus(bloodStatusFilter);
                   setShowBloodFilterPopup(true);
                 }}
               >
                 <Filter size={18} className="text-[#08994A]" />
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+                  </span>
               </button>
             </div>
           </div>
@@ -1543,7 +1555,7 @@ const BloodBank = () => {
                     </td>
                     <td className="p-3 flex justify-end gap-2">
                       <button
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                         onClick={() => {
                           console.log(
                             "🟡 Opening edit popup with blood data:",
@@ -1557,9 +1569,15 @@ const BloodBank = () => {
                           size={18}
                           className="text-[#08994A] dark:text-[#0EFF7B]"
                         />
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                       </button>
                       <button
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                         onClick={() => {
                           setDeleteBlood(b);
                           setShowDeleteBloodPopup(true);
@@ -1569,6 +1587,12 @@ const BloodBank = () => {
                           size={18}
                           className="text-red-600 dark:text-red-700"
                         />
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                       </button>
                     </td>
                   </tr>
@@ -1727,16 +1751,22 @@ const BloodBank = () => {
               </div>
             )}
             <button
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+              className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
               onClick={() => setShowDonorSearch(!showDonorSearch)}
             >
               <Search
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
+              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Search
+                  </span>
             </button>
             <button
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+              className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
               onClick={() => {
                 setTempDonorFilters(donorFilters);
                 setShowDonorFilterPopup(true);
@@ -1746,6 +1776,12 @@ const BloodBank = () => {
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
+              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+                  </span>
             </button>
           </div>
         </div>
@@ -1816,7 +1852,7 @@ const BloodBank = () => {
                     </td>
                     <td className="p-3 flex justify-end gap-2">
                       <button
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                         onClick={() => {
                           console.log("Editing donor:", d);
                           setEditDonor(d);
@@ -1827,21 +1863,39 @@ const BloodBank = () => {
                           size={18}
                           className="text-[#08994A] dark:text-[#0EFF7B]"
                         />
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                       </button>
-                      <button className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
+                      <button className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
                         <Mail
                           size={18}
                           className="text-[#08994A] dark:text-[#0EFF7B]"
                         />
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Mail
+              </span>
                       </button>
                       <button
-                        className="w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                         onClick={() => handleDeleteSingleDonor(d)}
                       >
                         <Trash2
                           size={18}
                           className="text-red-600 dark:text-red-700"
                         />
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                       </button>
                     </td>
                   </tr>

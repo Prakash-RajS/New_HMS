@@ -1,5 +1,7 @@
+from email import message
 from fastapi_app.services.websocket_service import manager, notify_clients
 from datetime import datetime
+from typing import Dict, Any, Optional
 
 class NotificationService:
     # ========== APPOINTMENT NOTIFICATIONS ==========
@@ -732,7 +734,7 @@ class NotificationService:
                 "capacity": bed_group.capacity,
                 "status": bed_group.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -1165,54 +1167,54 @@ class NotificationService:
             }
         )
 # ========== BED GROUP SPECIFIC NOTIFICATIONS ==========
-@staticmethod
-async def send_bed_group_capacity_changed(bed_group, old_capacity, new_capacity):
-    await notify_clients(
-        event_type="bed_group_capacity_changed",
-        message=f"🏨 Bed group capacity changed: {bed_group.bedGroup} ({old_capacity} → {new_capacity} beds)",
-        notification_type="info",
-        data={
-            "bed_group_id": bed_group.id,
-            "bed_group_name": bed_group.bedGroup,
-            "old_capacity": old_capacity,
-            "new_capacity": new_capacity,
-            "occupied": bed_group.occupied,
-            "unoccupied": bed_group.unoccupied,
-            "timestamp": datetime.now().isoformat(),
-            "redirect_to": "/bed-management"
-        }
-    )
+    @staticmethod
+    async def send_bed_group_capacity_changed(bed_group, old_capacity, new_capacity):
+        await notify_clients(
+            event_type="bed_group_capacity_changed",
+            message=f"🏨 Bed group capacity changed: {bed_group.bedGroup} ({old_capacity} → {new_capacity} beds)",
+            notification_type="info",
+            data={
+                "bed_group_id": bed_group.id,
+                "bed_group_name": bed_group.bedGroup,
+                "old_capacity": old_capacity,
+                "new_capacity": new_capacity,
+                "occupied": bed_group.occupied,
+                "unoccupied": bed_group.unoccupied,
+                "timestamp": datetime.now().isoformat(),
+                "redirect_to": "/bed-management"
+            }
+        )
 
-@staticmethod
-async def send_bed_group_full(bed_group):
-    await notify_clients(
-        event_type="bed_group_full",
-        message=f"🏨 Bed group full: {bed_group.bedGroup} (No available beds)",
-        notification_type="warning",
-        data={
-            "bed_group_id": bed_group.id,
-            "bed_group_name": bed_group.bedGroup,
-            "capacity": bed_group.capacity,
-            "occupied": bed_group.occupied,
-            "timestamp": datetime.now().isoformat(),
-            "redirect_to": "/bed-management"
-        }
-    )
+    @staticmethod
+    async def send_bed_group_full(bed_group):
+        await notify_clients(
+            event_type="bed_group_full",
+            message=f"🏨 Bed group full: {bed_group.bedGroup} (No available beds)",
+            notification_type="warning",
+            data={
+                "bed_group_id": bed_group.id,
+                "bed_group_name": bed_group.bedGroup,
+                "capacity": bed_group.capacity,
+                "occupied": bed_group.occupied,
+                "timestamp": datetime.now().isoformat(),
+                "redirect_to": "/bed-management"
+            }
+        )
 
-@staticmethod
-async def send_bed_group_available(bed_group):
-    await notify_clients(
-        event_type="bed_group_available",
-        message=f"🏨 Bed group available: {bed_group.bedGroup} has free beds",
-        notification_type="success",
-        data={
-            "bed_group_id": bed_group.id,
-            "bed_group_name": bed_group.bedGroup,
-            "available_beds": bed_group.unoccupied,
-            "timestamp": datetime.now().isoformat(),
-            "redirect_to": "/bed-management"
-        }
-    )
+    @staticmethod
+    async def send_bed_group_available(bed_group):
+        await notify_clients(
+            event_type="bed_group_available",
+            message=f"🏨 Bed group available: {bed_group.bedGroup} has free beds",
+            notification_type="success",
+            data={
+                "bed_group_id": bed_group.id,
+                "bed_group_name": bed_group.bedGroup,
+                "available_beds": bed_group.unoccupied,
+                "timestamp": datetime.now().isoformat(),
+                "redirect_to": "/bed-management"
+            }
+        )
 
     # ========== TEST NOTIFICATION ==========
     @staticmethod
@@ -1228,7 +1230,432 @@ async def send_bed_group_available(bed_group):
             }
         )
 
+    @staticmethod
+    async def send_invoice_created(invoice_data: Dict[str, Any]):
+        await notify_clients(
+            event_type="invoice_created",
+            message=f"New invoice: {invoice_data.get('patient_name')} - ₹{invoice_data.get('amount', 0)}",
+            notification_type="success",
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing"}
+        )
 
+    @staticmethod
+    async def send_invoice_deleted(invoice_data: Dict[str, Any]):
+        await notify_clients(
+            event_type="invoice_deleted",
+            message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
+            notification_type="warning",
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing"}
+        )
+
+    @staticmethod
+    async def send_payment_received(invoice_data: Dict[str, Any]):
+        await notify_clients(
+            event_type="payment_received",
+            message=f"Payment received: ₹{invoice_data.get('amount', 0)}",
+            notification_type="success",
+            data={**invoice_data, "timestamp": datetime.now().isoformat()}
+        )
+
+    @staticmethod
+    async def send_invoice_status_changed(invoice_data: Dict[str, Any], old_status: str, new_status: str):
+        await notify_clients(
+            event_type="invoice_status_changed",
+            message=f"Status: {old_status} → {new_status}",
+            notification_type="info",
+            data={
+                **invoice_data,
+                "old_status": old_status,
+                "new_status": new_status,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+
+    @staticmethod
+    async def send_invoice_not_found(invoice_id: str):
+        await notify_clients(
+            event_type="invoice_not_found",
+            message=f"Invoice not found: {invoice_id}",
+            notification_type="warning",
+            data={"invoice_id": invoice_id, "timestamp": datetime.now().isoformat()}
+        )
+
+    @staticmethod
+    async def send_pdf_downloaded(invoice_id: str = "", bulk: bool = False, count: int = 1):
+        message = f"{count} PDF(s) downloaded" if bulk else f"PDF downloaded: {invoice_id}"
+        event = "pdf_bulk_downloaded" if bulk else "pdf_downloaded"
+        await notify_clients(
+            event_type=event,
+            message=message,
+            notification_type="info",
+            data={
+                "invoice_id": invoice_id or None,
+                "count": count,
+                "is_bulk": bulk,
+                "timestamp": datetime.now().isoformat(),
+                "redirect_to": "/billing"
+            }
+        )
+
+    @staticmethod
+    async def send_export_completed(export_type: str, count: int):
+        await notify_clients(
+            event_type="export_completed",
+            message=f"{export_type} export completed: {count} records",
+            notification_type="success",
+            data={"export_type": export_type, "count": count, "timestamp": datetime.now().isoformat()}
+        )
+
+    @staticmethod
+    async def send_billing_error(error_message: str, invoice_id: Optional[str] = None):
+        await notify_clients(
+            event_type="billing_error",
+            message=f"Billing Error: {error_message}",
+            notification_type="error",
+            data={
+                "error_message": error_message,
+                "invoice_id": invoice_id,
+                "timestamp": datetime.now().isoformat(),
+                "redirect_to": "/billing"
+            }
+        )
+
+    @staticmethod
+    async def send_statistics_updated(statistics: Dict[str, Any]):
+        await notify_clients(
+            event_type="billing_statistics_updated",
+            message="Billing statistics updated",
+            notification_type="info",
+            data={**statistics, "timestamp": datetime.now().isoformat()}
+        )
+# Add these methods to your existing NotificationService class
+
+# In your existing NotificationService class (notifications.py)
+    @staticmethod
+    async def send_pharmacy_bill_generated(invoice_data: Dict[str, Any]):
+        """Send notification when pharmacy bill is generated"""
+        print(f"📤 Sending pharmacy bill generated notification: {invoice_data.get('bill_no')}")
+        
+        try:
+            await notify_clients(
+                event_type="pharmacy_bill_generated",
+                message=f"💊 Pharmacy bill generated: {invoice_data.get('bill_no')} for {invoice_data.get('patient_name')}",
+                notification_type="success",
+                data={
+                    "bill_no": invoice_data.get("bill_no"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "patient_id": invoice_data.get("patient_id"),
+                    "net_amount": str(invoice_data.get("net_amount", 0)),
+                    "payment_status": invoice_data.get("payment_status", "Unpaid"),
+                    "billing_staff": invoice_data.get("billing_staff", "Unknown"),
+                    "patient_type": invoice_data.get("patient_type", "Outpatient"),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('bill_no')}"
+                }
+            )
+            print("✅ Pharmacy bill generated notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast pharmacy bill notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_pharmacy_payment_received(invoice_data: Dict[str, Any]):
+        """Send notification when pharmacy payment is received"""
+        print(f"📤 Sending pharmacy payment received notification: {invoice_data.get('bill_no')}")
+        
+        try:
+            await notify_clients(
+                event_type="pharmacy_payment_received",
+                message=f"💰 Pharmacy payment received: {invoice_data.get('bill_no')} - ₹{invoice_data.get('net_amount', 0)}",
+                notification_type="success",
+                data={
+                    "bill_no": invoice_data.get("bill_no"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "net_amount": str(invoice_data.get("net_amount", 0)),
+                    "payment_mode": invoice_data.get("payment_mode", "Unknown"),
+                    "payment_type": invoice_data.get("payment_type", "Unknown"),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('bill_no')}"
+                }
+            )
+            print("✅ Pharmacy payment notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast pharmacy payment notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_hospital_bill_generated(invoice_data: Dict[str, Any]):
+        """Send notification when hospital bill is generated"""
+        print(f"📤 Sending hospital bill generated notification: {invoice_data.get('invoice_id')}")
+        
+        try:
+            await notify_clients(
+                event_type="hospital_bill_generated",
+                message=f"🏥 Hospital bill generated: {invoice_data.get('invoice_id')} for {invoice_data.get('patient_name')}",
+                notification_type="success",
+                data={
+                    "invoice_id": invoice_data.get("invoice_id"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "patient_id": invoice_data.get("patient_id"),
+                    "amount": str(invoice_data.get("amount", 0)),
+                    "department": invoice_data.get("department", "Unknown"),
+                    "payment_method": invoice_data.get("payment_method", "Unknown"),
+                    "status": invoice_data.get("status", "Pending"),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+                }
+            )
+            print("✅ Hospital bill generated notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast hospital bill notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_hospital_payment_received(invoice_data: Dict[str, Any]):
+        """Send notification when hospital payment is received"""
+        print(f"📤 Sending hospital payment received notification: {invoice_data.get('invoice_id')}")
+        
+        try:
+            await notify_clients(
+                event_type="hospital_payment_received",
+                message=f"💰 Hospital payment received: {invoice_data.get('invoice_id')} - ₹{invoice_data.get('amount', 0)}",
+                notification_type="success",
+                data={
+                    "invoice_id": invoice_data.get("invoice_id"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "amount": str(invoice_data.get("amount", 0)),
+                    "payment_method": invoice_data.get("payment_method", "Unknown"),
+                    "status": "Paid",
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+                }
+            )
+            print("✅ Hospital payment notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast hospital payment notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_stock_low_alert(stock_data: Dict[str, Any]):
+        """Send notification when stock is low"""
+        print(f"📤 Sending stock low alert: {stock_data.get('product_name')}")
+        
+        try:
+            await notify_clients(
+                event_type="stock_low_alert",
+                message=f"⚠️ Low stock alert: {stock_data.get('product_name')} (Only {stock_data.get('quantity', 0)} left)",
+                notification_type="warning",
+                data={
+                    "product_name": stock_data.get("product_name"),
+                    "item_code": stock_data.get("item_code"),
+                    "quantity": stock_data.get("quantity", 0),
+                    "batch_number": stock_data.get("batch_number", ""),
+                    "vendor": stock_data.get("vendor", ""),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/stock"
+                }
+            )
+            print("✅ Stock low alert notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast stock alert notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_stock_out_alert(stock_data: Dict[str, Any]):
+        """Send notification when stock is out"""
+        print(f"📤 Sending stock out alert: {stock_data.get('product_name')}")
+        
+        try:
+            await notify_clients(
+                event_type="stock_out_alert",
+                message=f"🛑 Out of stock: {stock_data.get('product_name')}",
+                notification_type="error",
+                data={
+                    "product_name": stock_data.get("product_name"),
+                    "item_code": stock_data.get("item_code"),
+                    "batch_number": stock_data.get("batch_number", ""),
+                    "vendor": stock_data.get("vendor", ""),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/stock"
+                }
+            )
+            print("✅ Stock out alert notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast stock out notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_billing_error(error_message: str, bill_type: str, reference_id: str = None):
+        """Send notification for billing errors"""
+        print(f"📤 Sending billing error notification: {error_message}")
+        
+        try:
+            await notify_clients(
+                event_type="billing_error",
+                message=f"❌ {bill_type} billing error: {error_message}",
+                notification_type="error",
+                data={
+                    "error_message": error_message,
+                    "bill_type": bill_type,
+                    "reference_id": reference_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/billing"
+                }
+            )
+            print("✅ Billing error notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast billing error notification: {e}")
+            raise
+# In your notifications.py file, add these methods to NotificationService class:
+
+    @staticmethod
+    async def send_invoice_not_found(invoice_id: str):
+        """Send notification when invoice is not found"""
+        print(f"📤 Sending invoice not found notification: {invoice_id}")
+        
+        try:
+            await notify_clients(
+                event_type="invoice_not_found",
+                message=f"❓ Invoice not found: {invoice_id}",
+                notification_type="warning",
+                data={
+                    "invoice_id": invoice_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/invoices"
+                }
+            )
+            print("✅ Invoice not found notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast invoice not found notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_pdf_downloaded(invoice_id: str, bulk: bool = False, count: int = 1):
+        """Send notification when PDF is downloaded"""
+        print(f"📤 Sending PDF downloaded notification: {invoice_id}")
+        
+        try:
+            message = f"📄 PDF downloaded: {invoice_id}"
+            if bulk:
+                message = f"📦 {count} PDFs downloaded as ZIP"
+                
+            await notify_clients(
+                event_type="pdf_downloaded",
+                message=message,
+                notification_type="info",
+                data={
+                    "invoice_id": invoice_id,
+                    "bulk": bulk,
+                    "count": count,
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/pharmacy/invoice/{invoice_id}"
+                }
+            )
+            print("✅ PDF downloaded notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast PDF downloaded notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_invoice_deleted(invoice_data: Dict[str, Any]):
+        """Send notification when invoice is deleted"""
+        print(f"📤 Sending invoice deleted notification: {invoice_data.get('invoice_id')}")
+        
+        try:
+            await notify_clients(
+                event_type="invoice_deleted",
+                message=f"🗑️ Invoice deleted: {invoice_data.get('invoice_id')}",
+                notification_type="warning",
+                data={
+                    "invoice_id": invoice_data.get("invoice_id"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "patient_id": invoice_data.get("patient_id"),
+                    "amount": str(invoice_data.get("amount", 0)),
+                    "status": invoice_data.get("status", "Deleted"),
+                    "department": invoice_data.get("department", "Pharmacy"),
+                    "payment_method": invoice_data.get("payment_method", "Unknown"),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/invoices"
+                }
+            )
+            print("✅ Invoice deleted notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast invoice deleted notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_invoice_status_changed(invoice_data: Dict[str, Any], old_status: str, new_status: str):
+        """Send notification when invoice status changes"""
+        print(f"📤 Sending invoice status changed notification: {invoice_data.get('invoice_id')}")
+        
+        try:
+            await notify_clients(
+                event_type="invoice_status_changed",
+                message=f"🔄 Invoice status changed: {invoice_data.get('invoice_id')} ({old_status} → {new_status})",
+                notification_type="info",
+                data={
+                    "invoice_id": invoice_data.get("invoice_id"),
+                    "patient_name": invoice_data.get("patient_name"),
+                    "patient_id": invoice_data.get("patient_id"),
+                    "amount": str(invoice_data.get("amount", 0)),
+                    "old_status": old_status,
+                    "new_status": new_status,
+                    "department": invoice_data.get("department", "Pharmacy"),
+                    "payment_method": invoice_data.get("payment_method", "Unknown"),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('invoice_id')}"
+                }
+            )
+            print("✅ Invoice status changed notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast invoice status changed notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_pharmacy_bulk_export(export_data: Dict[str, Any]):
+        """Send notification for bulk export operations"""
+        print(f"📤 Sending pharmacy bulk export notification: {export_data.get('export_type')}")
+        
+        try:
+            await notify_clients(
+                event_type="pharmacy_bulk_export",
+                message=f"📊 Pharmacy {export_data.get('export_type')} export completed ({export_data.get('invoice_count', 0)} invoices)",
+                notification_type="success",
+                data={
+                    "export_type": export_data.get("export_type"),
+                    "invoice_count": export_data.get("invoice_count", 0),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/invoices"
+                }
+            )
+            print("✅ Pharmacy bulk export notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast pharmacy bulk export notification: {e}")
+            raise
+
+    @staticmethod
+    async def send_statistics_updated(stats_data: Dict[str, Any]):
+        """Send notification when statistics are updated"""
+        print(f"📤 Sending statistics updated notification")
+        
+        try:
+            await notify_clients(
+                event_type="statistics_updated",
+                message=f"📈 Statistics updated: {stats_data.get('today_invoices', 0)} invoices today",
+                notification_type="info",
+                data={
+                    "total_invoices": stats_data.get("total_invoices", 0),
+                    "total_amount": stats_data.get("total_amount", 0),
+                    "today_invoices": stats_data.get("today_invoices", 0),
+                    "today_amount": stats_data.get("today_amount", 0),
+                    "timestamp": datetime.now().isoformat(),
+                    "redirect_to": "/pharmacy/dashboard"
+                }
+            )
+            print("✅ Statistics updated notification broadcasted successfully")
+        except Exception as e:
+            print(f"❌ Failed to broadcast statistics updated notification: {e}")
+            raise
 from fastapi import APIRouter
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -1237,3 +1664,4 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 async def test_notification():
     await NotificationService.send_test_notification()
     return {"message": "Test notification sent"}
+

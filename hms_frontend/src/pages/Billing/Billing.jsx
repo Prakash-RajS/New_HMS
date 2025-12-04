@@ -760,16 +760,10 @@ const BillingManagement = () => {
         <button
         
           onClick={handleGenerateBill}
-          className="relative group w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
+          className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           + Generate Bill
-          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Generate Bill
-          </span>
         </button>
       </div>
       <div className="flex flex-col lg:flex-row gap-6 mb-6">
@@ -1003,20 +997,14 @@ const BillingManagement = () => {
                           </td>
                           <td className="px-3 py-3">
                             <div
-  title=""
-  className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+  title="View"
+  className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
 >
   <Eye
     size={16}
     className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
     onClick={() => handleViewInvoice(row.id)}
   />
-  <span className="absolute left-14 z-100 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150 z-[999999]">
-                    View
-                  </span>
 </div>
 
                           </td>
@@ -1238,23 +1226,14 @@ const BillingManagement = () => {
                             {row.status}
                           </td>
                           <td className="px-3 py-3">
-                            <div
-  title=""
-  className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
->
-  <Eye
-    size={16}
-    className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-    onClick={() => handleHospitalViewInvoice(row.id)}
-  />
-  <span className="absolute left-14 z-100 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150 z-[999999]">
-                    View
-                  </span>
-</div></td>
-                          
+                            <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer">
+                              <Eye
+                                size={16}
+                                className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                                onClick={() => handleHospitalViewInvoice(row.id)}
+                              />
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -321,7 +321,9 @@ export default function NewRegistration({ isSidebarOpen }) {
             group.beds
               .filter((bed) => !bed.is_occupied)
               .map((bed) => ({
-                id: bed.bed_number.toString(),
+                id: `${group.bedGroup} - ${bed.bed_number}`,
+                bedGroup: group.bedGroup,
+                bedNumber: bed.bed_number.toString(),
                 name: `${group.bedGroup} - ${bed.bed_number}`,
               }))
           );

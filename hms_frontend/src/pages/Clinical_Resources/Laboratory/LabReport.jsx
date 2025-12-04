@@ -703,12 +703,18 @@ const LabReport = () => {
 
             <button
               onClick={openFilterPopup}
-              className="bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
+              className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
             >
               <Filter
                 size={18}
                 className="text-[#0EFF7B] dark:text-[#0EFF7B]"
               />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+              </span>
             </button>
           </div>
         </div>
@@ -802,7 +808,7 @@ const LabReport = () => {
 
     {/* Edit Button */}
     <div
-      className="w-8 h-8 flex items-center justify-center rounded-full 
+      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
                  border border-[#08994A1A] dark:border-[#0EFF7B1A] 
                  bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer 
                  hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
@@ -813,11 +819,16 @@ const LabReport = () => {
         className="text-[#08994A] dark:text-[#0EFF7B] 
                    hover:text-[#0cd968] dark:hover:text-[#0cd968]"
       />
+      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
     </div>
 
     {/* Delete Button */}
     <div
-    title=""
       className="relative group w-8 h-8 flex items-center justify-center rounded-full 
                  border border-red-500/20 dark:border-red-500/20 
                  bg-red-500/10 dark:bg-red-500/10 cursor-pointer 
@@ -829,12 +840,12 @@ const LabReport = () => {
         className="text-red-600 dark:text-red-400 
                    hover:text-red-700 dark:hover:text-red-300"
       />
-      <span className="absolute right-1 z-100 right-1/2 -translate-x-1/2 whitespace-nowrap
+      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150 z-[999999]">
+                    transition-all duration-150">
                     Delete
-                  </span>
+              </span>
     </div>
 
   </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { X, Calendar, ChevronDown, Upload } from "lucide-react";
+import { X, Calendar, ChevronDown, Upload, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
@@ -18,6 +18,7 @@ const EditPatientPopup = ({
   const [previewUrl, setPreviewUrl] = useState("/default-avatar.png");
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [error, setError] = useState("");
 
   // API Helpers
@@ -46,33 +47,45 @@ const EditPatientPopup = ({
         const res = await api.getDepartments();
         setDepartments(res.data.departments || []);
       } catch (err) {
+        console.error("Failed to load departments:", err);
         errorToast("Failed to load departments");
       }
     };
     fetchDepartments();
   }, []);
 
-  // Fetch patient
+  // Fetch patient and initialize
   useEffect(() => {
     if (initialPatient) {
       initializeForm(initialPatient);
       return;
     }
     if (!patientId) return;
+
     const fetchPatient = async () => {
       try {
         setError("");
         const res = await api.getPatient(patientId);
         initializeForm(res.data);
       } catch (err) {
+        console.error("Failed to fetch patient:", err);
         errorToast("Patient not found");
+        onClose();
       }
     };
     fetchPatient();
-  }, [patientId, initialPatient]);
+  }, [patientId, initialPatient, onClose]);
 
-  // Initialize form
+  // Initialize form with defaults/fallbacks for preloading
   const initializeForm = (p) => {
+    // Debug logs to check raw values from backend
+    console.log('Raw backend data for edit:', {
+      casualty_status: p.casualty_status,
+      appointment_type: p.appointment_type,
+      staff_id: p.staff_id,
+      department_id: p.department_id,
+    });
+
     const data = {
       id: p.id,
       patient_unique_id: p.patient_unique_id || "",
@@ -80,42 +93,49 @@ const EditPatientPopup = ({
       phone_number: p.phone_number || "",
       department_id: p.department_id || "",
       staff_id: p.staff_id || "",
-      appointment_type: p.appointment_type || "",
-      status: p.casualty_status || "",
+      appointment_type: p.appointment_type || "Check-up",
+      status: p.casualty_status || "Active",
       date_of_registration: p.date_of_registration || "",
       photo_file: null,
       photo_url: p.photo_url || "/default-avatar.png",
     };
+
+    // Additional debug after defaults
+    console.log('Initialized formData:', {
+      status: data.status,
+      appointment_type: data.appointment_type,
+    });
+
     setFormData(data);
     setPreviewUrl(p.photo_url || "/default-avatar.png");
-    if (p.department_id) {
-      loadDoctors(p.department_id);
-    }
   };
 
-  // Load doctors
+  // Load doctors (with loading state)
   const loadDoctors = async (deptId) => {
     if (!deptId) {
       setDoctors([]);
       return;
     }
+    setDoctorsLoading(true);
     try {
       const res = await api.getDoctors(deptId);
       setDoctors(res.data.staff || []);
+      console.log(`Loaded ${res.data.staff?.length || 0} doctors for dept ${deptId}`);
     } catch (err) {
+      console.error("Failed to load doctors:", err);
       errorToast("Failed to load doctors");
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
     }
   };
 
-  // Department change
-  const handleDeptChange = (deptId) => {
-    setFormData((prev) => ({
-      ...prev,
-      department_id: deptId,
-      staff_id: "",
-    }));
-    loadDoctors(deptId);
-  };
+  // Load doctors on dept change or initial
+  useEffect(() => {
+    if (formData?.department_id) {
+      loadDoctors(formData.department_id);
+    }
+  }, [formData?.department_id]);
 
   // Photo preview
   useEffect(() => {
@@ -132,7 +152,6 @@ const EditPatientPopup = ({
     const [m, d, y] = dateStr.split("/").map(Number);
     return new Date(y, m - 1, d);
   };
-
   const formatDate = (date) => {
     if (!date) return "";
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
@@ -161,17 +180,26 @@ const EditPatientPopup = ({
     try {
       setError("");
       await api.updatePatient(formData.patient_unique_id, payload);
-      // Success toast
       successToast(`Patient "${formData.full_name}" updated successfully!`);
       onUpdate?.();
       onClose();
     } catch (err) {
       const msg = err.response?.data?.detail || err.message || "Update failed";
+      setError(msg);
       errorToast(msg);
     }
   };
 
-  // Dropdown Component
+  // Department change
+  const handleDeptChange = (deptId) => {
+    setFormData((prev) => ({
+      ...prev,
+      department_id: deptId,
+      staff_id: "",
+    }));
+  };
+
+  // Dropdown Component (updated to fallback to raw value if not in options)
   const Dropdown = ({
     label,
     value,
@@ -180,57 +208,78 @@ const EditPatientPopup = ({
     disabled = false,
     placeholder = "Select",
     fullWidth = false,
-  }) => (
-    <div>
-      <label className="text-sm text-black dark:text-white block mb-1">
-        {label}
-      </label>
-      <Listbox value={value} onChange={onChange} disabled={disabled}>
-        <div className="relative">
-          <Listbox.Button
-            className={`${fullWidth ? 'w-full' : 'w-full sm:w-[160px]'} h-[33px] px-3 pr-8 rounded-[8px] border ${
-              disabled
-                ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50"
-                : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
-            } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] truncate`}
-          >
-            {options.find((o) => o.id === value)?.name || placeholder}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
-          <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-white dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-40 overflow-auto">
-            {options.map((option) => (
-              <Listbox.Option
-                key={option.id}
-                value={option.id}
-                className={({ active }) =>
-                  `cursor-pointer select-none py-2 px-3 text-sm ${
-                    active
-                      ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                      : "text-black dark:text-white"
-                  }`
-                }
-              >
-                {option.name || option.full_name}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
+    loading = false,
+  }) => {
+    // Find matching option or fallback to value
+    const selectedLabel = options.find((o) => o.id === value)?.name ||
+                         options.find((o) => o.id === value)?.full_name ||
+                         value || // Fallback: show raw value if not in options
+                         placeholder;
+
+    return (
+      <div>
+        <label className="text-sm text-black dark:text-white block mb-1">
+          {label}
+        </label>
+        <Listbox value={value} onChange={onChange} disabled={disabled || loading}>
+          <div className="relative">
+            <Listbox.Button
+              className={`${fullWidth ? 'w-full' : 'w-full sm:w-[160px]'} h-[33px] px-3 pr-8 rounded-[8px] border flex items-center ${
+                disabled || loading
+                  ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50"
+                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+              } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] truncate`}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                selectedLabel
+              )}
+              <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+              </span>
+            </Listbox.Button>
+            <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-white dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-40 overflow-auto">
+              {options.length === 0 ? (
+                <div className="py-2 px-3 text-sm text-gray-500">No options available</div>
+              ) : (
+                options.map((option) => (
+                  <Listbox.Option
+                    key={option.id}
+                    value={option.id}
+                    className={({ active }) =>
+                      `cursor-pointer select-none py-2 px-3 text-sm ${
+                        active
+                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                          : "text-black dark:text-white"
+                      }`
+                    }
+                  >
+                    {option.name || option.full_name}
+                  </Listbox.Option>
+                ))
+              )}
+            </Listbox.Options>
+          </div>
+        </Listbox>
+      </div>
+    );
+  };
 
   const appointmentTypes = ["Check-up", "Follow-up", "Emergency"];
-  const statuses = ["Normal", "Severe", "Critical", "Completed", "Cancelled"];
+  const statuses = ["Active", "New", "Normal", "Severe", "Critical", "Completed", "Cancelled"];
 
   if (!formData) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
-      <div className="text-white text-lg">Loading...</div>
-    </div>
-  );
-}
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
+        <div className="flex items-center gap-2 text-white text-lg">
+          <Loader2 className="animate-spin" />
+          Loading patient data...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 p-4">
       <div className="w-full max-w-4xl rounded-[20px] p-[1px] backdrop-blur-md shadow-xl bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
@@ -311,34 +360,33 @@ const EditPatientPopup = ({
                 fullWidth
               />
               {/* Registration Date */}
-{/* Registration Date */}
-<div>
-  <label className="text-sm text-black dark:text-white block mb-1">
-    Registration Date
-  </label>
-  <div className="relative">
-    <DatePicker
-      selected={parseDate(formData.date_of_registration)}
-      onChange={(date) =>
-        setFormData((prev) => ({
-          ...prev,
-          date_of_registration: formatDate(date),
-        }))
-      }
-      dateFormat="MM/dd/yyyy"
-      placeholderText="MM/DD/YYYY"
-      className="w-full !h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
-      wrapperClassName="w-full"
-      showPopperArrow={false}
-      popperClassName="z-[100]"
-      popperProps={{ strategy: "fixed" }}
-    />
-    <Calendar
-      size={18}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-    />
-  </div>
-</div>
+              <div>
+                <label className="text-sm text-black dark:text-white block mb-1">
+                  Registration Date
+                </label>
+                <div className="relative">
+                  <DatePicker
+                    selected={parseDate(formData.date_of_registration)}
+                    onChange={(date) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        date_of_registration: formatDate(date),
+                      }))
+                    }
+                    dateFormat="MM/dd/yyyy"
+                    placeholderText="MM/DD/YYYY"
+                    className="w-full !h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                    wrapperClassName="w-full"
+                    showPopperArrow={false}
+                    popperClassName="z-[100]"
+                    popperProps={{ strategy: "fixed" }}
+                  />
+                  <Calendar
+                    size={18}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+                  />
+                </div>
+              </div>
             </div>
             {/* Column 2 */}
             <div className="space-y-4 sm:space-y-6">
@@ -362,10 +410,15 @@ const EditPatientPopup = ({
                 }
                 options={doctors}
                 placeholder={
-                  doctors.length === 0 ? "Select Dept First" : "Select Doctor"
+                  doctorsLoading 
+                    ? "Loading..." 
+                    : !formData.department_id 
+                      ? "Select Dept First" 
+                      : "Select Doctor"
                 }
-                disabled={!formData.department_id}
+                disabled={!formData.department_id || doctorsLoading}
                 fullWidth
+                loading={doctorsLoading}
               />
               {/* Status */}
               <Dropdown
@@ -380,7 +433,7 @@ const EditPatientPopup = ({
             </div>
             {/* Column 3 */}
             <div className="space-y-4 sm:space-y-6">
-              {/* Patient Unique ID (Optional) */}
+              {/* Patient Unique ID - Read-only */}
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
                   Patient ID

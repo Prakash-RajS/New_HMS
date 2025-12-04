@@ -210,6 +210,8 @@
 #         media_type="application/pdf",
 #         headers={"Content-Disposition": f'attachment; filename="{pdf_filename}"'}
 #     )
+# fastapi_app/routers/invoice_generator.py
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -219,172 +221,171 @@ from datetime import date
 import os
 import sys
 
-# ----------------- Django setup -----------------
+# Django setup
 import django
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(BASE_DIR)
-
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
 django.setup()
 
-from HMS_backend.models import HospitalInvoiceHistory, Patient
+from HMS_backend.models import HospitalInvoiceHistory, HospitalInvoiceItem, Patient
 
-# ----------------- Paths -----------------
+# Paths
 APP_DIR = os.path.join(BASE_DIR, "fastapi_app")
 TEMPLATE_DIR = os.path.join(APP_DIR, "frontend")
 PDF_OUTPUT_DIR = os.path.join(APP_DIR, "invoices_generator")
-
 os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
 
-# ----------------- Jinja2 -----------------
+# Jinja2 + WeasyPrint
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from weasyprint import HTML
 
 env = Environment(
     loader=FileSystemLoader(TEMPLATE_DIR),
     autoescape=select_autoescape(["html", "xml"])
 )
 
-# ----------------- WeasyPrint -----------------
-from weasyprint import HTML
-
-# ----------------- Num2Words -----------------
 try:
     from num2words import num2words
-except:
+except ImportError:
     num2words = None
 
 router = APIRouter()
 
 
 # ===================== Pydantic Schemas =====================
-
 class InvoiceItemIn(BaseModel):
     description: str
     quantity: int
     unit_price: Decimal
+
 
 class InvoiceCreateIn(BaseModel):
     date: date
     patient_name: str
     patient_id: str
     department: str
-    payment_method: str
+    payment_method: str = "Cash"
     status: str = "Paid"
 
     admission_date: date
     discharge_date: Optional[date] = None
-    doctor: str
-    phone: str
-    email: EmailStr
-    address: str
+    doctor: str = "N/A"
+    phone: Optional[str] = None
+    email: Optional[EmailStr] = None
+    address: Optional[str] = None
 
-    invoice_items: List[InvoiceItemIn]
+    invoice_items: List[InvoiceItemIn]        # ← This is correct
     tax_percent: Decimal = Decimal("18.0")
     transaction_id: Optional[str] = None
-    payment_date: Optional[str] = None
+    payment_date: Optional[date] = None
 
-
-# ===================== Helper =====================
 
 def amount_to_words(amount: Decimal) -> str:
     if num2words:
         try:
-            return f"{num2words(amount, lang='en').title()} Only"
+            return f"{num2words(float(amount), lang='en_IN').title()} Rupees Only"
         except:
-            return f"{amount} Only"
-    return f"{amount} Only"
+            pass
+    return f"{amount:.2f} Rupees Only"
 
 
-# ===================== API =====================
-
+# ===================== MAIN ENDPOINT (FIXED!) =====================
 @router.post("/hospital-invoices/generate", response_class=FileResponse)
 def generate_invoice_pdf(payload: InvoiceCreateIn):
-
     if not payload.invoice_items:
         raise HTTPException(status_code=400, detail="At least one invoice item is required.")
 
-    # Fetch patient
+    # 1. Validate patient
     try:
         patient = Patient.objects.get(patient_unique_id=payload.patient_id)
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    # ---- Calculations ----
-    subtotal = sum((item.quantity * item.unit_price for item in payload.invoice_items), Decimal("0.00"))
-    tax_amount = (subtotal * payload.tax_percent / Decimal("100")).quantize(Decimal("0.01"))
-    grand_total = (subtotal + tax_amount).quantize(Decimal("0"))
-
-    # Convert items to JSON-serializable
-    items_data = [
-        {
-            "description": i.description,
-            "quantity": int(i.quantity),
-            "unit_price": float(i.unit_price),
-            "total": float(i.quantity * i.unit_price)
-        }
-        for i in payload.invoice_items
-    ]
-
-    # ---- Save invoice ----
-    invoice = HospitalInvoiceHistory(
+    # 2. Create main invoice — NO invoice_items FIELD!
+    invoice = HospitalInvoiceHistory.objects.create(
         date=payload.date,
         patient_name=payload.patient_name,
         patient_id=payload.patient_id,
-        department=payload.department,
-        amount=grand_total,
+        department=payload.department or "General",
+        amount=Decimal("0.00"),  # Will be updated later
         payment_method=payload.payment_method,
         status=payload.status,
-
         admission_date=payload.admission_date,
         discharge_date=payload.discharge_date,
         doctor=payload.doctor,
-        phone=patient.phone_number if patient.phone_number else "N/A",
-        email=str(payload.email),
-        address=payload.address,
-
-        invoice_items=items_data,
+        phone=payload.phone or patient.phone_number or "N/A",
+        email=payload.email or patient.email_address or "N/A",
+        address=payload.address or patient.address or "N/A",
         tax_percent=payload.tax_percent,
         transaction_id=payload.transaction_id,
-        payment_date=payload.payment_date,
+        payment_date=payload.payment_date or payload.date,
     )
+
+    # 3. Create line items in HospitalInvoiceItem table
+    subtotal = Decimal("0.00")
+    items_for_pdf = []
+
+    for idx, item in enumerate(payload.invoice_items, start=1):
+        line_total = Decimal(item.quantity) * item.unit_price
+
+        HospitalInvoiceItem.objects.create(
+            invoice=invoice,
+            s_no=idx,
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+        )
+
+        subtotal += line_total
+        items_for_pdf.append({
+            "s_no": idx,
+            "description": item.description,
+            "quantity": item.quantity,
+            "unit_price": float(item.unit_price),
+            "total": float(line_total),
+        })
+
+    # 4. Final calculations
+    tax_amount = (subtotal * payload.tax_percent / Decimal("100")).quantize(Decimal("0.01"))
+    grand_total = (subtotal + tax_amount).quantize(Decimal("0.01"))
+
+    # Update invoice amount (triggers save() override too)
+    invoice.amount = grand_total
     invoice.save()
 
-    # Auto-generate transaction ID if missing
+    # Auto transaction ID
     if not invoice.transaction_id:
         invoice.transaction_id = f"TXN_{invoice.invoice_id}"
         invoice.save(update_fields=["transaction_id"])
 
-    # ---- Render HTML ----
+    # 5. Render HTML
     template = env.get_template("invoice_template.html")
     html_string = template.render(
-        invoice_number=invoice.invoice_id,
         invoice=invoice,
-        subtotal=subtotal,
-        tax_amount=tax_amount,
-        grand_total=grand_total,
+        items=items_for_pdf,
+        subtotal=float(subtotal),
+        tax_percent=float(payload.tax_percent),
+        tax_amount=float(tax_amount),
+        grand_total=float(grand_total),
         amount_in_words=amount_to_words(grand_total),
-        transaction_id=invoice.transaction_id,
-
-        invoice_date_display=invoice.date.strftime("%B %d, %Y"),
-        admission_date_display=invoice.admission_date.strftime("%d-%m-%Y"),
-        discharge_date_display=invoice.discharge_date.strftime("%d-%m-%Y") if invoice.discharge_date else "-",
-        invoice_address_html=invoice.address.replace("\n", "<br/>"),
+        today=date.today().strftime("%B %d, %Y"),
     )
 
-    # ---- PDF Name (Matches Invoice ID) ----
+    # 6. Generate PDF
     pdf_filename = f"{invoice.invoice_id}.pdf"
     pdf_path = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
 
-    # ---- Generate PDF ----
     HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
 
-    invoice.pdf_file.name = f"invoices_generator/{pdf_filename}"
+    # 7. Save PDF path
+    invoice.pdf_file = f"invoices_generator/{pdf_filename}"
     invoice.save(update_fields=["pdf_file"])
 
+    # 8. Return PDF
     return FileResponse(
-        pdf_path,
+        path=pdf_path,
         media_type="application/pdf",
-        filename=pdf_filename
+        filename=pdf_filename,
+        headers={"Content-Disposition": f"inline; filename={pdf_filename}"}
     )
-

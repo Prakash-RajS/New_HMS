@@ -58,7 +58,7 @@ class Command(BaseCommand):
             status="Active",
         )
 
-        # --- Step 7: Create Superuser (Admin Role) ---
+        # --- Step 7: Create Superuser (Admin Role) --
         user = User.objects.create_superuser(
             username=username,
             password=password

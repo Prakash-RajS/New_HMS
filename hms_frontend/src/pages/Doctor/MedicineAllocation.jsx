@@ -978,15 +978,22 @@ export default function ViewPatientProfile() {
     }
     navigate(`/patients/profile/${patientDbId}`);
   }}
-  className="flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-helvetica"
+  className="relative group flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-helvetica"
 >
   <span className="text-[15px] w-[calc(100%-34px)]">
     View more information
+    
   </span>
   <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-[10px] h-[10px]">
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
     </svg>
+    <span className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    View more
+              </span>
   </div>
 </button>
           </div>
@@ -1056,18 +1063,30 @@ export default function ViewPatientProfile() {
                       <button
                         type="button"
                         onClick={addMedicineEntry}
-                        className="text-green-500 hover:text-green-600 text-xl"
+                        className="relative group text-green-500 hover:text-green-600 text-xl"
                       >
                         +
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Add
+              </span>
                       </button>
                     )}
                     {medicineData.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeMedicineEntry(med.id)}
-                        className="text-red-500 hover:text-red-700 text-xl"
+                        className="relative group text-red-500 hover:text-red-700 text-xl"
                       >
                         ×
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Close
+              </span>
                       </button>
                     )}
                   </div>
@@ -1205,18 +1224,30 @@ export default function ViewPatientProfile() {
                   <button
                     type="button"
                     onClick={addLabTestEntry}
-                    className="text-green-500 mt-5 hover:text-green-600 text-xl"
+                    className="relative group text-green-500 mt-5 hover:text-green-600 text-xl"
                   >
                     +
+                    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Add
+              </span>
                   </button>
                 )}
                 {labTests.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeLabTestEntry(test.id)}
-                    className="text-red-500 mt-5 hover:text-red-700 text-xl"
+                    className="relative group text-red-500 mt-5 hover:text-red-700 text-xl"
                   >
                     ×
+                    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Close
+              </span>
                   </button>
                 )}
               </div>
@@ -1289,21 +1320,32 @@ export default function ViewPatientProfile() {
               )}
             </td>
 
-            <td className="py-1.5 px-2 sm:px-3">
-              <div className="flex justify-center space-x-2">
+            <td className="py-4 px-4 sm:px-6">
+              <div className="flex justify-center space-x-4">
                 <button
                   onClick={() => handleEditMedicine(item)}
-                  className="text-blue-500 hover:text-blue-700 transition-colors"
-                  title="Edit"
+                  className="relative group text-blue-500 hover:text-blue-700 transition-colors"
+                  title=""
                 >
                   <Edit size={16} />
+                  <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Edit
+              </span>
                 </button>
                 <button
                   onClick={() => handleDeleteMedicine(item)}
-                  className="text-red-500 hover:text-red-700 transition-colors"
-                  title="Delete"
+                  className="relative group text-red-500 hover:text-red-700 transition-colors"
+                  title=""
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={16} /><span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Delete
+              </span>
                 </button>
               </div>
             </td>

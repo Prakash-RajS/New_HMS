@@ -395,10 +395,9 @@ const AppointmentList = () => {
                   key={idx}
                   value={optionValue}
                   className={({ active }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                      active
-                        ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                        : "text-black dark:text-white"
+                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${active
+                      ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                      : "text-black dark:text-white"
                     }`
                   }
                 >
@@ -462,10 +461,10 @@ const AppointmentList = () => {
               {activeMainTab === "All"
                 ? "All"
                 : activeMainTab === "Upcoming"
-                ? "Upcoming"
-                : activeMainTab === "Past"
-                ? "Past"
-                : "All"}{" "}
+                  ? "Upcoming"
+                  : activeMainTab === "Past"
+                    ? "Past"
+                    : "All"}{" "}
               Total
             </span>
             <span className="w-6 h-6 flex items-center font-[Helvetica] text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#0D2016] dark:bg-[#14DC6F]">
@@ -515,10 +514,9 @@ const AppointmentList = () => {
             <button
               key={tab}
               className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] text-[13px] font-normal transition 
-                ${
-                  activeMainTab === tab
-                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white border-[#0EFF7B]"
-                    : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                ${activeMainTab === tab
+                  ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white border-[#0EFF7B]"
+                  : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
               onClick={() => {
                 setActiveMainTab(tab);
@@ -544,9 +542,15 @@ const AppointmentList = () => {
 
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900"
+            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900"
           >
             <Filter size={18} className="text-green-600 dark:text-green-400" />
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+              Filter
+            </span>
           </button>
         </div>
       </div>
@@ -558,11 +562,10 @@ const AppointmentList = () => {
             <button
               key={filter.value}
               className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-               ${
-                 activeFilter === filter.value
-                   ? "bg-[#08994A] text-white dark:bg-green-900"
-                   : "text-gray-800 hover:text-green-600 dark:text-white"
-               }`}
+               ${activeFilter === filter.value
+                  ? "bg-[#08994A] text-white dark:bg-green-900"
+                  : "text-gray-800 hover:text-green-600 dark:text-white"
+                }`}
               onClick={() => {
                 setActiveFilter(filter.value);
                 setCurrentPage(1);
@@ -635,53 +638,81 @@ const AppointmentList = () => {
 
                   <td>
                     <span
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        statusColors[appt.status] || "bg-gray-700 text-gray-300"
-                      }`}
+                      className={`px-2 py-1 rounded-full text-xs ${statusColors[appt.status] || "bg-gray-700 text-gray-300"
+                        }`}
                     >
                       {statusDisplayMap[appt.status] || appt.status}
                     </span>
                   </td>
 
                   <td className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Edit2
-                        size={16}
-                        onClick={() => {
-                          const backend = appt.raw;
-                          const backendReady = {
-                            id: backend.id,
-                            patient_name: backend.patient_name,
-                            patient_id: backend.patient_id,
-                            department_id: backend.department_id || "",
-                            staff_id: backend.staff_id || "",
-                            room_no: backend.room_no,
-                            phone_no: backend.phone_no,
-                            appointment_type: backend.appointment_type,
-                            status: backend.status,
-                            appointment_date:
-                              backend.appointment_date ||
-                              backend.created_at?.slice(0, 10) ||
-                              "",
-                            department_name: backend.department || "", // for fallback preloading
-                            staff_name: backend.doctor || "", // for fallback preloading
-                          };
-                          setSelectedAppointment(backendReady);
-                          setShowEditPopup(true);
-                        }}
-                        className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
-                      />
+                    <div className="flex justify-center gap-4 relative overflow-visible">
 
-                      <Trash2
-                        size={16}
-                        onClick={() => {
-                          setSelectedAppointment({ id: appt.id });
-                          setShowDeletePopup(true);
-                        }}
-                        className="cursor-pointer text-red-500 hover:scale-110"
-                      />
+                      {/* EDIT ICON + TOOLTIP */}
+                      <div className="relative group">
+                        <Edit2
+                          size={16}
+                          onClick={() => {
+                            const backend = appt.raw;
+                            const backendReady = {
+                              id: backend.id,
+                              patient_name: backend.patient_name,
+                              patient_id: backend.patient_id,
+                              department_id: backend.department_id || "",
+                              staff_id: backend.staff_id || "",
+                              room_no: backend.room_no,
+                              phone_no: backend.phone_no,
+                              appointment_type: backend.appointment_type,
+                              status: backend.status,
+                              appointment_date:
+                                backend.appointment_date ||
+                                backend.created_at?.slice(0, 10) ||
+                                "",
+                              department_name: backend.department || "",
+                              staff_name: backend.doctor || "",
+                            };
+                            setSelectedAppointment(backendReady);
+                            setShowEditPopup(true);
+                          }}
+                          className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
+                        />
+
+                        {/* Tooltip */}
+                        <span
+                          className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-white dark:bg-black text-black dark:text-white
+          opacity-0 group-hover:opacity-100 transition-all duration-150 z-50"
+                        >
+                          Edit
+                        </span>
+                      </div>
+
+                      {/* DELETE ICON + TOOLTIP */}
+                      <div className="relative group">
+                        <Trash2
+                          size={16}
+                          onClick={() => {
+                            setSelectedAppointment({ id: appt.id });
+                            setShowDeletePopup(true);
+                          }}
+                          className="cursor-pointer text-red-500 hover:scale-110"
+                        />
+
+                        {/* Tooltip */}
+                        <span
+                          className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-white dark:bg-black text-black dark:text-white
+          opacity-0 group-hover:opacity-100 transition-all duration-150 z-50"
+                        >
+                          Delete
+                        </span>
+                      </div>
+
                     </div>
                   </td>
+
                 </tr>
               ))
             ) : (
@@ -713,18 +744,16 @@ const AppointmentList = () => {
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-              currentPage === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
           >
             <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-              currentPage === totalPages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === totalPages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
           >
             <ChevronRight
               size={12}

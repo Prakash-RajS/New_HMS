@@ -312,12 +312,18 @@ const StaffManagement = () => {
                 </button>
                 <button
                   onClick={() => setShowFilterPopup(!showFilterPopup)}
-                  className="bg-[#F5F6F5] dark:bg-[#0EFF7B1A] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                  className="relative group bg-[#F5F6F5] dark:bg-[#0EFF7B1A] rounded-full w-6 h-6 flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                 >
                   <Filter
                     size={14}
                     className="text-[#08994A] dark:text-[#0EFF7B]"
                   />
+                  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    transition-all duration-150">
+                    Filter
+              </span>
                 </button>
               </div>
               {showFilterPopup && <FilterPopup />}

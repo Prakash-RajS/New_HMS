@@ -38,6 +38,7 @@ const BillingPreview = () => {
   const [staffInfo, setStaffInfo] = useState({ staffName: "", staffID: "" });
   const [fullPatient, setFullPatient] = useState(null);
   const [isInsurance, setIsInsurance] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [billingItems, setBillingItems] = useState([
     { sNo: "01", description: "Room charge (3 days)", quantity: "5", unitPrice: "1500", amount: "7500" },
     { sNo: "02", description: "Doctor consultation fees", quantity: "1", unitPrice: "500", amount: "500" },
@@ -1300,25 +1301,29 @@ const fetchBillingItems = async (uniqueId) => {
             <div className="flex items-center gap-3 flex-nowrap">
               {["Generate"].map((label) => (
                 <button
-                  key={label}
-                  className={`text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap`}
-                  style={{
-                    width: "236px",
-                    height: "50px",
-                    paddingTop: "4px",
-                    paddingRight: "12px",
-                    paddingBottom: "4px",
-                    paddingLeft: "12px",
-                    gap: "4px",
-                    background:
-                      label === "Generate"
-                        ? "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)"
-                        : "transparent",
-                  }}
-                  onClick={label === "Generate" ? handleGenerateBill : undefined}
-                >
-                  {label}
-                </button>
+  key={label}
+  className={`text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap ${
+    loading ? "opacity-80 cursor-not-allowed" : ""
+  }`}
+  style={{
+    width: "236px",
+    height: "50px",
+    paddingTop: "4px",
+    paddingRight: "12px",
+    paddingBottom: "4px",
+    paddingLeft: "12px",
+    gap: "4px",
+    background:
+      label === "Generate"
+        ? "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)"
+        : "transparent",
+  }}
+  disabled={loading}
+  onClick={label === "Generate" && !loading ? handleGenerateBill : undefined}
+>
+  {loading ? "Generating..." : label}
+</button>
+
               ))}
             </div>
           </div>
