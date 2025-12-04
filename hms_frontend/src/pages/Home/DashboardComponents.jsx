@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import { Listbox } from "@headlessui/react";
 import { useWebSocket } from "../../components/WebSocketContext";
 import { ThemeContext } from "../../components/ThemeContext";
@@ -8,6 +8,7 @@ const DashboardComponents = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [activeSubTab, setActiveSubTab] = useState("Patient Record");
   const [selectedPeriod, setSelectedPeriod] = useState("This Week");
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(
     new Date().toLocaleDateString("en-GB", {
       day: "numeric",
@@ -181,23 +182,18 @@ const DashboardComponents = () => {
 
   // Loading skeleton
   if (loading && !dashboardData) {
-  return (
-    <div className="mt-[80px] mb-4 rounded-xl p-6 w-full max-w-[2500px] mx-auto flex justify-center items-center">
-      <div className="flex flex-col items-center gap-3">
+    return (
+      <div className="mt-[80px] mb-4 rounded-xl p-6 w-full max-w-[2500px] mx-auto flex justify-center items-center">
+        <div className="flex flex-col items-center gap-3">
+          {/* Green Spinner */}
+          <div className="w-8 h-8 border-4 border-[#0EFF7B20] border-t-[#0EFF7B] rounded-full animate-spin shadow-[0_0_10px_#0EFF7B80]"></div>
 
-        {/* Green Spinner */}
-        <div className="w-8 h-8 border-4 border-[#0EFF7B20] border-t-[#0EFF7B] rounded-full animate-spin shadow-[0_0_10px_#0EFF7B80]"></div>
-
-        {/* Loading Text */}
-        <p className="text-sm text-[#0EFF7B] opacity-90">
-          Loading...
-        </p>
+          {/* Loading Text */}
+          <p className="text-sm text-[#0EFF7B] opacity-90">Loading...</p>
+        </div>
       </div>
-    </div>
-  );
-}
-
-
+    );
+  }
 
   return (
     <div className="relative">
@@ -279,21 +275,6 @@ const DashboardComponents = () => {
           ))}
         </div>
 
-        {/* Header with Last Updated */}
-        {/* <div className="flex justify-between items-center mb-6">
-          <div className="text-[20px] font-medium text-black dark:text-white font-helvetica">
-            Overall Records
-          </div>
-          {lastUpdated && (
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              Last updated: {lastUpdated}
-              {!isConnected && (
-                <span className="ml-2 text-yellow-500">(Offline)</span>
-              )}
-            </div>
-          )}
-        </div> */}
-
         {/* Content with Sub-Navigation and Grid */}
         <div className="min-h-[306px] rounded-[12px] overflow-visible">
           {activeTab === "Dashboard" && (
@@ -366,9 +347,7 @@ const DashboardComponents = () => {
                       value={getSafeData(
                         "patient_stats.total_patients"
                       ).toLocaleString()}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Patient Record"
                     />
 
                     {/* Active Patients Card */}
@@ -380,9 +359,7 @@ const DashboardComponents = () => {
                       value={getSafeData(
                         "patient_stats.active_patients"
                       ).toLocaleString()}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Patient Record"
                     />
 
                     {/* Admissions Card */}
@@ -392,9 +369,7 @@ const DashboardComponents = () => {
                         "patient_stats.weekly_admissions"
                       )} this week ↑`}
                       value={getSafeData("patient_stats.weekly_admissions")}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Patient Record"
                     />
 
                     {/* Priority Care Card */}
@@ -404,9 +379,7 @@ const DashboardComponents = () => {
                         "appointment_stats.emergency_cases"
                       )} emergencies today`}
                       value={getSafeData("patient_stats.priority_care")}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Patient Record"
                     />
                   </div>
                 )}
@@ -420,9 +393,7 @@ const DashboardComponents = () => {
                       value={`₹${(
                         getSafeData("financial_stats.total_revenue") / 1000
                       ).toFixed(1)}K`}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Revenue Summary"
                     />
 
                     {/* Today's Revenue Card */}
@@ -432,9 +403,7 @@ const DashboardComponents = () => {
                       value={`₹${getSafeData(
                         "financial_stats.today_revenue"
                       ).toLocaleString()}`}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Revenue Summary"
                     />
 
                     {/* Pharmacy Revenue Card */}
@@ -444,9 +413,7 @@ const DashboardComponents = () => {
                       value={`₹${getSafeData(
                         "financial_stats.pharmacy_revenue_today"
                       ).toLocaleString()}`}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Revenue Summary"
                     />
 
                     {/* Outstanding Payments Card */}
@@ -457,9 +424,7 @@ const DashboardComponents = () => {
                         getSafeData("financial_stats.outstanding_payments") /
                         1000
                       ).toFixed(1)}K`}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Revenue Summary"
                     />
                   </div>
                 )}
@@ -473,9 +438,7 @@ const DashboardComponents = () => {
                       value={getSafeData(
                         "appointment_stats.total_appointments"
                       )}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Surgery Record"
                     />
 
                     {/* Today's Surgeries Card */}
@@ -485,19 +448,15 @@ const DashboardComponents = () => {
                       value={getSafeData(
                         "appointment_stats.today_appointments"
                       )}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Surgery Record"
                     />
 
                     {/* Emergency Surgeries Card */}
                     <DashboardCard
                       title="Emergency Cases"
-                      change="Requiring immediate attention"
+                      change="immediate attention"
                       value={getSafeData("appointment_stats.emergency_cases")}
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Surgery Record"
                     />
 
                     {/* Surgery Success Rate Card */}
@@ -505,9 +464,7 @@ const DashboardComponents = () => {
                       title="Success Rate"
                       change="Monthly average"
                       value="98.2%"
-                      selectedPeriod={selectedPeriod}
-                      setSelectedPeriod={setSelectedPeriod}
-                      periods={periods}
+                      subTab="Surgery Record"
                     />
                   </div>
                 )}
@@ -555,35 +512,47 @@ const DashboardComponents = () => {
 };
 
 // Reusable Dashboard Card Component
-const DashboardCard = ({
-  title,
-  change,
-  value,
-  selectedPeriod,
-  setSelectedPeriod,
-  periods,
-}) => (
-  <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg">
-    <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
-      {title}
-    </h3>
-    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{change}</p>
-    <div className="flex items-baseline">
-      <span className="text-3xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
-        {value}
-      </span>
-    </div>
-    <p className="text-sm text-[#08994A] dark:text-[#0EFF7B] underline mt-2 cursor-pointer">
-      View details
-    </p>
-    <PeriodSelector
-      selectedPeriod={selectedPeriod}
-      setSelectedPeriod={setSelectedPeriod}
-      periods={periods}
-    />
-  </div>
-);
+const DashboardCard = ({ title, change, value, subTab }) => {
+  const navigate = useNavigate();
 
+  const handleButtonClick = () => {
+    if (subTab === "Revenue Summary") {
+      navigate("/Billing");
+    } else {
+      // For Patient Record and Surgery Record
+      navigate("/patients/ipd-opd");
+    }
+  };
+
+  return (
+    <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg">
+      <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
+        {title}
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{change}</p>
+
+      <div className="flex items-baseline">
+        <span className="text-3xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
+          {value}
+        </span>
+      </div>
+
+      <button
+        className="px-4 py-2 text-white text-sm rounded-[8px] w-full mt-4 relative"
+        style={{
+          background:
+            "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+          borderBottom: "2px solid #0EFF7B",
+          boxShadow: "0px 2px 12px 0px #00000040",
+        }}
+        onClick={handleButtonClick}
+      >
+        View details
+        
+      </button>
+    </div>
+  );
+};
 // Reusable Components
 const PeriodSelector = ({ selectedPeriod, setSelectedPeriod, periods }) => (
   <div className="relative w-full mt-4">
@@ -641,9 +610,6 @@ const PeriodSelector = ({ selectedPeriod, setSelectedPeriod, periods }) => (
     </Listbox>
   </div>
 );
-
-// ... (Keep the other reusable components: DateSelector, DepartmentList, ConsultationChart, NotificationsPanel)
-// These remain the same as in the previous version
 
 const DateSelector = ({ selectedDate, setSelectedDate }) => (
   <div className="relative">
@@ -733,10 +699,10 @@ const EmergencyCases = ({ emergencyCases, selectedDate, setSelectedDate }) => (
       <h3 className="text-xl text-black dark:text-white font-semibold">
         Emergency Cases
       </h3>
-      <DateSelector
+      {/* <DateSelector
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
-      />
+      /> */}
     </div>
 
     <div className="flex flex-col mt-3">
