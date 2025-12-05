@@ -345,11 +345,18 @@ def delayed_remove(file_path: str, delay: int = 5):
 
 
 async def get_department_name(patient_id: str) -> str:
-    try:
-        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=patient_id)
-        return patient.department.name if patient.department else "General"
-    except:
-        return "Unknown"
+
+    @sync_to_async
+    def fetch_dept():
+        try:
+            patient = Patient.objects.select_related("department").get(
+                patient_unique_id=patient_id
+            )
+            return patient.department.name if patient.department else "General"
+        except:
+            return "Unknown"
+
+    return await fetch_dept()
 
 
 def format_date(date_obj) -> str:

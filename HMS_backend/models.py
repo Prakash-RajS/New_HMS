@@ -452,6 +452,7 @@ class Donor(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     blood_type = models.CharField(max_length=3, choices=BloodGroup.BLOOD_TYPES)
     phone = models.CharField(max_length=20, unique=True)
+    email = models.EmailField(max_length=255, unique=True, blank=True, null=True)
     last_donation_date = models.DateField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
@@ -466,6 +467,23 @@ class Donor(models.Model):
 
     def __str__(self):
         return f"{self.donor_name} - {self.blood_type} ({self.status})"
+
+    def check_eligibility(self):
+        """Donor becomes eligible 6 months after last donation or addition"""
+        if self.last_donation_date:
+            next_eligible_date = self.last_donation_date + timedelta(days=180)
+            if timezone.now().date() >= next_eligible_date:
+                self.status = "Eligible"
+            else:
+                self.status = "Not Eligible"
+        else:
+            # Newly added donor → Not Eligible until 6 months pass
+            next_eligible_date = self.added_date + timedelta(days=180)
+            if timezone.now().date() >= next_eligible_date:
+                self.status = "Eligible"
+            else:
+                self.status = "Not Eligible"
+        self.save()
 
     def check_eligibility(self):
         """Donor becomes eligible 6 months after last donation"""

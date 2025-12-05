@@ -280,16 +280,25 @@ class StatusUpdate(BaseModel):
 # Helper: Get formatted invoice data
 # -------------------------------
 async def get_invoice_data(invoice) -> Dict[str, Any]:
-    dept = "Unknown"
-    try:
-        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=invoice.patient_id)
-        if patient.department:
-            dept = patient.department.name
-    except Patient.DoesNotExist:
-        pass
-    except Exception as e:
-        print(f"Error fetching patient department: {e}")
 
+    # Wrap every Django ORM call inside sync_to_async
+    @sync_to_async
+    def fetch_patient_and_department(invoice_patient_id):
+        dept = "Unknown"
+        try:
+            patient = Patient.objects.select_related("department").get(
+                patient_unique_id=invoice_patient_id
+            )
+            if patient.department:
+                dept = patient.department.name
+        except Patient.DoesNotExist:
+            pass
+        return dept
+
+    # Fetch department safely
+    dept = await fetch_patient_and_department(invoice.patient_id)
+
+    # Bill date formatting (safe)
     try:
         date_str = invoice.bill_date.isoformat() if hasattr(invoice.bill_date, "isoformat") else str(invoice.bill_date)
     except Exception:
@@ -305,6 +314,7 @@ async def get_invoice_data(invoice) -> Dict[str, Any]:
         "payment_method": invoice.payment_mode or "-",
         "status": invoice.payment_status,
     }
+
 
 
 # -------------------------------
