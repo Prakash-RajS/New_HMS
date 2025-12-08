@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from HMS_backend.models import Staff, Department
+from django.utils import timezone
 
 
 class Command(BaseCommand):
@@ -23,17 +24,17 @@ class Command(BaseCommand):
         phone = input("Enter phone (unique): ").strip()
         email = input("Enter email (unique): ").strip()
 
-        # --- Step 4: Department Auto-Create ---
-        department = Department.objects.first()
+        # --- Step 4: Ensure Admin Department Exists ---
+        department, created = Department.objects.get_or_create(
+            name="Admin",
+            defaults={
+                "status": "active",
+                "description": "Default admin department"
+            }
+        )
 
-        if department is None:
-            self.stdout.write(self.style.WARNING("⚠ No department found. Creating default Admin department..."))
-            department = Department.objects.create(
-                name="Admin",
-                status="active",
-                description="Default admin department"
-            )
-            self.stdout.write(self.style.SUCCESS("✔ Default Admin department created."))
+        if created:
+            self.stdout.write(self.style.SUCCESS("✔ Auto-created Admin department."))
 
         # --- Step 5: Validations ---
         if User.objects.filter(username=username).exists():
@@ -48,7 +49,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("❌ Email already exists"))
             return
 
-        # --- Step 6: Create Staff ---
+        # --- Step 6: Create Staff with auto date_of_joining ---
         staff = Staff.objects.create(
             full_name=full_name,
             designation=designation,
@@ -56,16 +57,16 @@ class Command(BaseCommand):
             email=email,
             department=department,
             status="Active",
+            date_of_joining=timezone.now().date()  # 🔥 Auto-filled joining date
         )
 
-        # --- Step 7: Create Superuser (Admin Role) --
+        # --- Step 7: Create Superuser ---
         user = User.objects.create_superuser(
             username=username,
             password=password
         )
 
-        # Set admin role + link staff
-        user.role = "admin"              # ← you mentioned this
+        user.role = "admin"
         user.staff = staff
         user.is_staff = True
         user.is_superuser = True
