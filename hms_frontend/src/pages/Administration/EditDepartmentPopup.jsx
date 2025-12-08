@@ -11,7 +11,10 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     status: "",
     description: "",
   });
-
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,7 +45,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     };
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/departments/${department.id}`, {
+      const response = await fetch(`${API_BASE}/departments/${department.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

@@ -15,7 +15,12 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient"; // <-- correct import
 
-const API_BASE = "http://localhost:8000";
+
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+//const API_BASE = "http://localhost:8000";
 
 const ProfileSection = () => {
   /* ==================== STATE ==================== */

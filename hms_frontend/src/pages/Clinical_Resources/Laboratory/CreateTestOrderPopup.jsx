@@ -22,13 +22,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [patients, setPatients] = useState([]);
+const backendUrl =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/medicine_allocation/edit")
-      .then(res => res.json())
-      .then(data => setPatients(data.patients || []))
-      .catch(err => console.error("Failed to fetch patients", err));
-  }, []);
+  fetch(`${backendUrl}/medicine_allocation/edit`)
+    .then(res => res.json())
+    .then(data => setPatients(data.patients || []))
+    .catch(err => console.error("Failed to fetch patients", err));
+}, []);
 
   const patientNames = [...new Set(patients.map(p => p.full_name || ""))].filter(Boolean);
   const patientIds = patients.map(p => p.patient_unique_id || "").filter(Boolean);

@@ -4,8 +4,11 @@ import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
 const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
-  const API_BASE = "http://localhost:8000";
-
+  //const API_BASE = "http://localhost:8000";
+  const API_BASE =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : "http://localhost:8000";
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,18 +55,23 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
   const maxAvailableQuantity = useMemo(() => {
     if (!formData.medicineName || !formData.dosage) return null;
     const item = stockData.find(
-      (s) => s.product_name === formData.medicineName && s.dosage === formData.dosage
+      (s) =>
+        s.product_name === formData.medicineName && s.dosage === formData.dosage
     );
     return item ? item.quantity : 0;
   }, [formData.medicineName, formData.dosage, stockData]);
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.medicineName) newErrors.medicineName = "Medicine name is required";
+    if (!formData.medicineName)
+      newErrors.medicineName = "Medicine name is required";
     if (!formData.dosage) newErrors.dosage = "Dosage is required";
     if (!formData.quantity || formData.quantity <= 0)
       newErrors.quantity = "Valid quantity is required";
-    if (maxAvailableQuantity !== null && formData.quantity > maxAvailableQuantity)
+    if (
+      maxAvailableQuantity !== null &&
+      formData.quantity > maxAvailableQuantity
+    )
       newErrors.quantity = `Only ${maxAvailableQuantity} available in stock`;
 
     if (!formData.frequency) newErrors.frequency = "Frequency is required";
@@ -81,13 +89,44 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
     }
   };
 
-  const frequencies = ["Once daily", "Twice daily", "Three times daily", "Four times daily", "As needed"];
-  const durations = ["3 days", "5 days", "7 days", "10 days", "14 days", "30 days", "As directed"];
-  const times = ["8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM", "Before meals", "After meals", "At bedtime"];
+  const frequencies = [
+    "Once daily",
+    "Twice daily",
+    "Three times daily",
+    "Four times daily",
+    "As needed",
+  ];
+  const durations = [
+    "3 days",
+    "5 days",
+    "7 days",
+    "10 days",
+    "14 days",
+    "30 days",
+    "As directed",
+  ];
+  const times = [
+    "8:00 AM",
+    "12:00 PM",
+    "6:00 PM",
+    "8:00 PM",
+    "Before meals",
+    "After meals",
+    "At bedtime",
+  ];
 
-  const Dropdown = ({ label, value, onChange, options, error, placeholder = "Select" }) => (
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    error,
+    placeholder = "Select",
+  }) => (
     <div>
-      <label className="text-sm text-black dark:text-white font-helvetica">{label}</label>
+      <label className="text-sm text-black dark:text-white font-helvetica">
+        {label}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
@@ -157,7 +196,9 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
           </div>
 
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading stock data...</div>
+            <div className="text-center py-8 text-gray-500">
+              Loading stock data...
+            </div>
           ) : (
             <>
               {/* Form Fields */}
@@ -179,32 +220,46 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
                   onChange={(val) => setFormData({ ...formData, dosage: val })}
                   options={availableDosages}
                   error={errors.dosage}
-                  placeholder={formData.medicineName ? "Select dosage" : "First select medicine"}
+                  placeholder={
+                    formData.medicineName
+                      ? "Select dosage"
+                      : "First select medicine"
+                  }
                 />
 
                 <div>
                   <label className="text-sm text-black dark:text-white font-[Helvetica]">
-                    Quantity {maxAvailableQuantity !== null && `(Max: ${maxAvailableQuantity})`}
+                    Quantity{" "}
+                    {maxAvailableQuantity !== null &&
+                      `(Max: ${maxAvailableQuantity})`}
                   </label>
                   <input
                     type="number"
                     value={formData.quantity}
-                    onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, quantity: e.target.value })
+                    }
                     className={`w-full h-[32px] px-3 rounded-[8px] border ${
-                      errors.quantity ? "border-red-500" : "border-gray-300 dark:border-[#3A3A3A]"
+                      errors.quantity
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-[#3A3A3A]"
                     } bg-white dark:bg-transparent text-black dark:text-white text-[14px] focus:outline-none focus:border-[#0EFF7B]`}
                     min="1"
                     max={maxAvailableQuantity || undefined}
                   />
                   {errors.quantity && (
-                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.quantity}</p>
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                      {errors.quantity}
+                    </p>
                   )}
                 </div>
 
                 <Dropdown
                   label="Frequency"
                   value={formData.frequency}
-                  onChange={(val) => setFormData({ ...formData, frequency: val })}
+                  onChange={(val) =>
+                    setFormData({ ...formData, frequency: val })
+                  }
                   options={frequencies}
                   error={errors.frequency}
                 />
@@ -212,7 +267,9 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
                 <Dropdown
                   label="Duration"
                   value={formData.duration}
-                  onChange={(val) => setFormData({ ...formData, duration: val })}
+                  onChange={(val) =>
+                    setFormData({ ...formData, duration: val })
+                  }
                   options={durations}
                   error={errors.duration}
                 />

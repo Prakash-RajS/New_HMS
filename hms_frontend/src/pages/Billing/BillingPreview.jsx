@@ -6,7 +6,12 @@ import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 // API Base URL configuration
-const APIBASE = "http://localhost:8000";
+const APIBASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+    
+//const APIBASE = "http://localhost:8000";
 const BillingPreview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const originalPatients = [

@@ -17,7 +17,12 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../components/Toast"; // <-- ADD THIS
 
-const API_BASE = "http://localhost:8000";
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
+//const API_BASE = "http://localhost:8000";
 
 const UserSettings = () => {
   const [showEditUserPopup, setShowEditUserPopup] = useState(false);

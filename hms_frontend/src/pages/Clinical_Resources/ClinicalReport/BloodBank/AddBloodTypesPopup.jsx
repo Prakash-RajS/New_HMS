@@ -226,6 +226,11 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/api"
+    : "http://localhost:8000/api";
+    
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -243,7 +248,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       console.log("Payload:", payload);
 
       const response = await fetch(
-        "http://localhost:8000/api/blood-groups/add",
+        `${API_BASE}/blood-groups/add`,
         {
           method: "POST",
           headers: {
@@ -298,7 +303,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       };
 
       const response = await fetch(
-        `http://localhost:8000/api/blood-groups/${bloodData.id}/edit`,
+       `${API_BASE}/blood-groups/${bloodData.id}/edit`,
         {
           method: "PUT",
           headers: {

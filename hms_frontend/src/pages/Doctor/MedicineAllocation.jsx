@@ -7,7 +7,11 @@ import DeleteMedicinePopup from "./DeleteMedicinePopup";
 import { useNavigate } from "react-router-dom";
 
 export default function ViewPatientProfile() {
-  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:8000";
+  const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
   const [medicineData, setMedicineData] = useState([

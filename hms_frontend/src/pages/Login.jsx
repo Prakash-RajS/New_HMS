@@ -516,7 +516,12 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  // 🔹 Auto-detect system theme
+  const backendUrl =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+    
+    // 🔹 Auto-detect system theme
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     setIsLightMode(mediaQuery.matches);
@@ -553,15 +558,15 @@ const LoginPage = () => {
       console.log("🔄 Attempting login...");
 
       const res = await axios.post(
-        "http://localhost:8000/auth/login",
-        formData,
-        {
-          timeout: 10000, // 10 second timeout
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+  `${backendUrl}/auth/login`,
+  formData,
+  {
+    timeout: 10000,
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
 
       console.log("🔑 Login Response:", res.data);
 

@@ -19,10 +19,16 @@ const SecuritySettingsPage = () => {
   const [permissions, setPermissions] = useState({});
   const [initialized, setInitialized] = useState(false);
 
+
+  const backendUrl =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
   // Create axios instance with direct URL
   const api = axios.create({
-    baseURL: "http://localhost:8000",
-  });
+  baseURL: backendUrl,
+});
 
   // Add interceptors
   api.interceptors.request.use((config) => {

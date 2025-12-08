@@ -6,7 +6,12 @@ import { Listbox } from "@headlessui/react";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const API_BASE = "http://localhost:8000";
+
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+//const API_BASE = "http://localhost:8000";
 
 const EditPatientPopup = ({
   patientId,

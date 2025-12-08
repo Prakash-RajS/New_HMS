@@ -52,9 +52,16 @@ export const WebSocketProvider = ({ children }) => {
     }
 
     // ✅ Connect to FastAPI backend on port 8000
+    // const backendUrl =
+    //   import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+    // const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
+
     const backendUrl =
-      import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-    const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
+const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
 
     connectionAttemptsRef.current += 1;
     setConnectionAttempts(connectionAttemptsRef.current);

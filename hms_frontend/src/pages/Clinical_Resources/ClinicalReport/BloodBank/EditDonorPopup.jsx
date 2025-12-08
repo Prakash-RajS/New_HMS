@@ -16,6 +16,11 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
  
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+    const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/api"
+    : "http://localhost:8000/api";
   // Safe date conversion function
   const safeDate = (dateValue) => {
     if (!dateValue) return null;
@@ -111,7 +116,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
         last_donation_date: formatDateForAPI(formData.last_donation_date),
       };
       console.log("🟡 Sending update data:", updateData);
-      const response = await fetch(`http://localhost:8000/api/donors/${donor.id}`, {
+      const response = await fetch(`${API_BASE}/donors/${donor.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),

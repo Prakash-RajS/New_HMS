@@ -24,6 +24,12 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+
+  const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
   const handleAdd = async () => {
     if (!validateForm()) return;
 
@@ -37,7 +43,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/bedgroups/add", {
+      const response = await fetch(`${API}/bedgroups/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

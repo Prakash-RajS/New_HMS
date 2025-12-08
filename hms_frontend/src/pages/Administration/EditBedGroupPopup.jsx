@@ -34,7 +34,10 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   const handleUpdate = async () => {
     if (!validateForm()) return;
 
@@ -48,7 +51,7 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
     };
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/bedgroups/${data.id}/`, {
+      const response = await fetch(`${API_BASE}/bedgroups/${data.id}/`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

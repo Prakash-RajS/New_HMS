@@ -774,7 +774,12 @@ import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 
-const API = "http://localhost:8000";
+
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+//const API = "http://localhost:8000";
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);

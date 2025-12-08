@@ -3,8 +3,21 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-const API = "http://127.0.0.1:8000/appointments";
-const BED_API = "http://127.0.0.1:8000/bedgroups";
+//const API = "http://127.0.0.1:8000/appointments";
+//const BED_API = "http://127.0.0.1:8000/bedgroups";
+
+
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/appointments"
+    : "http://localhost:8000/appointments";
+
+    const BED_API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/bedgroups"
+    : "http://localhost:8000/bedgroups";
+
+    
 export default function EditAppointmentPopup({
   onClose,
   appointment,

@@ -29,8 +29,19 @@ import EditTripModal from "./EditTrip";
 import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 
-const API_BASE = "http://localhost:8000/ambulance";
-const WS_URL = "ws://localhost:8000/ws";
+
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/ambulance"
+    : "http://localhost:8000/ambulance";
+
+const WS_URL =
+  window.location.hostname === "18.119.210.2"
+    ? "ws://18.119.210.2:8000/ws"
+    : "ws://localhost:8000/ws";
+
+//const API_BASE = "http://localhost:8000/ambulance";
+//const WS_URL = "ws://localhost:8000/ws";
 
 const AmbulanceManagement = () => {
   // ── STATE ─────────────────────────────────────

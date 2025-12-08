@@ -20,8 +20,13 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
+const APIBASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
 // API Base URL configuration
-const APIBASE = "http://localhost:8000";
+//const APIBASE = "http://localhost:8000";
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>

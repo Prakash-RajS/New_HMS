@@ -12,7 +12,10 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
 const handleSave = async () => {
   // Basic validation
   if (!formData.departmentName.trim() || !formData.status) {
@@ -31,7 +34,7 @@ const handleSave = async () => {
   };
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/departments/create", {
+    const response = await fetch(`${API}/departments/create`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

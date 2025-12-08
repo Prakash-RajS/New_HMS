@@ -48,11 +48,16 @@ const DashboardComponents = () => {
     return value !== null && value !== undefined ? value : defaultValue;
   };
 
+
+  const backendUrl =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      const response = await fetch("http://localhost:8000/api/dashboard/stats");
+      const response = await fetch(`${backendUrl}/api/dashboard/stats`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -93,9 +98,10 @@ const DashboardComponents = () => {
   // Fetch recent activities
   const fetchRecentActivities = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/dashboard/recent-activities"
-      );
+      const response = await fetch(`${backendUrl}/api/dashboard/recent-activities`);
+      // const response = await fetch(
+      //   "http://localhost:8000/api/dashboard/recent-activities"
+      // );
 
       if (response.ok) {
         const data = await response.json();
@@ -110,9 +116,10 @@ const DashboardComponents = () => {
   // Test connection on mount
   const testConnection = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/dashboard/test-connection"
-      );
+      const response = await fetch(`${backendUrl}/api/dashboard/test-connection`);
+      // const response = await fetch(
+      //   "http://localhost:8000/api/dashboard/test-connection"
+      // );
       if (response.ok) {
         console.log("Dashboard API connection successful");
       }

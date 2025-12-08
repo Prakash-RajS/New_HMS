@@ -16,7 +16,13 @@ import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
 
-const API = "http://127.0.0.1:8000/appointments";
+
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/appointments"
+    : "http://localhost:8000/appointments";
+
+//const API = "http://127.0.0.1:8000/appointments";
 
 const AppointmentList = () => {
   // === State ===

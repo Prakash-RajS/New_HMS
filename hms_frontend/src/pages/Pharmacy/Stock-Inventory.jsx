@@ -17,7 +17,11 @@ import {
   Edit2,
 } from "lucide-react";
 
-const API_BASE = "http://127.0.0.1:8000/stock";
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+//const API_BASE = "http://127.0.0.1:8000/stock";
 
 const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
@@ -141,7 +145,7 @@ const StockInventory = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/list`);
+      const response = await fetch(`${API_BASE}/stock/list`);
       if (!response.ok) {
         throw new Error(`Failed to fetch stocks: ${response.status}`);
       }
@@ -174,7 +178,7 @@ const StockInventory = () => {
 
   const addStock = async (stockData) => {
     try {
-      const response = await fetch(`${API_BASE}/add`, {
+      const response = await fetch(`${API_BASE}/stock/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,7 +200,7 @@ const StockInventory = () => {
 
   const updateStock = async (stockId, stockData) => {
     try {
-      const response = await fetch(`${API_BASE}/edit/${stockId}`, {
+      const response = await fetch(`${API_BASE}/stock/edit/${stockId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -218,7 +222,7 @@ const StockInventory = () => {
 
   const deleteStock = async (stockId) => {
     try {
-      const response = await fetch(`${API_BASE}/delete/${stockId}`, {
+      const response = await fetch(`${API_BASE}/stock/delete/${stockId}`, {
         method: "DELETE",
       });
       if (!response.ok) {

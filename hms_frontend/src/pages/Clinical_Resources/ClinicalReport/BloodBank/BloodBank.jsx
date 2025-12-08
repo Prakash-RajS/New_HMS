@@ -32,7 +32,11 @@ const BloodBank = () => {
   const [deleteDonor, setDeleteDonor] = useState(null);
   const [showBloodFilterPopup, setShowBloodFilterPopup] = useState(false);
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
-  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:8000";
+  const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
   const [tempBloodStatus, setTempBloodStatus] = useState("All");

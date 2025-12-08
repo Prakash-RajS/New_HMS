@@ -924,7 +924,12 @@ import GL from "../../assets/GL.png";
 import CL from "../../assets/CL.png";
 import { Listbox } from "@headlessui/react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
+//const API_BASE = "http://localhost:8000";
 
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();

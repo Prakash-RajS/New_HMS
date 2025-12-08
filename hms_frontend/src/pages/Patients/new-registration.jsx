@@ -5,8 +5,19 @@ import { ChevronDown, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
-const API_BASE = "http://localhost:8000";
-const BED_API = "http://127.0.0.1:8000/bedgroups";
+// const API_BASE = "http://localhost:8000";
+//const BED_API = "http://127.0.0.1:8000/bedgroups";
+
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+
+const BED_API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/bedgroups"
+    : "http://localhost:8000/bedgroups";
+
 const formatToYMD = (dateStr) => {
   if (!dateStr) return "";
   const parts = dateStr.split("/");

@@ -5,8 +5,11 @@ import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 
-const API_BASE = "http://localhost:8000";
-
+//const API_BASE = "http://localhost:8000";
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
 /* -------------------------------------------------
    Dropdown Component
 ------------------------------------------------- */

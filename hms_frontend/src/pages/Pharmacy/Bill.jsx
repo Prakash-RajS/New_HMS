@@ -8,7 +8,7 @@ import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast";
 
 const Bill = () => {
-  const API_BASE = "http://localhost:8000";
+  //const API_BASE = "http://localhost:8000";
   const [searchQuery, setSearchQuery] = useState("");
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -43,7 +43,10 @@ const Bill = () => {
     "Bank Transfer",
     "Insurance Claim",
   ];
-
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   // Fetch patients & logged-in staff
   useEffect(() => {
     fetchPatients();

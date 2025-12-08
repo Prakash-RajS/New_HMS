@@ -784,7 +784,12 @@ import EditPatientPopup from "./EditPatient"; // <-- Updated import
 import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const API = "http://localhost:8000";
+
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
+//const API = "http://localhost:8000";
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);

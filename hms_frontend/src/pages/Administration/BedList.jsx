@@ -40,14 +40,17 @@ const BedList = () => {
   const itemsPerPage = 9;
 
   const [roomsData, setRoomsData] = useState([]);
-
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   // Fetch bed groups on mount
   useEffect(() => {
     const fetchBedGroups = async () => {
       try {
         setLoading(true);
         setError("");
-        const response = await fetch("http://127.0.0.1:8000/bedgroups/all", {
+        const response = await fetch(`${API}/bedgroups/all`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -158,7 +161,7 @@ const BedList = () => {
     if (roomToDelete !== null) {
       const roomId = roomsData[roomToDelete].id;
       try {
-        const response = await fetch(`http://127.0.0.1:8000/bedgroups/${roomId}/`, {
+        const response = await fetch(`${API}/bedgroups/${roomId}/`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

@@ -24,6 +24,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${date.getFullYear()}`;
   };
 
+  const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : "http://localhost:8000";
   // Populate form data when bloodData changes
   useEffect(() => {
     console.log("🟡 EditBloodTypePopup received bloodData:", bloodData);
@@ -44,7 +48,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
       try {
         setLoading(true);
         console.log("🟡 Fetching blood types from backend...");
-        const response = await fetch("http://localhost:8000/api/blood-types/");
+        const response = await fetch(`${API_BASE}/api/blood-types/`);
         console.log("🟡 Response status:", response.status);
         if (response.ok) {
           const data = await response.json();

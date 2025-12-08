@@ -62,7 +62,10 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/api"
+    : "http://localhost:8000/api";
   /* Submit Handler */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,7 +83,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/api/donors/add", {
+      const response = await fetch(`${API_BASE}/donors/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

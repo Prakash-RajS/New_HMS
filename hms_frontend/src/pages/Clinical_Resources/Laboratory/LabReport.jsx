@@ -20,7 +20,12 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
-const API = "http://127.0.0.1:8000/labreports";
+const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/labreports"
+    : "http://localhost:8000/labreports";
+
+//const API = "http://127.0.0.1:8000/labreports";
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
