@@ -1,15 +1,46 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, ValidationError, EmailStr
 from typing import Optional, List
 import os, django
-from datetime import date
+from datetime import date, datetime, timedelta
 from django.db import IntegrityError
+import json
+from dotenv import load_dotenv
+from starlette.concurrency import run_in_threadpool
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from pathlib import Path
+import asyncio
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import atexit
+
 # Django setup
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "HMS_project.settings")
 django.setup()
 from HMS_backend.models import Donor, BloodGroup
+from django.utils import timezone
+
 router = APIRouter()
+BASE_DIR = Path(__file__).resolve().parent.parent   # fastapi_app folder
+load_dotenv(dotenv_path=BASE_DIR / ".env")
+
+SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 0))
+EMAIL_SENDER = os.getenv("EMAIL_SENDER")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+print("✅ SMTP DEBUG:")
+print("SMTP_SERVER =", SMTP_SERVER)
+print("SMTP_PORT =", SMTP_PORT)
+print("EMAIL_SENDER =", EMAIL_SENDER)
+print("EMAIL_PASSWORD Loaded =", bool(EMAIL_PASSWORD))
+
+if not all([SMTP_SERVER, SMTP_PORT, EMAIL_SENDER, EMAIL_PASSWORD]):
+    raise RuntimeError("❌ SMTP environment variables are not set properly.")
+
 # === Pydantic Schemas ===
 class DonorSchema(BaseModel):
     donor_name: str
@@ -20,6 +51,7 @@ class DonorSchema(BaseModel):
     last_donation_date: Optional[date] = None
     class Config:
         extra = "forbid"
+
 class DonorResponse(BaseModel):
     id: int
     donor_name: str
@@ -29,7 +61,343 @@ class DonorResponse(BaseModel):
     email: Optional[str]
     last_donation_date: Optional[date]
     status: str
-# ---------- Helper function for donor notifications ----------
+
+# === Email Utility Functions ===
+async def send_email(
+    to_email: str,
+    subject: str,
+    body: str,
+    html_body: Optional[str] = None
+):
+    """Generic email sending function"""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = to_email
+        msg["Subject"] = subject
+
+        # Add text version
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Add HTML version if provided
+        if html_body:
+            msg.attach(MIMEText(html_body, 'html'))
+
+        print(f"📨 SENDING EMAIL TO: {to_email}")
+        print(f"SUBJECT: {subject}")
+
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_SENDER, to_email, msg.as_string())
+
+        print(f"✅ EMAIL SENT SUCCESSFULLY TO: {to_email}")
+        return True
+
+    except Exception as e:
+        print(f"❌ EMAIL FAILED for {to_email}: {str(e)}")
+        return False
+
+async def send_eligibility_email(donor_data):
+    """Send email when donor becomes eligible"""
+    if not donor_data.email:
+        print(f"⚠️ No email for donor {donor_data.donor_name}")
+        return False
+
+    subject = "🎉 You're Now Eligible to Donate Blood!"
+    
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background-color: #e53935; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .button {{ display: inline-block; background-color: #e53935; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }}
+            .info-box {{ background-color: #fff; border-left: 4px solid #e53935; padding: 15px; margin: 20px 0; }}
+            .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Eligibility Update</h1>
+                <h2>You Can Donate Blood Again!</h2>
+            </div>
+            
+            <div class="content">
+                <p>Dear <strong>{donor_data.donor_name}</strong>,</p>
+                
+                <p>Great news! You are now eligible to donate blood again.</p>
+                
+                <div class="info-box">
+                    <h3>📋 Your Information:</h3>
+                    <p><strong>Blood Type:</strong> {donor_data.blood_type}</p>
+                    <p><strong>Eligibility Date:</strong> {datetime.now().strftime('%B %d, %Y')}</p>
+                    <p><strong>Status:</strong> <span style="color: green;">✅ ELIGIBLE</span></p>
+                </div>
+                
+                <p>Your blood type <strong>{donor_data.blood_type}</strong> is in constant demand and can save lives.</p>
+                
+                <h3>📍 Visit Us:</h3>
+                <p>You can visit our blood bank during these hours:</p>
+                <ul>
+                    <li><strong>Monday - Friday:</strong> 8:00 AM - 8:00 PM</li>
+                    <li><strong>Saturday - Sunday:</strong> 9:00 AM - 6:00 PM</li>
+                </ul>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="mailto:{EMAIL_SENDER}" class="button">Schedule Your Donation</a>
+                </div>
+                
+                <p><strong>Before donating, remember to:</strong></p>
+                <ul>
+                    <li>Get a good night's sleep</li>
+                    <li>Eat a healthy meal before donation</li>
+                    <li>Drink plenty of water</li>
+                    <li>Bring a valid ID</li>
+                </ul>
+                
+                <p>Thank you for being a lifesaver!</p>
+                
+                <p>Best regards,<br>
+                <strong>Blood Bank Team</strong></p>
+            </div>
+            
+            <div class="footer">
+                <p>This is an automated message. Please do not reply to this email.</p>
+                <p>© {datetime.now().year} Blood Bank Management System. All rights reserved.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+    Dear {donor_data.donor_name},
+
+    GREAT NEWS! You are now eligible to donate blood again.
+
+    Your Information:
+    - Blood Type: {donor_data.blood_type}
+    - Eligibility Date: {datetime.now().strftime('%B %d, %Y')}
+    - Status: ✅ ELIGIBLE
+
+    Your blood type {donor_data.blood_type} is in constant demand and can save lives.
+
+    Visit Us:
+    - Monday - Friday: 8:00 AM - 8:00 PM
+    - Saturday - Sunday: 9:00 AM - 6:00 PM
+
+    Before donating, remember to:
+    * Get a good night's sleep
+    * Eat a healthy meal before donation
+    * Drink plenty of water
+    * Bring a valid ID
+
+    Thank you for being a lifesaver!
+
+    Best regards,
+    Blood Bank Team
+
+    ---
+    This is an automated message. Please do not reply to this email.
+    © {datetime.now().year} Blood Bank Management System.
+    """
+
+    return await send_email(donor_data.email, subject, text_body, html_body)
+
+async def send_urgent_blood_request_email(
+    donor_email: str,
+    donor_name: str,
+    blood_type: str,
+    custom_message: Optional[str] = None
+):
+    """Send urgent blood request email"""
+    subject = f"🚨 URGENT: Blood Donation Request - {blood_type}"
+    
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background-color: #ff4444; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background-color: #fff5f5; padding: 30px; border-radius: 0 0 10px 10px; border-left: 4px solid #ff4444; border-right: 4px solid #ff4444; border-bottom: 4px solid #ff4444; }}
+            .urgent {{ color: #ff4444; font-weight: bold; font-size: 18px; }}
+            .button {{ display: inline-block; background-color: #ff4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 10px 0; }}
+            .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🚨 URGENT BLOOD REQUEST</h1>
+                <h2>Your Blood Type {blood_type} is Needed!</h2>
+            </div>
+            
+            <div class="content">
+                <p class="urgent">⏰ IMMEDIATE ACTION REQUIRED</p>
+                
+                <p>Dear <strong>{donor_name}</strong>,</p>
+                
+                <p>We are facing a critical shortage of <strong>{blood_type}</strong> blood and urgently need your help.</p>
+                
+                <div style="background-color: #ffeaea; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p><strong>📅 Request Date:</strong> {datetime.now().strftime('%B %d, %Y %I:%M %p')}</p>
+                    <p><strong>🩸 Blood Type Needed:</strong> {blood_type}</p>
+                    <p><strong>📍 Location:</strong> Main Blood Bank Center</p>
+                </div>
+                
+                {f'<p><strong>Additional Information:</strong><br>{custom_message}</p>' if custom_message else ''}
+                
+                <p>Your donation could save a life today. Every unit counts!</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="mailto:{EMAIL_SENDER}?subject=Urgent%20Blood%20Donation%20-%20{blood_type}" class="button">I Can Donate Today</a>
+                </div>
+                
+                <p><strong>When visiting:</strong></p>
+                <ul>
+                    <li>Bring your ID card</li>
+                    <li>Mention this urgent request</li>
+                    <li>Ask for the emergency desk</li>
+                </ul>
+                
+                <p>Thank you for your immediate response.</p>
+                
+                <p>Sincerely,<br>
+                <strong>Emergency Blood Bank Team</strong></p>
+            </div>
+            
+            <div class="footer">
+                <p>This is an urgent automated request. For immediate assistance, call our emergency line.</p>
+                <p>© {datetime.now().year} Blood Bank Emergency Services</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+    URGENT BLOOD REQUEST
+
+    Dear {donor_name},
+
+    We are facing a critical shortage of {blood_type} blood and urgently need your help.
+
+    ⚠️ Request Date: {datetime.now().strftime('%B %d, %Y %I:%M %p')}
+    🩸 Blood Type Needed: {blood_type}
+    📍 Location: Main Blood Bank Center
+
+    {custom_message if custom_message else ''}
+
+    Your donation could save a life today. Every unit counts!
+
+    When visiting:
+    • Bring your ID card
+    • Mention this urgent request
+    • Ask for the emergency desk
+
+    Thank you for your immediate response.
+
+    Sincerely,
+    Emergency Blood Bank Team
+
+    ---
+    This is an urgent automated request. For immediate assistance, call our emergency line.
+    © {datetime.now().year} Blood Bank Emergency Services.
+    """
+
+    return await send_email(donor_email, subject, text_body, html_body)
+
+# === Scheduled Task for Automatic Eligibility Checks ===
+class DonorScheduler:
+    """Handles scheduled tasks for donor eligibility notifications"""
+    
+    def __init__(self):
+        self.scheduler = BackgroundScheduler()
+        self.setup_scheduler()
+    
+    def setup_scheduler(self):
+        """Setup scheduled tasks"""
+        # Check eligibility and send emails every day at 9 AM
+        self.scheduler.add_job(
+            self.check_and_notify_eligible_donors,
+            CronTrigger(hour=9, minute=0),
+            id='eligibility_check',
+            name='Daily eligibility check and email notification',
+            replace_existing=True
+        )
+        
+        # Additional check at 3 PM
+        self.scheduler.add_job(
+            self.check_and_notify_eligible_donors,
+            CronTrigger(hour=15, minute=0),
+            id='afternoon_check',
+            name='Afternoon eligibility check',
+            replace_existing=True
+        )
+    
+    def start(self):
+        """Start the scheduler"""
+        if not self.scheduler.running:
+            self.scheduler.start()
+            print("✅ Donor eligibility scheduler started")
+            atexit.register(self.shutdown)
+    
+    def shutdown(self):
+        """Shutdown the scheduler"""
+        if self.scheduler.running:
+            self.scheduler.shutdown()
+            print("✅ Donor eligibility scheduler stopped")
+    
+    async def check_and_notify_eligible_donors(self):
+        """Check all donors for eligibility and send notifications"""
+        try:
+            print("🔄 Running automatic eligibility check...")
+            
+            donors = await run_in_threadpool(lambda: list(Donor.objects.all()))
+            
+            notifications_sent = 0
+            for donor in donors:
+                old_status = donor.status
+                donor.check_eligibility()
+                
+                # If status changed from "Not Eligible" to "Eligible"
+                if old_status == "Not Eligible" and donor.status == "Eligible":
+                    # Send email notification
+                    if donor.email:
+                        success = await send_eligibility_email(donor)
+                        if success:
+                            notifications_sent += 1
+                            print(f"✅ Eligibility email sent to {donor.donor_name} ({donor.email})")
+                        else:
+                            print(f"❌ Failed to send email to {donor.donor_name}")
+                    
+                    # Also send notification via NotificationService if available
+                    await safe_send_donor_notification(
+                        "became_eligible",
+                        donor,
+                        old_status=old_status,
+                        new_status=donor.status
+                    )
+            
+            print(f"✅ Automatic check completed. Sent {notifications_sent} email(s).")
+            
+        except Exception as e:
+            print(f"❌ Error in automatic eligibility check: {str(e)}")
+
+# Initialize scheduler
+donor_scheduler = DonorScheduler()
+
+# Start scheduler when module loads
+donor_scheduler.start()
+
+# === Helper function for donor notifications ===
 async def safe_send_donor_notification(notification_type: str, donor_data, old_status=None, new_status=None, units_donated=None, patient_name=None, units_needed=None):
     """Safely send donor notifications with error handling"""
     try:
@@ -58,6 +426,7 @@ async def safe_send_donor_notification(notification_type: str, donor_data, old_s
         print(f"❌ [DONOR] NotificationService not available: {e}")
     except Exception as e:
         print(f"❌ [DONOR] Failed to send {notification_type} notification: {e}")
+
 # === ADD DONOR ===
 @router.post("/api/donors/add", response_model=DonorResponse)
 async def add_donor(request: Request):
@@ -66,6 +435,7 @@ async def add_donor(request: Request):
         data = DonorSchema(**body)
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors())
+    
     def create_donor():
         try:
             from django.db import transaction
@@ -107,6 +477,7 @@ async def add_donor(request: Request):
                 )
                 return {"error": f"INVALID_CHOICE:{field}"}
             return {"error": "SAVE_FAILED"}
+    
     try:
         result = await run_in_threadpool(create_donor)
        
@@ -135,9 +506,13 @@ async def add_donor(request: Request):
             else:
                 raise HTTPException(status_code=500, detail="Unknown error occurred.")
        
-        # Success - send notification
+        # Success - send registration notification
         donor = result
         await safe_send_donor_notification("registered", donor)
+       
+        # If donor is already eligible, send email immediately
+        if donor.status == "Eligible" and donor.email:
+            await send_eligibility_email(donor)
        
         return DonorResponse(
             id=donor.id,
@@ -155,6 +530,7 @@ async def add_donor(request: Request):
     except Exception as e:
         print(f"Unexpected error in add_donor: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 # === FETCH DONORS ===
 @router.get("/api/donors/list", response_model=List[DonorResponse])
 async def fetch_donors():
@@ -178,6 +554,7 @@ async def fetch_donors():
             for d in donors
         ]
     return await run_in_threadpool(get_all)
+
 # === GET SINGLE DONOR ===
 @router.get("/api/donors/{donor_id}", response_model=DonorResponse)
 async def get_donor(donor_id: int):
@@ -205,6 +582,7 @@ async def get_donor(donor_id: int):
     except Exception as e:
         print(f"Error getting donor: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 # === EDIT DONOR ===
 @router.put("/api/donors/{donor_id}", response_model=DonorResponse)
 async def edit_donor(donor_id: int, request: Request):
@@ -215,6 +593,7 @@ async def edit_donor(donor_id: int, request: Request):
     except ValidationError as e:
         print(f"❌ Validation error: {e.errors()}")
         raise HTTPException(status_code=422, detail=e.errors())
+    
     def update():
         try:
             donor = Donor.objects.get(id=donor_id)
@@ -262,6 +641,7 @@ async def edit_donor(donor_id: int, request: Request):
             if "is not a valid choice" in str(e):
                 raise HTTPException(status_code=400, detail="Invalid value for blood type or gender.")
             return {"error": "SAVE_FAILED"}
+    
     try:
         result = await run_in_threadpool(update)
        
@@ -270,15 +650,13 @@ async def edit_donor(donor_id: int, request: Request):
            
             # Determine what type of notification to send
             if old_status != donor.status:
-                # Status changed - send combined notification
-                notification_data = {
-                    "donor": donor,
-                    "old_status": old_status,
-                    "new_status": donor.status,
-                    "became_eligible": donor.status == "Eligible",
-                    "update_type": "status_change"
-                }
-                await safe_send_donor_notification("updated", notification_data)
+                # Status changed - check if became eligible
+                if donor.status == "Eligible" and donor.email:
+                    # Send eligibility email
+                    await send_eligibility_email(donor)
+                
+                # Send notification
+                await safe_send_donor_notification("eligibility_changed", donor, old_status, donor.status)
             else:
                 # Regular update, no status change
                 await safe_send_donor_notification("updated", donor)
@@ -315,6 +693,7 @@ async def edit_donor(donor_id: int, request: Request):
     except Exception as e:
         print(f"Unexpected error in edit_donor: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
 # === DELETE DONOR ===
 @router.delete("/api/donors/{donor_id}")
 async def delete_donor(donor_id: int):
@@ -341,6 +720,7 @@ async def delete_donor(donor_id: int):
         return {"success": True, "message": "Donor deleted successfully"}
     except HTTPException:
         raise
+
 # === RECORD DONATION ===
 @router.post("/api/donors/{donor_id}/record-donation")
 async def record_donation(donor_id: int, units_donated: int):
@@ -362,6 +742,7 @@ async def record_donation(donor_id: int, units_donated: int):
             return donor, old_status, units_donated
         except Donor.DoesNotExist:
             raise HTTPException(status_code=404, detail="Donor not found.")
+    
     try:
         donor, old_status, units = await run_in_threadpool(record)
        
@@ -396,36 +777,50 @@ async def record_donation(donor_id: int, units_donated: int):
         return {"success": True, "message": f"Donation of {units} units recorded successfully"}
     except HTTPException:
         raise
+
 # === SEND URGENT BLOOD REQUEST ===
-@router.post("/api/donors/urgent-request")
-async def send_urgent_blood_request(blood_type: str, units_needed: int, patient_name: Optional[str] = None):
+@router.post("/api/donors/send-urgent-request")
+async def send_urgent_request_to_donor(request: Request):
     try:
-        # Get all eligible donors with the specified blood type
-        def get_eligible_donors():
-            donors = Donor.objects.filter(
-                blood_type=blood_type,
-                status="Eligible"
-            )
-            return list(donors)
-       
-        eligible_donors = await run_in_threadpool(get_eligible_donors)
-       
-        # Send notification to each eligible donor
-        for donor in eligible_donors:
-            await safe_send_donor_notification(
-                "urgent_request",
-                donor,
-                units_needed=units_needed,
-                patient_name=patient_name
-            )
-           
+        body = await request.json()
+
+        donor_id = body.get("donor_id")
+        donor_email = body.get("donor_email")
+        donor_name = body.get("donor_name")
+        blood_type = body.get("blood_type")
+        custom_message = body.get("message")
+
+        if not all([donor_id, donor_email, donor_name, blood_type]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+
+        success = await send_urgent_blood_request_email(
+            donor_email=donor_email,
+            donor_name=donor_name,
+            blood_type=blood_type,
+            custom_message=custom_message
+        )
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to send email")
+
+        log_data = {
+            "donor_id": donor_id,
+            "email": donor_email,
+            "sent_at": datetime.now().isoformat()
+        }
+
+        print("📧 LOG:", json.dumps(log_data))
+
         return {
             "success": True,
-            "message": f"Urgent blood request sent to {len(eligible_donors)} eligible donors",
-            "notified_donors": len(eligible_donors)
+            "message": "Urgent blood request sent successfully"
         }
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to send urgent request: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # === CHECK ALL DONORS ELIGIBILITY ===
 @router.post("/api/donors/check-eligibility")
 async def check_all_donors_eligibility():
@@ -451,9 +846,14 @@ async def check_all_donors_eligibility():
     try:
         changes = await run_in_threadpool(check_eligibility)
        
-        # Send notifications for status changes
+        # Send notifications and emails for status changes
         for change in changes:
             donor = await run_in_threadpool(Donor.objects.get, id=change['donor_id'])
+            
+            # If donor became eligible, send email
+            if change['new_status'] == "Eligible" and donor.email:
+                await send_eligibility_email(donor)
+            
             await safe_send_donor_notification(
                 "eligibility_changed",
                 donor,
@@ -468,3 +868,21 @@ async def check_all_donors_eligibility():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to check eligibility: {str(e)}")
+
+# === TEST EMAIL ENDPOINT ===
+@router.post("/api/donors/test-email")
+async def test_donor_email():
+    """Endpoint to test donor email functionality"""
+    test_donor = {
+        "donor_name": "Test Donor",
+        "email": "sravannaala@gmail.com",  # Replace with actual test email
+        "blood_type": "O+",
+        "status": "Eligible"
+    }
+    
+    success = await send_eligibility_email(type('Donor', (), test_donor)())
+    
+    if success:
+        return {"success": True, "message": "Test email sent successfully"}
+    else:
+        return {"success": False, "message": "Failed to send test email"}

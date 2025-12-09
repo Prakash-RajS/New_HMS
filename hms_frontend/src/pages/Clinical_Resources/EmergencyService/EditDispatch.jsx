@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, ChevronDown, CalendarClock } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { successToast, errorToast } from "../../../components/Toast.jsx"; // Assuming path based on context
 
 const EditDispatchModal = ({
   isOpen,
@@ -15,7 +16,9 @@ const EditDispatchModal = ({
   const freshTimestamp = () => {
     const d = new Date();
     const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+      d.getDate()
+    )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
   const toLocalDateTimeValue = (v) => {
@@ -23,7 +26,9 @@ const EditDispatchModal = ({
     const d = new Date(v);
     if (isNaN(d)) return freshTimestamp();
     const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(
+      d.getDate()
+    )}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   };
 
   const [form, setForm] = useState({
@@ -74,15 +79,27 @@ const EditDispatchModal = ({
 
   if (!isOpen) return null;
 
-  const Dropdown = ({ label, value, onChange, options, placeholder, isObject = false }) => (
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    placeholder,
+    isObject = false,
+    required = false,
+  }) => (
     <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
             {value
               ? isObject
-                ? options.find((o) => String(o.id) === String(value))?.unit_number || value
+                ? options.find((o) => String(o.id) === String(value))
+                    ?.unit_number || value
                 : value
               : placeholder}
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
@@ -97,7 +114,9 @@ const EditDispatchModal = ({
                   value={val}
                   className={({ active, selected }) =>
                     `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                      active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"
+                      active
+                        ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                        : "text-black dark:text-white"
                     } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
                   }
                 >
@@ -120,34 +139,110 @@ const EditDispatchModal = ({
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow bg-gradient-to-r from-green-400/70 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
         <div className="w-[504px] h-auto rounded-[19px] bg-white dark:bg-black text-black dark:text-white p-6 relative">
           <div className="flex justify-between items-center pb-2 mb-3">
-            <h3 className="font-medium text-[16px]">{isEdit ? "Edit Dispatch" : "Add Dispatch"}</h3>
-            <button onClick={onClose} className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center">
+            <h3 className="font-medium text-[16px]">
+              {isEdit ? "Edit Dispatch" : "Add Dispatch"}
+            </h3>
+            <button
+              onClick={onClose}
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+            >
               <X size={16} />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-            <Dropdown label="Unit" value={form.unit_id} onChange={(v) => setForm(p => ({ ...p, unit_id: v }))} options={units} placeholder="Select Unit" isObject={true} />
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm"
+          >
+            <Dropdown
+              label="Unit"
+              value={form.unit_id}
+              onChange={(v) => setForm((p) => ({ ...p, unit_id: v }))}
+              options={units}
+              placeholder="Select Unit"
+              isObject={true}
+              required={true}
+            />
             <div>
-              <label>Dispatcher</label>
-              <input required name="dispatcher" value={form.dispatcher} onChange={handleChange} placeholder="Enter name" className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]" />
+              <label className="text-sm text-black dark:text-white">
+                Dispatcher <span className="text-red-500 ml-1">*</span>
+              </label>
+              <input
+                required
+                name="dispatcher"
+                value={form.dispatcher}
+                onChange={handleChange}
+                placeholder="Enter name"
+                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+              />
             </div>
-            <Dropdown label="Call Type" value={form.call_type} onChange={(v) => setForm(p => ({ ...p, call_type: v }))} options={["Emergency", "Non-Emergency", "Transfer"]} placeholder="Select Type" />
-            <Dropdown label="Status" value={form.status} onChange={(v) => setForm(p => ({ ...p, status: v }))} options={["Standby", "En Route", "Completed", "Cancelled"]} placeholder="Select Status" />
+            <Dropdown
+              label="Call Type"
+              value={form.call_type}
+              onChange={(v) => setForm((p) => ({ ...p, call_type: v }))}
+              options={["Emergency", "Non-Emergency", "Transfer"]}
+              placeholder="Select Type"
+              required={true}
+            />
+            <Dropdown
+              label="Status"
+              value={form.status}
+              onChange={(v) => setForm((p) => ({ ...p, status: v }))}
+              options={["Standby", "En Route", "Completed", "Cancelled"]}
+              placeholder="Select Status"
+              required={true}
+            />
             <div className="col-span-2">
-              <label>Location</label>
-              <input required name="location" value={form.location} onChange={handleChange} placeholder="Enter location" className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]" />
+              <label className="text-sm text-black dark:text-white">
+                Location <span className="text-red-500 ml-1">*</span>
+              </label>
+              <input
+                required
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Enter location"
+                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+              />
             </div>
             <div className="col-span-2">
-              <label htmlFor="timestamp" className="block mb-1 cursor-pointer" onClick={openTimestampPicker}>Timestamp</label>
+              <label
+                htmlFor="timestamp"
+                className="block mb-1 cursor-pointer text-sm text-black dark:text-white"
+                onClick={openTimestampPicker}
+              >
+                Timestamp
+              </label>
               <div className="relative">
-                <input required ref={timestampRef} type="datetime-local" name="timestamp" value={form.timestamp} onChange={handleChange} className="w-full h-[33px] pr-7 pl-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer" />
-                <CalendarClock onClick={openTimestampPicker} className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] cursor-pointer" />
+                <input
+                  required
+                  ref={timestampRef}
+                  type="datetime-local"
+                  name="timestamp"
+                  value={form.timestamp}
+                  onChange={handleChange}
+                  className="w-full h-[33px] pr-7 pl-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer"
+                />
+                <CalendarClock
+                  onClick={openTimestampPicker}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] cursor-pointer"
+                />
               </div>
             </div>
             <div className="col-span-2 flex justify-center gap-2 mt-6">
-              <button type="button" onClick={onClose} className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-white dark:bg-transparent">Cancel</button>
-              <button type="submit" className="w-[144px] h-[34px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white">{isEdit ? "Save" : "Create"}</button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-white dark:bg-transparent"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="w-[144px] h-[34px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white"
+              >
+                {isEdit ? "Save" : "Create"}
+              </button>
             </div>
           </form>
         </div>

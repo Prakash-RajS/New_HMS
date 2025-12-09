@@ -4,20 +4,21 @@ import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-
-  const API =
+const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
     : "http://localhost:8000/appointments";
 
-    const BED_API =
+const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
-    
-//const API = "http://127.0.0.1:8000/appointments";
-//const BED_API = "http://127.0.0.1:8000/bedgroups";
+
 export default function AddAppointmentPopup({ onClose, onSuccess }) {
+  // Add validation state
+  const [validationErrors, setValidationErrors] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
+  
   // ── Form state (backend keys) ─────────────────────────────────────
   const [formData, setFormData] = useState({
     patient_name: "",
@@ -25,9 +26,10 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     staff_id: "",
     room_no: "",
     phone_no: "",
-    appointment_type: "checkup",
-    status: "new",
+    appointment_type: "",
+    status: "",
   });
+
   // ── Dropdown data ───────────────────────────────────────────────────
   const [departments, setDepartments] = useState([]); // [{id, name}]
   const [doctors, setDoctors] = useState([]); // [{id, full_name}]
@@ -36,6 +38,59 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // ── Validation function ──────────────────────────────────────────────
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.patient_name.trim()) {
+      errors.patient_name = "Patient name is required";
+    }
+    
+    if (!formData.department_id) {
+      errors.department_id = "Department is required";
+    }
+    
+    if (!formData.staff_id) {
+      errors.staff_id = "Doctor is required";
+    }
+    
+    if (!formData.room_no) {
+      errors.room_no = "Room/Bed is required";
+    }
+    
+    if (!formData.phone_no) {
+      errors.phone_no = "Phone number is required";
+    } else if (!/^\d{10}$/.test(formData.phone_no)) {
+      errors.phone_no = "Phone number must be 10 digits";
+    }
+    
+    if (!formData.appointment_type) {
+      errors.appointment_type = "Appointment type is required";
+    }
+    
+    if (!formData.status) {
+      errors.status = "Status is required";
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // ── Handle input change with validation ──────────────────────────────
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
   // ── Load departments (once) ───────────────────────────────────────
   useEffect(() => {
     let mounted = true;
@@ -57,6 +112,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       });
     return () => (mounted = false);
   }, []);
+
   // ── Load available beds ────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
@@ -88,6 +144,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       });
     return () => (mounted = false);
   }, []);
+
   // ── Load doctors when department changes ───────────────────────────
   useEffect(() => {
     if (!formData.department_id) {
@@ -113,21 +170,15 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       });
     return () => (mounted = false);
   }, [formData.department_id]);
-  // ── Save handler ───────────────────────────────────────────────────
+
+  // ── Save handler with validation ───────────────────────────────────
   const handleSave = async () => {
-    // Validation with toast
-    if (!formData.patient_name.trim()) {
-      errorToast("Patient name is required");
+    // Validate all fields
+    if (!validateForm()) {
+      errorToast("Please fill all required fields");
       return;
     }
-    if (!formData.department_id) {
-      errorToast("Please select a department");
-      return;
-    }
-    if (!formData.staff_id) {
-      errorToast("Please select a doctor");
-      return;
-    }
+
     setSaving(true);
     try {
       const payload = {
@@ -163,91 +214,18 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       setSaving(false);
     }
   };
-  // ── Re-usable dropdown ─────────────────────────────────────────────
-  const Dropdown = ({
-    label,
-    value,
-    onChange,
-    options,
-    placeholder,
-    loading,
-  }) => (
-    <div>
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
-        {label}
-      </label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                       bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-                       flex items-center justify-between group"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            <span className="block truncate">
-              {loading ? (
-                <span className="text-gray-500">Loading…</span>
-              ) : value ? (
-                options.find((o) => String(o.id) === String(value))?.name ||
-                options.find((o) => String(o.id) === String(value))?.full_name ||
-                value
-              ) : (
-                placeholder
-              )}
-            </span>
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-           </span>
-          </Listbox.Button>
-          <Listbox.Options
-            className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
-                       shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {options.map((opt) => {
-              const label = opt.name || opt.full_name || String(opt.id);
-              return (
-                <Listbox.Option
-                  key={opt.id}
-                  value={opt.id}
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                     ${
-                       active
-                         ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                         : "text-black dark:text-white"
-                     }
-                     ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                  }
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  {label}
-                </Listbox.Option>
-              );
-            })}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
-  const bedOptions = availableBeds.map((b) => ({
-    id: b.id,
-    name: b.name,
-  }));
-  // ── Render ───────────────────────────────────────────────────────
+
+  // ── Render ───────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica] overflow-y-auto py-4">
       <div
         className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
                    bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
                    dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]
-                   overflow-visible"
+                   overflow-visible my-4"
       >
         <div
-          className="w-[505px] h-[484px] rounded-[19px] bg-white dark:bg-[#000000]
+          className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000]
                      text-black dark:text-white p-6 relative overflow-visible"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
@@ -286,94 +264,278 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             {/* Patient Name */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Patient Name
+                Patient Name <span className="text-red-500">*</span>
               </label>
               <input
                 value={formData.patient_name}
                 onChange={(e) =>
-                  setFormData({ ...formData, patient_name: e.target.value })
+                  handleInputChange("patient_name", e.target.value)
                 }
+                onFocus={() => setFocusedField("patient_name")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter name"
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
-                           placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                           placeholder-gray-400 dark:placeholder-gray-500 outline-none 
+                           text-black dark:text-[#0EFF7B]
+                           ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
+              {validationErrors.patient_name && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.patient_name}</span>
+                </div>
+              )}
             </div>
             {/* Department */}
-            <Dropdown
-              label="Department"
-              value={formData.department_id}
-              onChange={(v) => {
-                setFormData({ ...formData, department_id: v, staff_id: "" });
-              }}
-              options={departments}
-              placeholder={loadingDept ? "Loading…" : "Select Department"}
-              loading={loadingDept}
-            />
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Department <span className="text-red-500">*</span>
+              </label>
+              <Listbox value={formData.department_id} onChange={(v) => {
+                handleInputChange("department_id", v);
+                handleInputChange("staff_id", "");
+              }}>
+                <div className="relative mt-1">
+                  <Listbox.Button
+                    onFocus={() => setFocusedField("department")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                               text-left text-[14px] leading-[16px] flex items-center justify-between group
+                               ${focusedField === "department" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className={`block truncate ${formData.department_id ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
+                      {loadingDept ? (
+                        <span className="text-gray-500">Loading…</span>
+                      ) : formData.department_id ? (
+                        departments.find((o) => String(o.id) === String(formData.department_id))?.name ||
+                        formData.department_id
+                      ) : (
+                        "Select"
+                      )}
+                    </span>
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {departments.map((opt) => {
+                      const label = opt.name || String(opt.id);
+                      return (
+                        <Listbox.Option
+                          key={opt.id}
+                          value={opt.id}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {label}
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+              {validationErrors.department_id && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.department_id}</span>
+                </div>
+              )}
+            </div>
             {/* Doctor */}
-            <Dropdown
-              label="Doctor"
-              value={formData.staff_id}
-              onChange={(v) => setFormData({ ...formData, staff_id: v })}
-              options={doctors}
-              placeholder={loadingDoc ? "Loading…" : "Select Doctor"}
-              loading={loadingDoc}
-            />
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Doctor <span className="text-red-500">*</span>
+              </label>
+              <Listbox value={formData.staff_id} onChange={(v) => handleInputChange("staff_id", v)}>
+                <div className="relative mt-1">
+                  <Listbox.Button
+                    onFocus={() => setFocusedField("doctor")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                               text-left text-[14px] leading-[16px] flex items-center justify-between group
+                               ${focusedField === "doctor" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className={`block truncate ${formData.staff_id ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
+                      {loadingDoc ? (
+                        <span className="text-gray-500">Loading…</span>
+                      ) : formData.staff_id ? (
+                        doctors.find((o) => String(o.id) === String(formData.staff_id))?.full_name ||
+                        formData.staff_id
+                      ) : (
+                        "Select"
+                      )}
+                    </span>
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {doctors.map((opt) => {
+                      const label = opt.full_name || String(opt.id);
+                      return (
+                        <Listbox.Option
+                          key={opt.id}
+                          value={opt.id}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {label}
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+              {validationErrors.staff_id && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.staff_id}</span>
+                </div>
+              )}
+            </div>
             {/* Room / Bed No */}
-            <Dropdown
-              label="Room / Bed No"
-              value={formData.room_no}
-              onChange={(v) => setFormData({ ...formData, room_no: v })}
-              options={bedOptions}
-              placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
-              loading={loadingBeds}
-            />
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Room / Bed No <span className="text-red-500">*</span>
+              </label>
+              <Listbox value={formData.room_no} onChange={(v) => handleInputChange("room_no", v)}>
+                <div className="relative mt-1">
+                  <Listbox.Button
+                    onFocus={() => setFocusedField("room")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                               text-left text-[14px] leading-[16px] flex items-center justify-between group
+                               ${focusedField === "room" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    <span className={`block truncate ${formData.room_no ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
+                      {loadingBeds ? (
+                        <span className="text-gray-500">Loading…</span>
+                      ) : formData.room_no ? (
+                        availableBeds.find((o) => String(o.id) === String(formData.room_no))?.name ||
+                        formData.room_no
+                      ) : (
+                        "Select"
+                      )}
+                    </span>
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {availableBeds.map((opt) => {
+                      const label = opt.name || String(opt.id);
+                      return (
+                        <Listbox.Option
+                          key={opt.id}
+                          value={opt.id}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {label}
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+              {validationErrors.room_no && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.room_no}</span>
+                </div>
+              )}
+            </div>
             {/* Phone No */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Phone No
+                Phone No <span className="text-red-500">*</span>
               </label>
               <input
                 value={formData.phone_no}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (/^\d{0,10}$/.test(value)) {
-                    setFormData({ ...formData, phone_no: value });
+                    handleInputChange("phone_no", value);
                   }
                 }}
+                onFocus={() => setFocusedField("phone")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter phone no (10 digits)"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
-                           placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                           placeholder-gray-400 dark:placeholder-gray-500 outline-none 
+                           text-black dark:text-[#0EFF7B]
+                           ${focusedField === "phone" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
+              {validationErrors.phone_no && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.phone_no}</span>
+                </div>
+              )}
             </div>
             {/* Appointment Type */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Appointment Type
+                Appointment Type <span className="text-red-500">*</span>
               </label>
               <Listbox
                 value={formData.appointment_type}
-                onChange={(v) =>
-                  setFormData({ ...formData, appointment_type: v })
-                }
+                onChange={(v) => handleInputChange("appointment_type", v)}
               >
-                <div className="relative mt-1 w-[228px]">
+                <div className="relative mt-1">
                   <Listbox.Button
-                    className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]
-                               flex items-center justify-between group"
+                    onFocus={() => setFocusedField("appointment")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                               text-left text-[14px] flex items-center justify-between group
+                               ${focusedField === "appointment" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   >
-                    <span className="block truncate">
+                    <span className={`block truncate ${formData.appointment_type ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
                       {formData.appointment_type === "checkup"
                         ? "Check-up"
                         : formData.appointment_type === "followup"
                         ? "Follow-up"
-                        : "Emergency"}
+                        : formData.appointment_type === "emergency"
+                        ? "Emergency"
+                        : "Select"}
                     </span>
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-           </span>
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
                   </Listbox.Button>
                   <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
                     {["checkup", "followup", "emergency"].map((v) => (
@@ -388,30 +550,41 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
+              {validationErrors.appointment_type && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.appointment_type}</span>
+                </div>
+              )}
             </div>
             {/* Status */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Status
+                Status <span className="text-red-500">*</span>
               </label>
               <Listbox
                 value={formData.status}
-                onChange={(v) => setFormData({ ...formData, status: v })}
+                onChange={(v) => handleInputChange("status", v)}
               >
-                <div className="relative mt-1 w-[228px]">
+                <div className="relative mt-1">
                   <Listbox.Button
-                    className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                               bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]
-                               flex items-center justify-between group"
+                    onFocus={() => setFocusedField("status")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                               text-left text-[14px] flex items-center justify-between group
+                               ${focusedField === "status" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   >
-                    <span className="block truncate">
+                    <span className={`block truncate ${formData.status ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
                       {formData.status === "new"
                         ? "New"
                         : formData.status === "normal"
                         ? "Normal"
-                        : "Severe"}
+                        : formData.status === "severe"
+                        ? "Severe"
+                        : "Select"}
                     </span>
-                    <ChevronDown className="h-4 w-4 text-[#0EFF7B] flex-shrink-0 transition-transform group-hover:rotate-180" />
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
                   </Listbox.Button>
                   <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
                     {["new", "normal", "severe"].map((v) => (
@@ -426,10 +599,15 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
+              {validationErrors.status && (
+                <div className="mt-1">
+                  <span className="text-red-400 text-xs">{validationErrors.status}</span>
+                </div>
+              )}
             </div>
           </div>
           {/* Buttons */}
-          <div className="flex justify-center gap-2 mt-5">
+          <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
               className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600

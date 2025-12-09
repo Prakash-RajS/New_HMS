@@ -192,7 +192,6 @@
 // };
 
 // export default AddBloodTypePopup;
-
 import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
@@ -227,10 +226,10 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   };
 
   const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/api"
-    : "http://localhost:8000/api";
-    
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000/api"
+      : "http://localhost:8000/api";
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
 
@@ -247,16 +246,13 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       );
       console.log("Payload:", payload);
 
-      const response = await fetch(
-        `${API_BASE}/blood-groups/add`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`${API_BASE}/blood-groups/add`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       console.log("Response status:", response.status);
 
@@ -303,7 +299,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       };
 
       const response = await fetch(
-       `${API_BASE}/blood-groups/${bloodData.id}/edit`,
+        `${API_BASE}/blood-groups/${bloodData.id}/edit`,
         {
           method: "PUT",
           headers: {
@@ -332,9 +328,20 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
     }
   };
 
-  const Dropdown = ({ label, value, onChange, options, error }) => (
+  // Modified Dropdown to accept required prop
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    error,
+    required = false,
+  }) => (
     <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
@@ -411,20 +418,24 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
               onChange={(val) => setFormData({ ...formData, blood_type: val })}
               options={bloodTypes}
               error={errors.blood_type}
+              required={true}
             />
 
             <div>
               <label className="text-sm text-black dark:text-white">
-                Available Units
+                Available Units <span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="number"
                 min="0"
                 value={formData.available_units}
                 onChange={(e) =>
-                  setFormData({ ...formData, available_units: e.target.value })
+                  setFormData({
+                    ...formData,
+                    available_units: e.target.value,
+                  })
                 }
-                placeholder="Enter units"
+                placeholder="e.g. 1 or 2 or 3"
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
@@ -441,6 +452,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
               onChange={(val) => setFormData({ ...formData, status: val })}
               options={statuses}
               error={errors.status}
+              required={true}
             />
           </div>
 

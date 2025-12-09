@@ -125,7 +125,10 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   };
 
   const handleAdmit = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      errorToast("Please fill all required fields correctly");
+      return;
+    }
 
     setLoading(true);
     setServerError("");
@@ -245,7 +248,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         <div className="grid grid-cols-2 gap-6">
           {/* Patient Name */}
           <div>
-            <label className="text-sm">Patient Name</label>
+            <label className="text-sm">
+              Patient Name <span className="text-red-500">*</span>
+            </label>
             <input
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -259,7 +264,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
 
           {/* Patient ID */}
           <div>
-            <label className="text-sm">Patient ID</label>
+            <label className="text-sm">
+              Patient ID <span className="text-red-500">*</span>
+            </label>
             <input
               value={formData.patientId}
               onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
@@ -272,27 +279,37 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </div>
 
           {/* Bed Group */}
-          <Dropdown
-            label="Bed Group"
-            value={formData.bedGroup}
-            onChange={(v) => setFormData({ ...formData, bedGroup: v, bedNumber: "" })}
-            options={bedGroups}
-            error={errors.bedGroup}
-          />
+          <div>
+            <label className="text-sm text-black dark:text-white">
+              Bed Group <span className="text-red-500">*</span>
+            </label>
+            <Dropdown
+              value={formData.bedGroup}
+              onChange={(v) => setFormData({ ...formData, bedGroup: v, bedNumber: "" })}
+              options={bedGroups}
+              error={errors.bedGroup}
+            />
+          </div>
 
           {/* Bed Number */}
-          <Dropdown
-            label="Bed Number"
-            value={formData.bedNumber}
-            onChange={(v) => setFormData({ ...formData, bedNumber: v })}
-            options={availableBeds}
-            error={errors.bedNumber}
-            disabled={!availableBeds.length}
-          />
+          <div>
+            <label className="text-sm text-black dark:text-white">
+              Bed Number <span className="text-red-500">*</span>
+            </label>
+            <Dropdown
+              value={formData.bedNumber}
+              onChange={(v) => setFormData({ ...formData, bedNumber: v })}
+              options={availableBeds}
+              error={errors.bedNumber}
+              disabled={!availableBeds.length}
+            />
+          </div>
 
           {/* Admit Date */}
           <div>
-            <label className="text-sm">Admit Date</label>
+            <label className="text-sm">
+              Admit Date <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <DatePicker
                 selected={parseDate(formData.admitDate)}

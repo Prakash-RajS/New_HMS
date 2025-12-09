@@ -10,6 +10,7 @@ import {
   ChevronRight,
   X,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import DeleteBloodBankPopup from "./DeleteBloodBankPopup.jsx";
@@ -32,11 +33,10 @@ const BloodBank = () => {
   const [deleteDonor, setDeleteDonor] = useState(null);
   const [showBloodFilterPopup, setShowBloodFilterPopup] = useState(false);
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
-  //const API_BASE = "http://localhost:8000";
-  const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+  const [showEmailPopup, setShowEmailPopup] = useState(false);
+  const [selectedDonorForEmail, setSelectedDonorForEmail] = useState(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const API_BASE = "http://localhost:8000";
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
   const [tempBloodStatus, setTempBloodStatus] = useState("All");
@@ -102,7 +102,9 @@ const BloodBank = () => {
           lastDonation: donor.last_donation_date
             ? new Date(donor.last_donation_date).toLocaleDateString("en-US")
             : "Never",
-          last_donation_date: donor.last_donation_date ? new Date(donor.last_donation_date) : null,
+          last_donation_date: donor.last_donation_date
+            ? new Date(donor.last_donation_date)
+            : null,
           status: donor.status,
         }));
         setAllDonors(transformedDonors);
@@ -323,6 +325,69 @@ const BloodBank = () => {
   const handleSelectAllDonors = () => {
     setSelectedDonors(selectedDonors.length === donors.length ? [] : donors);
   };
+  // Email Handler
+  const handleSendEmail = async (donor) => {
+    if (!donor.email) {
+      errorToast(`No email address found for ${donor.name}`);
+      return;
+    }
+
+    try {
+      console.log(`🟡 Sending urgent blood request to: ${donor.email}`);
+
+      const response = await fetch(
+        `${API_BASE}/api/donors/send-urgent-request`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            donor_id: donor.id,
+            donor_email: donor.email,
+            donor_name: donor.name,
+            blood_type: donor.blood,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        successToast(
+          `Urgent blood request sent to ${donor.name} at ${donor.email}`
+        );
+      } else {
+        throw new Error(result.detail || "Failed to send email");
+      }
+    } catch (error) {
+      console.error("❌ Error sending email:", error);
+      errorToast(`Failed to send email: ${error.message}`);
+    }
+  };
+  const handleManualEligibilityCheck = async () => {
+    try {
+      setCheckingEligibility(true);
+      const response = await fetch(`${API_BASE}/api/donors/check-eligibility`, {
+        method: "POST",
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        successToast(result.message);
+        // Refresh donors list
+        await fetchDonors();
+      } else {
+        errorToast(result.detail || "Failed to check eligibility");
+      }
+    } catch (error) {
+      console.error("Error checking eligibility:", error);
+      errorToast("Failed to check eligibility");
+    } finally {
+      setCheckingEligibility(false);
+    }
+  };
   /* ---------- UI ---------- */
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
@@ -370,9 +435,9 @@ const BloodBank = () => {
         </div>
         {/* Controls */}
         <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3A3A3A] rounded-[12px] p-4">
-          <div className="flex justify-between items-center mb-4">
-            {/* Status dropdown */}
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            {/* Left side: Status dropdown and Delete button */}
+            <div className="flex gap-2 flex-wrap">
               <div className="relative">
                 <Listbox
                   value={bloodStatusFilter}
@@ -399,21 +464,22 @@ const BloodBank = () => {
                   </Listbox.Options>
                 </Listbox>
               </div>
-              {/* Delete Selected Button */}
+
               {selectedBloodTypes.length > 0 && (
                 <button
                   onClick={() => setShowDeleteBloodPopup(true)}
-                  className="flex items-center gap-2 w-auto h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition"
+                  className="flex items-center gap-2 h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition whitespace-nowrap"
                 >
                   <Trash2 size={16} />
                   Delete Selected ({selectedBloodTypes.length})
                 </button>
               )}
             </div>
-            {/* Search & Filter */}
-            <div className="flex gap-2 items-center">
+
+            {/* Right side: Search, Check Eligibility, and Filter buttons */}
+            <div className="flex gap-2 items-center flex-wrap">
               {showBloodSearch && (
-                <div className="relative w-72">
+                <div className="relative w-48 sm:w-72">
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A]" />
                   <input
                     type="text"
@@ -424,18 +490,19 @@ const BloodBank = () => {
                   />
                 </div>
               )}
+
+              {/* Search Toggle Button */}
               <button
                 className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                 onClick={() => setShowBloodSearch(!showBloodSearch)}
               >
                 <Search size={18} className="text-[#08994A]" />
-                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Search
-                  </span>
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                  Search
+                </span>
               </button>
+
+              {/* Filter Button */}
               <button
                 className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                 onClick={() => {
@@ -444,12 +511,9 @@ const BloodBank = () => {
                 }}
               >
                 <Filter size={18} className="text-[#08994A]" />
-                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Filter
-                  </span>
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                  Filter
+                </span>
               </button>
             </div>
           </div>
@@ -529,12 +593,14 @@ const BloodBank = () => {
                           size={18}
                           className="text-[#08994A] dark:text-[#0EFF7B]"
                         />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
+                    transition-all duration-150"
+                        >
+                          Edit
+                        </span>
                       </button>
                       <button
                         className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -547,12 +613,14 @@ const BloodBank = () => {
                           size={18}
                           className="text-red-600 dark:text-red-700"
                         />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
+                    transition-all duration-150"
+                        >
+                          Delete
+                        </span>
                       </button>
                     </td>
                   </tr>
@@ -710,6 +778,19 @@ const BloodBank = () => {
                 />
               </div>
             )}
+            {/* Check Eligibility Button */}
+            <button
+              onClick={handleManualEligibilityCheck}
+              disabled={checkingEligibility}
+              className="flex items-center gap-2 h-[32px] px-3 rounded-[8px] border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B] font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {checkingEligibility ? (
+                <RefreshCw size={16} className="animate-spin" />
+              ) : (
+                <RefreshCw size={16} />
+              )}
+              {checkingEligibility ? "Checking..." : "Check Eligibility"}
+            </button>
             <button
               className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
               onClick={() => setShowDonorSearch(!showDonorSearch)}
@@ -718,12 +799,14 @@ const BloodBank = () => {
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
-              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+              <span
+                className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Search
-                  </span>
+                    transition-all duration-150"
+              >
+                Search
+              </span>
             </button>
             <button
               className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -736,12 +819,14 @@ const BloodBank = () => {
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
-              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+              <span
+                className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Filter
-                  </span>
+                    transition-all duration-150"
+              >
+                Filter
+              </span>
             </button>
           </div>
         </div>
@@ -823,24 +908,39 @@ const BloodBank = () => {
                           size={18}
                           className="text-[#08994A] dark:text-[#0EFF7B]"
                         />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
+                    transition-all duration-150"
+                        >
+                          Edit
+                        </span>
                       </button>
-                      <button className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
+                      <button
+                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                        onClick={() => {
+                          if (d.email) {
+                            handleSendEmail(d);
+                          } else {
+                            errorToast(
+                              `${d.name} has no email address registered`
+                            );
+                          }
+                        }}
+                        disabled={!d.email}
+                      >
                         <Mail
                           size={18}
-                          className="text-[#08994A] dark:text-[#0EFF7B]"
+                          className={`${
+                            d.email
+                              ? "text-[#08994A] dark:text-[#0EFF7B]"
+                              : "text-gray-400 dark:text-gray-600"
+                          }`}
                         />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Mail
-              </span>
+                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                          {d.email ? "Send Urgent Request" : "No Email"}
+                        </span>
                       </button>
                       <button
                         className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -850,12 +950,14 @@ const BloodBank = () => {
                           size={18}
                           className="text-red-600 dark:text-red-700"
                         />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
+                    transition-all duration-150"
+                        >
+                          Delete
+                        </span>
                       </button>
                     </td>
                   </tr>

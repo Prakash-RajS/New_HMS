@@ -123,13 +123,15 @@ const AmbulanceUnitsModal = ({
             className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm"
           >
             <div>
-              <label className="text-black dark:text-white">Unit Number</label>
+              <label className="text-black dark:text-white">
+                Unit Number <span className="text-red-500 ml-1">*</span>
+              </label>
               <input
                 required
                 name="unit_number"
                 value={form.unit_number}
                 onChange={handleChange}
-                placeholder="AMB-09"
+                placeholder="e.g.AMB-09"
                 className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
@@ -137,7 +139,9 @@ const AmbulanceUnitsModal = ({
             </div>
 
             <div>
-              <label className="text-black dark:text-white">In Service</label>
+              <label className="text-black dark:text-white">
+                In Service <span className="text-red-500 ml-1">*</span>
+              </label>
               <div className="mt-1 flex items-center">
                 <input
                   type="checkbox"
@@ -153,12 +157,14 @@ const AmbulanceUnitsModal = ({
             </div>
 
             <div>
-              <label className="text-black dark:text-white">Make</label>
+              <label className="text-black dark:text-white">
+                Make <span className="text-red-500 ml-1">*</span>
+              </label>
               <input
                 name="vehicle_make"
                 value={form.vehicle_make}
                 onChange={handleChange}
-                placeholder="Ford"
+                placeholder="e.g.Ford"
                 className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
@@ -166,7 +172,9 @@ const AmbulanceUnitsModal = ({
             </div>
 
             <div>
-              <label className="text-black dark:text-white">Model</label>
+              <label className="text-black dark:text-white">
+                Model <span className="text-red-500 ml-1">*</span>
+              </label>
               <input
                 name="vehicle_model"
                 value={form.vehicle_model}
@@ -179,7 +187,9 @@ const AmbulanceUnitsModal = ({
             </div>
 
             <div className="col-span-2">
-              <label className="text-black dark:text-white">Notes</label>
+              <label className="text-black dark:text-white">
+                Notes <span className="text-red-500 ml-1">*</span>
+              </label>
               <textarea
                 name="notes"
                 value={form.notes}

@@ -12,15 +12,30 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showErrors, setShowErrors] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
+
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
+
 const handleSave = async () => {
-  // Basic validation
-  if (!formData.departmentName.trim() || !formData.status) {
-    setError("Department name and status are required.");
-    errorToast("Department name and status are required.");
+  // Check for required fields
+  const errors = {};
+  
+  if (!formData.departmentName.trim()) {
+    errors.departmentName = "Department name is required";
+  }
+  
+  if (!formData.status) {
+    errors.status = "Status is required";
+  }
+  
+  // Show errors if any
+  if (Object.keys(errors).length > 0) {
+    setShowErrors(true);
+    errorToast("Please fill in all required fields.");
     return;
   }
 
@@ -89,60 +104,69 @@ const handleSave = async () => {
   const handleClear = () => {
     setFormData({ departmentName: "", status: "", description: "" });
     setError("");
+    setShowErrors(false);
+    setFocusedField(null);
   };
 
   const statuses = ["Active", "Inactive"];
 
   // Reusable Dropdown
-  const Dropdown = ({ label, value, onChange, options }) => (
-    <div>
-      <label className="text-sm text-gray-600 dark:text-white">{label}</label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className={`
-              w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
-              ${
-                value
-                  ? "text-[#08994A] dark:text-[#0EFF7B]"
-                  : "text-gray-500 dark:text-gray-400"
-              }
-              bg-white dark:bg-transparent border-[#0EFF7B] dark:border-[#3A3A3A]
-              flex items-center justify-between
-            `}
-            disabled={loading}
-          >
-            <span>{value || "Select"}</span>
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
+  const Dropdown = ({ label, value, onChange, options }) => {
+    const isFocused = focusedField === 'status';
+    const hasError = showErrors && !value;
+    
+    return (
+      <div>
+        <label className="text-sm text-gray-600 dark:text-white">{label}</label>
+        <Listbox value={value} onChange={onChange}>
+          <div className="relative mt-1 w-[228px]">
+            <Listbox.Button
+              className={`
+                w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
+                ${value ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-500 dark:text-gray-400"}
+                ${isFocused ? "border-green-500" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}
+                bg-white dark:bg-transparent
+                flex items-center justify-between
+              `}
+              disabled={loading}
+              onFocus={() => setFocusedField('status')}
+              onBlur={() => setFocusedField(null)}
+            >
+              <span>{value || "Select"}</span>
+              <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+              </span>
+            </Listbox.Button>
 
-          <Listbox.Options
-            className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-auto"
-          >
-            {options.map((option, idx) => (
-              <Listbox.Option
-                key={idx}
-                value={option}
-                className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active
-                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                      : selected
-                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                      : "text-black dark:text-white"
-                  }`
-                }
-              >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
+            <Listbox.Options
+              className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-auto"
+            >
+              {options.map((option, idx) => (
+                <Listbox.Option
+                  key={idx}
+                  value={option}
+                  className={({ active, selected }) =>
+                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                      active
+                        ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                        : selected
+                        ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                        : "text-black dark:text-white"
+                    }`
+                  }
+                >
+                  {option}
+                </Listbox.Option>
+              ))}
+            </Listbox.Options>
+          </div>
+        </Listbox>
+        {showErrors && !value && (
+          <p className="mt-1 text-xs text-red-500">Status is required</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
@@ -199,10 +223,21 @@ const handleSave = async () => {
               onChange={(e) =>
                 setFormData({ ...formData, departmentName: e.target.value })
               }
+              onFocus={() => setFocusedField('departmentName')}
+              onBlur={() => setFocusedField(null)}
               placeholder="Enter department"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none disabled:opacity-50"
+              className={`
+                w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border 
+                ${focusedField === 'departmentName' ? 'border-green-500' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
+                bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+                placeholder-gray-500 dark:placeholder-gray-500 outline-none 
+                disabled:opacity-50
+              `}
               disabled={loading}
             />
+            {showErrors && !formData.departmentName.trim() && (
+              <p className="mt-1 text-xs text-red-500">Department name is required</p>
+            )}
           </div>
 
           {/* Status Dropdown */}

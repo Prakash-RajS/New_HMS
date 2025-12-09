@@ -22,20 +22,24 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
 
   const [errors, setErrors] = useState({});
   const [patients, setPatients] = useState([]);
-const backendUrl =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+  const backendUrl =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : "http://localhost:8000";
 
   useEffect(() => {
-  fetch(`${backendUrl}/medicine_allocation/edit`)
-    .then(res => res.json())
-    .then(data => setPatients(data.patients || []))
-    .catch(err => console.error("Failed to fetch patients", err));
-}, []);
+    fetch(`${backendUrl}/medicine_allocation/edit`)
+      .then((res) => res.json())
+      .then((data) => setPatients(data.patients || []))
+      .catch((err) => console.error("Failed to fetch patients", err));
+  }, []);
 
-  const patientNames = [...new Set(patients.map(p => p.full_name || ""))].filter(Boolean);
-  const patientIds = patients.map(p => p.patient_unique_id || "").filter(Boolean);
+  const patientNames = [...new Set(patients.map((p) => p.full_name || ""))].filter(
+    Boolean
+  );
+  const patientIds = patients
+    .map((p) => p.patient_unique_id || "")
+    .filter(Boolean);
 
   const validateForm = () => {
     const newErrors = {};
@@ -65,25 +69,49 @@ const backendUrl =
     }
   };
 
-  const Dropdown = ({ label, value, onChange, options, error, isPatientName = false, isPatientId = false }) => (
+  // Modified Dropdown to accept 'required' prop and render asterisk
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    error,
+    isPatientName = false,
+    isPatientId = false,
+    required = false,
+  }) => (
     <div>
       <label
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <Listbox value={value} onChange={(val) => {
-        if (isPatientName) {
-          const patient = patients.find(p => p.full_name === val);
-          setFormData({ ...formData, patientName: val, patientId: patient ? patient.patient_unique_id : formData.patientId });
-        } else if (isPatientId) {
-          const patient = patients.find(p => p.patient_unique_id === val);
-          setFormData({ ...formData, patientId: val, patientName: patient ? patient.full_name : formData.patientName });
-        } else {
-          onChange(val);
-        }
-      }}>
+      <Listbox
+        value={value}
+        onChange={(val) => {
+          if (isPatientName) {
+            const patient = patients.find((p) => p.full_name === val);
+            setFormData({
+              ...formData,
+              patientName: val,
+              patientId: patient
+                ? patient.patient_unique_id
+                : formData.patientId,
+            });
+          } else if (isPatientId) {
+            const patient = patients.find((p) => p.patient_unique_id === val);
+            setFormData({
+              ...formData,
+              patientId: val,
+              patientName: patient ? patient.full_name : formData.patientName,
+            });
+          } else {
+            onChange(val);
+          }
+        }}
+      >
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
@@ -121,11 +149,7 @@ const backendUrl =
           </Listbox.Options>
         </div>
       </Listbox>
-      {error && (
-        <p className="text-red-500 text-xs mt-1">
-          {error}
-        </p>
-      )}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
 
@@ -166,6 +190,7 @@ const backendUrl =
               options={patientNames}
               error={errors.patientName}
               isPatientName={true}
+              required={true}
             />
 
             {/* Patient ID Dropdown */}
@@ -176,6 +201,7 @@ const backendUrl =
               options={patientIds}
               error={errors.patientId}
               isPatientId={true}
+              required={true}
             />
 
             {/* Department */}
@@ -185,6 +211,7 @@ const backendUrl =
               onChange={(val) => setFormData({ ...formData, department: val })}
               options={departments}
               error={errors.department}
+              required={true}
             />
 
             {/* Test Type */}
@@ -193,7 +220,7 @@ const backendUrl =
                 className="text-sm text-black dark:text-white"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
-                Test Type
+                Test Type<span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 name="testType"

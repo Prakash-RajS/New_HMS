@@ -402,7 +402,6 @@
 //     </div>
 //   );
 // }
-
 import { useState, useEffect } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Upload, ArrowLeft, UserPlus } from "lucide-react";
@@ -412,14 +411,13 @@ import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-
 const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
 //const API_BASE = "http://127.0.0.1:8000";
 
-const PhotoUploadBox = ({ photo, setPhoto }) => {
+const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -447,14 +445,17 @@ const PhotoUploadBox = ({ photo, setPhoto }) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="text-xs md:text-sm">+ Add Photo</span>
+          <span className="text-xs md:text-sm flex items-center">
+            + Add Photo 
+            {required && <span className="text-red-500 ml-1">*</span>}
+          </span>
         )}
       </label>
     </div>
   );
 };
 
-const CertificateUploadBox = ({ certificates, setCertificates }) => {
+const CertificateUploadBox = ({ certificates, setCertificates, required = false }) => {
   const handleCertificateUpload = (e) => {
     const files = Array.from(e.target.files);
     const fileObjects = files.map((file) => ({
@@ -470,7 +471,10 @@ const CertificateUploadBox = ({ certificates, setCertificates }) => {
 
   return (
     <div className="space-y-1 w-full">
-      <label className="text-sm text-black dark:text-white">Certificates</label>
+      <label className="text-sm text-black dark:text-white">
+        Certificates
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <input
         type="file"
         id="certificateUpload"
@@ -508,9 +512,12 @@ const CertificateUploadBox = ({ certificates, setCertificates }) => {
   );
 };
 
-const Dropdown = ({ label, value, onChange, options }) => (
+const Dropdown = ({ label, value, onChange, options, required = false }) => (
   <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">{label}</label>
+    <label className="text-sm text-black dark:text-white">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
         <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
@@ -551,7 +558,14 @@ const Dropdown = ({ label, value, onChange, options }) => (
   </div>
 );
 
-const DatePickerField = ({ label, name, value, onChange, placeholder }) => {
+const DatePickerField = ({
+  label,
+  name,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+}) => {
   const selectedDate = (() => {
     if (!value) return null;
     const parts = value.split("/");
@@ -570,7 +584,10 @@ const DatePickerField = ({ label, name, value, onChange, placeholder }) => {
 
   return (
     <div className="space-y-1 w-full">
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
       <div className="relative">
         <DatePicker
           selected={selectedDate}
@@ -622,7 +639,10 @@ const InputField = ({
   required = false,
 }) => (
   <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">{label}</label>
+    <label className="text-sm text-black dark:text-white">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
     <input
       type={type}
       name={name}
@@ -642,9 +662,13 @@ const TextAreaField = ({
   onChange,
   placeholder,
   rows = 3,
+  required = false,
 }) => (
   <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">{label}</label>
+    <label className="text-sm text-black dark:text-white">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
     <textarea
       name={name}
       value={value}
@@ -743,6 +767,13 @@ export default function NewRegistration({ isSidebarOpen }) {
       !formData.department
     ) {
       errorToast("Please fill all required fields");
+      return;
+    }
+
+    // Email/Gmail Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      errorToast("Please enter a valid email address");
       return;
     }
 
@@ -902,7 +933,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 *Required to fill all input
               </p>
             </div>
-            <PhotoUploadBox photo={photo} setPhoto={setPhoto} />
+            <PhotoUploadBox photo={photo} setPhoto={setPhoto} required={true} />
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full">
@@ -918,7 +949,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.full_name}
                   onChange={handleInputChange}
                   placeholder="Enter full name"
-                  required
+                  required={true}
                 />
                 <DatePickerField
                   label="Date of Birth"
@@ -926,6 +957,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.date_of_birth}
                   onChange={handleInputChange}
                   placeholder="MM/DD/YYYY"
+                  required={true}
                 />
                 <Dropdown
                   label="Gender"
@@ -934,6 +966,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                     setFormData((prev) => ({ ...prev, gender: val }))
                   }
                   options={["Male", "Female", "Other"]}
+                  required={true}
                 />
                 <InputField
                   label="Age"
@@ -942,7 +975,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.age}
                   onChange={handleInputChange}
                   placeholder="Enter age"
-                  required
+                  required={true}
                 />
                 <Dropdown
                   label="Marital Status"
@@ -951,6 +984,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                     setFormData((prev) => ({ ...prev, marital_status: val }))
                   }
                   options={maritalStatus}
+                  required={true}
                 />
                 <InputField
                   label="Address"
@@ -958,7 +992,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.address}
                   onChange={handleInputChange}
                   placeholder="Enter address"
-                  required
+                  required={true}
                 />
                 <InputField
                   label="Phone"
@@ -966,8 +1000,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   type="tel"
                   value={formData.phone}
                   onChange={handleInputChange}
-                  placeholder="Enter phone number"
-                  required
+                  placeholder="e.g. 9876543210"
+                  required={true}
                 />
                 <InputField
                   label="Email ID"
@@ -975,8 +1009,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter email"
-                  required
+                  placeholder="example@gmail.com"
+                  required={true}
                 />
                 <InputField
                   label="National ID"
@@ -984,7 +1018,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.national_id}
                   onChange={handleInputChange}
                   placeholder="Enter National ID"
-                  required
+                  required={true}
                 />
                 <InputField
                   label="City"
@@ -992,7 +1026,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.city}
                   onChange={handleInputChange}
                   placeholder="Enter city"
-                  required
+                  required={true}
                 />
                 <InputField
                   label="Country"
@@ -1000,7 +1034,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.country}
                   onChange={handleInputChange}
                   placeholder="Enter country"
-                  required
+                  required={true}
                 />
                 <DatePickerField
                   label="Date of Joining"
@@ -1008,6 +1042,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.date_of_joining}
                   onChange={handleInputChange}
                   placeholder="MM/DD/YYYY"
+                  required={true}
                 />
                 <InputField
                   label="Designation"
@@ -1015,7 +1050,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.designation}
                   onChange={handleInputChange}
                   placeholder="Enter designation (e.g., Doctor, Nurse)"
-                  required
+                  required={true}
                 />
                 <Dropdown
                   label="Department"
@@ -1024,6 +1059,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                     setFormData((prev) => ({ ...prev, department: val }))
                   }
                   options={departments}
+                  required={true}
                 />
                 <InputField
                   label="Specialization"
@@ -1031,6 +1067,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.specialization}
                   onChange={handleInputChange}
                   placeholder="Enter specialization (e.g., Cardiologist)"
+                  required={true}
                 />
                 <Dropdown
                   label="Status"
@@ -1039,6 +1076,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                     setFormData((prev) => ({ ...prev, status: val }))
                   }
                   options={statusOptions}
+                  required={true}
                 />
                 <Dropdown
                   label="Shift Timing"
@@ -1047,10 +1085,12 @@ export default function NewRegistration({ isSidebarOpen }) {
                     setFormData((prev) => ({ ...prev, shift_timing: val }))
                   }
                   options={shiftTimingOptions}
+                  required={true}
                 />
                 <CertificateUploadBox
                   certificates={certificates}
                   setCertificates={setCertificates}
+                  required={true}
                 />
               </div>
             </div>
@@ -1067,6 +1107,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.education}
                   onChange={handleInputChange}
                   placeholder="e.g., Cardiologist"
+                  required={true}
                 />
                 <TextAreaField
                   label="About Physician"
@@ -1074,6 +1115,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.about_physician}
                   onChange={handleInputChange}
                   placeholder="Dedicated to providing compassionate, patient-centered care."
+                  required={true}
                 />
                 <InputField
                   label="Experience"
@@ -1081,6 +1123,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.experience}
                   onChange={handleInputChange}
                   placeholder="e.g., 10+ years"
+                  required={true}
                 />
                 <InputField
                   label="License Number"
@@ -1088,6 +1131,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.license_number}
                   onChange={handleInputChange}
                   placeholder="Enter license number"
+                  required={true}
                 />
                 <TextAreaField
                   label="Board Certifications"
@@ -1095,6 +1139,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.board_certifications}
                   onChange={handleInputChange}
                   placeholder="e.g., American Board of Orthopedic Surgery"
+                  required={true}
                 />
                 <TextAreaField
                   label="Professional Memberships"
@@ -1102,6 +1147,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.professional_memberships}
                   onChange={handleInputChange}
                   placeholder="e.g., American Medical Association (AMA)"
+                  required={true}
                 />
                 <InputField
                   label="Languages Spoken"
@@ -1109,7 +1155,9 @@ export default function NewRegistration({ isSidebarOpen }) {
                   value={formData.languages_spoken}
                   onChange={handleInputChange}
                   placeholder="e.g., English, Spanish"
+                  required={true}
                 />
+                {/* Awards & Recognitions EXCLUDED from required */}
                 <TextAreaField
                   label="Awards & Recognitions"
                   name="awards_recognitions"

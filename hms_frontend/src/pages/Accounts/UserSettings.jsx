@@ -82,7 +82,9 @@ const UserSettings = () => {
   };
 
   const getCurrentUserRole = () => {
-    return localStorage.getItem("role") || sessionStorage.getItem("role") || "";
+    return (
+      localStorage.getItem("role") || sessionStorage.getItem("role") || ""
+    );
   };
 
   // Fetch Filter Options & Users on Mount
@@ -242,6 +244,7 @@ const UserSettings = () => {
   const userOptions = ["Select Name", ...new Set(allUsers.map((u) => u.name))];
   const departmentOptions = [
     "Select Department",
+    "All Departments",
     ...new Set(allUsers.map((u) => u.department)),
   ];
 
@@ -394,6 +397,7 @@ const UserSettings = () => {
     }
   };
 
+  // Modified Dropdown to support 'required' prop
   const Dropdown = ({
     label,
     placeholder,
@@ -401,10 +405,12 @@ const UserSettings = () => {
     onChange,
     options,
     className,
+    required = false,
   }) => (
     <div>
       <label className="block text-sm font-medium mb-2 text-black dark:text-white">
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
@@ -546,11 +552,13 @@ const UserSettings = () => {
                 size={18}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+              <span
+                className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Search
+                    transition-all duration-150"
+              >
+                Search
               </span>
             </div>
             {canManageUsers && (
@@ -562,11 +570,13 @@ const UserSettings = () => {
                   size={18}
                   className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
                 />
-                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                <span
+                  className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
+                    transition-all duration-150"
+                >
+                  Delete
                 </span>
               </div>
             )}
@@ -700,10 +710,12 @@ const UserSettings = () => {
                             size={18}
                             className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
                           />
-                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                          <span
+                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                             px-3 py-1 text-xs rounded-md shadow-md
                             bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                            transition-all duration-150">
+                            transition-all duration-150"
+                          >
                             Edit
                           </span>
                         </div>
@@ -718,12 +730,14 @@ const UserSettings = () => {
                             size={18}
                             className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400"
                           />
-                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                          <span
+                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                             px-3 py-1 text-xs rounded-md shadow-md
                             bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                            transition-all duration-150">
+                            transition-all duration-150"
+                          >
                             Delete
-                        </span>
+                          </span>
                         </div>
                       </td>
                     )}
@@ -866,7 +880,7 @@ const UserSettings = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm text-black dark:text-white">
-                    Username *
+                    Username <span className="text-red-500 ml-1">*</span>
                   </label>
                   <input
                     type="text"
@@ -880,7 +894,7 @@ const UserSettings = () => {
                 </div>
                 <div>
                   <label className="text-sm text-black dark:text-white">
-                    Password *
+                    Password <span className="text-red-500 ml-1">*</span>
                   </label>
                   <input
                     type="password"
@@ -893,18 +907,20 @@ const UserSettings = () => {
                   />
                 </div>
                 <Dropdown
-                  label="Role *"
+                  label="Role"
                   value={newUser.role}
                   onChange={(val) => setNewUser({ ...newUser, role: val })}
                   options={availableRoles}
                   className="w-[228px] h-[30px] mt-[2px]"
+                  required={true}
                 />
                 <Dropdown
-                  label="Staff ID *"
+                  label="Staff ID"
                   value={newUser.staffId}
                   onChange={(val) => setNewUser({ ...newUser, staffId: val })}
                   options={staffOptions}
                   className="w-[228px] h-[30px] mt-[2px]"
+                  required={true}
                 />
               </div>
               {newUser.staffId &&

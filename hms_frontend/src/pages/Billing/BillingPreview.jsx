@@ -481,7 +481,7 @@ const fetchBillingItems = async (uniqueId) => {
       admission_date: admissionDate,
       discharge_date: formatDateForBackend(patientInfo.endDate),
       doctor: patientInfo.doctorName || "N/A",
-      phone: fullPatient?.phone || "N/A",
+      phone: fullPatient?.phone_number || "N/A",
       email: fullPatient?.email || "patient@hospital.com",
       address: patientInfo.address || "",
       invoice_items: billingItems.map((item) => ({
@@ -1072,7 +1072,7 @@ const fetchBillingItems = async (uniqueId) => {
                 value={patientInfo.billingStaffID}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Bed Group</label>
+              {/* <label className="text-sm text-gray-600 dark:text-gray-300">Bed Group</label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
@@ -1085,7 +1085,7 @@ const fetchBillingItems = async (uniqueId) => {
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.bedNumber}
                 readOnly
-              />
+              /> */}
             </div>
             {/* Insurance Section */}
             <div

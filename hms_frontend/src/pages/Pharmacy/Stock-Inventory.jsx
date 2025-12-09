@@ -126,6 +126,7 @@ const StockInventory = () => {
     unit_price: "",
     status: "IN STOCK",
   });
+  const [formErrors, setFormErrors] = useState({});
   const [inventoryData, setInventoryData] = useState([]);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const dropdownRefs = useRef({});
@@ -280,6 +281,48 @@ const StockInventory = () => {
     };
   }, [openDropdownId]);
 
+  // Validation function for ALL fields
+  const validateForm = () => {
+    const errors = {};
+    
+    // Required fields with custom messages
+    if (!newStock.product_name.trim()) errors.product_name = "Product name is required";
+    if (!newStock.dosage.trim()) errors.dosage = "Dosage is required";
+    if (!newStock.category) errors.category = "Category is required";
+    if (!newStock.batch_number.trim()) errors.batch_number = "Batch number is required";
+    if (!newStock.vendor.trim()) errors.vendor = "Vendor is required";
+    if (!newStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
+    if (!newStock.quantity) errors.quantity = "Quantity is required";
+    if (!newStock.item_code.trim()) errors.item_code = "Item code is required";
+    if (!newStock.rack_no.trim()) errors.rack_no = "Rack No is required";
+    if (!newStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
+    if (!newStock.unit_price) errors.unit_price = "Unit price is required";
+    if (!newStock.status) errors.status = "Status is required";
+    
+    // Validate quantity is a valid positive number
+    if (newStock.quantity) {
+      const qty = parseInt(newStock.quantity);
+      if (isNaN(qty)) {
+        errors.quantity = "Quantity must be a valid number";
+      } else if (qty < 0) {
+        errors.quantity = "Quantity must be non-negative";
+      }
+    }
+    
+    // Validate unit price is a valid positive number
+    if (newStock.unit_price) {
+      const price = parseFloat(newStock.unit_price);
+      if (isNaN(price)) {
+        errors.unit_price = "Unit price must be a valid number";
+      } else if (price < 0) {
+        errors.unit_price = "Unit price must be non-negative";
+      }
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const filteredData = inventoryData.filter((item) => {
     const matchesSearch = Object.values(item)
       .join(" ")
@@ -364,18 +407,26 @@ const StockInventory = () => {
 
   const handleAddStock = async (e) => {
     e.preventDefault();
+    
+    // Remove the default browser validation by not using required attribute
+    // Validate form before submission
+    if (!validateForm()) {
+      errorToast("Please fill all required fields correctly");
+      return;
+    }
+    
     try {
       const stockData = {
-        product_name: newStock.product_name,
-        dosage: newStock.dosage,
+        product_name: newStock.product_name.trim(),
+        dosage: newStock.dosage.trim(),
         category: newStock.category,
-        batch_number: newStock.batch_number,
-        vendor: newStock.vendor,
+        batch_number: newStock.batch_number.trim(),
+        vendor: newStock.vendor.trim(),
         quantity: parseInt(newStock.quantity) || 0,
-        vendor_id: newStock.vendor_id,
-        item_code: newStock.item_code,
-        rack_no: newStock.rack_no,
-        shelf_no: newStock.shelf_no,
+        vendor_id: newStock.vendor_id.trim(),
+        item_code: newStock.item_code.trim(),
+        rack_no: newStock.rack_no.trim(),
+        shelf_no: newStock.shelf_no.trim(),
         unit_price: parseFloat(newStock.unit_price) || 0,
         status: mapStatusToBackend(newStock.status),
       };
@@ -396,6 +447,7 @@ const StockInventory = () => {
         unit_price: "",
         status: "IN STOCK",
       });
+      setFormErrors({}); // Clear errors
     } catch (err) {
       console.error("Error adding stock:", err);
       setError(err.message || "Failed to add stock");
@@ -404,18 +456,26 @@ const StockInventory = () => {
 
   const handleEditStock = async (e) => {
     e.preventDefault();
+    
+    // Remove the default browser validation by not using required attribute
+    // Validate form before submission
+    if (!validateForm()) {
+      errorToast("Please fill all required fields correctly");
+      return;
+    }
+    
     try {
       const stockData = {
-        product_name: newStock.product_name,
-        dosage: newStock.dosage,
+        product_name: newStock.product_name.trim(),
+        dosage: newStock.dosage.trim(),
         category: newStock.category,
-        batch_number: newStock.batch_number,
-        vendor: newStock.vendor,
+        batch_number: newStock.batch_number.trim(),
+        vendor: newStock.vendor.trim(),
         quantity: parseInt(newStock.quantity) || 0,
-        vendor_id: newStock.vendor_id,
-        item_code: newStock.item_code,
-        rack_no: newStock.rack_no,
-        shelf_no: newStock.shelf_no,
+        vendor_id: newStock.vendor_id.trim(),
+        item_code: newStock.item_code.trim(),
+        rack_no: newStock.rack_no.trim(),
+        shelf_no: newStock.shelf_no.trim(),
         unit_price: parseFloat(newStock.unit_price) || 0,
         status: mapStatusToBackend(newStock.status),
       };
@@ -437,6 +497,7 @@ const StockInventory = () => {
         status: "IN STOCK",
       });
       setEditStockId(null);
+      setFormErrors({}); // Clear errors
     } catch (err) {
       console.error("Error updating stock:", err);
       setError(err.message || "Failed to update stock");
@@ -453,7 +514,7 @@ const StockInventory = () => {
       vendor: item.vendor,
       vendor_id: item.vendorCode,
       quantity: item.stock.toString(),
-      status: item.status, // Use frontend status directly
+      status: item.status,
       item_code: item.item_code || "",
       rack_no: item.rack_no || "",
       shelf_no: item.shelf_no || "",
@@ -461,6 +522,7 @@ const StockInventory = () => {
     });
     setEditStockId(item.id);
     setShowEditStockPopup(true);
+    setFormErrors({}); // Clear any existing errors
   };
 
   const handleSort = (column) => {
@@ -509,19 +571,19 @@ const StockInventory = () => {
     "Dec",
   ];
 
-  const Dropdown = ({ label, value, onChange, options }) => (
+  const Dropdown = ({ label, value, onChange, options, error, required = true }) => (
     <div>
       <label
-        className="text-sm text-black dark:text-white"
+        className="text-sm text-black dark:text-white mb-1 flex items-center gap-1"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
         {label}
+        {required && <span className="text-[#FF2424]">*</span>}
       </label>
       <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
+        <div className="relative mt-1 w-full">
           <Listbox.Button
-            className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-        bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+            className={`w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             {value || "Select Option"}
@@ -529,6 +591,9 @@ const StockInventory = () => {
               <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
+          {error && (
+            <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>
+          )}
           <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-white dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
@@ -624,7 +689,10 @@ const StockInventory = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowAddStockPopup(true)}
+          onClick={() => {
+            setShowAddStockPopup(true);
+            setFormErrors({}); // Clear errors when opening popup
+          }}
           className="w-[200px] h-[40px] flex items-center justify-center
             bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
             border-b-[2px] border-[#0EFF7B]
@@ -1446,174 +1514,275 @@ const StockInventory = () => {
                   Add New Stock
                 </h2>
                 <button
-                  onClick={() => setShowAddStockPopup(false)}
+                  onClick={() => {
+                    setShowAddStockPopup(false);
+                    setFormErrors({});
+                  }}
                   className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
                   <X size={18} className="text-black dark:text-white" />
                 </button>
               </div>
               {/* 3×3 Grid Form */}
-              <form onSubmit={handleAddStock}>
+              <form onSubmit={handleAddStock} noValidate>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                   {/* Product Name */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Product Name
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Product Name<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter product name"
                       value={newStock.product_name}
-                      onChange={(e) => setNewStock({ ...newStock, product_name: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, product_name: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.product_name) {
+                          setFormErrors({...formErrors, product_name: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.product_name && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.product_name}</p>
+                    )}
                   </div>
                   {/* Dosage */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Dosage
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Dosage<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. 500mg, 10ml"
                       value={newStock.dosage}
-                      onChange={(e) => setNewStock({ ...newStock, dosage: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, dosage: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.dosage) {
+                          setFormErrors({...formErrors, dosage: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.dosage && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.dosage}</p>
+                    )}
                   </div>
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Category
-                    </label>
                     <Dropdown
+                      label="Category"
                       value={newStock.category}
-                      onChange={(val) => setNewStock({ ...newStock, category: val })}
+                      onChange={(val) => {
+                        setNewStock({ ...newStock, category: val });
+                        // Clear error when user selects a category
+                        if (formErrors.category) {
+                          setFormErrors({...formErrors, category: ""});
+                        }
+                      }}
                       options={categories}
                       placeholder="Select category"
+                      error={formErrors.category}
+                      required={true}
                     />
                   </div>
                   {/* Batch Number */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Batch Number
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Batch Number<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Batch Number"
                       value={newStock.batch_number}
-                      onChange={(e) => setNewStock({ ...newStock, batch_number: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, batch_number: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.batch_number) {
+                          setFormErrors({...formErrors, batch_number: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.batch_number && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.batch_number}</p>
+                    )}
                   </div>
                   {/* Vendor */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Vendor
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Vendor<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Vendor"
                       value={newStock.vendor}
-                      onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, vendor: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.vendor) {
+                          setFormErrors({...formErrors, vendor: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.vendor && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor}</p>
+                    )}
                   </div>
                   {/* Vendor ID */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Vendor ID
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Vendor ID<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Vendor ID"
                       value={newStock.vendor_id}
-                      onChange={(e) => setNewStock({ ...newStock, vendor_id: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, vendor_id: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.vendor_id) {
+                          setFormErrors({...formErrors, vendor_id: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.vendor_id && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor_id}</p>
+                    )}
                   </div>
                   {/* Quantity */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Quantity
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Quantity<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="number"
                       placeholder="Stock Quantity"
                       value={newStock.quantity}
-                      onChange={(e) => setNewStock({ ...newStock, quantity: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, quantity: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.quantity) {
+                          setFormErrors({...formErrors, quantity: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
+                      min="0"
                     />
+                    {formErrors.quantity && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.quantity}</p>
+                    )}
                   </div>
                   {/* Item Code */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Item Code
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Item Code<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Item Code"
                       value={newStock.item_code}
-                      onChange={(e) => setNewStock({ ...newStock, item_code: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, item_code: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.item_code) {
+                          setFormErrors({...formErrors, item_code: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.item_code && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.item_code}</p>
+                    )}
                   </div>
                   {/* Rack No */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Rack No
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Rack No<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Rack No"
                       value={newStock.rack_no}
-                      onChange={(e) => setNewStock({ ...newStock, rack_no: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, rack_no: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.rack_no) {
+                          setFormErrors({...formErrors, rack_no: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.rack_no && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.rack_no}</p>
+                    )}
                   </div>
                   {/* Shelf No */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Shelf No
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Shelf No<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Shelf Number"
                       value={newStock.shelf_no}
-                      onChange={(e) => setNewStock({ ...newStock, shelf_no: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, shelf_no: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.shelf_no) {
+                          setFormErrors({...formErrors, shelf_no: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.shelf_no && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.shelf_no}</p>
+                    )}
                   </div>
                   {/* Unit Price */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Unit Price
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Unit Price<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="number"
                       placeholder="Enter Unit Price"
                       value={newStock.unit_price}
-                      onChange={(e) => setNewStock({ ...newStock, unit_price: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, unit_price: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.unit_price) {
+                          setFormErrors({...formErrors, unit_price: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
+                      min="0"
                     />
+                    {formErrors.unit_price && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.unit_price}</p>
+                    )}
                   </div>
                   {/* Status */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Status
-                    </label>
                     <Dropdown
+                      label="Status"
                       value={newStock.status}
-                      onChange={(val) => setNewStock({ ...newStock, status: val })}
+                      onChange={(val) => {
+                        setNewStock({ ...newStock, status: val });
+                        // Clear error when user selects status
+                        if (formErrors.status) {
+                          setFormErrors({...formErrors, status: ""});
+                        }
+                      }}
                       options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
                       placeholder="Select status"
+                      error={formErrors.status}
+                      required={true}
                     />
                   </div>
                 </div>
@@ -1621,7 +1790,10 @@ const StockInventory = () => {
                 <div className="flex justify-center gap-6 mt-8">
                   <button
                     type="button"
-                    onClick={() => setShowAddStockPopup(false)}
+                    onClick={() => {
+                      setShowAddStockPopup(false);
+                      setFormErrors({});
+                    }}
                     className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >
                     Cancel
@@ -1674,6 +1846,7 @@ const StockInventory = () => {
                       status: "IN STOCK",
                     });
                     setEditStockId(null);
+                    setFormErrors({});
                   }}
                   className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
@@ -1681,167 +1854,265 @@ const StockInventory = () => {
                 </button>
               </div>
               {/* 3×3 Grid Form */}
-              <form onSubmit={handleEditStock}>
+              <form onSubmit={handleEditStock} noValidate>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                   {/* Product Name */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Product Name
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Product Name<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter product name"
                       value={newStock.product_name}
-                      onChange={(e) => setNewStock({ ...newStock, product_name: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, product_name: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.product_name) {
+                          setFormErrors({...formErrors, product_name: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.product_name && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.product_name}</p>
+                    )}
                   </div>
                   {/* Dosage */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Dosage
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Dosage<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="e.g. 500mg, 10ml"
                       value={newStock.dosage}
-                      onChange={(e) => setNewStock({ ...newStock, dosage: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, dosage: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.dosage) {
+                          setFormErrors({...formErrors, dosage: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.dosage && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.dosage}</p>
+                    )}
                   </div>
                   {/* Category */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Category
-                    </label>
                     <Dropdown
+                      label="Category"
                       value={newStock.category}
-                      onChange={(val) => setNewStock({ ...newStock, category: val })}
+                      onChange={(val) => {
+                        setNewStock({ ...newStock, category: val });
+                        // Clear error when user selects a category
+                        if (formErrors.category) {
+                          setFormErrors({...formErrors, category: ""});
+                        }
+                      }}
                       options={categories}
                       placeholder="Select category"
+                      error={formErrors.category}
+                      required={true}
                     />
                   </div>
                   {/* Batch Number */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Batch Number
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Batch Number<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Batch Number"
                       value={newStock.batch_number}
-                      onChange={(e) => setNewStock({ ...newStock, batch_number: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, batch_number: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.batch_number) {
+                          setFormErrors({...formErrors, batch_number: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.batch_number && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.batch_number}</p>
+                    )}
                   </div>
                   {/* Vendor */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Vendor
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Vendor<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Vendor"
                       value={newStock.vendor}
-                      onChange={(e) => setNewStock({ ...newStock, vendor: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, vendor: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.vendor) {
+                          setFormErrors({...formErrors, vendor: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.vendor && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor}</p>
+                    )}
                   </div>
                   {/* Vendor ID */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Vendor ID
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Vendor ID<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Vendor ID"
                       value={newStock.vendor_id}
-                      onChange={(e) => setNewStock({ ...newStock, vendor_id: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, vendor_id: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.vendor_id) {
+                          setFormErrors({...formErrors, vendor_id: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.vendor_id && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor_id}</p>
+                    )}
                   </div>
                   {/* Quantity */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Quantity
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Quantity<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="number"
                       placeholder="Stock Quantity"
                       value={newStock.quantity}
-                      onChange={(e) => setNewStock({ ...newStock, quantity: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, quantity: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.quantity) {
+                          setFormErrors({...formErrors, quantity: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
+                      min="0"
                     />
+                    {formErrors.quantity && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.quantity}</p>
+                    )}
                   </div>
                   {/* Item Code */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Item Code
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Item Code<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Item Code"
                       value={newStock.item_code}
-                      onChange={(e) => setNewStock({ ...newStock, item_code: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, item_code: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.item_code) {
+                          setFormErrors({...formErrors, item_code: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      required
                     />
+                    {formErrors.item_code && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.item_code}</p>
+                    )}
                   </div>
                   {/* Rack No */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Rack No
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Rack No<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Rack No"
                       value={newStock.rack_no}
-                      onChange={(e) => setNewStock({ ...newStock, rack_no: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, rack_no: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.rack_no) {
+                          setFormErrors({...formErrors, rack_no: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.rack_no && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.rack_no}</p>
+                    )}
                   </div>
                   {/* Shelf No */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Shelf No
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Shelf No<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="text"
                       placeholder="Enter Shelf Number"
                       value={newStock.shelf_no}
-                      onChange={(e) => setNewStock({ ...newStock, shelf_no: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, shelf_no: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.shelf_no) {
+                          setFormErrors({...formErrors, shelf_no: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
+                    {formErrors.shelf_no && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.shelf_no}</p>
+                    )}
                   </div>
                   {/* Unit Price */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Unit Price
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Unit Price<span className="text-[#FF2424]">*</span>
                     </label>
                     <input
                       type="number"
                       placeholder="Enter Unit Price"
                       value={newStock.unit_price}
-                      onChange={(e) => setNewStock({ ...newStock, unit_price: e.target.value })}
+                      onChange={(e) => {
+                        setNewStock({ ...newStock, unit_price: e.target.value });
+                        // Clear error when user starts typing
+                        if (formErrors.unit_price) {
+                          setFormErrors({...formErrors, unit_price: ""});
+                        }
+                      }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
+                      min="0"
                     />
+                    {formErrors.unit_price && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.unit_price}</p>
+                    )}
                   </div>
                   {/* Status */}
                   <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
-                      Status
-                    </label>
                     <Dropdown
+                      label="Status"
                       value={newStock.status}
-                      onChange={(val) => setNewStock({ ...newStock, status: val })}
+                      onChange={(val) => {
+                        setNewStock({ ...newStock, status: val });
+                        // Clear error when user selects status
+                        if (formErrors.status) {
+                          setFormErrors({...formErrors, status: ""});
+                        }
+                      }}
                       options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
                       placeholder="Select status"
+                      error={formErrors.status}
+                      required={true}
                     />
                   </div>
                 </div>
@@ -1866,6 +2137,7 @@ const StockInventory = () => {
                         status: "IN STOCK",
                       });
                       setEditStockId(null);
+                      setFormErrors({});
                     }}
                     className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >

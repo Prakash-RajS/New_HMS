@@ -26,6 +26,27 @@ const Profile = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [originalImage, setOriginalImage] = useState(ProfileImage);
   const [currentTime, setCurrentTime] = useState("");
+  
+  // New state for field validation errors
+  const [fieldErrors, setFieldErrors] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    location: ""
+  });
+
+  // Store original data to revert on cancel
+  const [originalProfileData, setOriginalProfileData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    department: "",
+    joinedDate: "",
+    location: "",
+    timezone: "",
+  });
 
   const [profileData, setProfileData] = useState({
     name: "",
@@ -96,7 +117,6 @@ const Profile = () => {
           })
         : "Not provided";
 
-      // const imageUrl = data.profile_picture ? `http://localhost:8000/${data.profile_picture}` : ProfileImage;
       const imageUrl = data.profile_picture
         ? `${backendUrl}/${data.profile_picture}`
         : ProfileImage;
@@ -104,7 +124,7 @@ const Profile = () => {
       setProfileImage(imageUrl);
       setOriginalImage(imageUrl);
 
-      setProfileData({
+      const newProfileData = {
         name: data.full_name || "",
         email: data.email || "",
         phone: data.phone || "",
@@ -113,7 +133,11 @@ const Profile = () => {
         joinedDate,
         location,
         timezone: data.timezone || "",
-      });
+      };
+
+      // Set both current and original data
+      setProfileData(newProfileData);
+      setOriginalProfileData(newProfileData);
 
       // Profile completion calculation
       const fields = [
@@ -179,17 +203,92 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Edit Toggle
+  // Validate required fields
+  const validateFields = () => {
+    const errors = {
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+      location: ""
+    };
+    let isValid = true;
+
+    // Name validation
+    if (!profileData.name.trim()) {
+      errors.name = "Full name is required";
+      isValid = false;
+    }
+
+    // Email validation
+    if (!profileData.email.trim()) {
+      errors.email = "Email is required";
+      isValid = false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+      errors.email = "Please enter a valid email address";
+      isValid = false;
+    }
+
+    // Phone validation
+    if (!profileData.phone.trim()) {
+      errors.phone = "Phone number is required";
+      isValid = false;
+    } else if (!/^[\d\s\-\+\(\)]{10,}$/.test(profileData.phone.replace(/\s/g, ''))) {
+      errors.phone = "Please enter a valid phone number (at least 10 digits)";
+      isValid = false;
+    }
+
+    // Role validation
+    if (!profileData.role.trim()) {
+      errors.role = "Role is required";
+      isValid = false;
+    }
+
+    // Location validation
+    if (!profileData.location.trim() || profileData.location === "Not provided") {
+      errors.location = "Location is required";
+      isValid = false;
+    }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
+  // Clear field errors when input changes
+  const clearFieldError = (fieldName) => {
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: ""
+    }));
+  };
+
+  // Edit Toggle - FIXED: Revert to original data when canceling
   const handleEditToggle = () => {
-    setIsEditing(!isEditing);
-    if (!isEditing) {
+    if (isEditing) {
+      // Cancel edit mode - revert all changes
+      setProfileData({...originalProfileData});
       setSelectedFile(null);
       setProfileImage(originalImage);
+      // Clear all field errors
+      setFieldErrors({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        location: ""
+      });
     }
+    setIsEditing(!isEditing);
   };
 
   // Save Changes
   const handleSaveChanges = async () => {
+    // Validate fields before submitting
+    if (!validateFields()) {
+      errorToast("Please fill in all required fields correctly");
+      return;
+    }
+
     const formData = new FormData();
     if (selectedFile) formData.append("profile_picture", selectedFile);
     if (profileData.name) formData.append("full_name", profileData.name);
@@ -209,6 +308,14 @@ const Profile = () => {
       });
       await fetchProfile();
       setIsEditing(false);
+      // Clear field errors on successful save
+      setFieldErrors({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        location: ""
+      });
       successToast("Profile updated successfully!");
 
       // Full page refresh to update header profile image and other global states
@@ -226,6 +333,8 @@ const Profile = () => {
   // Input Change
   const handleInputChange = (field, value) => {
     setProfileData((prev) => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    clearFieldError(field);
   };
 
   // Change Password
@@ -446,10 +555,34 @@ const Profile = () => {
             ></div>
 
             {[
-              { label: "Full name", field: "name", type: "text" },
-              { label: "Email", field: "email", type: "email" },
-              { label: "Phone", field: "phone", type: "tel" },
-              { label: "Role", field: "role", type: "text" },
+              { 
+                label: "Full name", 
+                field: "name", 
+                type: "text", 
+                required: true,
+                error: fieldErrors.name
+              },
+              { 
+                label: "Email", 
+                field: "email", 
+                type: "email", 
+                required: true,
+                error: fieldErrors.email
+              },
+              { 
+                label: "Phone", 
+                field: "phone", 
+                type: "tel", 
+                required: true,
+                error: fieldErrors.phone
+              },
+              { 
+                label: "Role", 
+                field: "role", 
+                type: "text", 
+                required: true,
+                error: fieldErrors.role
+              },
               {
                 label: "Department",
                 field: "department",
@@ -462,7 +595,13 @@ const Profile = () => {
                 type: "text",
                 readOnly: true,
               },
-              { label: "Location", field: "location", type: "text" },
+              { 
+                label: "Location", 
+                field: "location", 
+                type: "text", 
+                required: true,
+                error: fieldErrors.location
+              },
               {
                 label: "Time",
                 field: "currentTime",
@@ -472,9 +611,14 @@ const Profile = () => {
                   <FaClock className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
                 ),
               },
-            ].map(({ label, field, type, readOnly, icon }) => (
+            ].map(({ label, field, type, readOnly, icon, required, error }) => (
               <div key={field} className="flex flex-col">
-                <label className="text-sm mb-1">{label}</label>
+                <div className="flex items-center mb-1">
+                  <label className="text-sm">{label}</label>
+                  {required && isEditing && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                </div>
 
                 {/* Input wrapper */}
                 <div className="relative">
@@ -493,15 +637,18 @@ const Profile = () => {
                       handleInputChange(field, e.target.value);
                     }}
                     readOnly={!isEditing || readOnly}
-                    className={`w-full ${
-                      icon ? "pl-9" : "pl-2"
-                    } p-2 rounded-lg ${
+                    className={`w-full ${icon ? "pl-9" : "pl-2"} p-2 rounded-lg ${
                       isEditing && !readOnly
                         ? "bg-white dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B]"
                         : "bg-white dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
                     }`}
                   />
                 </div>
+                
+                {/* Error message display - only show during edit mode */}
+                {isEditing && error && (
+                  <p className="text-red-500 text-xs mt-1">{error}</p>
+                )}
               </div>
             ))}
 

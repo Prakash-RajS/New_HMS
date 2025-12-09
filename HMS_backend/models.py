@@ -447,6 +447,11 @@ class Donor(models.Model):
         ("Female", "Female"),
         ("Other", "Other"),
     ]
+    
+    STATUS_CHOICES = [
+        ("Eligible", "Eligible"),
+        ("Not Eligible", "Not Eligible"),
+    ]
 
     donor_name = models.CharField(max_length=255)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
@@ -456,10 +461,14 @@ class Donor(models.Model):
     last_donation_date = models.DateField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
-        choices=[("Eligible", "Eligible"), ("Not Eligible", "Not Eligible")],
+        choices=STATUS_CHOICES,
         default="Not Eligible",
     )
     added_date = models.DateField(auto_now_add=True)
+    
+    # Track last eligibility check and email sent
+    last_eligibility_check = models.DateField(blank=True, null=True)
+    eligibility_email_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = "donors"
@@ -469,38 +478,55 @@ class Donor(models.Model):
         return f"{self.donor_name} - {self.blood_type} ({self.status})"
 
     def check_eligibility(self):
-        """Donor becomes eligible 6 months after last donation or addition"""
+        """Check if donor is eligible for donation"""
+        today = timezone.now().date()
+        
         if self.last_donation_date:
+            # If donor has donated before
             next_eligible_date = self.last_donation_date + timedelta(days=180)
-            if timezone.now().date() >= next_eligible_date:
-                self.status = "Eligible"
+            if today >= next_eligible_date:
+                new_status = "Eligible"
             else:
-                self.status = "Not Eligible"
+                new_status = "Not Eligible"
         else:
-            # Newly added donor → Not Eligible until 6 months pass
+            # New donor - eligible after 6 months from registration
             next_eligible_date = self.added_date + timedelta(days=180)
-            if timezone.now().date() >= next_eligible_date:
-                self.status = "Eligible"
+            if today >= next_eligible_date:
+                new_status = "Eligible"
             else:
-                self.status = "Not Eligible"
+                new_status = "Not Eligible"
+        
+        # Check if status changed
+        status_changed = self.status != new_status
+        self.status = new_status
+        self.last_eligibility_check = today
+        
+        # Reset email sent flag if status changed to Not Eligible
+        if new_status == "Not Eligible":
+            self.eligibility_email_sent = False
+            
         self.save()
+        
+        return status_changed
 
-    def check_eligibility(self):
-        """Donor becomes eligible 6 months after last donation"""
+    def is_eligible_today(self):
+        """Check if donor is eligible today"""
+        self.check_eligibility()
+        return self.status == "Eligible"
+    
+    def days_until_eligible(self):
+        """Calculate days until donor becomes eligible"""
+        today = timezone.now().date()
+        
         if self.last_donation_date:
-            next_eligible_date = self.last_donation_date + timedelta(days=180)
-            if timezone.now().date() >= next_eligible_date:
-                self.status = "Eligible"
-            else:
-                self.status = "Not Eligible"
+            next_date = self.last_donation_date + timedelta(days=180)
         else:
-            # Newly added donor → Not Eligible until 6 months pass
-            next_eligible_date = self.added_date + timedelta(days=180)
-            if timezone.now().date() >= next_eligible_date:
-                self.status = "Eligible"
-            else:
-                self.status = "Not Eligible"
-        self.save()
+            next_date = self.added_date + timedelta(days=180)
+        
+        if today >= next_date:
+            return 0
+        else:
+            return (next_date - today).days
 
 
 

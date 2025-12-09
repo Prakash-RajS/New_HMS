@@ -5,8 +5,6 @@ import { ChevronDown, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
-// const API_BASE = "http://localhost:8000";
-//const BED_API = "http://127.0.0.1:8000/bedgroups";
 
 const API_BASE =
   window.location.hostname === "18.119.210.2"
@@ -26,6 +24,7 @@ const formatToYMD = (dateStr) => {
   return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 };
 const safeStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
+
 /* ---------- Photo Upload ---------- */
 const PhotoUploadBox = ({ photoPreview, setPhotoPreview, onFileSelect, error = null }) => {
   const handlePhotoUpload = (e) => {
@@ -64,6 +63,7 @@ const PhotoUploadBox = ({ photoPreview, setPhotoPreview, onFileSelect, error = n
     </div>
   );
 };
+
 /* ---------- Dropdown ---------- */
 const Dropdown = ({
   label,
@@ -82,14 +82,13 @@ const Dropdown = ({
       className="text-sm text-black dark:text-white"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
-      {label} {required ? "*" : ""}
+      {label} {required && <span className="text-red-500">*</span>}
     </label>
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
         <Listbox.Button
-          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-                     flex items-center justify-between"
+          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-left text-[14px] leading-[16px]
+                     flex items-center justify-between bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           <span>
@@ -148,6 +147,7 @@ const Dropdown = ({
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
+
 /* ---------- Input ---------- */
 const InputField = ({
   label,
@@ -164,7 +164,7 @@ const InputField = ({
       className="text-sm text-black dark:text-white"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
-      {label} {required ? "*" : ""}
+      {label} {required && <span className="text-red-500">*</span>}
     </label>
     <input
       type={type}
@@ -172,7 +172,6 @@ const InputField = ({
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      required={required}
       className="w-full h-[33px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                  bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]"
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -180,6 +179,7 @@ const InputField = ({
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
   </div>
 );
+
 /* ---------- Date Field (Native Style) ---------- */
 const DateField = ({ label, value, onChange, placeholder, required = false, error = null }) => {
   const dateRef = React.useRef(null);
@@ -195,7 +195,7 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
-        {label} {required ? "*" : ""}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative cursor-pointer" onClick={handleClick}>
         <input
@@ -203,7 +203,6 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
           ref={dateRef}
           value={value}
           onChange={handleDateChange}
-          required={required}
           className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -217,6 +216,7 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
     </div>
   );
 };
+
 /* ---------- Main Component ---------- */
 export default function NewRegistration({ isSidebarOpen }) {
   const [formData, setFormData] = useState({
@@ -257,43 +257,92 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const styleRef = React.useRef(null);
   const navigate = useNavigate();
+  
   const maritalStatusOptions = ["Single", "Married", "Divorced", "Widowed"];
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const consultationTypes = ["General", "Specialist", "Emergency"];
   const appointmentTypes = ["In-person", "Online", "Follow-up"];
   const casualtyTypes = ["Yes", "No"];
-  const requiredFields = {
-    fullname: "Full name is required",
-    dob: "Date of birth is required",
-    gender: "Gender is required",
-    age: "Age is required",
-    maritalStatus: "Marital status is required",
-    address: "Address is required",
-    phone: "Phone number is required",
-    email: "Email is required",
-    nid: "National ID is required",
-    city: "City is required",
-    country: "Country is required",
-    dor: "Date of registration is required",
-    occupation: "Occupation is required",
-    weight: "Weight is required",
-    height: "Height is required",
-    bloodGroup: "Blood group is required",
-    bp: "Blood pressure is required",
-    temperature: "Temperature is required",
-    consultType: "Consultation type is required",
-    department_id: "Department is required",
-    staff_id: "Consulting doctor is required",
-    apptType: "Appointment type is required",
-    admitDate: "Admit date is required",
-    roomNo: "Room / Bed No is required",
-    testReport: "Test report is required",
-    casualty: "Casualty status is required",
-    reason: "Reason for visit is required",
-    photo: "Photo is required",
+
+  /* ---------- Validation Rules ---------- */
+  const validateField = (fieldName, value) => {
+    switch (fieldName) {
+      case "fullname":
+        return value.trim() === "" ? "Full name is required" : "";
+      case "dob":
+        return value === "" ? "Date of birth is required" : "";
+      case "gender":
+        return value === "" ? "Gender is required" : "";
+      case "age":
+        if (value === "") return "Age is required";
+        if (isNaN(value) || Number(value) <= 0) return "Age must be a positive number";
+        return "";
+      case "maritalStatus":
+        return value === "" ? "Marital status is required" : "";
+      case "address":
+        return value.trim() === "" ? "Address is required" : "";
+      case "phone":
+        if (value === "") return "Phone number is required";
+        if (!/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+        return "";
+      case "email":
+        if (value === "") return "Email is required";
+        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(value)) return "Email must be a valid Gmail address";
+        return "";
+      case "nid":
+        return value.trim() === "" ? "National ID is required" : "";
+      case "city":
+        return value.trim() === "" ? "City is required" : "";
+      case "country":
+        return value.trim() === "" ? "Country is required" : "";
+      case "dor":
+        return value === "" ? "Date of registration is required" : "";
+      case "occupation":
+        return value.trim() === "" ? "Occupation is required" : "";
+      case "weight":
+        if (value === "") return "Weight is required";
+        if (isNaN(value) || Number(value) <= 0) return "Weight must be a positive number";
+        return "";
+      case "height":
+        if (value === "") return "Height is required";
+        if (isNaN(value) || Number(value) <= 0) return "Height must be a positive number";
+        return "";
+      case "bloodGroup":
+        return value === "" ? "Blood group is required" : "";
+      case "bp":
+        return value.trim() === "" ? "Blood pressure is required" : "";
+      case "temperature":
+        if (value === "") return "Temperature is required";
+        if (isNaN(value)) return "Temperature must be a number";
+        return "";
+      case "consultType":
+        return value === "" ? "Consultation type is required" : "";
+      case "department_id":
+        return value === "" ? "Department is required" : "";
+      case "staff_id":
+        return value === "" ? "Consulting doctor is required" : "";
+      case "apptType":
+        return value === "" ? "Appointment type is required" : "";
+      case "admitDate":
+        return value === "" ? "Admit date is required" : "";
+      case "roomNo":
+        return value === "" ? "Room / Bed No is required" : "";
+      case "testReport":
+        return value.trim() === "" ? "Test report is required" : "";
+      case "casualty":
+        return value === "" ? "Casualty status is required" : "";
+      case "reason":
+        return value.trim() === "" ? "Reason for visit is required" : "";
+      case "photo":
+        return !photoFile ? "Photo is required" : "";
+      default:
+        return "";
+    }
   };
+
   /* ---------- Load Departments ---------- */
   useEffect(() => {
     let mounted = true;
@@ -317,6 +366,7 @@ export default function NewRegistration({ isSidebarOpen }) {
       mounted = false;
     };
   }, []);
+
   /* ---------- Load Available Beds ---------- */
   useEffect(() => {
     let mounted = true;
@@ -350,6 +400,7 @@ export default function NewRegistration({ isSidebarOpen }) {
       });
     return () => (mounted = false);
   }, []);
+
   /* ---------- Load Staff ---------- */
   useEffect(() => {
     if (!formData.department_id) {
@@ -378,6 +429,7 @@ export default function NewRegistration({ isSidebarOpen }) {
       mounted = false;
     };
   }, [formData.department_id]);
+
   // Add CSS to hide default date picker icon
   useEffect(() => {
     const style = document.createElement('style');
@@ -398,48 +450,72 @@ export default function NewRegistration({ isSidebarOpen }) {
       }
     };
   }, []);
+
   const handleChange = (field) => (e) => {
     const val = e.target.value;
     setFormData((prev) => ({ ...prev, [field]: val }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Clear error for this field when user starts typing
+    if (isSubmitted && errors[field]) {
+      const error = validateField(field, val);
+      if (error === "") {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: error }));
+      }
     }
   };
+
   const handleDropdownChange = (field) => (value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Clear error for this field when user selects an option
+    if (isSubmitted && errors[field]) {
+      const error = validateField(field, value);
+      if (error === "") {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: error }));
+      }
     }
   };
+
   const handleDateChange = (field) => (date) => {
     setFormData((prev) => ({ ...prev, [field]: date }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
+    // Clear error for this field when user selects a date
+    if (isSubmitted && errors[field]) {
+      const error = validateField(field, date);
+      if (error === "") {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      } else {
+        setErrors((prev) => ({ ...prev, [field]: error }));
+      }
     }
   };
+
   const validateForm = () => {
     const newErrors = {};
-    Object.entries(requiredFields).forEach(([field, msg]) => {
-      let value;
-      if (field === "photo") {
-        value = photoFile;
-      } else {
-        value = formData[field];
-      }
-      if (!value || (typeof value === "string" && !value.trim())) {
-        newErrors[field] = msg;
+    let isValid = true;
+
+    // Validate all fields
+    Object.keys(formData).forEach((field) => {
+      const error = validateField(field, formData[field]);
+      if (error) {
+        newErrors[field] = error;
+        isValid = false;
       }
     });
-    // Additional validations
-    if (formData.phone && formData.phone.length !== 10) {
-      newErrors.phone = "Phone number must be 10 digits";
+
+    // Validate photo separately
+    const photoError = validateField("photo", "");
+    if (photoError) {
+      newErrors.photo = photoError;
+      isValid = false;
     }
-    if (formData.email && !formData.email.endsWith("@gmail.com")) {
-      newErrors.email = "Email must be a Gmail address";
-    }
+
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setIsSubmitted(true);
+    return isValid;
   };
+
   const handleClear = () => {
     setFormData({
       fullname: "",
@@ -473,15 +549,20 @@ export default function NewRegistration({ isSidebarOpen }) {
     setPhotoPreview(null);
     setPhotoFile(null);
     setErrors({});
+    setIsSubmitted(false);
   };
+
   /* ---------- Submit with Toast ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     const isValid = validateForm();
     if (!isValid) {
       errorToast("Please fill all required fields correctly.");
       return;
     }
+    
     const body = new FormData();
     body.append("full_name", safeStr(formData.fullname));
     body.append("date_of_birth", formData.dob || "");
@@ -511,6 +592,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("department_id", safeStr(formData.department_id));
     body.append("staff_id", safeStr(formData.staff_id));
     if (photoFile) body.append("photo", photoFile);
+    
     try {
       const res = await fetch(`${API_BASE}/patients/register`, {
         method: "POST",
@@ -518,17 +600,16 @@ export default function NewRegistration({ isSidebarOpen }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Registration failed");
-      // SUCCESS TOAST
       successToast(`Patient registered: ${data.patient_id}`);
       handleClear();
     } catch (err) {
-      // ERROR TOAST
       errorToast(`Registration failed: ${err.message}`);
     }
   };
+
   /* ---------- Render ---------- */
   return (
-       <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -575,18 +656,14 @@ export default function NewRegistration({ isSidebarOpen }) {
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            {/* <label
-              className="text-sm text-black dark:text-white"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Photo *
-            </label> */}
             <PhotoUploadBox
               photoPreview={photoPreview}
               setPhotoPreview={setPhotoPreview}
               onFileSelect={(file) => {
                 setPhotoFile(file);
-                setErrors((prev) => ({ ...prev, photo: "" }));
+                if (isSubmitted && errors.photo) {
+                  setErrors((prev) => ({ ...prev, photo: "" }));
+                }
               }}
               error={errors.photo}
             />
@@ -596,6 +673,7 @@ export default function NewRegistration({ isSidebarOpen }) {
           onSubmit={handleSubmit}
           className="space-y-8"
           encType="multipart/form-data"
+          noValidate
         >
           {/* General Info */}
           <div>
@@ -656,41 +734,20 @@ export default function NewRegistration({ isSidebarOpen }) {
                 label="Phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  // allow only digits and max 10 characters
-                  if (/^\d{0,10}$/.test(value)) {
-                    handleChange("phone")(e);
-                  }
-                }}
+                onChange={handleChange("phone")}
                 placeholder="Enter 10 digit phone no"
                 required
                 error={errors.phone}
               />
               <InputField
-  label="Email ID"
-  type="email"
-  value={formData.email}
-  onChange={(e) => {
-    const value = e.target.value;
-    // Allow typing anything normally
-    handleChange("email")(e);
-    // If user completed email and it's NOT Gmail → block it
-    const fullEmailPattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-    // If user types a @ and finishes domain incorrectly → reset it
-    if (value.includes("@") && !value.endsWith("@gmail.com")) {
-      if (value.length >= "@gmail.com".length) {
-        setFormData((prev) => ({
-          ...prev,
-          email: prev.email.replace(/@.*/, "@gmail.com")
-        }));
-      }
-    }
-  }}
-  placeholder="Enter email"
-  required
-  error={errors.email}
-/>
+                label="Email ID"
+                type="email"
+                value={formData.email}
+                onChange={handleChange("email")}
+                placeholder="Enter email"
+                required
+                error={errors.email}
+              />
               <InputField
                 label="National ID"
                 value={formData.nid}
@@ -858,7 +915,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 className="text-sm text-black dark:text-white"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
-                Reason for Visit *
+                Reason for Visit <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.reason}
@@ -866,7 +923,6 @@ export default function NewRegistration({ isSidebarOpen }) {
                 placeholder="Describe symptoms"
                 className="w-full h-20 mt-1 px-3 py-2 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                required
               />
               {errors.reason && <p className="text-red-500 text-xs mt-1">{errors.reason}</p>}
             </div>

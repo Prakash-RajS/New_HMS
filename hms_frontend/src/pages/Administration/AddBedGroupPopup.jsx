@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { successToast, errorToast } from "../../components/Toast";  // <-- adjust import if you use a different toast lib
+import { successToast, errorToast } from "../../components/Toast";
 
 const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -11,26 +11,47 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [submitted, setSubmitted] = useState(false); // Track if form was submitted
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.bedGroupName.trim()) newErrors.bedGroupName = "Bed group name is required";
-    if (!formData.bedFrom) newErrors.bedFrom = "Starting bed number is required";
-    if (!formData.bedTo) newErrors.bedTo = "Ending bed number is required";
-    else if (parseInt(formData.bedFrom) >= parseInt(formData.bedTo)) {
+    
+    if (!formData.bedGroupName.trim()) {
+      newErrors.bedGroupName = "Bed group name is required";
+    }
+    
+    if (!formData.bedFrom) {
+      newErrors.bedFrom = "Starting bed number is required";
+    }
+    
+    if (!formData.bedTo) {
+      newErrors.bedTo = "Ending bed number is required";
+    } else if (parseInt(formData.bedFrom) >= parseInt(formData.bedTo)) {
       newErrors.bedTo = "Ending number must be greater than starting number";
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
 
   const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : "http://localhost:8000";
 
   const handleAdd = async () => {
+    setSubmitted(true); // Mark form as submitted
+    
     if (!validateForm()) return;
 
     setLoading(true);
@@ -73,14 +94,10 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
       }
 
       const newGroup = await response.json();
-
-      // SUCCESS TOAST
       successToast(`"${newGroup.bedGroup}" created successfully!`);
-
-      // Notify parent to refresh the list
+      
       if (onAdd) onAdd(newGroup);
-
-      // Close popup after a short delay so the toast is visible
+      
       setTimeout(() => {
         onClose();
       }, 600);
@@ -134,50 +151,64 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
         <div className="space-y-6">
           {/* Bed Group Name */}
           <div>
-            <label className="text-sm text-black dark:text-white">Bed Group Name</label>
+            <label className="text-sm text-black dark:text-white">
+              Bed Group Name <span className="text-red-500">*</span>
+            </label>
             <input
               name="bedGroupName"
               value={formData.bedGroupName}
-              onChange={(e) => setFormData({ ...formData, bedGroupName: e.target.value })}
+              onChange={handleInputChange}
               placeholder="e.g., ICU, Ward, General"
               className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
               bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
               outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
-            {errors.bedGroupName && <p className="text-red-500 text-xs mt-1">{errors.bedGroupName}</p>}
+            {submitted && errors.bedGroupName && (
+              <p className="text-red-500 text-xs mt-1">{errors.bedGroupName}</p>
+            )}
           </div>
 
           {/* Bed Numbers (From - To) */}
           <div>
-            <label className="text-sm text-black dark:text-white">Bed No’s</label>
+            <label className="text-sm text-black dark:text-white">
+              Bed No's <span className="text-red-500">*</span>
+            </label>
             <div className="flex items-center gap-2 mt-1">
-              <input
-                type="number"
-                name="bedFrom"
-                value={formData.bedFrom}
-                onChange={(e) => setFormData({ ...formData, bedFrom: e.target.value })}
-                placeholder="From"
-                className="w-1/2 h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-                bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
-                outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-              />
+              <div className="w-1/2">
+                <input
+                  type="number"
+                  name="bedFrom"
+                  value={formData.bedFrom}
+                  onChange={handleInputChange}
+                  placeholder="From"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+                  bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                  outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                />
+                {submitted && errors.bedFrom && (
+                  <p className="text-red-500 text-xs mt-1">{errors.bedFrom}</p>
+                )}
+              </div>
               <span className="text-gray-600 dark:text-gray-300">to</span>
-              <input
-                type="number"
-                name="bedTo"
-                value={formData.bedTo}
-                onChange={(e) => setFormData({ ...formData, bedTo: e.target.value })}
-                placeholder="To"
-                className="w-1/2 h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-                bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
-                outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-              />
+              <div className="w-1/2">
+                <input
+                  type="number"
+                  name="bedTo"
+                  value={formData.bedTo}
+                  onChange={handleInputChange}
+                  placeholder="To"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
+                  bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                  outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                />
+                {submitted && errors.bedTo && (
+                  <p className="text-red-500 text-xs mt-1">{errors.bedTo}</p>
+                )}
+              </div>
             </div>
-            {errors.bedFrom && <p className="text-red-500 text-xs mt-1">{errors.bedFrom}</p>}
-            {errors.bedTo && <p className="text-red-500 text-xs mt-1">{errors.bedTo}</p>}
           </div>
 
-          {/* Server error display (optional) */}
+          {/* Server error display */}
           {serverError && <p className="text-red-500 text-xs">{serverError}</p>}
         </div>
 
