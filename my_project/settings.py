@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-dl&juz@)to=hys!5hz4@*c@8v7jtg^wx+&jz-7uop383(ty(-n
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["18.119.210.2"]
 
 
 # Application definition
@@ -78,10 +78,10 @@ WSGI_APPLICATION = 'my_project.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "HMS_project", 
-        "USER": "root",
-        "PASSWORD": "Welcome#1234",
-        "HOST": "127.0.0.1",
+        "NAME": "hms_project_db", 
+        "USER": "admin",
+        "PASSWORD": "StacklyDB2025",
+        "HOST": "hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com",
         "PORT": "3306",
         "OPTIONS": { "charset": "utf8mb4" },
     }
