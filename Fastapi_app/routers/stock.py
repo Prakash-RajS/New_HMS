@@ -40,14 +40,13 @@ class StockUpdate(BaseModel):
     category: Optional[str] = None
     batch_number: Optional[str] = None
     vendor: Optional[str] = None
-    add_quantity: Optional[int] = Field(0, ge=0)
+    add_quantity: Optional[int] = Field(0, ge=0)  # ✅ Change this to add_quantity
     vendor_id: Optional[str] = None
     item_code: Optional[str] = None
     rack_no: Optional[str] = None
     shelf_no: Optional[str] = None
     unit_price: Optional[float] = None
     status: Optional[str] = None
-
 
 class StockOut(BaseModel):
     id: int
@@ -164,6 +163,12 @@ def get_low_stocks():
 def get_out_of_stocks():
     """Get out of stocks"""
     return list(Stock.objects.filter(quantity__lte=OUT_OF_STOCK_THRESHOLD))
+
+@sync_to_async
+def add_stock_to_instance(stock, quantity_to_add: int):
+    """Safely call the model's add_stock method in async context"""
+    stock.add_stock(quantity_to_add)
+    return stock
 
 
 # -------------------------------------------------
@@ -315,7 +320,7 @@ async def edit_stock(stock_id: int, payload: StockUpdate):
         # Update fields if provided
         if payload.product_name:
             stock.product_name = payload.product_name.strip()
-        if payload.dosage is not None:  # ✅ Added dosage update
+        if payload.dosage is not None:
             stock.dosage = payload.dosage.strip() if payload.dosage else None
         if payload.category:
             stock.category = payload.category.strip()
@@ -344,10 +349,9 @@ async def edit_stock(stock_id: int, payload: StockUpdate):
         if payload.status:
             stock.status = payload.status.strip()
 
-        # Add quantity if provided
+        # ✅ ADD quantity instead of replacing it
         if payload.add_quantity and payload.add_quantity > 0:
-            stock.add_stock(payload.add_quantity)
-
+            stock = await add_stock_to_instance(stock, payload.add_quantity)
         # Save using async function
         await save_stock(stock)
 
@@ -363,7 +367,7 @@ async def edit_stock(stock_id: int, payload: StockUpdate):
         return StockOut(
             id=stock.id,
             product_name=stock.product_name,
-            dosage=stock.dosage,  # ✅ Added dosage
+            dosage=stock.dosage,
             category=stock.category,
             batch_number=stock.batch_number,
             vendor=stock.vendor,
@@ -386,7 +390,6 @@ async def edit_stock(stock_id: int, payload: StockUpdate):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error updating stock: {str(e)}"
         )
-
 
 @router.get("/list", response_model=List[StockOut])
 async def list_stock():

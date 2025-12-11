@@ -415,7 +415,6 @@ const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
-//const API_BASE = "http://127.0.0.1:8000";
 
 const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
@@ -512,7 +511,7 @@ const CertificateUploadBox = ({ certificates, setCertificates, required = false 
   );
 };
 
-const Dropdown = ({ label, value, onChange, options, required = false }) => (
+const Dropdown = ({ label, value, onChange, options, required = false, error }) => (
   <div className="space-y-1 w-full">
     <label className="text-sm text-black dark:text-white">
       {label}
@@ -555,6 +554,7 @@ const Dropdown = ({ label, value, onChange, options, required = false }) => (
         </Listbox.Options>
       </div>
     </Listbox>
+    {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
   </div>
 );
 
@@ -565,6 +565,7 @@ const DatePickerField = ({
   onChange,
   placeholder,
   required = false,
+  error
 }) => {
   const selectedDate = (() => {
     if (!value) return null;
@@ -625,6 +626,7 @@ const DatePickerField = ({
           </svg>
         </div>
       </div>
+      {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
   );
 };
@@ -634,35 +636,55 @@ const InputField = ({
   name,
   value,
   onChange,
+  onBlur,
   placeholder,
   type = "text",
   required = false,
-}) => (
-  <div className="space-y-1 w-full">
-    <label className="text-sm text-black dark:text-white">
-      {label}
-      {required && <span className="text-red-500 ml-1">*</span>}
-    </label>
-    <input
-      type={type}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      required={required}
-      className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
-    />
-  </div>
-);
+  error,
+  autoCapitalize = false
+}) => {
+  const handleChange = (e) => {
+    let newValue = e.target.value;
+    
+    // Auto-capitalize first letter for name fields
+    if (autoCapitalize && newValue && name.includes('name')) {
+      // Capitalize first letter of each word
+      newValue = newValue.replace(/\b\w/g, char => char.toUpperCase());
+    }
+    
+    onChange({ target: { name, value: newValue } });
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
+      />
+      {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
+    </div>
+  );
+};
 
 const TextAreaField = ({
   label,
   name,
   value,
   onChange,
+  onBlur,
   placeholder,
   rows = 3,
   required = false,
+  error
 }) => (
   <div className="space-y-1 w-full">
     <label className="text-sm text-black dark:text-white">
@@ -673,10 +695,12 @@ const TextAreaField = ({
       name={name}
       value={value}
       onChange={onChange}
+      onBlur={onBlur}
       placeholder={placeholder}
       rows={rows}
       className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] resize-none"
     />
+    {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
   </div>
 );
 
@@ -717,6 +741,13 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [departments, setDepartments] = useState([]);
   const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Validation states
+  const [formatErrors, setFormatErrors] = useState({});
+  const [requiredErrors, setRequiredErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [showAllErrors, setShowAllErrors] = useState(false);
+  
   const navigate = useNavigate();
 
   const maritalStatus = ["Single", "Married", "Divorced", "Widowed"];
@@ -746,34 +777,278 @@ export default function NewRegistration({ isSidebarOpen }) {
       .catch(() => errorToast("Failed to load departments"));
   }, []);
 
+  // ── Format validation functions (while typing) ───────────────────────
+  const validateFieldFormat = (field, value) => {
+    if (!value || value.trim() === "") return ""; // Empty values handled by required validation
+    
+    switch (field) {
+      case "full_name":
+        if (value.length < 2) return "Full name must be at least 2 characters";
+        if (value.length > 100) return "Full name cannot exceed 100 characters";
+        if (!/^[A-Za-z\s]+$/.test(value)) return "Full name can only contain letters and spaces";
+        return "";
+      
+      case "email":
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+        if (value.length > 100) return "Email cannot exceed 100 characters";
+        return "";
+      
+      case "phone":
+        if (!/^\d+$/.test(value)) return "Phone number must contain only digits";
+        if (value.length !== 10) return "Phone number must be exactly 10 digits";
+        return "";
+      
+      case "national_id":
+        if (value.length > 50) return "National ID cannot exceed 50 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "National ID can only contain letters, numbers, spaces, hyphens, and underscores";
+        return "";
+      
+      case "city":
+      case "country":
+        if (value.length > 50) return "Cannot exceed 50 characters";
+        if (!/^[A-Za-z\s]+$/.test(value)) return "Can only contain letters and spaces";
+        return "";
+      
+      case "address":
+        if (value.length > 200) return "Address cannot exceed 200 characters";
+        if (!/^[A-Za-z0-9\s\-.,#'&/]+$/.test(value)) return "Address can only contain letters, numbers, spaces, hyphens, dots, commas, #, ', &, and /";
+        return "";
+      
+      case "designation":
+      case "specialization":
+        if (value.length > 100) return "Cannot exceed 100 characters";
+        if (!/^[A-Za-z\s]+$/.test(value)) return "Can only contain letters and spaces";
+        return "";
+      
+      case "age":
+        if (!/^\d+$/.test(value)) return "Age must contain only numbers";
+        const ageNum = parseInt(value);
+        if (ageNum < 18) return "Age must be at least 18";
+        if (ageNum > 100) return "Age cannot exceed 100";
+        return "";
+      
+      case "license_number":
+        if (value.length > 50) return "License number cannot exceed 50 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "License number can only contain letters, numbers, spaces, hyphens, and underscores";
+        return "";
+      
+      case "experience":
+        if (value.length > 50) return "Experience cannot exceed 50 characters";
+        if (!/^[A-Za-z0-9\s+\-]+$/.test(value)) return "Experience can only contain letters, numbers, spaces, +, and -";
+        return "";
+      
+      case "languages_spoken":
+        if (value.length > 100) return "Languages cannot exceed 100 characters";
+        if (!/^[A-Za-z\s,]+$/.test(value)) return "Languages can only contain letters, spaces, and commas";
+        return "";
+      
+      case "education":
+      case "about_physician":
+      case "board_certifications":
+      case "professional_memberships":
+      case "awards_recognitions":
+        if (value.length > 500) return "Cannot exceed 500 characters";
+        return "";
+      
+      default:
+        return "";
+    }
+  };
+
+  // ── Required field validation (only for submission) ──────────────────
+  const validateRequiredFields = () => {
+    const errors = {};
+    let isValid = true;
+
+    // Basic Information - All required
+    const requiredBasicFields = [
+      "full_name", "date_of_birth", "gender", "age", 
+      "marital_status", "address", "phone", "email",
+      "national_id", "city", "country", "date_of_joining",
+      "designation", "department", "specialization", "status",
+      "shift_timing"
+    ];
+
+    requiredBasicFields.forEach(field => {
+      if (!formData[field] || formData[field].toString().trim() === "") {
+        errors[field] = "This field is required";
+        isValid = false;
+      }
+    });
+
+    // Professional Information - Required except awards_recognitions
+    const requiredProfessionalFields = [
+      "education", "about_physician", "experience", 
+      "license_number", "board_certifications", 
+      "professional_memberships", "languages_spoken"
+    ];
+
+    requiredProfessionalFields.forEach(field => {
+      if (!formData[field] || formData[field].toString().trim() === "") {
+        errors[field] = "This field is required";
+        isValid = false;
+      }
+    });
+
+    // Photo is required
+    if (!photo) {
+      errors.photo = "Photo is required";
+      isValid = false;
+    }
+
+    // At least one certificate is required
+    if (certificates.length === 0) {
+      errors.certificates = "At least one certificate is required";
+      isValid = false;
+    }
+
+    setRequiredErrors(errors);
+    return isValid;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    
+    // Clear required field error when user starts typing
+    if (requiredErrors[name]) {
+      setRequiredErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
+    // Perform real-time format validation (only for non-empty values)
+    if (value && value.trim() !== "") {
+      const formatError = validateFieldFormat(name, value);
+      
+      if (formatError) {
+        setFormatErrors(prev => ({
+          ...prev,
+          [name]: formatError
+        }));
+      } else {
+        // Clear format error if validation passes
+        setFormatErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    } else {
+      // Clear format error for empty fields
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
+
+  const handleDropdownChange = (field, value) => {
+    handleInputChange({ target: { name: field, value } });
+    if (!touched[field]) {
+      setTouched(prev => ({ ...prev, [field]: true }));
+    }
+  };
+
+  const handlePhotoChange = (newPhoto) => {
+    setPhoto(newPhoto);
+    // Clear photo error when user uploads photo
+    if (requiredErrors.photo) {
+      setRequiredErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.photo;
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCertificatesChange = (newCertificates) => {
+    setCertificates(newCertificates);
+    // Clear certificates error when user uploads certificates
+    if (requiredErrors.certificates) {
+      setRequiredErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.certificates;
+        return newErrors;
+      });
+    }
+  };
+
+  // ── Validate all fields before submission ────────────────────────────
+  const validateForm = () => {
+    // Mark all fields as touched
+    const allTouched = {};
+    Object.keys(formData).forEach(field => {
+      allTouched[field] = true;
+    });
+    setTouched(allTouched);
+    setShowAllErrors(true);
+    
+    // First check required fields
+    const requiredValid = validateRequiredFields();
+    
+    // Then check format validation for all non-empty fields
+    const formatErrorsCheck = {};
+    Object.keys(formData).forEach(field => {
+      const value = formData[field];
+      if (value && value.toString().trim() !== "") {
+        const error = validateFieldFormat(field, value);
+        if (error) formatErrorsCheck[field] = error;
+      }
+    });
+    
+    // Update format errors for display
+    setFormatErrors(formatErrorsCheck);
+    
+    const formatValid = Object.keys(formatErrorsCheck).length === 0;
+    
+    return requiredValid && formatValid;
+  };
+
+  // Helper to determine which error should be shown
+  const getFieldError = (field) => {
+    // Format errors take priority
+    if (formatErrors[field]) {
+      return formatErrors[field];
+    }
+    
+    // Show required errors for empty fields when showing all errors
+    if (showAllErrors && requiredErrors[field]) {
+      return requiredErrors[field];
+    }
+    
+    // Show required errors for touched fields
+    if (touched[field] && requiredErrors[field]) {
+      return requiredErrors[field];
+    }
+    
+    return "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("Form submission started", formData);
 
-    // Validation
-    if (
-      !formData.full_name ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.designation ||
-      !formData.department
-    ) {
-      errorToast("Please fill all required fields");
-      return;
-    }
-
-    // Email/Gmail Validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      errorToast("Please enter a valid email address");
+    // Validate form before submission
+    const isValid = validateForm();
+    
+    if (!isValid) {
+      console.log("Form validation failed", { 
+        requiredErrors, 
+        formatErrors,
+        formData 
+      });
+      errorToast("Please fix all validation errors before saving");
       return;
     }
 
@@ -875,6 +1150,10 @@ export default function NewRegistration({ isSidebarOpen }) {
     });
     setPhoto(null);
     setCertificates([]);
+    setFormatErrors({});
+    setRequiredErrors({});
+    setTouched({});
+    setShowAllErrors(false);
   };
 
   return (
@@ -933,7 +1212,18 @@ export default function NewRegistration({ isSidebarOpen }) {
                 *Required to fill all input
               </p>
             </div>
-            <PhotoUploadBox photo={photo} setPhoto={setPhoto} required={true} />
+            <div>
+              <PhotoUploadBox 
+                photo={photo} 
+                setPhoto={handlePhotoChange} 
+                required={true} 
+              />
+              {getFieldError("photo") && (
+                <p className="mt-1 text-xs text-red-500 dark:text-red-500 text-center md:text-right mr-12">
+                  {requiredErrors.photo}
+                </p>
+              )}
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full">
@@ -948,25 +1238,29 @@ export default function NewRegistration({ isSidebarOpen }) {
                   name="full_name"
                   value={formData.full_name}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("full_name")}
                   placeholder="Enter full name"
                   required={true}
+                  error={getFieldError("full_name")}
+                  autoCapitalize={true}
                 />
                 <DatePickerField
                   label="Date of Birth"
                   name="date_of_birth"
                   value={formData.date_of_birth}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("date_of_birth")}
                   placeholder="MM/DD/YYYY"
                   required={true}
+                  error={getFieldError("date_of_birth")}
                 />
                 <Dropdown
                   label="Gender"
                   value={formData.gender}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, gender: val }))
-                  }
+                  onChange={(val) => handleDropdownChange("gender", val)}
                   options={["Male", "Female", "Other"]}
                   required={true}
+                  error={getFieldError("gender")}
                 />
                 <InputField
                   label="Age"
@@ -974,25 +1268,28 @@ export default function NewRegistration({ isSidebarOpen }) {
                   type="number"
                   value={formData.age}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("age")}
                   placeholder="Enter age"
                   required={true}
+                  error={getFieldError("age")}
                 />
                 <Dropdown
                   label="Marital Status"
                   value={formData.marital_status}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, marital_status: val }))
-                  }
+                  onChange={(val) => handleDropdownChange("marital_status", val)}
                   options={maritalStatus}
                   required={true}
+                  error={getFieldError("marital_status")}
                 />
                 <InputField
                   label="Address"
                   name="address"
                   value={formData.address}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("address")}
                   placeholder="Enter address"
                   required={true}
+                  error={getFieldError("address")}
                 />
                 <InputField
                   label="Phone"
@@ -1000,8 +1297,10 @@ export default function NewRegistration({ isSidebarOpen }) {
                   type="tel"
                   value={formData.phone}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("phone")}
                   placeholder="e.g. 9876543210"
                   required={true}
+                  error={getFieldError("phone")}
                 />
                 <InputField
                   label="Email ID"
@@ -1009,89 +1308,109 @@ export default function NewRegistration({ isSidebarOpen }) {
                   type="email"
                   value={formData.email}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("email")}
                   placeholder="example@gmail.com"
                   required={true}
+                  error={getFieldError("email")}
                 />
                 <InputField
                   label="National ID"
                   name="national_id"
                   value={formData.national_id}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("national_id")}
                   placeholder="Enter National ID"
                   required={true}
+                  error={getFieldError("national_id")}
                 />
                 <InputField
                   label="City"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("city")}
                   placeholder="Enter city"
                   required={true}
+                  error={getFieldError("city")}
                 />
                 <InputField
                   label="Country"
                   name="country"
                   value={formData.country}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("country")}
                   placeholder="Enter country"
                   required={true}
+                  error={getFieldError("country")}
                 />
                 <DatePickerField
                   label="Date of Joining"
                   name="date_of_joining"
                   value={formData.date_of_joining}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("date_of_joining")}
                   placeholder="MM/DD/YYYY"
                   required={true}
+                  error={getFieldError("date_of_joining")}
                 />
                 <InputField
                   label="Designation"
                   name="designation"
                   value={formData.designation}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("designation")}
                   placeholder="Enter designation (e.g., Doctor, Nurse)"
                   required={true}
+                  error={getFieldError("designation")}
+                  autoCapitalize={true}
                 />
                 <Dropdown
                   label="Department"
                   value={formData.department}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, department: val }))
-                  }
+                  onChange={(val) => handleDropdownChange("department", val)}
                   options={departments}
                   required={true}
+                  error={getFieldError("department")}
                 />
                 <InputField
                   label="Specialization"
                   name="specialization"
                   value={formData.specialization}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("specialization")}
                   placeholder="Enter specialization (e.g., Cardiologist)"
                   required={true}
+                  error={getFieldError("specialization")}
+                  autoCapitalize={true}
                 />
                 <Dropdown
                   label="Status"
                   value={formData.status}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, status: val }))
-                  }
+                  onChange={(val) => handleDropdownChange("status", val)}
                   options={statusOptions}
                   required={true}
+                  error={getFieldError("status")}
                 />
                 <Dropdown
                   label="Shift Timing"
                   value={formData.shift_timing}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, shift_timing: val }))
-                  }
+                  onChange={(val) => handleDropdownChange("shift_timing", val)}
                   options={shiftTimingOptions}
                   required={true}
+                  error={getFieldError("shift_timing")}
                 />
-                <CertificateUploadBox
-                  certificates={certificates}
-                  setCertificates={setCertificates}
-                  required={true}
-                />
+                <div>
+                  <CertificateUploadBox
+                    certificates={certificates}
+                    setCertificates={handleCertificatesChange}
+                    required={true}
+                  />
+                  {getFieldError("certificates") && (
+                    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
+                      {requiredErrors.certificates}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1106,56 +1425,70 @@ export default function NewRegistration({ isSidebarOpen }) {
                   name="education"
                   value={formData.education}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("education")}
                   placeholder="e.g., Cardiologist"
                   required={true}
+                  error={getFieldError("education")}
                 />
                 <TextAreaField
                   label="About Physician"
                   name="about_physician"
                   value={formData.about_physician}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("about_physician")}
                   placeholder="Dedicated to providing compassionate, patient-centered care."
                   required={true}
+                  error={getFieldError("about_physician")}
                 />
                 <InputField
                   label="Experience"
                   name="experience"
                   value={formData.experience}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("experience")}
                   placeholder="e.g., 10+ years"
                   required={true}
+                  error={getFieldError("experience")}
                 />
                 <InputField
                   label="License Number"
                   name="license_number"
                   value={formData.license_number}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("license_number")}
                   placeholder="Enter license number"
                   required={true}
+                  error={getFieldError("license_number")}
                 />
                 <TextAreaField
                   label="Board Certifications"
                   name="board_certifications"
                   value={formData.board_certifications}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("board_certifications")}
                   placeholder="e.g., American Board of Orthopedic Surgery"
                   required={true}
+                  error={getFieldError("board_certifications")}
                 />
                 <TextAreaField
                   label="Professional Memberships"
                   name="professional_memberships"
                   value={formData.professional_memberships}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("professional_memberships")}
                   placeholder="e.g., American Medical Association (AMA)"
                   required={true}
+                  error={getFieldError("professional_memberships")}
                 />
                 <InputField
                   label="Languages Spoken"
                   name="languages_spoken"
                   value={formData.languages_spoken}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("languages_spoken")}
                   placeholder="e.g., English, Spanish"
                   required={true}
+                  error={getFieldError("languages_spoken")}
                 />
                 {/* Awards & Recognitions EXCLUDED from required */}
                 <TextAreaField
@@ -1163,7 +1496,9 @@ export default function NewRegistration({ isSidebarOpen }) {
                   name="awards_recognitions"
                   value={formData.awards_recognitions}
                   onChange={handleInputChange}
+                  onBlur={() => handleBlur("awards_recognitions")}
                   placeholder="e.g., Top Doctor awards, hospital honors"
+                  error={getFieldError("awards_recognitions")}
                 />
               </div>
             </div>

@@ -16,6 +16,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
 
   /* Format Date → YYYY-MM-DD for API */
@@ -24,18 +25,56 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     return date.toISOString().split("T")[0];
   };
 
-  /* Validate form */
+  /* Real-time format validation functions */
+  const validateFieldFormat = (field, value) => {
+    switch (field) {
+      case "donor_name":
+        if (!value) return "";
+        if (!/^[A-Za-z\s]*$/.test(value)) {
+          return "Name can only contain letters and spaces";
+        }
+        return "";
+      
+      case "phone":
+        if (!value) return "";
+        if (!/^\d*$/.test(value)) {
+          return "Phone must contain only digits";
+        }
+        if (value.length > 10) {
+          return "Phone cannot exceed 10 digits";
+        }
+        // Show error while typing if less than 10 digits
+        if (value.length > 0 && value.length < 10) {
+          return "Phone must be exactly 10 digits";
+        }
+        return "";
+      
+      case "email":
+        if (!value) return "";
+        if (value && !/^[^\s@]*@?[^\s@]*\.?[^\s@]*$/.test(value)) {
+          return "Invalid email format";
+        }
+        return "";
+      
+      default:
+        return "";
+    }
+  };
+
+  /* Validate form on submission */
   const validateForm = () => {
     const newErrors = {};
 
-    // Name validation
+    // Name validation - only letters and spaces
     if (!formData.donor_name.trim()) {
       newErrors.donor_name = "Donor name is required";
     } else if (formData.donor_name.trim().length < 2) {
       newErrors.donor_name = "Name must be at least 2 characters";
+    } else if (!/^[A-Za-z\s]+$/.test(formData.donor_name)) {
+      newErrors.donor_name = "Name can only contain letters and spaces";
     }
 
-    // Phone validation
+    // Phone validation - EXACTLY 10 digits
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
     } else if (!/^\d{10}$/.test(formData.phone)) {
@@ -62,10 +101,12 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/api"
-    : "http://localhost:8000/api";
+
+  const API_BASE =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000/api"
+      : "http://localhost:8000/api";
+
   /* Submit Handler */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -112,6 +153,92 @@ const API_BASE =
     }
   };
 
+  /* Handle Donor Name Change - Auto-capitalize */
+  const handleDonorNameChange = (e) => {
+    let value = e.target.value;
+    
+    // Auto-capitalize first letter of each word
+    if (value) {
+      value = value.replace(/\b\w/g, char => char.toUpperCase());
+    }
+    
+    setFormData({ ...formData, donor_name: value });
+    
+    // Clear required error when user starts typing
+    if (errors.donor_name) {
+      setErrors(prev => ({ ...prev, donor_name: "" }));
+    }
+    
+    // Real-time format validation
+    const formatError = validateFieldFormat("donor_name", value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, donor_name: formatError }));
+    } else {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.donor_name;
+        return newErrors;
+      });
+    }
+  };
+
+  /* Handle Phone Change */
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, phone: value });
+    
+    // Clear required error when user starts typing
+    if (errors.phone) {
+      setErrors(prev => ({ ...prev, phone: "" }));
+    }
+    
+    // Real-time format validation
+    const formatError = validateFieldFormat("phone", value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, phone: formatError }));
+    } else {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.phone;
+        return newErrors;
+      });
+    }
+  };
+
+  /* Handle Email Change */
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+    
+    // Clear required error when user starts typing
+    if (errors.email) {
+      setErrors(prev => ({ ...prev, email: "" }));
+    }
+    
+    // Real-time format validation
+    const formatError = validateFieldFormat("email", value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, email: formatError }));
+    } else {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.email;
+        return newErrors;
+      });
+    }
+  };
+
+  /* Handle Blur - final validation */
+  const handleBlur = (field) => {
+    // Perform final format validation on blur
+    const value = formData[field];
+    const formatError = validateFieldFormat(field, value);
+    
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, [field]: formatError }));
+    }
+  };
+
   /* Reusable Dropdown Component */
   const Dropdown = ({ label, value, onChange, options, error }) => (
     <div>
@@ -146,9 +273,20 @@ const API_BASE =
           </Listbox.Options>
         </div>
       </Listbox>
-      {error && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
+      {error && <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{error}</p>}
     </div>
   );
+
+  // Helper to determine which error to show
+  const getFieldError = (field) => {
+    // Show format errors in real-time
+    if (formatErrors[field]) {
+      return formatErrors[field];
+    }
+    
+    // Show required errors only on form submission
+    return errors[field] || "";
+  };
 
   const genders = ["Male", "Female", "Other"];
   const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -182,14 +320,22 @@ const API_BASE =
                 <input
                   type="text"
                   value={formData.donor_name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, donor_name: e.target.value })
-                  }
+                  onChange={handleDonorNameChange}
+                  onBlur={() => {
+                    // Trim whitespace on blur
+                    if (formData.donor_name) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        donor_name: prev.donor_name.trim() 
+                      }));
+                    }
+                    handleBlur("donor_name");
+                  }}
                   placeholder="Enter full name"
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 />
-                {errors.donor_name && (
-                  <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.donor_name}</p>
+                {getFieldError("donor_name") && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("donor_name")}</p>
                 )}
               </div>
 
@@ -201,18 +347,13 @@ const API_BASE =
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (/^\d*$/.test(val) && val.length <= 10) {
-                      setFormData({ ...formData, phone: val });
-                    }
-                  }}
-                  maxLength={10}
+                  onChange={handlePhoneChange}
+                  onBlur={() => handleBlur("phone")}
                   placeholder="e.g. 9876543210"
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 />
-                {errors.phone && (
-                  <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.phone}</p>
+                {getFieldError("phone") && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("phone")}</p>
                 )}
               </div>
 
@@ -224,14 +365,22 @@ const API_BASE =
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
+                  onChange={handleEmailChange}
+                  onBlur={() => {
+                    // Trim whitespace on blur
+                    if (formData.email) {
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        email: prev.email.trim() 
+                      }));
+                    }
+                    handleBlur("email");
+                  }}
                   placeholder="example@domain.com"
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 />
-                {errors.email && (
-                  <p className="text-red-500 dark:text-red-400 text-xs mt-1">{errors.email}</p>
+                {getFieldError("email") && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("email")}</p>
                 )}
               </div>
 
@@ -239,18 +388,28 @@ const API_BASE =
               <Dropdown
                 label={<>Gender <span className="text-red-500">*</span></>}
                 value={formData.gender}
-                onChange={(val) => setFormData({ ...formData, gender: val })}
+                onChange={(val) => {
+                  setFormData({ ...formData, gender: val });
+                  if (errors.gender) {
+                    setErrors(prev => ({ ...prev, gender: "" }));
+                  }
+                }}
                 options={genders}
-                error={errors.gender}
+                error={errors.gender} // Only required error for dropdown
               />
 
               {/* Blood Type */}
               <Dropdown
                 label={<>Blood Type <span className="text-red-500">*</span></>}
                 value={formData.blood_type}
-                onChange={(val) => setFormData({ ...formData, blood_type: val })}
+                onChange={(val) => {
+                  setFormData({ ...formData, blood_type: val });
+                  if (errors.blood_type) {
+                    setErrors(prev => ({ ...prev, blood_type: "" }));
+                  }
+                }}
                 options={bloodTypes}
-                error={errors.blood_type}
+                error={errors.blood_type} // Only required error for dropdown
               />
 
               {/* Last Donation Date */}

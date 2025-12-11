@@ -16,7 +16,8 @@ const BED_API =
 
 export default function AddAppointmentPopup({ onClose, onSuccess }) {
   // Add validation state
-  const [validationErrors, setValidationErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({}); // Format validation
+  const [fieldErrors, setFieldErrors] = useState({}); // Required field validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
   
   // ── Form state (backend keys) ─────────────────────────────────────
@@ -39,49 +40,78 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // ── Validation function ──────────────────────────────────────────────
-  const validateForm = () => {
+  // ── Format validation functions (while typing) ───────────────────────
+  const validatePatientNameFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s'-]+$/.test(value)) return "Name should only contain letters, spaces, hyphens, and apostrophes";
+    if (value.trim() && value.trim().length < 2) return "Name must be at least 2 characters";
+    return "";
+  };
+
+  const validatePhoneFormat = (value) => {
+    if (value.trim() && !/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  // ── Required field validation (only for submission) ──────────────────
+  const validateRequiredFields = () => {
     const errors = {};
-    
+    let isValid = true;
+
     if (!formData.patient_name.trim()) {
       errors.patient_name = "Patient name is required";
+      isValid = false;
     }
     
     if (!formData.department_id) {
       errors.department_id = "Department is required";
+      isValid = false;
     }
     
     if (!formData.staff_id) {
       errors.staff_id = "Doctor is required";
+      isValid = false;
     }
     
     if (!formData.room_no) {
       errors.room_no = "Room/Bed is required";
+      isValid = false;
     }
     
     if (!formData.phone_no) {
       errors.phone_no = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone_no)) {
-      errors.phone_no = "Phone number must be 10 digits";
+      isValid = false;
     }
     
     if (!formData.appointment_type) {
       errors.appointment_type = "Appointment type is required";
+      isValid = false;
     }
     
     if (!formData.status) {
       errors.status = "Status is required";
+      isValid = false;
     }
     
-    setValidationErrors(errors);
-    return Object.keys(errors).length === 0;
+    setFieldErrors(errors);
+    return isValid;
   };
 
-  // ── Handle input change with validation ──────────────────────────────
+  // ── Handle input change with format validation ────────────────────────
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    let processedValue = value;
     
-    // Clear validation error for this field when user starts typing
+    // Capitalize first letter of each word for patient name
+    if (field === "patient_name") {
+      processedValue = value
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
+    
+    // Clear format validation error for this field when user starts typing
     if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
@@ -89,6 +119,55 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
         return newErrors;
       });
     }
+    
+    // Clear required field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    // Perform real-time format validation
+    let formatError = "";
+    
+    switch (field) {
+      case "patient_name":
+        formatError = validatePatientNameFormat(processedValue);
+        break;
+      case "phone_no":
+        formatError = validatePhoneFormat(processedValue);
+        break;
+      default:
+        break;
+    }
+    
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    }
+  };
+
+  // ── Validate all fields before submission ────────────────────────────
+  const validateForm = () => {
+    // First check required fields
+    const requiredValid = validateRequiredFields();
+    
+    // Then check format validation
+    const formatErrors = {
+      patient_name: validatePatientNameFormat(formData.patient_name),
+      phone_no: validatePhoneFormat(formData.phone_no)
+    };
+    
+    // Update validation errors for display
+    setValidationErrors(formatErrors);
+    
+    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    
+    return requiredValid && formatValid;
   };
 
   // ── Load departments (once) ───────────────────────────────────────
@@ -175,7 +254,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   const handleSave = async () => {
     // Validate all fields
     if (!validateForm()) {
-      errorToast("Please fill all required fields");
+      errorToast("Please fix all validation errors before saving");
       return;
     }
 
@@ -264,7 +343,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             {/* Patient Name */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Patient Name <span className="text-red-500">*</span>
+                Patient Name <span className="text-red-700">*</span>
               </label>
               <input
                 value={formData.patient_name}
@@ -279,16 +358,23 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                            text-black dark:text-[#0EFF7B]
                            ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
+              {/* Format validation error - shows while typing */}
               {validationErrors.patient_name && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.patient_name}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.patient_name}</span>
+                </div>
+              )}
+              {/* Required field error - only shows after submit attempt */}
+              {fieldErrors.patient_name && !validationErrors.patient_name && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.patient_name}</span>
                 </div>
               )}
             </div>
             {/* Department */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Department <span className="text-red-500">*</span>
+                Department <span className="text-red-700">*</span>
               </label>
               <Listbox value={formData.department_id} onChange={(v) => {
                 handleInputChange("department_id", v);
@@ -346,16 +432,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {validationErrors.department_id && (
+              {fieldErrors.department_id && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.department_id}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.department_id}</span>
                 </div>
               )}
             </div>
             {/* Doctor */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Doctor <span className="text-red-500">*</span>
+                Doctor <span className="text-red-700">*</span>
               </label>
               <Listbox value={formData.staff_id} onChange={(v) => handleInputChange("staff_id", v)}>
                 <div className="relative mt-1">
@@ -410,16 +496,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {validationErrors.staff_id && (
+              {fieldErrors.staff_id && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.staff_id}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.staff_id}</span>
                 </div>
               )}
             </div>
             {/* Room / Bed No */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Room / Bed No <span className="text-red-500">*</span>
+                Room / Bed No <span className="text-red-700">*</span>
               </label>
               <Listbox value={formData.room_no} onChange={(v) => handleInputChange("room_no", v)}>
                 <div className="relative mt-1">
@@ -474,24 +560,21 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {validationErrors.room_no && (
+              {fieldErrors.room_no && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.room_no}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.room_no}</span>
                 </div>
               )}
             </div>
             {/* Phone No */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Phone No <span className="text-red-500">*</span>
+                Phone No <span className="text-red-700">*</span>
               </label>
               <input
                 value={formData.phone_no}
                 onChange={(e) => {
-                  const value = e.target.value;
-                  if (/^\d{0,10}$/.test(value)) {
-                    handleInputChange("phone_no", value);
-                  }
+                  handleInputChange("phone_no", e.target.value);
                 }}
                 onFocus={() => setFocusedField("phone")}
                 onBlur={() => setFocusedField(null)}
@@ -501,16 +584,23 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                            text-black dark:text-[#0EFF7B]
                            ${focusedField === "phone" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
+              {/* Format validation error - shows while typing */}
               {validationErrors.phone_no && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.phone_no}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.phone_no}</span>
+                </div>
+              )}
+              {/* Required field error - only shows after submit attempt */}
+              {fieldErrors.phone_no && !validationErrors.phone_no && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.phone_no}</span>
                 </div>
               )}
             </div>
             {/* Appointment Type */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Appointment Type <span className="text-red-500">*</span>
+                Appointment Type <span className="text-red-700">*</span>
               </label>
               <Listbox
                 value={formData.appointment_type}
@@ -550,16 +640,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {validationErrors.appointment_type && (
+              {fieldErrors.appointment_type && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.appointment_type}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.appointment_type}</span>
                 </div>
               )}
             </div>
             {/* Status */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Status <span className="text-red-500">*</span>
+                Status <span className="text-red-700">*</span>
               </label>
               <Listbox
                 value={formData.status}
@@ -599,9 +689,9 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {validationErrors.status && (
+              {fieldErrors.status && (
                 <div className="mt-1">
-                  <span className="text-red-400 text-xs">{validationErrors.status}</span>
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.status}</span>
                 </div>
               )}
             </div>
@@ -618,7 +708,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             </button>
             <button
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || Object.values(validationErrors).some(error => error !== "")}
               className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                          bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                          shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]

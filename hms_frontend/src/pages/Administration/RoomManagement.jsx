@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Edit,
   Trash2,
+  LogOut,
+  UserMinus,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
@@ -511,7 +513,7 @@ const RoomManagement = () => {
           onClose={() => setFilterOpen(false)}
         />
 
-        <Routes> 
+        <Routes>
           <Route
             path="/"
             element={
@@ -581,57 +583,54 @@ const RoomManagement = () => {
                             {room.status}
                           </td>
                           <td className="text-center">
-  <div className="flex justify-center gap-2">
-    
-    {/* Edit Button */}
-    <div
-      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
+                            <div className="flex justify-center gap-2">
+                              {/* Edit Button */}
+                              <div
+                                className="relative group w-8 h-8 flex items-center justify-center rounded-full 
                  border border-[#08994A1A] dark:border-[#0EFF7B1A] 
                  bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
-      onClick={() => handleEditClick(room)}
-    >
-      <Edit
-        size={16}
-        className="text-[#08994A] dark:text-[#0EFF7B] 
+                                onClick={() => handleEditClick(room)}
+                              >
+                                <Edit
+                                  size={16}
+                                  className="text-[#08994A] dark:text-[#0EFF7B] 
                    hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-      />
-      <span
-    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                                />
+                                <span
+                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                px-3 py-1 text-xs rounded-md shadow-md
                bg-white dark:bg-black text-black dark:text-white
                opacity-0 group-hover:opacity-100
                transition-all duration-150"
-  >
-    Edit
-  </span>
-    </div>
+                                >
+                                  Edit
+                                </span>
+                              </div>
 
-    {/* Delete / Discharge Button */}
-    <div
-      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
-                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
-                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
-      onClick={() => handleDischargeClick(room)}
-    >
-      <Trash2
-        size={16}
-        className="text-red-600 dark:text-red-500 
-                   hover:text-red-700 dark:hover:text-red-400"
-      />
-      <span
-    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-               px-3 py-1 text-xs rounded-md shadow-md
-               bg-white dark:bg-black text-black dark:text-white
-               opacity-0 group-hover:opacity-100
-               transition-all duration-150"
-  >
-    Delete
-  </span>
-    </div>
-
-  </div>
-</td>
-
+                              {/* Delete / Discharge Button */}
+                              <div
+                                className="relative group w-8 h-8 flex items-center justify-center rounded-full 
+                 border border-red-200 dark:border-red-900/50 
+                 bg-red-50 dark:bg-red-900/20 cursor-pointer"
+                                onClick={() => handleDischargeClick(room)}
+                              >
+                                <UserMinus
+                                  size={16}
+                                  className="text-red-600 dark:text-red-400 
+                   hover:text-red-700 dark:hover:text-red-300"
+                                />
+                                <span
+                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                   px-3 py-1 text-xs rounded-md shadow-md
+                   bg-white dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 pointer-events-none"
+                                >
+                                  Discharge Patient
+                                </span>
+                              </div>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (

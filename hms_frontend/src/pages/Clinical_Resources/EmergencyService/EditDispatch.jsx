@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, ChevronDown, CalendarClock } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import { successToast, errorToast } from "../../../components/Toast.jsx"; // Assuming path based on context
+import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 const EditDispatchModal = ({
   isOpen,
@@ -11,7 +11,7 @@ const EditDispatchModal = ({
   onSave,
   units = [],
 }) => {
-  const isEdit = !!dispatch?.id; // Use numeric id, not dispatch_id string
+  const isEdit = !!dispatch?.id;
 
   const freshTimestamp = () => {
     const d = new Date();
@@ -40,6 +40,9 @@ const EditDispatchModal = ({
     timestamp: freshTimestamp(),
   });
 
+  const [errors, setErrors] = useState({});
+  const [showErrors, setShowErrors] = useState(false);
+
   const timestampRef = useRef(null);
 
   useEffect(() => {
@@ -63,16 +66,79 @@ const EditDispatchModal = ({
           timestamp: freshTimestamp(),
         });
       }
+      setErrors({});
+      setShowErrors(false);
     }
   }, [isOpen, dispatch, units]);
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'dispatcher':
+        if (!value.trim()) return "Dispatcher name is required";
+        if (!/^[A-Za-z\s]+$/.test(value.trim())) return "Only letters and spaces allowed";
+        if (value.trim().length < 2) return "Must be at least 2 characters";
+        return "";
+      
+      case 'location':
+        if (!value.trim()) return "Location is required";
+        if (!/^[A-Za-z\s]+$/.test(value.trim())) return "Only letters and spaces allowed";
+        if (value.trim().length < 3) return "Must be at least 3 characters";
+        return "";
+      
+      case 'unit_id':
+        if (!value) return "Unit selection is required";
+        return "";
+      
+      default:
+        return "";
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((p) => ({ ...p, [name]: value }));
+    
+    // Real-time validation while typing (only in create mode)
+    if (!isEdit) {
+      const error = validateField(name, value);
+      setErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    newErrors.dispatcher = validateField('dispatcher', form.dispatcher);
+    newErrors.location = validateField('location', form.location);
+    newErrors.unit_id = validateField('unit_id', form.unit_id);
+    
+    if (form.timestamp) {
+      const selectedDate = new Date(form.timestamp);
+      const now = new Date();
+      if (selectedDate > now) {
+        newErrors.timestamp = "Timestamp cannot be in the future";
+      }
+    }
+    
+    setErrors(newErrors);
+    return Object.values(newErrors).every(error => error === "");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    if (!isEdit) {
+      setShowErrors(true);
+      
+      if (!validateForm()) {
+        errorToast("Please fix the validation errors before submitting");
+        return;
+      }
+    }
+    
     onSave(form);
     onClose();
   };
@@ -86,14 +152,24 @@ const EditDispatchModal = ({
     options,
     placeholder,
     isObject = false,
-    required = false,
+    error = ""
   }) => (
     <div>
       <label className="text-sm text-black dark:text-white">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {label} 
+        {!isEdit && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <Listbox value={value} onChange={onChange}>
+      <Listbox value={value} onChange={(v) => {
+        onChange(v);
+        // Real-time validation for dropdown change
+        if (!isEdit) {
+          const error = validateField('unit_id', v);
+          setErrors(prev => ({
+            ...prev,
+            unit_id: error
+          }));
+        }
+      }}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
             {value
@@ -127,6 +203,10 @@ const EditDispatchModal = ({
           </Listbox.Options>
         </div>
       </Listbox>
+      {/* Show real-time validation errors while typing */}
+      {!isEdit && error && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
     </div>
   );
 
@@ -157,53 +237,115 @@ const EditDispatchModal = ({
             <Dropdown
               label="Unit"
               value={form.unit_id}
-              onChange={(v) => setForm((p) => ({ ...p, unit_id: v }))}
+              onChange={(v) => {
+                setForm((p) => ({ ...p, unit_id: v }));
+              }}
               options={units}
               placeholder="Select Unit"
               isObject={true}
-              required={true}
+              error={errors.unit_id}
             />
             <div>
               <label className="text-sm text-black dark:text-white">
-                Dispatcher <span className="text-red-500 ml-1">*</span>
+                Dispatcher 
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
               </label>
               <input
-                required
                 name="dispatcher"
                 value={form.dispatcher}
                 onChange={handleChange}
                 placeholder="Enter name"
                 className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
               />
+              {/* Show real-time validation errors while typing */}
+              {!isEdit && errors.dispatcher && (
+                <p className="text-red-500 text-xs mt-1">{errors.dispatcher}</p>
+              )}
             </div>
-            <Dropdown
-              label="Call Type"
-              value={form.call_type}
-              onChange={(v) => setForm((p) => ({ ...p, call_type: v }))}
-              options={["Emergency", "Non-Emergency", "Transfer"]}
-              placeholder="Select Type"
-              required={true}
-            />
-            <Dropdown
-              label="Status"
-              value={form.status}
-              onChange={(v) => setForm((p) => ({ ...p, status: v }))}
-              options={["Standby", "En Route", "Completed", "Cancelled"]}
-              placeholder="Select Status"
-              required={true}
-            />
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Call Type 
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              <Listbox 
+                value={form.call_type} 
+                onChange={(v) => setForm((p) => ({ ...p, call_type: v }))}
+              >
+                <div className="relative mt-1 w-[228px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
+                    {form.call_type}
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                    {["Emergency", "Non-Emergency", "Transfer"].map((opt) => (
+                      <Listbox.Option
+                        key={opt}
+                        value={opt}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                            active
+                              ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                              : "text-black dark:text-white"
+                          } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                        }
+                      >
+                        {opt}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Status 
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
+              </label>
+              <Listbox 
+                value={form.status} 
+                onChange={(v) => setForm((p) => ({ ...p, status: v }))}
+              >
+                <div className="relative mt-1 w-[228px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
+                    {form.status}
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                    {["Standby", "En Route", "Completed", "Cancelled"].map((opt) => (
+                      <Listbox.Option
+                        key={opt}
+                        value={opt}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                            active
+                              ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                              : "text-black dark:text-white"
+                          } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                        }
+                      >
+                        {opt}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
             <div className="col-span-2">
               <label className="text-sm text-black dark:text-white">
-                Location <span className="text-red-500 ml-1">*</span>
+                Location 
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
               </label>
               <input
-                required
                 name="location"
                 value={form.location}
                 onChange={handleChange}
                 placeholder="Enter location"
                 className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
               />
+              {/* Show real-time validation errors while typing */}
+              {!isEdit && errors.location && (
+                <p className="text-red-500 text-xs mt-1">{errors.location}</p>
+              )}
             </div>
             <div className="col-span-2">
               <label
@@ -211,11 +353,11 @@ const EditDispatchModal = ({
                 className="block mb-1 cursor-pointer text-sm text-black dark:text-white"
                 onClick={openTimestampPicker}
               >
-                Timestamp
+                Timestamp 
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
               </label>
               <div className="relative">
                 <input
-                  required
                   ref={timestampRef}
                   type="datetime-local"
                   name="timestamp"
@@ -228,6 +370,10 @@ const EditDispatchModal = ({
                   className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] cursor-pointer"
                 />
               </div>
+              {/* Show real-time validation errors while typing */}
+              {!isEdit && errors.timestamp && (
+                <p className="text-red-500 text-xs mt-1">{errors.timestamp}</p>
+              )}
             </div>
             <div className="col-span-2 flex justify-center gap-2 mt-6">
               <button

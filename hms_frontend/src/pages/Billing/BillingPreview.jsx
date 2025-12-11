@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Search, Pencil, Plus, Trash, X, Calendar } from "lucide-react";
+import {
+  Search,
+  Pencil,
+  Plus,
+  Trash,
+  X,
+  Calendar,
+  Loader2,
+} from "lucide-react";
 import { Listbox, Switch } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
+
 // API Base URL configuration
 const APIBASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
-    
-//const APIBASE = "http://localhost:8000";
+
 const BillingPreview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const originalPatients = [
@@ -44,27 +52,90 @@ const BillingPreview = () => {
   const [fullPatient, setFullPatient] = useState(null);
   const [isInsurance, setIsInsurance] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [generatingBill, setGeneratingBill] = useState(false); // New state for bill generation loading
   const [billingItems, setBillingItems] = useState([
-    { sNo: "01", description: "Room charge (3 days)", quantity: "5", unitPrice: "1500", amount: "7500" },
-    { sNo: "02", description: "Doctor consultation fees", quantity: "1", unitPrice: "500", amount: "500" },
-    { sNo: "03", description: "Operation theatre charges", quantity: "1", unitPrice: "1000", amount: "1000" },
-    { sNo: "04", description: "Nurse and wardcare", quantity: "1", unitPrice: "2000", amount: "2000" },
-    { sNo: "05", description: "Surgeon", quantity: "1", unitPrice: "10000", amount: "10000" },
-    { sNo: "06", description: "Medicine and consumables", quantity: "2", unitPrice: "5000", amount: "10000" },
+    {
+      sNo: "01",
+      description: "Room charge (3 days)",
+      quantity: "5",
+      unitPrice: "1500",
+      amount: "7500",
+    },
+    {
+      sNo: "02",
+      description: "Doctor consultation fees",
+      quantity: "1",
+      unitPrice: "500",
+      amount: "500",
+    },
+    {
+      sNo: "03",
+      description: "Operation theatre charges",
+      quantity: "1",
+      unitPrice: "1000",
+      amount: "1000",
+    },
+    {
+      sNo: "04",
+      description: "Nurse and wardcare",
+      quantity: "1",
+      unitPrice: "2000",
+      amount: "2000",
+    },
+    {
+      sNo: "05",
+      description: "Surgeon",
+      quantity: "1",
+      unitPrice: "10000",
+      amount: "10000",
+    },
+    {
+      sNo: "06",
+      description: "Medicine and consumables",
+      quantity: "2",
+      unitPrice: "5000",
+      amount: "10000",
+    },
   ]);
   const [insurances, setInsurances] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const emptyModal = { provider: "", policyNum: "", validFrom: "", validTo: "", policyCard: "" };
+  const emptyModal = {
+    provider: "",
+    policyNum: "",
+    validFrom: "",
+    validTo: "",
+    policyCard: "",
+  };
   const [modalData, setModalData] = useState(emptyModal);
   const [editingIndex, setEditingIndex] = useState(null);
-  const paymentModes = ["Cash", "Credit Card", "Debit Card", "UPI", "Bank Transfer", "Insurance Claim"];
-  const providers = ["Aetna", "Blue Cross Blue Shield", "Cigna", "UnitedHealthcare", "Kaiser Permanente"];
-  const paymentTypes = ["Full Payment", "Partial Payment", "Insurance", "Credit"];
+  const paymentModes = [
+    "Cash",
+    "Credit Card",
+    "Debit Card",
+    "UPI",
+    "Bank Transfer",
+    "Insurance Claim",
+  ];
+  const providers = [
+    "Aetna",
+    "Blue Cross Blue Shield",
+    "Cigna",
+    "UnitedHealthcare",
+    "Kaiser Permanente",
+  ];
+  const paymentTypes = [
+    "Full Payment",
+    "Partial Payment",
+    "Insurance",
+    "Credit",
+  ];
   const paymentStatuses = ["Paid", "Pending", "Overdue", "Refunded"];
+
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
   }, []);
+
   useEffect(() => {
     if (staffInfo.staffName) {
       setPatientInfo((prev) => ({
@@ -74,13 +145,14 @@ const BillingPreview = () => {
       }));
     }
   }, [staffInfo]);
+
   useEffect(() => {
     if (fullPatient) {
       const ageGender = `${fullPatient.age || ""}/${fullPatient.gender || ""}`;
       const startDate = fullPatient.admission_date || "";
       const endDate = fullPatient.discharge_date || "";
       const dob = fullPatient.date_of_birth || "";
-     
+
       setPatientInfo((prev) => ({
         ...prev,
         patientName: fullPatient.full_name || prev.patientName,
@@ -90,97 +162,105 @@ const BillingPreview = () => {
         endDate: endDate,
         dateOfBirth: dob,
         address: fullPatient.address || prev.address,
-        roomType: fullPatient.room_number || prev.roomType, // Adjusted to match backend field (assuming roomType means room_number)
+        roomType: fullPatient.room_number || prev.roomType,
         doctorName: fullPatient.staff__full_name || prev.doctorName,
         department: fullPatient.department__name || prev.department,
         bedGroup: fullPatient.bed_group || prev.bedGroup,
         bedNumber: fullPatient.bed_number || prev.bedNumber,
       }));
-     
+
       if (fullPatient.patient_unique_id) {
         fetchInsurances(fullPatient.patient_unique_id);
         fetchBillingItems(fullPatient.patient_unique_id);
       }
     }
   }, [fullPatient]);
+
   useEffect(() => {
     const lowerQuery = searchQuery.toLowerCase();
     setFilteredPatients(
       patients.filter(
-        (p) => p.name.toLowerCase().includes(lowerQuery) || p.id.toLowerCase().includes(lowerQuery)
+        (p) =>
+          p.name.toLowerCase().includes(lowerQuery) ||
+          p.id.toLowerCase().includes(lowerQuery)
       )
     );
   }, [searchQuery, patients]);
+
   const fetchPatients = async () => {
-  try {
-    const token = localStorage.getItem("token");
-   
-    // First, try to get the list of patients
-    let patientsData = [];
-   
     try {
-      const res = await axios.get(`${APIBASE}/patients/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-     
-      console.log("Patients list API Response:", res.data);
-     
-      // Handle different response structures for list endpoint
-      if (Array.isArray(res.data)) {
-        patientsData = res.data;
-      } else if (res.data && Array.isArray(res.data.results)) {
-        patientsData = res.data.results;
-      } else if (res.data && Array.isArray(res.data.data)) {
-        patientsData = res.data.data;
-      } else if (res.data && Array.isArray(res.data.patients)) {
-        patientsData = res.data.patients;
-      } else if (res.data && typeof res.data === 'object') {
-        // If single object, wrap in array
-        patientsData = [res.data];
-      }
-    } catch (listError) {
-      console.log("List endpoint failed, trying alternatives...");
-     
-      // If list endpoint fails, try to get some specific patients
-      // or use the fallback data
-      const testPatientIds = ["SAH027/384", "SA123456", "SA789012"];
-     
-      for (const patientId of testPatientIds) {
-        try {
-          const patientRes = await axios.get(`${APIBASE}/patients/${patientId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          patientsData.push(patientRes.data);
-        } catch (patientError) {
-          console.log(`Could not fetch patient ${patientId}`);
+      const token = localStorage.getItem("token");
+
+      // First, try to get the list of patients
+      let patientsData = [];
+
+      try {
+        const res = await axios.get(`${APIBASE}/patients/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("Patients list API Response:", res.data);
+
+        // Handle different response structures for list endpoint
+        if (Array.isArray(res.data)) {
+          patientsData = res.data;
+        } else if (res.data && Array.isArray(res.data.results)) {
+          patientsData = res.data.results;
+        } else if (res.data && Array.isArray(res.data.data)) {
+          patientsData = res.data.data;
+        } else if (res.data && Array.isArray(res.data.patients)) {
+          patientsData = res.data.patients;
+        } else if (res.data && typeof res.data === "object") {
+          // If single object, wrap in array
+          patientsData = [res.data];
+        }
+      } catch (listError) {
+        console.log("List endpoint failed, trying alternatives...");
+
+        // If list endpoint fails, try to get some specific patients
+        // or use the fallback data
+        const testPatientIds = ["SAH027/384", "SA123456", "SA789012"];
+
+        for (const patientId of testPatientIds) {
+          try {
+            const patientRes = await axios.get(
+              `${APIBASE}/patients/${patientId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            patientsData.push(patientRes.data);
+          } catch (patientError) {
+            console.log(`Could not fetch patient ${patientId}`);
+          }
         }
       }
-    }
-    // If no patients found, use fallback
-    if (patientsData.length === 0) {
-      console.log("No patients found, using fallback data");
+      // If no patients found, use fallback
+      if (patientsData.length === 0) {
+        console.log("No patients found, using fallback data");
+        setPatients(originalPatients);
+        setFilteredPatients(originalPatients);
+        return;
+      }
+      const mappedPatients = patientsData.map((p) => ({
+        id: p.patient_unique_id || p.unique_id || p.id || "N/A",
+        name: p.full_name || p.name || p.patient_name || "Unknown Patient",
+      }));
+      console.log("Mapped patients:", mappedPatients);
+      setPatients(mappedPatients);
+      setFilteredPatients(mappedPatients);
+
+      // Removed auto-select of first patient to prevent preloading
+    } catch (err) {
+      console.error("Failed to load patients:", err);
+      console.error("Error details:", err.response?.data);
+      errorToast("Failed to load patients list. Using demo data.");
+      // Fallback to hardcoded
       setPatients(originalPatients);
       setFilteredPatients(originalPatients);
-      return;
     }
-    const mappedPatients = patientsData.map((p) => ({
-      id: p.patient_unique_id || p.unique_id || p.id || "N/A",
-      name: p.full_name || p.name || p.patient_name || "Unknown Patient",
-    }));
-    console.log("Mapped patients:", mappedPatients);
-    setPatients(mappedPatients);
-    setFilteredPatients(mappedPatients);
-   
-    // Removed auto-select of first patient to prevent preloading
-  } catch (err) {
-    console.error("Failed to load patients:", err);
-    console.error("Error details:", err.response?.data);
-    errorToast("Failed to load patients list. Using demo data.");
-    // Fallback to hardcoded
-    setPatients(originalPatients);
-    setFilteredPatients(originalPatients);
-  }
-};
+  };
+
   const fetchStaffInfo = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -196,129 +276,149 @@ const BillingPreview = () => {
       setStaffInfo({ staffName: "Unknown Staff", staffID: "N/A" });
     }
   };
+
   const fetchPatientDetails = async (uniqueId) => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`${APIBASE}/patients/${uniqueId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-   
-    console.log("Patient Details Response:", res.data); // Debug log
-   
-    // Handle different response structures
-    const patientData = res.data.data || res.data.patient || res.data;
-   
-    setFullPatient(patientData);
-    successToast(`Patient ${patientData.full_name || patientData.name} details loaded successfully`);
-  } catch (err) {
-    console.error("Failed to load patient details:", err);
-    console.error("Error details:", err.response?.data);
-    errorToast("Failed to load patient details");
-  }
-};
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${APIBASE}/patients/${uniqueId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log("Patient Details Response:", res.data);
+
+      // Handle different response structures
+      const patientData = res.data.data || res.data.patient || res.data;
+
+      setFullPatient(patientData);
+      successToast(
+        `Patient ${
+          patientData.full_name || patientData.name
+        } details loaded successfully`
+      );
+    } catch (err) {
+      console.error("Failed to load patient details:", err);
+      console.error("Error details:", err.response?.data);
+      errorToast("Failed to load patient details");
+    }
+  };
+
   const fetchInsurances = async (uniqueId) => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`${APIBASE}/patients/${uniqueId}/insurances`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-   
-    let insuranceData = [];
-   
-    // Handle different response structures
-    if (Array.isArray(res.data)) {
-      insuranceData = res.data;
-    } else if (res.data && Array.isArray(res.data.results)) {
-      insuranceData = res.data.results;
-    } else if (res.data && Array.isArray(res.data.data)) {
-      insuranceData = res.data.data;
-    } else if (res.data && Array.isArray(res.data.insurances)) {
-      insuranceData = res.data.insurances;
-    } else {
-      console.warn("Unexpected insurance API response structure:", res.data);
-      return;
-    }
-   
-    setInsurances(
-      insuranceData.map((ins) => ({
-        id: ins.id,
-        provider: ins.provider,
-        policyNum: ins.policy_number,
-        validFrom: ins.valid_from,
-        validTo: ins.valid_to,
-        policyCard: ins.policy_card,
-      }))
-    );
-  } catch (err) {
-    console.error("Failed to load insurances:", err);
-    console.error("Error details:", err.response?.data);
-  }
-};
-const fetchBillingItems = async (uniqueId) => {
-  try {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`${APIBASE}/patients/${uniqueId}/billing-items`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-   
-    let billingData = [];
-   
-    // Handle different response structures
-    if (Array.isArray(res.data)) {
-      billingData = res.data;
-    } else if (res.data && Array.isArray(res.data.results)) {
-      billingData = res.data.results;
-    } else if (res.data && Array.isArray(res.data.data)) {
-      billingData = res.data.data;
-    } else if (res.data && Array.isArray(res.data.items)) {
-      billingData = res.data.items;
-    } else {
-      console.warn("Unexpected billing items API response structure:", res.data);
-      return;
-    }
-   
-    if (billingData.length > 0) {
-      setBillingItems(
-        billingData.map((item, idx) => ({
-          sNo: (idx + 1).toString().padStart(2, "0"),
-          description: item.description,
-          quantity: item.quantity.toString(),
-          unitPrice: item.unit_price.toString(),
-          amount: (item.quantity * item.unit_price).toFixed(2),
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${APIBASE}/patients/${uniqueId}/insurances`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      let insuranceData = [];
+
+      // Handle different response structures
+      if (Array.isArray(res.data)) {
+        insuranceData = res.data;
+      } else if (res.data && Array.isArray(res.data.results)) {
+        insuranceData = res.data.results;
+      } else if (res.data && Array.isArray(res.data.data)) {
+        insuranceData = res.data.data;
+      } else if (res.data && Array.isArray(res.data.insurances)) {
+        insuranceData = res.data.insurances;
+      } else {
+        console.warn("Unexpected insurance API response structure:", res.data);
+        return;
+      }
+
+      setInsurances(
+        insuranceData.map((ins) => ({
+          id: ins.id,
+          provider: ins.provider,
+          policyNum: ins.policy_number,
+          validFrom: ins.valid_from,
+          validTo: ins.valid_to,
+          policyCard: ins.policy_card,
         }))
       );
+    } catch (err) {
+      console.error("Failed to load insurances:", err);
+      console.error("Error details:", err.response?.data);
     }
-  } catch (err) {
-    console.error("Failed to load billing items:", err);
-    console.error("Error details:", err.response?.data);
-  }
-};
+  };
+
+  const fetchBillingItems = async (uniqueId) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `${APIBASE}/patients/${uniqueId}/billing-items`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      let billingData = [];
+
+      // Handle different response structures
+      if (Array.isArray(res.data)) {
+        billingData = res.data;
+      } else if (res.data && Array.isArray(res.data.results)) {
+        billingData = res.data.results;
+      } else if (res.data && Array.isArray(res.data.data)) {
+        billingData = res.data.data;
+      } else if (res.data && Array.isArray(res.data.items)) {
+        billingData = res.data.items;
+      } else {
+        console.warn(
+          "Unexpected billing items API response structure:",
+          res.data
+        );
+        return;
+      }
+
+      if (billingData.length > 0) {
+        setBillingItems(
+          billingData.map((item, idx) => ({
+            sNo: (idx + 1).toString().padStart(2, "0"),
+            description: item.description,
+            quantity: item.quantity.toString(),
+            unitPrice: item.unit_price.toString(),
+            amount: (item.quantity * item.unit_price).toFixed(2),
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to load billing items:", err);
+      console.error("Error details:", err.response?.data);
+    }
+  };
+
   const handlePatientNameChange = (value) => {
     const patient = filteredPatients.find((p) => p.name === value);
     if (patient) {
       setPatientInfo((prev) => ({
         ...prev,
         patientName: value,
-        patientID: patient.id
+        patientID: patient.id,
       }));
       fetchPatientDetails(patient.id);
       setSearchQuery("");
     }
   };
+
   const handlePatientIDChange = (value) => {
     const patient = filteredPatients.find((p) => p.id === value);
     if (patient) {
       setPatientInfo((prev) => ({
         ...prev,
         patientID: value,
-        patientName: patient.name
+        patientName: patient.name,
       }));
       fetchPatientDetails(value);
     }
   };
+
   const handleInputChange = (value, field) => {
     setPatientInfo({ ...patientInfo, [field]: value });
   };
+
   const handleAddService = () => {
     setBillingItems((prev) => [
       ...prev,
@@ -331,6 +431,7 @@ const fetchBillingItems = async (uniqueId) => {
       },
     ]);
   };
+
   const handleBillingChange = (index, field, value) => {
     setBillingItems((prev) => {
       const newItems = [...prev];
@@ -341,14 +442,17 @@ const fetchBillingItems = async (uniqueId) => {
       return newItems;
     });
   };
+
   const handleDeleteBilling = (index) => {
     setBillingItems((prev) => prev.filter((_, i) => i !== index));
   };
+
   const handleEditInsurance = (index) => {
     setModalData(insurances[index]);
     setEditingIndex(index);
     setShowModal(true);
   };
+
   const handleDeleteInsurance = async (index) => {
     const insId = insurances[index].id;
     try {
@@ -363,6 +467,7 @@ const fetchBillingItems = async (uniqueId) => {
       errorToast("Failed to delete insurance");
     }
   };
+
   const handleAddOrUpdateInsurance = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -378,13 +483,19 @@ const fetchBillingItems = async (uniqueId) => {
       if (editingIndex !== null) {
         const insId = insurances[editingIndex].id;
         res = await axios.put(`${APIBASE}/insurances/${insId}`, formData, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         });
         successToast("Insurance updated successfully");
       } else {
         formData.append("patient_id", patientInfo.patientID);
         res = await axios.post(`${APIBASE}/insurances/`, formData, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         });
         successToast("Insurance added successfully");
       }
@@ -397,143 +508,186 @@ const fetchBillingItems = async (uniqueId) => {
       errorToast("Failed to add/update insurance");
     }
   };
-  const subtotal = billingItems.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0).toFixed(2);
+
+  const subtotal = billingItems
+    .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
+    .toFixed(2);
   const taxRate = 0.18;
   const tax = (subtotal * taxRate).toFixed(2);
   const grand = (parseFloat(subtotal) + parseFloat(tax)).toFixed(2);
   const formattedSubtotal = parseFloat(subtotal).toLocaleString();
   const formattedTax = parseFloat(tax).toLocaleString();
   const formattedGrand = parseFloat(grand).toLocaleString();
+
   const handleGenerateBill = async () => {
-  if (!patientInfo.patientID) {
-    errorToast("Please select a patient first");
-    return;
-  }
-  if (billingItems.length === 0 || billingItems.some(item => !item.description || !item.quantity || !item.unitPrice)) {
-    errorToast("Please add valid billing items");
-    return;
-  }
-  try {
-    const token = localStorage.getItem("token");
-    const today = new Date().toISOString().split('T')[0];
-   
-    // Robust date formatting function
-    const formatDateForBackend = (dateString) => {
-      if (!dateString) return null;
-     
-      // Remove any time portion if present
-      dateString = dateString.split('T')[0];
-     
-      // Try different date formats
-      let date;
-     
-      // Try parsing as ISO string first
-      date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split('T')[0];
-      }
-     
-      // Try MM/DD/YYYY format
-      if (dateString.includes('/')) {
-        const parts = dateString.split('/');
-        if (parts.length === 3) {
-          // Check if it's MM/DD/YYYY or DD/MM/YYYY
-          if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-            const [month, day, year] = parts;
-            date = new Date(`${year}-${month}-${day}`);
-            if (!isNaN(date.getTime())) {
-              return date.toISOString().split('T')[0];
-            }
-          }
-        }
-      }
-     
-      // Try DD-MM-YYYY format
-      if (dateString.includes('-')) {
-        const parts = dateString.split('-');
-        if (parts.length === 3) {
-          if (parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
-            const [day, month, year] = parts;
-            date = new Date(`${year}-${month}-${day}`);
-            if (!isNaN(date.getTime())) {
-              return date.toISOString().split('T')[0];
-            }
-          }
-        }
-      }
-     
-      console.warn(`Could not parse date: ${dateString}`);
-      return null;
-    };
-    // Validate required dates
-    const admissionDate = formatDateForBackend(patientInfo.startDate);
-    if (!admissionDate) {
-      errorToast("Please provide a valid admission date in YYYY-MM-DD format");
+    if (!patientInfo.patientID) {
+      errorToast("Please select a patient first");
       return;
     }
-    const invoiceData = {
-      date: today,
-      patient_name: patientInfo.patientName,
-      patient_id: patientInfo.patientID,
-      department: patientInfo.department || "General Ward",
-      payment_method: patientInfo.paymentMode || "Cash",
-      status: patientInfo.paymentStatus || "Paid",
-      admission_date: admissionDate,
-      discharge_date: formatDateForBackend(patientInfo.endDate),
-      doctor: patientInfo.doctorName || "N/A",
-      phone: fullPatient?.phone_number || "N/A",
-      email: fullPatient?.email || "patient@hospital.com",
-      address: patientInfo.address || "",
-      invoice_items: billingItems.map((item) => ({
-        description: item.description,
-        quantity: parseInt(item.quantity),
-        unit_price: parseFloat(item.unitPrice),
-      })),
-      tax_percent: 18.0,
-      transaction_id: null,
-      payment_date: today,
-    };
-    console.log("Final invoice data being sent:", JSON.stringify(invoiceData, null, 2));
-    const res = await axios.post(`${APIBASE}/hospital-invoices/generate`, invoiceData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      responseType: 'blob',
-    });
-    // Open PDF in new tab
-    const blob = new Blob([res.data], { type: 'application/pdf' });
-    const url = window.URL.createObjectURL(blob);
-    window.open(url, '_blank');
-    successToast(`Invoice PDF opened in new tab for ${patientInfo.patientName}`);
-    // Auto refresh the page after a short delay to show toast
-    setTimeout(() => {
-      window.location.reload();
-    }, 2000);
-  } catch (err) {
-    console.error("Failed to generate invoice PDF:", err);
-   
-    if (err.response?.status === 422) {
-      const validationErrors = err.response.data.detail;
-      const dateErrors = validationErrors.filter(error =>
-        error.loc.includes('admission_date') || error.loc.includes('discharge_date')
-      );
-     
-      if (dateErrors.length > 0) {
-        errorToast("Invalid date format. Please use YYYY-MM-DD format for dates.");
-      } else {
-        errorToast("Validation error. Please check all fields.");
-      }
-    } else {
-      errorToast("Failed to generate invoice PDF");
+    if (
+      billingItems.length === 0 ||
+      billingItems.some(
+        (item) => !item.description || !item.quantity || !item.unitPrice
+      )
+    ) {
+      errorToast("Please add valid billing items");
+      return;
     }
-  }
-};
+
+    try {
+      setGeneratingBill(true); // Start loading
+
+      const token = localStorage.getItem("token");
+      const today = new Date().toISOString().split("T")[0];
+
+      // Robust date formatting function
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return null;
+
+        // Remove any time portion if present
+        dateString = dateString.split("T")[0];
+
+        // Try different date formats
+        let date;
+
+        // Try parsing as ISO string first
+        date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split("T")[0];
+        }
+
+        // Try MM/DD/YYYY format
+        if (dateString.includes("/")) {
+          const parts = dateString.split("/");
+          if (parts.length === 3) {
+            // Check if it's MM/DD/YYYY or DD/MM/YYYY
+            if (
+              parts[0].length === 2 &&
+              parts[1].length === 2 &&
+              parts[2].length === 4
+            ) {
+              const [month, day, year] = parts;
+              date = new Date(`${year}-${month}-${day}`);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString().split("T")[0];
+              }
+            }
+          }
+        }
+
+        // Try DD-MM-YYYY format
+        if (dateString.includes("-")) {
+          const parts = dateString.split("-");
+          if (parts.length === 3) {
+            if (
+              parts[0].length === 2 &&
+              parts[1].length === 2 &&
+              parts[2].length === 4
+            ) {
+              const [day, month, year] = parts;
+              date = new Date(`${year}-${month}-${day}`);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString().split("T")[0];
+              }
+            }
+          }
+        }
+
+        console.warn(`Could not parse date: ${dateString}`);
+        return null;
+      };
+
+      // Validate required dates
+      const admissionDate = formatDateForBackend(patientInfo.startDate);
+      if (!admissionDate) {
+        errorToast(
+          "Please provide a valid admission date in YYYY-MM-DD format"
+        );
+        setGeneratingBill(false);
+        return;
+      }
+
+      const invoiceData = {
+        date: today,
+        patient_name: patientInfo.patientName,
+        patient_id: patientInfo.patientID,
+        department: patientInfo.department || "General Ward",
+        payment_method: patientInfo.paymentMode || "Cash",
+        status: patientInfo.paymentStatus || "Paid",
+        admission_date: admissionDate,
+        discharge_date: formatDateForBackend(patientInfo.endDate),
+        doctor: patientInfo.doctorName || "N/A",
+        phone: fullPatient?.phone_number || "N/A",
+        email: fullPatient?.email || "patient@hospital.com",
+        address: patientInfo.address || "",
+        invoice_items: billingItems.map((item) => ({
+          description: item.description,
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unitPrice),
+        })),
+        tax_percent: 18.0,
+        transaction_id: null,
+        payment_date: today,
+      };
+
+      console.log(
+        "Final invoice data being sent:",
+        JSON.stringify(invoiceData, null, 2)
+      );
+
+      const res = await axios.post(
+        `${APIBASE}/hospital-invoices/generate`,
+        invoiceData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          responseType: "blob",
+        }
+      );
+
+      // Open PDF in new tab
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+      successToast(
+        `Invoice PDF opened in new tab for ${patientInfo.patientName}`
+      );
+
+      // Auto refresh the page after a short delay to show toast
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to generate invoice PDF:", err);
+
+      if (err.response?.status === 422) {
+        const validationErrors = err.response.data.detail;
+        const dateErrors = validationErrors.filter(
+          (error) =>
+            error.loc.includes("admission_date") ||
+            error.loc.includes("discharge_date")
+        );
+
+        if (dateErrors.length > 0) {
+          errorToast(
+            "Invalid date format. Please use YYYY-MM-DD format for dates."
+          );
+        } else {
+          errorToast("Validation error. Please check all fields.");
+        }
+      } else {
+        errorToast("Failed to generate invoice PDF");
+      }
+    } finally {
+      setGeneratingBill(false); // Stop loading
+    }
+  };
+
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]"
-      >
+      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -550,7 +704,8 @@ const fetchBillingItems = async (uniqueId) => {
             padding: "2px",
             background:
               "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
             WebkitMaskComposite: "xor",
             maskComposite: "exclude",
             pointerEvents: "none",
@@ -563,61 +718,63 @@ const fetchBillingItems = async (uniqueId) => {
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
           This is the information for generation of patient bill
         </p>
-       
+
         {/* Search and Patient Selection */}
         <div className="mb-6 flex flex-row justify-end items-center gap-2 flex-wrap max-w-full">
           {/* Search Input with Dropdown Results */}
-<div className="flex-1 min-w-[180px] max-w-[350px] lg:max-w-[400px] relative">
-  <div className="relative">
-    <input
-      type="text"
-      placeholder="Search patient name or ID"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      className="
-        w-full
-        h-[34px]
-        pl-10 pr-4
-        rounded
-        border-[1.05px]
-        border-[#0EFF7B] dark:border-[#0EFF7B1A]
-        bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A]
-        text-[#08994A] dark:text-white
-        placeholder-[#5CD592] dark:placeholder-[#5CD592]
-        focus:outline-none
-        focus:border-[#0EFF7B]
-        transition-all
-        font-helvetica
-      "
-    />
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0EFF7B] pointer-events-none" />
-  </div>
-  {/* Dropdown Results */}
-  {searchQuery.trim() && filteredPatients.length > 0 && (
-    <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
-      {filteredPatients.map((patient) => (
-        <div
-          key={patient.id}
-          onClick={() => {
-            handlePatientNameChange(patient.name);
-            handlePatientIDChange(patient.id);
-            setSearchQuery(""); // Clear search after selection
-          }}
-          className="cursor-pointer px-3 py-1.5 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126] border-b border-gray-200 dark:border-gray-800 last:border-b-0"
-        >
-          <div className="font-medium">{patient.name}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">{patient.id}</div>
-        </div>
-      ))}
-    </div>
-  )}
-  {/* No results */}
-  {searchQuery.trim() && filteredPatients.length === 0 && (
-    <div className="absolute mt-1 w-full p-3 text-center bg-white dark:bg-black rounded-[8px] shadow-lg border border-[#0EFF7B] dark:border-[#3C3C3C] text-gray-500 text-sm z-50">
-      No patients found
-    </div>
-  )}
-</div>
+          <div className="flex-1 min-w-[180px] max-w-[350px] lg:max-w-[400px] relative">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search patient name or ID"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="
+                  w-full
+                  h-[34px]
+                  pl-10 pr-4
+                  rounded
+                  border-[1.05px]
+                  border-[#0EFF7B] dark:border-[#0EFF7B1A]
+                  bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A]
+                  text-[#08994A] dark:text-white
+                  placeholder-[#5CD592] dark:placeholder-[#5CD592]
+                  focus:outline-none
+                  focus:border-[#0EFF7B]
+                  transition-all
+                  font-helvetica
+                "
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0EFF7B] pointer-events-none" />
+            </div>
+            {/* Dropdown Results */}
+            {searchQuery.trim() && filteredPatients.length > 0 && (
+              <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+                {filteredPatients.map((patient) => (
+                  <div
+                    key={patient.id}
+                    onClick={() => {
+                      handlePatientNameChange(patient.name);
+                      handlePatientIDChange(patient.id);
+                      setSearchQuery(""); // Clear search after selection
+                    }}
+                    className="cursor-pointer px-3 py-1.5 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126] border-b border-gray-200 dark:border-gray-800 last:border-b-0"
+                  >
+                    <div className="font-medium">{patient.name}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {patient.id}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* No results */}
+            {searchQuery.trim() && filteredPatients.length === 0 && (
+              <div className="absolute mt-1 w-full p-3 text-center bg-white dark:bg-black rounded-[8px] shadow-lg border border-[#0EFF7B] dark:border-[#3C3C3C] text-gray-500 text-sm z-50">
+                No patients found
+              </div>
+            )}
+          </div>
           <div className="flex gap-2 items-center flex-wrap">
             <div className="relative min-w-[120px] w-[160px] lg:w-[180px]">
               <Listbox
@@ -786,49 +943,63 @@ const fetchBillingItems = async (uniqueId) => {
           {/* Patient Basic Info */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Patient ID</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Patient ID
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.patientID}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Patient Name</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Patient Name
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.patientName}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Age/Gender</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Age/Gender
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.ageGender}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Admission Start</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Admission Start
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.startDate}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Admission End</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Admission End
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.endDate}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Date of Birth</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Date of Birth
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.dateOfBirth}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Address</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Address
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
@@ -840,29 +1011,37 @@ const fetchBillingItems = async (uniqueId) => {
           {/* Medical and Payment Info */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Room Type</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Room Type
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.roomType}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Doctor Name</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Doctor Name
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.doctorName}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Department</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Department
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.department}
                 readOnly
               />
-             
-              <label className="text-sm text-gray-600 dark:text-gray-300">Payment mode</label>
+
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment mode
+              </label>
               <div className="relative">
                 <Listbox
                   value={patientInfo.paymentMode}
@@ -943,7 +1122,9 @@ const fetchBillingItems = async (uniqueId) => {
                   </Listbox.Options>
                 </Listbox>
               </div>
-              <label className="text-sm text-gray-600 dark:text-gray-300">Payment Type</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment Type
+              </label>
               <div className="relative">
                 <Listbox
                   value={patientInfo.paymentType}
@@ -971,7 +1152,11 @@ const fetchBillingItems = async (uniqueId) => {
                       stroke="currentColor"
                       strokeWidth={2}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 9l6 6 6-6"
+                      />
                     </svg>
                   </Listbox.Button>
                   <Listbox.Options
@@ -998,11 +1183,15 @@ const fetchBillingItems = async (uniqueId) => {
                   </Listbox.Options>
                 </Listbox>
               </div>
-              <label className="text-sm text-gray-600 dark:text-gray-300">Payment Status</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment Status
+              </label>
               <div className="relative">
                 <Listbox
                   value={patientInfo.paymentStatus}
-                  onChange={(value) => handleInputChange(value, "paymentStatus")}
+                  onChange={(value) =>
+                    handleInputChange(value, "paymentStatus")
+                  }
                 >
                   <Listbox.Button
                     className="
@@ -1026,7 +1215,11 @@ const fetchBillingItems = async (uniqueId) => {
                       stroke="currentColor"
                       strokeWidth={2}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 9l6 6 6-6"
+                      />
                     </svg>
                   </Listbox.Button>
                   <Listbox.Options
@@ -1058,34 +1251,24 @@ const fetchBillingItems = async (uniqueId) => {
           {/* Staff and Insurance Info */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
-              <label className="text-sm text-gray-600 dark:text-gray-300">Billing Staff</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Billing Staff
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.billingStaff}
                 readOnly
               />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Billing Staff ID</label>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Billing Staff ID
+              </label>
               <input
                 type="text"
                 className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
                 value={patientInfo.billingStaffID}
                 readOnly
               />
-              {/* <label className="text-sm text-gray-600 dark:text-gray-300">Bed Group</label>
-              <input
-                type="text"
-                className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
-                value={patientInfo.bedGroup}
-                readOnly
-              />
-              <label className="text-sm text-gray-600 dark:text-gray-300">Bed number</label>
-              <input
-                type="text"
-                className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-1 text-sm text-[#08994A] dark:text-white"
-                value={patientInfo.bedNumber}
-                readOnly
-              /> */}
             </div>
             {/* Insurance Section */}
             <div
@@ -1192,7 +1375,9 @@ const fetchBillingItems = async (uniqueId) => {
         </div>
         {/* Billing Items Section */}
         <div className="bg-[#F5F6F5] dark:bg-transparent border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-xl p-4">
-          <h3 className="text-[#08994A] dark:text-[#0EFF7B] mb-3">Treatment & charges</h3>
+          <h3 className="text-[#08994A] dark:text-[#0EFF7B] mb-3">
+            Treatment & charges
+          </h3>
           <table className="w-full text-sm text-left">
             <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 dark:bg-[#091810]">
               <tr>
@@ -1206,41 +1391,66 @@ const fetchBillingItems = async (uniqueId) => {
             </thead>
             <tbody className="text-[#08994A] dark:text-gray-300 bg-white dark:bg-black">
               {billingItems.map((item, index) => (
-                <tr key={index} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
+                <tr
+                  key={index}
+                  className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                >
                   <td className="p-2">
                     <input
                       type="text"
                       value={item.sNo}
                       readOnly
                       className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{ border: "2px solid #0EFF7B1A", boxShadow: "0px 0px 2px 0px #0EFF7B" }}
+                      style={{
+                        border: "2px solid #0EFF7B1A",
+                        boxShadow: "0px 0px 2px 0px #0EFF7B",
+                      }}
                     />
                   </td>
                   <td className="p-2">
                     <input
                       type="text"
                       value={item.description}
-                      onChange={(e) => handleBillingChange(index, "description", e.target.value)}
+                      onChange={(e) =>
+                        handleBillingChange(
+                          index,
+                          "description",
+                          e.target.value
+                        )
+                      }
                       className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{ border: "2px solid #0EFF7B1A", boxShadow: "0px 0px 2px 0px #0EFF7B" }}
+                      style={{
+                        border: "2px solid #0EFF7B1A",
+                        boxShadow: "0px 0px 2px 0px #0EFF7B",
+                      }}
                     />
                   </td>
                   <td className="p-2">
                     <input
                       type="number"
                       value={item.quantity}
-                      onChange={(e) => handleBillingChange(index, "quantity", e.target.value)}
+                      onChange={(e) =>
+                        handleBillingChange(index, "quantity", e.target.value)
+                      }
                       className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{ border: "2px solid #0EFF7B1A", boxShadow: "0px 0px 2px 0px #0EFF7B" }}
+                      style={{
+                        border: "2px solid #0EFF7B1A",
+                        boxShadow: "0px 0px 2px 0px #0EFF7B",
+                      }}
                     />
                   </td>
                   <td className="p-2">
                     <input
                       type="number"
                       value={item.unitPrice}
-                      onChange={(e) => handleBillingChange(index, "unitPrice", e.target.value)}
+                      onChange={(e) =>
+                        handleBillingChange(index, "unitPrice", e.target.value)
+                      }
                       className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{ border: "2px solid #0EFF7B1A", boxShadow: "0px 0px 2px 0px #0EFF7B" }}
+                      style={{
+                        border: "2px solid #0EFF7B1A",
+                        boxShadow: "0px 0px 2px 0px #0EFF7B",
+                      }}
                     />
                   </td>
                   <td className="p-2">
@@ -1249,7 +1459,10 @@ const fetchBillingItems = async (uniqueId) => {
                       value={item.amount}
                       readOnly
                       className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{ border: "2px solid #0EFF7B1A", boxShadow: "0px 0px 2px 0px #0EFF7B" }}
+                      style={{
+                        border: "2px solid #0EFF7B1A",
+                        boxShadow: "0px 0px 2px 0px #0EFF7B",
+                      }}
                     />
                   </td>
                   <td className="p-2 flex gap-2">
@@ -1271,7 +1484,7 @@ const fetchBillingItems = async (uniqueId) => {
               Add new service
             </button>
           </div>
-         
+
           {/* Total and Action Buttons */}
           <div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
             <div
@@ -1284,11 +1497,15 @@ const fetchBillingItems = async (uniqueId) => {
               <div className="flex flex-col justify-center flex-1 pl-5 pr-6 py-3 text-sm font-medium text-white gap-2">
                 <div className="flex justify-between w-full">
                   <span>Subtotal:</span>
-                  <span className="text-[#FFB100] font-semibold">${formattedSubtotal}</span>
+                  <span className="text-[#FFB100] font-semibold">
+                    ${formattedSubtotal}
+                  </span>
                 </div>
                 <div className="flex justify-between w-full">
                   <span>Tax (18%):</span>
-                  <span className="text-[#FFB100] font-semibold">${formattedTax}</span>
+                  <span className="text-[#FFB100] font-semibold">
+                    ${formattedTax}
+                  </span>
                 </div>
               </div>
               <div
@@ -1300,36 +1517,37 @@ const fetchBillingItems = async (uniqueId) => {
               ></div>
               <div className="flex flex-col justify-center px-6 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[120px]">
                 <span className="text-white text-sm font-semibold">Grand</span>
-                <span className="text-[#0EFF7B] text-lg font-bold">${formattedGrand}</span>
+                <span className="text-[#0EFF7B] text-lg font-bold">
+                  ${formattedGrand}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-3 flex-nowrap">
-              {["Generate"].map((label) => (
-                <button
-  key={label}
-  className={`text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap ${
-    loading ? "opacity-80 cursor-not-allowed" : ""
-  }`}
-  style={{
-    width: "236px",
-    height: "50px",
-    paddingTop: "4px",
-    paddingRight: "12px",
-    paddingBottom: "4px",
-    paddingLeft: "12px",
-    gap: "4px",
-    background:
-      label === "Generate"
-        ? "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)"
-        : "transparent",
-  }}
-  disabled={loading}
-  onClick={label === "Generate" && !loading ? handleGenerateBill : undefined}
->
-  {loading ? "Generating..." : label}
-</button>
-
-              ))}
+              <button
+                className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  width: "236px",
+                  height: "50px",
+                  paddingTop: "4px",
+                  paddingRight: "12px",
+                  paddingBottom: "4px",
+                  paddingLeft: "12px",
+                  gap: "4px",
+                  background:
+                    "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
+                }}
+                disabled={generatingBill}
+                onClick={handleGenerateBill}
+              >
+                {generatingBill ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating PDF...
+                  </div>
+                ) : (
+                  "Generate"
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1337,9 +1555,7 @@ const fetchBillingItems = async (uniqueId) => {
       {/* Insurance Modal */}
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
               className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1382,11 +1598,11 @@ const fetchBillingItems = async (uniqueId) => {
                   </label>
                   <Listbox
                     value={modalData.provider}
-                    onChange={(v) => setModalData({ ...modalData, provider: v })}
+                    onChange={(v) =>
+                      setModalData({ ...modalData, provider: v })
+                    }
                   >
-                    <Listbox.Button
-                      className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] relative"
-                    >
+                    <Listbox.Button className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] relative">
                       {modalData.provider || "Select Provider"}
                       <svg
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -1396,7 +1612,11 @@ const fetchBillingItems = async (uniqueId) => {
                         stroke="currentColor"
                         strokeWidth={2}
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6 9l6 6 6-6"
+                        />
                       </svg>
                     </Listbox.Button>
                     <Listbox.Options className="absolute z-10 mt-1 min-w-[210px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm">
@@ -1432,7 +1652,11 @@ const fetchBillingItems = async (uniqueId) => {
                   </label>
                   <div className="relative mt-1">
                     <DatePicker
-                      selected={modalData.validFrom ? new Date(modalData.validFrom) : null}
+                      selected={
+                        modalData.validFrom
+                          ? new Date(modalData.validFrom)
+                          : null
+                      }
                       onChange={(date) =>
                         setModalData({ ...modalData, validFrom: date })
                       }
@@ -1449,7 +1673,9 @@ const fetchBillingItems = async (uniqueId) => {
                   </label>
                   <div className="relative mt-1">
                     <DatePicker
-                      selected={modalData.validTo ? new Date(modalData.validTo) : null}
+                      selected={
+                        modalData.validTo ? new Date(modalData.validTo) : null
+                      }
                       onChange={(date) =>
                         setModalData({ ...modalData, validTo: date })
                       }
@@ -1481,7 +1707,8 @@ const fetchBillingItems = async (uniqueId) => {
                   />
                   {modalData.policyCard && (
                     <p className="text-xs mt-1 text-green-500 dark:text-[#0EFF7B]">
-                      Selected: {modalData.policyCard.name || modalData.policyCard}
+                      Selected:{" "}
+                      {modalData.policyCard.name || modalData.policyCard}
                     </p>
                   )}
                 </div>
@@ -1503,10 +1730,7 @@ const fetchBillingItems = async (uniqueId) => {
                     bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                     text-white font-medium hover:scale-105 transition flex items-center justify-center gap-2"
                 >
-                  <Plus
-                    size={16}
-                    className="text-white dark:text-white"
-                  />
+                  <Plus size={16} className="text-white dark:text-white" />
                   {editingIndex !== null ? "Update" : "Add"}
                 </button>
               </div>
@@ -1517,4 +1741,5 @@ const fetchBillingItems = async (uniqueId) => {
     </div>
   );
 };
+
 export default BillingPreview;

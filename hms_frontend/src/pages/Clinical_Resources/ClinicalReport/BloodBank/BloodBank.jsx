@@ -11,6 +11,7 @@ import {
   X,
   ChevronDown,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import DeleteBloodBankPopup from "./DeleteBloodBankPopup.jsx";
@@ -19,6 +20,7 @@ import EditDonorPopup from "./EditDonorPopup.jsx";
 import AddBloodTypePopup from "./AddBloodTypesPopup.jsx";
 import AddDonorPopup from "./AddDonorPopup.jsx";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+
 const BloodBank = () => {
   /* ---------- Pop-up states ---------- */
   const [showAddPopup, setShowAddPopup] = useState(false);
@@ -33,10 +35,10 @@ const BloodBank = () => {
   const [deleteDonor, setDeleteDonor] = useState(null);
   const [showBloodFilterPopup, setShowBloodFilterPopup] = useState(false);
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
-  const [showEmailPopup, setShowEmailPopup] = useState(false);
-  const [selectedDonorForEmail, setSelectedDonorForEmail] = useState(null);
+  const [sendingEmails, setSendingEmails] = useState({}); // Track email sending per donor
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const API_BASE = "http://localhost:8000";
+
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
   const [tempBloodStatus, setTempBloodStatus] = useState("All");
@@ -56,16 +58,20 @@ const BloodBank = () => {
   const [selectedDonors, setSelectedDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [donorLoading, setDonorLoading] = useState(true);
+
   /* ---------- Blood Types Data ---------- */
   const [allBloodTypes, setAllBloodTypes] = useState([]);
+
   /* ---------- Donor Data ---------- */
   const [allDonors, setAllDonors] = useState([]);
   const bloodTypesOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
   const statusOptions = ["All", "Available", "Low Stock", "Out of Stock"];
+
   /* ---------- Pagination ---------- */
   const [bloodPage, setBloodPage] = useState(1);
   const [donorPage, setDonorPage] = useState(1);
   const rowsPerPage = 5;
+
   /* ---------- API Functions ---------- */
   const fetchBloodGroups = async () => {
     try {
@@ -84,6 +90,7 @@ const BloodBank = () => {
       setLoading(false);
     }
   };
+
   const fetchDonors = async () => {
     try {
       setDonorLoading(true);
@@ -118,11 +125,13 @@ const BloodBank = () => {
       setDonorLoading(false);
     }
   };
+
   /* ---------- Blood Group Handlers ---------- */
   const handleAddBloodGroup = async (newBloodGroup) => {
     setAllBloodTypes((prev) => [...prev, newBloodGroup]);
     await fetchBloodGroups();
   };
+
   const handleUpdateBloodGroup = async (updatedBloodGroup) => {
     try {
       console.log("🟡 handleUpdateBloodGroup called with:", updatedBloodGroup);
@@ -161,6 +170,7 @@ const BloodBank = () => {
       alert(`Error updating blood group:\n${error.message}`);
     }
   };
+
   const handleDeleteBloodGroup = async (bloodGroup) => {
     try {
       const response = await fetch(
@@ -190,6 +200,7 @@ const BloodBank = () => {
       errorToast(`Failed to delete "${bloodGroup.type}"`);
     }
   };
+
   const handleDeleteSelectedBloodGroups = async () => {
     const count = selectedBloodTypes.length;
     const types = selectedBloodTypes.map((bg) => bg.type).join(", ");
@@ -207,6 +218,7 @@ const BloodBank = () => {
       errorToast("Some blood types could not be deleted.");
     }
   };
+
   /* ---------- Donor Handlers ---------- */
   const handleAddDonor = async () => {
     // Simply refresh the donors list - the API call already happened in the popup
@@ -218,6 +230,7 @@ const BloodBank = () => {
       console.error("Error refreshing data after adding donor:", error);
     }
   };
+
   const handleUpdateDonor = async (updatedDonorData) => {
     try {
       console.log("🟡 Donor updated successfully:", updatedDonorData);
@@ -226,6 +239,7 @@ const BloodBank = () => {
       console.error("❌ Error refreshing donors after update:", error);
     }
   };
+
   const handleDeleteDonor = async (donor) => {
     try {
       const response = await fetch(`${API_BASE}/api/donors/${donor.id}`, {
@@ -243,6 +257,7 @@ const BloodBank = () => {
       setAllDonors((prev) => prev.filter((d) => d.id !== donor.id));
     }
   };
+
   const handleDeleteSelectedDonors = async () => {
     for (const donor of selectedDonors) {
       await handleDeleteDonor(donor);
@@ -250,10 +265,12 @@ const BloodBank = () => {
     setSelectedDonors([]);
     setShowDeleteDonorPopup(false);
   };
+
   const handleDeleteSingleDonor = (donor) => {
     setDeleteDonor(donor);
     setShowDeleteDonorPopup(true);
   };
+
   const confirmDeleteDonors = () => {
     if (deleteDonor) {
       handleDeleteDonor(deleteDonor);
@@ -263,69 +280,8 @@ const BloodBank = () => {
     }
     setShowDeleteDonorPopup(false);
   };
-  /* ---------- useEffect ---------- */
-  useEffect(() => {
-    fetchBloodGroups();
-    fetchDonors();
-  }, []);
-  /* ---------- Filtering Logic ---------- */
-  const filteredBloodTypes = allBloodTypes.filter((b) => {
-    if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter)
-      return false;
-    if (
-      bloodSearch &&
-      !b.blood_type.toLowerCase().includes(bloodSearch.toLowerCase()) &&
-      !b.status.toLowerCase().includes(bloodSearch.toLowerCase()) &&
-      !String(b.available_units).includes(bloodSearch)
-    )
-      return false;
-    return true;
-  });
-  const filteredDonors = allDonors.filter((d) => {
-    if (donorFilters.bloodType !== "All" && d.blood !== donorFilters.bloodType)
-      return false;
-    if (donorFilters.gender !== "All" && d.gender !== donorFilters.gender)
-      return false;
-    if (
-      donorSearch &&
-      !d.name.toLowerCase().includes(donorSearch.toLowerCase()) &&
-      !d.blood.toLowerCase().includes(donorSearch.toLowerCase()) &&
-      !d.phone.includes(donorSearch) &&
-      !d.gender.toLowerCase().includes(donorSearch.toLowerCase())
-    )
-      return false;
-    return true;
-  });
-  const bloodTypes = filteredBloodTypes.slice(
-    (bloodPage - 1) * rowsPerPage,
-    bloodPage * rowsPerPage
-  );
-  const donors = filteredDonors.slice(
-    (donorPage - 1) * rowsPerPage,
-    donorPage * rowsPerPage
-  );
-  const totalBloodPages = Math.ceil(filteredBloodTypes.length / rowsPerPage);
-  const totalDonorPages = Math.ceil(filteredDonors.length / rowsPerPage);
-  /* ---------- Checkbox Selection ---------- */
-  const handleBloodTypeCheckboxChange = (blood) => {
-    setSelectedBloodTypes((prev) =>
-      prev.includes(blood) ? prev.filter((b) => b !== blood) : [...prev, blood]
-    );
-  };
-  const handleDonorCheckboxChange = (donor) => {
-    setSelectedDonors((prev) =>
-      prev.includes(donor) ? prev.filter((d) => d !== donor) : [...prev, donor]
-    );
-  };
-  const handleSelectAllBloodTypes = () => {
-    setSelectedBloodTypes(
-      selectedBloodTypes.length === bloodTypes.length ? [] : bloodTypes
-    );
-  };
-  const handleSelectAllDonors = () => {
-    setSelectedDonors(selectedDonors.length === donors.length ? [] : donors);
-  };
-  // Email Handler
+
+  // Email Handler with Loader
   const handleSendEmail = async (donor) => {
     if (!donor.email) {
       errorToast(`No email address found for ${donor.name}`);
@@ -333,6 +289,9 @@ const BloodBank = () => {
     }
 
     try {
+      // Set loading state for this specific donor
+      setSendingEmails((prev) => ({ ...prev, [donor.id]: true }));
+
       console.log(`🟡 Sending urgent blood request to: ${donor.email}`);
 
       const response = await fetch(
@@ -363,8 +322,12 @@ const BloodBank = () => {
     } catch (error) {
       console.error("❌ Error sending email:", error);
       errorToast(`Failed to send email: ${error.message}`);
+    } finally {
+      // Clear loading state for this donor
+      setSendingEmails((prev) => ({ ...prev, [donor.id]: false }));
     }
   };
+
   const handleManualEligibilityCheck = async () => {
     try {
       setCheckingEligibility(true);
@@ -388,6 +351,79 @@ const BloodBank = () => {
       setCheckingEligibility(false);
     }
   };
+
+  /* ---------- useEffect ---------- */
+  useEffect(() => {
+    fetchBloodGroups();
+    fetchDonors();
+  }, []);
+
+  /* ---------- Filtering Logic ---------- */
+  const filteredBloodTypes = allBloodTypes.filter((b) => {
+    if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter)
+      return false;
+    if (
+      bloodSearch &&
+      !b.blood_type.toLowerCase().includes(bloodSearch.toLowerCase()) &&
+      !b.status.toLowerCase().includes(bloodSearch.toLowerCase()) &&
+      !String(b.available_units).includes(bloodSearch)
+    )
+      return false;
+    return true;
+  });
+
+  const filteredDonors = allDonors.filter((d) => {
+    if (donorFilters.bloodType !== "All" && d.blood !== donorFilters.bloodType)
+      return false;
+    if (donorFilters.gender !== "All" && d.gender !== donorFilters.gender)
+      return false;
+    if (
+      donorSearch &&
+      !d.name.toLowerCase().includes(donorSearch.toLowerCase()) &&
+      !d.blood.toLowerCase().includes(donorSearch.toLowerCase()) &&
+      !d.phone.includes(donorSearch) &&
+      !d.gender.toLowerCase().includes(donorSearch.toLowerCase())
+    )
+      return false;
+    return true;
+  });
+
+  const bloodTypes = filteredBloodTypes.slice(
+    (bloodPage - 1) * rowsPerPage,
+    bloodPage * rowsPerPage
+  );
+
+  const donors = filteredDonors.slice(
+    (donorPage - 1) * rowsPerPage,
+    donorPage * rowsPerPage
+  );
+
+  const totalBloodPages = Math.ceil(filteredBloodTypes.length / rowsPerPage);
+  const totalDonorPages = Math.ceil(filteredDonors.length / rowsPerPage);
+
+  /* ---------- Checkbox Selection ---------- */
+  const handleBloodTypeCheckboxChange = (blood) => {
+    setSelectedBloodTypes((prev) =>
+      prev.includes(blood) ? prev.filter((b) => b !== blood) : [...prev, blood]
+    );
+  };
+
+  const handleDonorCheckboxChange = (donor) => {
+    setSelectedDonors((prev) =>
+      prev.includes(donor) ? prev.filter((d) => d !== donor) : [...prev, donor]
+    );
+  };
+
+  const handleSelectAllBloodTypes = () => {
+    setSelectedBloodTypes(
+      selectedBloodTypes.length === bloodTypes.length ? [] : bloodTypes
+    );
+  };
+
+  const handleSelectAllDonors = () => {
+    setSelectedDonors(selectedDonors.length === donors.length ? [] : donors);
+  };
+
   /* ---------- UI ---------- */
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
@@ -415,6 +451,7 @@ const BloodBank = () => {
           pointerEvents: "none",
         }}
       ></div>
+
       {/* ==================== BLOOD TYPES SECTION ==================== */}
       <div className="mt-4 mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] overflow-hidden relative">
         {/* Header */}
@@ -679,6 +716,7 @@ const BloodBank = () => {
           )}
         </div>
       </div>
+
       {/* ==================== DONOR LIST SECTION ==================== */}
       <div className="mt-[30px] mb-4 w-full rounded-xl border border-transparent bg-white dark:bg-transparent shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative p-6">
         {/* Header */}
@@ -866,102 +904,117 @@ const BloodBank = () => {
                   </td>
                 </tr>
               ) : donors.length > 0 ? (
-                donors.map((d) => (
-                  <tr
-                    key={d.id}
-                    className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
-                  >
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedDonors.includes(d)}
-                        onChange={() => handleDonorCheckboxChange(d)}
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                      />
-                    </td>
-                    <td className="p-3">{d.name}</td>
-                    <td className="p-3">{d.gender}</td>
-                    <td className="p-3">{d.blood}</td>
-                    <td className="p-3">{d.phone}</td>
-                    <td className="p-3">{d.lastDonation}</td>
-                    <td className="p-3">
-                      <span
-                        className={`py-1 rounded-full text-xs font-semibold ${
-                          d.status === "Eligible"
-                            ? "text-green-500 dark:text-green-400"
-                            : "text-red-500 dark:text-red-400"
-                        }`}
-                      >
-                        {d.status}
-                      </span>
-                    </td>
-                    <td className="p-3 flex justify-end gap-2">
-                      <button
-                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                        onClick={() => {
-                          console.log("Editing donor:", d);
-                          setEditDonor(d);
-                          setShowEditDonorPopup(true);
-                        }}
-                      >
-                        <Edit
-                          size={18}
-                          className="text-[#08994A] dark:text-[#0EFF7B]"
+                donors.map((d) => {
+                  const isSendingEmail = sendingEmails[d.id];
+
+                  return (
+                    <tr
+                      key={d.id}
+                      className="text-center border-b h-[62px] border-gray-300 dark:border-[#3C3C3C] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
+                    >
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedDonors.includes(d)}
+                          onChange={() => handleDonorCheckboxChange(d)}
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                         />
+                      </td>
+                      <td className="p-3">{d.name}</td>
+                      <td className="p-3">{d.gender}</td>
+                      <td className="p-3">{d.blood}</td>
+                      <td className="p-3">{d.phone}</td>
+                      <td className="p-3">{d.lastDonation}</td>
+                      <td className="p-3">
                         <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                        >
-                          Edit
-                        </span>
-                      </button>
-                      <button
-                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                        onClick={() => {
-                          if (d.email) {
-                            handleSendEmail(d);
-                          } else {
-                            errorToast(
-                              `${d.name} has no email address registered`
-                            );
-                          }
-                        }}
-                        disabled={!d.email}
-                      >
-                        <Mail
-                          size={18}
-                          className={`${
-                            d.email
-                              ? "text-[#08994A] dark:text-[#0EFF7B]"
-                              : "text-gray-400 dark:text-gray-600"
+                          className={`py-1 rounded-full text-xs font-semibold ${
+                            d.status === "Eligible"
+                              ? "text-green-500 dark:text-green-400"
+                              : "text-red-500 dark:text-red-400"
                           }`}
-                        />
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                          {d.email ? "Send Urgent Request" : "No Email"}
+                        >
+                          {d.status}
                         </span>
-                      </button>
-                      <button
-                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                        onClick={() => handleDeleteSingleDonor(d)}
-                      >
-                        <Trash2
-                          size={18}
-                          className="text-red-600 dark:text-red-700"
-                        />
-                        <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                      </td>
+                      <td className="p-3 flex justify-end gap-2">
+                        <button
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                          onClick={() => {
+                            console.log("Editing donor:", d);
+                            setEditDonor(d);
+                            setShowEditDonorPopup(true);
+                          }}
+                        >
+                          <Edit
+                            size={18}
+                            className="text-[#08994A] dark:text-[#0EFF7B]"
+                          />
+                          <span
+                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150"
+                          >
+                            Edit
+                          </span>
+                        </button>
+                        <button
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                          onClick={() => {
+                            if (d.email) {
+                              handleSendEmail(d);
+                            } else {
+                              errorToast(
+                                `${d.name} has no email address registered`
+                              );
+                            }
+                          }}
+                          disabled={!d.email || isSendingEmail}
                         >
-                          Delete
-                        </span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                          {isSendingEmail ? (
+                            <Loader2
+                              size={18}
+                              className="animate-spin text-[#08994A] dark:text-[#0EFF7B]"
+                            />
+                          ) : (
+                            <Mail
+                              size={18}
+                              className={`${
+                                d.email
+                                  ? "text-[#08994A] dark:text-[#0EFF7B]"
+                                  : "text-gray-400 dark:text-gray-600"
+                              }`}
+                            />
+                          )}
+                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                            {isSendingEmail
+                              ? "Sending..."
+                              : d.email
+                              ? "Send Urgent Request"
+                              : "No Email"}
+                          </span>
+                        </button>
+                        <button
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                          onClick={() => handleDeleteSingleDonor(d)}
+                        >
+                          <Trash2
+                            size={18}
+                            className="text-red-600 dark:text-red-700"
+                          />
+                          <span
+                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    transition-all duration-150"
+                          >
+                            Delete
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td
@@ -1016,6 +1069,7 @@ const BloodBank = () => {
           )}
         </div>
       </div>
+
       {/* ==================== POP-UPS ==================== */}
       {showAddPopup && (
         <AddBloodTypePopup
@@ -1334,4 +1388,5 @@ const BloodBank = () => {
     </div>
   );
 };
+
 export default BloodBank;

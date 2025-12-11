@@ -15,14 +15,110 @@ import EditUserPopup from "./EditUserPopup.jsx";
 import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { successToast, errorToast } from "../../components/Toast"; // <-- ADD THIS
+import { successToast, errorToast } from "../../components/Toast";
 
 const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
 
-//const API_BASE = "http://localhost:8000";
+// InputField Component
+const InputField = ({
+  label,
+  name,
+  value,
+  onChange,
+  onBlur,
+  placeholder,
+  type = "text",
+  required = false,
+  error,
+  autoCapitalize = false
+}) => {
+  const handleChange = (e) => {
+    let newValue = e.target.value;
+    
+    // Auto-capitalize first letter for name fields
+    if (autoCapitalize && newValue && name.includes('name')) {
+      // Capitalize first letter of each word
+      newValue = newValue.replace(/\b\w/g, char => char.toUpperCase());
+    }
+    
+    onChange({ target: { name, value: newValue } });
+  };
+
+  return (
+    <div>
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={handleChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+      />
+      {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
+    </div>
+  );
+};
+
+// Modified Dropdown to support 'required' prop
+const Dropdown = ({
+  label,
+  placeholder,
+  value,
+  onChange,
+  options,
+  className,
+  required = false,
+  error
+}) => (
+  <div>
+    <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <Listbox value={value} onChange={onChange}>
+      <div className="relative mt-1 w-full">
+        <Listbox.Button
+          className={`w-[225px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
+        >
+          {value || placeholder}
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
+        <Listbox.Options
+          className="absolute mt-1 w-[225px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {options.map((option, idx) => (
+            <Listbox.Option
+              key={idx}
+              value={option}
+              className={({ active, selected }) =>
+                `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                ${
+                  active || selected
+                    ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                    : "text-[#08994A] dark:text-[#0EFF7B]"
+                }`
+              }
+            >
+              {option}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
+    {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
+  </div>
+);
 
 const UserSettings = () => {
   const [showEditUserPopup, setShowEditUserPopup] = useState(false);
@@ -43,6 +139,16 @@ const UserSettings = () => {
     role: "Select Role",
     staffId: "Select Staff ID",
   });
+
+  const [validationErrors, setValidationErrors] = useState({
+    username: "",
+    password: "",
+    role: "",
+    staffId: "",
+  });
+
+  // Password validation state
+  const [passwordMeetsRequirements, setPasswordMeetsRequirements] = useState(false);
 
   // Dropdown Options from Backend
   const [staffOptions, setStaffOptions] = useState([]);
@@ -85,6 +191,34 @@ const UserSettings = () => {
     return (
       localStorage.getItem("role") || sessionStorage.getItem("role") || ""
     );
+  };
+
+  // Validation functions
+  const validateUsername = (username) => {
+    if (!username.trim()) return "Username is required";
+    if (username.length < 2) return "Username must be at least 2 characters";
+    if (username.length > 50) return "Username cannot exceed 50 characters";
+    if (!/^[A-Za-z\s]+$/.test(username)) return "Username can only contain letters and spaces";
+    return "";
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return "Password is required";
+    if (password.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
+    if (!/\d/.test(password)) return "Password must contain at least one number";
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return "Password must contain at least one special character";
+    return "";
+  };
+
+  // Check if password meets ALL requirements
+  const checkPasswordRequirements = (password) => {
+    if (!password) return false;
+    if (password.length < 8) return false;
+    if (!/[A-Z]/.test(password)) return false;
+    if (!/\d/.test(password)) return false;
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) return false;
+    return true;
   };
 
   // Fetch Filter Options & Users on Mount
@@ -323,53 +457,100 @@ const UserSettings = () => {
     }
   };
 
+  // Update handleInputChange for username field
+  const handleUsernameChange = (e) => {
+    const value = e.target.value;
+    setNewUser(prev => ({ ...prev, username: value }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors.username) {
+      setValidationErrors(prev => ({ ...prev, username: "" }));
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value;
+    setNewUser(prev => ({ ...prev, password: value }));
+    
+    // Clear validation error when user starts typing
+    if (validationErrors.password) {
+      setValidationErrors(prev => ({ ...prev, password: "" }));
+    }
+    
+    // Check if password meets ALL requirements
+    const meetsRequirements = checkPasswordRequirements(value);
+    setPasswordMeetsRequirements(meetsRequirements);
+  };
+
   // Add User
   const handleAddUser = async () => {
     if (!canManageUsers) {
       errorToast("You don't have permission to add users.");
       return;
     }
-    if (
-      newUser.username &&
-      newUser.password &&
-      newUser.role !== "Select Role" &&
-      newUser.staffId !== "Select Staff ID"
-    ) {
-      try {
-        const token = getAuthToken();
-        const formData = new FormData();
-        formData.append("username", newUser.username);
-        formData.append("password", newUser.password);
-        formData.append("staff_id", newUser.staffId);
-        formData.append("role", newUser.role);
 
-        const res = await fetch(`${API_BASE}/users/create_user`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
+    // Validate all fields
+    const usernameError = validateUsername(newUser.username);
+    const passwordError = validatePassword(newUser.password);
+    const roleError = newUser.role === "Select Role" ? "Role is required" : "";
+    const staffIdError = newUser.staffId === "Select Staff ID" ? "Staff ID is required" : "";
 
-        if (!res.ok) {
-          if (res.status === 403) throw new Error("Permission denied.");
-          if (res.status === 401) throw new Error("Authentication failed.");
-          const errorData = await res.json();
-          throw new Error(errorData.detail || "Failed to create user");
-        }
+    const errors = {
+      username: usernameError,
+      password: passwordError,
+      role: roleError,
+      staffId: staffIdError,
+    };
 
-        setShowAddUserPopup(false);
-        setNewUser({
-          username: "",
-          password: "",
-          role: "Select Role",
-          staffId: "Select Staff ID",
-        });
-        await fetchUsers();
-        successToast("User created successfully!");
-      } catch (err) {
-        errorToast(err.message || "Failed to add user");
+    setValidationErrors(errors);
+
+    // Check if any errors exist
+    const hasErrors = Object.values(errors).some(error => error !== "");
+    
+    if (hasErrors) {
+      errorToast("Please fix all validation errors before saving.");
+      return;
+    }
+
+    try {
+      const token = getAuthToken();
+      const formData = new FormData();
+      formData.append("username", newUser.username);
+      formData.append("password", newUser.password);
+      formData.append("staff_id", newUser.staffId);
+      formData.append("role", newUser.role);
+
+      const res = await fetch(`${API_BASE}/users/create_user`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        if (res.status === 403) throw new Error("Permission denied.");
+        if (res.status === 401) throw new Error("Authentication failed.");
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to create user");
       }
-    } else {
-      errorToast("Please fill all required fields.");
+
+      setShowAddUserPopup(false);
+      setNewUser({
+        username: "",
+        password: "",
+        role: "Select Role",
+        staffId: "Select Staff ID",
+      });
+      setValidationErrors({
+        username: "",
+        password: "",
+        role: "",
+        staffId: "",
+      });
+      setPasswordMeetsRequirements(false);
+      await fetchUsers();
+      successToast("User created successfully!");
+    } catch (err) {
+      errorToast(err.message || "Failed to add user");
     }
   };
 
@@ -396,57 +577,6 @@ const UserSettings = () => {
         return "text-black dark:text-white";
     }
   };
-
-  // Modified Dropdown to support 'required' prop
-  const Dropdown = ({
-    label,
-    placeholder,
-    value,
-    onChange,
-    options,
-    className,
-    required = false,
-  }) => (
-    <div>
-      <label className="block text-sm font-medium mb-2 text-black dark:text-white">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-full">
-          <Listbox.Button
-            className={`w-[225px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
-          >
-            {value || placeholder}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
-          <Listbox.Options
-            className="absolute mt-1 w-[225px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3C]"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {options.map((option, idx) => (
-              <Listbox.Option
-                key={idx}
-                value={option}
-                className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                  ${
-                    active || selected
-                      ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                      : "text-[#08994A] dark:text-[#0EFF7B]"
-                  }`
-                }
-              >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
@@ -871,57 +1001,155 @@ const UserSettings = () => {
                   Add New User
                 </h2>
                 <button
-                  onClick={() => setShowAddUserPopup(false)}
+                  onClick={() => {
+                    setShowAddUserPopup(false);
+                    setValidationErrors({
+                      username: "",
+                      password: "",
+                      role: "",
+                      staffId: "",
+                    });
+                    setPasswordMeetsRequirements(false);
+                  }}
                   className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Username <span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter username"
-                    value={newUser.username}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, username: e.target.value })
-                    }
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                  />
-                </div>
+                <InputField
+                  label="Username"
+                  name="username"
+                  value={newUser.username}
+                  onChange={handleUsernameChange}
+                  placeholder="Enter username"
+                  required={true}
+                  error={validationErrors.username}
+                  autoCapitalize={true}
+                />
                 <div>
                   <label className="text-sm text-black dark:text-white">
                     Password <span className="text-red-500 ml-1">*</span>
                   </label>
                   <input
                     type="password"
-                    placeholder="Enter password"
+                    name="password"
                     value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                    onChange={handlePasswordChange}
+                    placeholder="Enter password"
+                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
+                  {validationErrors.password && (
+                    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
+                      {validationErrors.password}
+                    </p>
+                  )}
+                  {/* Only show success message when password meets ALL requirements */}
+                  {passwordMeetsRequirements && !validationErrors.password && (
+                    <p className="mt-1 text-xs text-green-500 dark:text-green-400">
+                      ✓ Password meets requirements
+                    </p>
+                  )}
+                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Must contain: 8+ chars, uppercase, number, special char
+                  </div>
                 </div>
-                <Dropdown
-                  label="Role"
-                  value={newUser.role}
-                  onChange={(val) => setNewUser({ ...newUser, role: val })}
-                  options={availableRoles}
-                  className="w-[228px] h-[30px] mt-[2px]"
-                  required={true}
-                />
-                <Dropdown
-                  label="Staff ID"
-                  value={newUser.staffId}
-                  onChange={(val) => setNewUser({ ...newUser, staffId: val })}
-                  options={staffOptions}
-                  className="w-[228px] h-[30px] mt-[2px]"
-                  required={true}
-                />
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Role <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Listbox value={newUser.role} onChange={(val) => {
+                    setNewUser({ ...newUser, role: val });
+                    if (validationErrors.role) {
+                      setValidationErrors(prev => ({ ...prev, role: "" }));
+                    }
+                  }}>
+                    <div className="relative mt-1 w-full">
+                      <Listbox.Button
+                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                      >
+                        {newUser.role}
+                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options
+                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                      >
+                        {availableRoles.map((option, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            value={option}
+                            className={({ active, selected }) =>
+                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                              ${
+                                active || selected
+                                  ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                  : "text-[#08994A] dark:text-[#0EFF7B]"
+                              }`
+                            }
+                          >
+                            {option}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  {validationErrors.role && (
+                    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
+                      {validationErrors.role}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Staff ID <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <Listbox value={newUser.staffId} onChange={(val) => {
+                    setNewUser({ ...newUser, staffId: val });
+                    if (validationErrors.staffId) {
+                      setValidationErrors(prev => ({ ...prev, staffId: "" }));
+                    }
+                  }}>
+                    <div className="relative mt-1 w-full">
+                      <Listbox.Button
+                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                      >
+                        {newUser.staffId}
+                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options
+                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                      >
+                        {staffOptions.map((option, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            value={option}
+                            className={({ active, selected }) =>
+                              `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                              ${
+                                active || selected
+                                  ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                  : "text-[#08994A] dark:text-[#0EFF7B]"
+                              }`
+                            }
+                          >
+                            {option}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  {validationErrors.staffId && (
+                    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
+                      {validationErrors.staffId}
+                    </p>
+                  )}
+                </div>
               </div>
               {newUser.staffId &&
                 newUser.staffId !== "Select Staff ID" &&
@@ -960,7 +1188,16 @@ const UserSettings = () => {
                 )}
               <div className="flex justify-center gap-4 mt-5">
                 <button
-                  onClick={() => setShowAddUserPopup(false)}
+                  onClick={() => {
+                    setShowAddUserPopup(false);
+                    setValidationErrors({
+                      username: "",
+                      password: "",
+                      role: "",
+                      staffId: "",
+                    });
+                    setPasswordMeetsRequirements(false);
+                  }}
                   className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                 >
                   Cancel

@@ -11,100 +11,194 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showErrors, setShowErrors] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({}); // Format validation
+  const [fieldErrors, setFieldErrors] = useState({}); // Required validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+  const API =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : "http://localhost:8000";
 
-const handleSave = async () => {
-  // Check for required fields
-  const errors = {};
-  
-  if (!formData.departmentName.trim()) {
-    errors.departmentName = "Department name is required";
-  }
-  
-  if (!formData.status) {
-    errors.status = "Status is required";
-  }
-  
-  // Show errors if any
-  if (Object.keys(errors).length > 0) {
-    setShowErrors(true);
-    errorToast("Please fill in all required fields.");
-    return;
-  }
-
-  setLoading(true);
-  setError("");
-
-  const payload = {
-    name: formData.departmentName.trim(),
-    status: formData.status.toLowerCase(), // Backend expects "active"/"inactive"
-    description: formData.description.trim() || null,
+  /* ---------- Format Validation Functions (while typing) ---------- */
+  const validateDepartmentNameFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s&.,'-]+$/.test(value)) return "Department name should contain only letters, spaces, &, ., ,, ' and -";
+    if (value.trim().length < 2) return "Department name must be at least 2 characters";
+    if (value.trim().length > 100) return "Department name cannot exceed 100 characters";
+    return "";
   };
 
-  try {
-    const response = await fetch(`${API}/departments/create`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+  const validateDescriptionFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value)) return "Description can contain letters, numbers, spaces and basic punctuation";
+    if (value.trim().length > 500) return "Description cannot exceed 500 characters";
+    return "";
+  };
 
-    if (!response.ok) {
-      let errorMessage = "Failed to create department.";
+  /* ---------- Required Field Validation (only for submission) ---------- */
+  const validateRequiredFields = () => {
+    const errors = {};
+    let isValid = true;
 
-      if (response.status === 409) {
-        const err = await response.json();
-        errorMessage = err.detail || "Department with this name already exists.";
-      } else {
-        try {
-          const err = await response.json();
-          errorMessage = err.detail || errorMessage;
-        } catch {
-          errorMessage = `Server error: ${response.status}`;
-        }
-      }
+    if (!formData.departmentName.trim()) {
+      errors.departmentName = "Department name is required";
+      isValid = false;
+    }
+    
+    if (!formData.status) {
+      errors.status = "Status is required";
+      isValid = false;
+    }
 
-      setError(errorMessage);
-      errorToast(errorMessage);
-      setLoading(false);
+    setFieldErrors(errors);
+    return isValid;
+  };
+
+  /* ---------- Capitalize Functions ---------- */
+  const capitalizeWords = (value) => {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  /* ---------- Handle Input Change ---------- */
+  const handleInputChange = (field) => (e) => {
+    let value = e.target.value;
+    
+    // Apply auto-capitalization for department name
+    if (field === "departmentName") {
+      value = capitalizeWords(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation errors for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    // Perform real-time format validation
+    let formatError = "";
+    switch (field) {
+      case "departmentName":
+        formatError = validateDepartmentNameFormat(value);
+        break;
+      case "description":
+        formatError = validateDescriptionFormat(value);
+        break;
+      default:
+        break;
+    }
+    
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    }
+  };
+
+  /* ---------- Validate Form Before Submission ---------- */
+  const validateForm = () => {
+    // First check required fields
+    const requiredValid = validateRequiredFields();
+    
+    // Then check format validation
+    const formatErrors = {
+      departmentName: validateDepartmentNameFormat(formData.departmentName),
+      description: validateDescriptionFormat(formData.description)
+    };
+    
+    // Update validation errors for display
+    setValidationErrors(formatErrors);
+    
+    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    
+    setIsSubmitted(true);
+    return requiredValid && formatValid;
+  };
+
+  const handleSave = async () => {
+    // Validate all fields
+    if (!validateForm()) {
+      errorToast("Please fix all validation errors before saving.");
       return;
     }
 
-    const newDepartment = await response.json();
+    setLoading(true);
 
-    // SUCCESS TOAST
-    successToast(`"${newDepartment.name}" created successfully!`);
+    const payload = {
+      name: formData.departmentName.trim(),
+      status: formData.status.toLowerCase(), // Backend expects "active"/"inactive"
+      description: formData.description.trim() || null,
+    };
 
-    // Notify parent to refresh list
-    if (onSave) onSave(newDepartment);
+    try {
+      const response = await fetch(`${API}/departments/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    // Close popup with a tiny delay for toast visibility
-    setTimeout(() => {
-      onClose();
-    }, 600);
+      if (!response.ok) {
+        let errorMessage = "Failed to create department.";
 
-  } catch (err) {
-    const networkError = "Network error. Please check your connection.";
-    setError(networkError);
-    errorToast(networkError);
-    console.error("Create Department Error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+        if (response.status === 409) {
+          const err = await response.json();
+          errorMessage = err.detail || "Department with this name already exists.";
+        } else {
+          try {
+            const err = await response.json();
+            errorMessage = err.detail || errorMessage;
+          } catch {
+            errorMessage = `Server error: ${response.status}`;
+          }
+        }
+
+        errorToast(errorMessage);
+        setLoading(false);
+        return;
+      }
+
+      const newDepartment = await response.json();
+
+      // SUCCESS TOAST
+      successToast(`"${newDepartment.name}" created successfully!`);
+
+      // Notify parent to refresh list
+      if (onSave) onSave(newDepartment);
+
+      // Close popup with a tiny delay for toast visibility
+      setTimeout(() => {
+        onClose();
+      }, 600);
+
+    } catch (err) {
+      const networkError = "Network error. Please check your connection.";
+      errorToast(networkError);
+      console.error("Create Department Error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleClear = () => {
     setFormData({ departmentName: "", status: "", description: "" });
-    setError("");
-    setShowErrors(false);
+    setValidationErrors({});
+    setFieldErrors({});
+    setIsSubmitted(false);
     setFocusedField(null);
   };
 
@@ -113,7 +207,8 @@ const handleSave = async () => {
   // Reusable Dropdown
   const Dropdown = ({ label, value, onChange, options }) => {
     const isFocused = focusedField === 'status';
-    const hasError = showErrors && !value;
+    const hasFormatError = validationErrors.status;
+    const hasRequiredError = fieldErrors.status;
     
     return (
       <div>
@@ -123,8 +218,8 @@ const handleSave = async () => {
             <Listbox.Button
               className={`
                 w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
-                ${value ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-500 dark:text-gray-400"}
-                ${isFocused ? "border-green-500" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}
+                ${value ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}
+                ${isFocused ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}
                 bg-white dark:bg-transparent
                 flex items-center justify-between
               `}
@@ -161,8 +256,13 @@ const handleSave = async () => {
             </Listbox.Options>
           </div>
         </Listbox>
-        {showErrors && !value && (
-          <p className="mt-1 text-xs text-red-500">Status is required</p>
+        {/* Format validation error - shows while typing */}
+        {hasFormatError && (
+          <p className="mt-1 text-xs text-red-500">{hasFormatError}</p>
+        )}
+        {/* Required field error - only shows after submit attempt */}
+        {hasRequiredError && !hasFormatError && (
+          <p className="mt-1 text-xs text-red-500">{hasRequiredError}</p>
         )}
       </div>
     );
@@ -203,13 +303,6 @@ const handleSave = async () => {
           </button>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 p-2 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 text-sm rounded">
-            {error}
-          </div>
-        )}
-
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           {/* Department Name */}
@@ -220,23 +313,26 @@ const handleSave = async () => {
             <input
               name="departmentName"
               value={formData.departmentName}
-              onChange={(e) =>
-                setFormData({ ...formData, departmentName: e.target.value })
-              }
+              onChange={handleInputChange("departmentName")}
               onFocus={() => setFocusedField('departmentName')}
               onBlur={() => setFocusedField(null)}
               placeholder="Enter department"
               className={`
                 w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border 
-                ${focusedField === 'departmentName' ? 'border-green-500' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
+                ${focusedField === 'departmentName' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
                 bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
                 placeholder-gray-500 dark:placeholder-gray-500 outline-none 
                 disabled:opacity-50
               `}
               disabled={loading}
             />
-            {showErrors && !formData.departmentName.trim() && (
-              <p className="mt-1 text-xs text-red-500">Department name is required</p>
+            {/* Format validation error - shows while typing */}
+            {validationErrors.departmentName && (
+              <p className="mt-1 text-xs text-red-500">{validationErrors.departmentName}</p>
+            )}
+            {/* Required field error - only shows after submit attempt */}
+            {fieldErrors.departmentName && !validationErrors.departmentName && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.departmentName}</p>
             )}
           </div>
 
@@ -261,14 +357,24 @@ const handleSave = async () => {
           <textarea
             name="description"
             value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
+            onChange={handleInputChange("description")}
+            onFocus={() => setFocusedField('description')}
+            onBlur={() => setFocusedField(null)}
             placeholder="Enter description"
             rows={4}
-            className="w-full mt-1 px-3 py-2 rounded-[12px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 dark:placeholder-gray-500 outline-none disabled:opacity-50"
+            className={`
+              w-full mt-1 px-3 py-2 rounded-[12px] border 
+              ${focusedField === 'description' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
+              bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+              placeholder-gray-500 dark:placeholder-gray-500 outline-none 
+              disabled:opacity-50
+            `}
             disabled={loading}
           />
+          {/* Format validation error - shows while typing */}
+          {validationErrors.description && (
+            <p className="mt-1 text-xs text-red-500">{validationErrors.description}</p>
+          )}
         </div>
 
         {/* Buttons */}
@@ -282,8 +388,8 @@ const handleSave = async () => {
           </button>
           <button
             onClick={handleSave}
-            disabled={loading}
-            className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 bg-gradient-to-r from-[#0EFF7B] to-[#08994A] dark:from-[#14DC6F] dark:to-[#09753A] shadow text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={loading || Object.values(validationErrors).some(error => error !== "")}
+            className="w-[144px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] px-3 py-2 text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{
               background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
             }}

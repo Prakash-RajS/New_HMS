@@ -76,6 +76,8 @@ const Dropdown = ({
   placeholder = "Select",
   required = false,
   error = null,
+  onFocus = () => {},
+  onBlur = () => {},
 }) => (
   <div className="space-y-1 w-full">
     <label
@@ -87,8 +89,11 @@ const Dropdown = ({
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
         <Listbox.Button
-          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] text-left text-[14px] leading-[16px]
-                     flex items-center justify-between bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+          onFocus={onFocus}
+          onBlur={onBlur}
+          className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
+                     flex items-center justify-between bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+                     ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           <span>
@@ -104,7 +109,7 @@ const Dropdown = ({
         </Listbox.Button>
         <Listbox.Options
           className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50
-                     border border-gray-300 dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-y-auto"
+                     border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-y-auto"
         >
           {loading ? (
             <Listbox.Option
@@ -158,6 +163,8 @@ const InputField = ({
   type = "text",
   required = false,
   error = null,
+  onFocus = () => {},
+  onBlur = () => {},
 }) => (
   <div className="space-y-1 w-full">
     <label
@@ -171,9 +178,12 @@ const InputField = ({
       name={name}
       value={value}
       onChange={onChange}
+      onFocus={onFocus}
+      onBlur={onBlur}
       placeholder={placeholder}
-      className="w-full h-[33px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                 bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]"
+      className={`w-full h-[33px] px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                 text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]
+                 ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -181,7 +191,7 @@ const InputField = ({
 );
 
 /* ---------- Date Field (Native Style) ---------- */
-const DateField = ({ label, value, onChange, placeholder, required = false, error = null }) => {
+const DateField = ({ label, value, onChange, placeholder, required = false, error = null, onFocus = () => {}, onBlur = () => {} }) => {
   const dateRef = React.useRef(null);
   const handleDateChange = (e) => {
     onChange(e.target.value);
@@ -203,8 +213,11 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
           ref={dateRef}
           value={value}
           onChange={handleDateChange}
-          className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]"
+          onFocus={onFocus}
+          onBlur={onBlur}
+          className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border bg-white dark:bg-transparent 
+                     text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]
+                     ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         />
         <Calendar
@@ -256,8 +269,13 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
-  const [errors, setErrors] = useState({});
+  
+  // Validation states
+  const [validationErrors, setValidationErrors] = useState({}); // Format validation
+  const [fieldErrors, setFieldErrors] = useState({}); // Required validation (submit only)
+  const [focusedField, setFocusedField] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  
   const styleRef = React.useRef(null);
   const navigate = useNavigate();
   
@@ -267,80 +285,280 @@ export default function NewRegistration({ isSidebarOpen }) {
   const appointmentTypes = ["In-person", "Online", "Follow-up"];
   const casualtyTypes = ["Yes", "No"];
 
-  /* ---------- Validation Rules ---------- */
-  const validateField = (fieldName, value) => {
-    switch (fieldName) {
-      case "fullname":
-        return value.trim() === "" ? "Full name is required" : "";
-      case "dob":
-        return value === "" ? "Date of birth is required" : "";
-      case "gender":
-        return value === "" ? "Gender is required" : "";
-      case "age":
-        if (value === "") return "Age is required";
-        if (isNaN(value) || Number(value) <= 0) return "Age must be a positive number";
-        return "";
-      case "maritalStatus":
-        return value === "" ? "Marital status is required" : "";
-      case "address":
-        return value.trim() === "" ? "Address is required" : "";
-      case "phone":
-        if (value === "") return "Phone number is required";
-        if (!/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
-        return "";
-      case "email":
-        if (value === "") return "Email is required";
-        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(value)) return "Email must be a valid Gmail address";
-        return "";
-      case "nid":
-        return value.trim() === "" ? "National ID is required" : "";
-      case "city":
-        return value.trim() === "" ? "City is required" : "";
-      case "country":
-        return value.trim() === "" ? "Country is required" : "";
-      case "dor":
-        return value === "" ? "Date of registration is required" : "";
-      case "occupation":
-        return value.trim() === "" ? "Occupation is required" : "";
-      case "weight":
-        if (value === "") return "Weight is required";
-        if (isNaN(value) || Number(value) <= 0) return "Weight must be a positive number";
-        return "";
-      case "height":
-        if (value === "") return "Height is required";
-        if (isNaN(value) || Number(value) <= 0) return "Height must be a positive number";
-        return "";
-      case "bloodGroup":
-        return value === "" ? "Blood group is required" : "";
-      case "bp":
-        return value.trim() === "" ? "Blood pressure is required" : "";
-      case "temperature":
-        if (value === "") return "Temperature is required";
-        if (isNaN(value)) return "Temperature must be a number";
-        return "";
-      case "consultType":
-        return value === "" ? "Consultation type is required" : "";
-      case "department_id":
-        return value === "" ? "Department is required" : "";
-      case "staff_id":
-        return value === "" ? "Consulting doctor is required" : "";
-      case "apptType":
-        return value === "" ? "Appointment type is required" : "";
-      case "admitDate":
-        return value === "" ? "Admit date is required" : "";
-      case "roomNo":
-        return value === "" ? "Room / Bed No is required" : "";
-      case "testReport":
-        return value.trim() === "" ? "Test report is required" : "";
-      case "casualty":
-        return value === "" ? "Casualty status is required" : "";
-      case "reason":
-        return value.trim() === "" ? "Reason for visit is required" : "";
-      case "photo":
-        return !photoFile ? "Photo is required" : "";
-      default:
-        return "";
+  /* ---------- Format Validation Functions (while typing) ---------- */
+  const validateFullnameFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Name should contain only letters and spaces";
+    return "";
+  };
+
+  const validateAgeFormat = (value) => {
+    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 150)) return "Age must be a positive number (1-150)";
+    return "";
+  };
+
+  const validatePhoneFormat = (value) => {
+    if (value.trim() && !/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  const validateEmailFormat = (value) => {
+    if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validateWeightFormat = (value) => {
+    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 300)) return "Weight must be a positive number (1-300 kg)";
+    return "";
+  };
+
+  const validateHeightFormat = (value) => {
+    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 250)) return "Height must be a positive number (1-250 cm)";
+    return "";
+  };
+
+  const validateTemperatureFormat = (value) => {
+    if (value.trim() && (isNaN(value) || Number(value) < 30 || Number(value) > 50)) return "Temperature must be a valid number (30-50°C)";
+    return "";
+  };
+
+  const validateCityFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "City should contain only letters and spaces";
+    return "";
+  };
+
+  const validateCountryFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Country should contain only letters and spaces";
+    return "";
+  };
+
+  const validateOccupationFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Occupation should contain only letters and spaces";
+    return "";
+  };
+
+  const validateReasonFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s.,!?'-]+$/.test(value)) return "Reason should contain only letters and basic punctuation";
+    return "";
+  };
+
+  const validateTestReportFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value)) return "Test report can contain letters, numbers and basic punctuation";
+    return "";
+  };
+
+  const validateBpFormat = (value) => {
+    if (value.trim() && !/^[0-9/]+$/.test(value)) return "Blood pressure can only contain numbers and /";
+    return "";
+  };
+
+  const validateNidFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z0-9\s-]+$/.test(value)) return "NID can contain letters, numbers, spaces and hyphens";
+    return "";
+  };
+
+  const validateAddressFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z0-9\s.,#'/-]+$/.test(value)) return "Address can contain letters, numbers, spaces and basic punctuation";
+    return "";
+  };
+
+  /* ---------- Required Field Validation (only for submission) ---------- */
+  const validateRequiredFields = () => {
+    const errors = {};
+    let isValid = true;
+
+    const requiredFields = [
+      "fullname", "dob", "gender", "age", "maritalStatus", "address", 
+      "phone", "email", "nid", "city", "country", "dor", "occupation", 
+      "weight", "height", "bloodGroup", "bp", "temperature", "consultType", 
+      "apptType", "admitDate", "roomNo", "testReport", "casualty", "reason", 
+      "department_id", "staff_id"
+    ];
+
+    requiredFields.forEach(field => {
+      if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === "")) {
+        errors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+        isValid = false;
+      }
+    });
+
+    // Special case for photo
+    if (!photoFile) {
+      errors.photo = "Photo is required";
+      isValid = false;
     }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
+  /* ---------- Capitalize Functions ---------- */
+  const capitalizeName = (value) => {
+    return value
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  const capitalizeWords = (value) => {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  /* ---------- Handle Input Change ---------- */
+  const handleInputChange = (field) => (e) => {
+    let value = e.target.value;
+    
+    // Apply auto-capitalization
+    if (field === "fullname") {
+      value = capitalizeName(value);
+    } else if (["city", "country", "occupation", "reason", "testReport", "bp"].includes(field)) {
+      value = capitalizeWords(value);
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation errors for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    // Perform real-time format validation
+    let formatError = "";
+    switch (field) {
+      case "fullname":
+        formatError = validateFullnameFormat(value);
+        break;
+      case "age":
+        formatError = validateAgeFormat(value);
+        break;
+      case "phone":
+        formatError = validatePhoneFormat(value);
+        break;
+      case "email":
+        formatError = validateEmailFormat(value);
+        break;
+      case "weight":
+        formatError = validateWeightFormat(value);
+        break;
+      case "height":
+        formatError = validateHeightFormat(value);
+        break;
+      case "temperature":
+        formatError = validateTemperatureFormat(value);
+        break;
+      case "city":
+        formatError = validateCityFormat(value);
+        break;
+      case "country":
+        formatError = validateCountryFormat(value);
+        break;
+      case "occupation":
+        formatError = validateOccupationFormat(value);
+        break;
+      case "reason":
+        formatError = validateReasonFormat(value);
+        break;
+      case "testReport":
+        formatError = validateTestReportFormat(value);
+        break;
+      case "bp":
+        formatError = validateBpFormat(value);
+        break;
+      case "nid":
+        formatError = validateNidFormat(value);
+        break;
+      case "address":
+        formatError = validateAddressFormat(value);
+        break;
+      default:
+        break;
+    }
+    
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    }
+  };
+
+  const handleDropdownChange = (field) => (value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation errors for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleDateChange = (field) => (date) => {
+    setFormData(prev => ({ ...prev, [field]: date }));
+    
+    // Clear validation errors for this field
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  /* ---------- Validate Form Before Submission ---------- */
+  const validateForm = () => {
+    // First check required fields
+    const requiredValid = validateRequiredFields();
+    
+    // Then check format validation
+    const formatErrors = {
+      fullname: validateFullnameFormat(formData.fullname),
+      age: validateAgeFormat(formData.age),
+      phone: validatePhoneFormat(formData.phone),
+      email: validateEmailFormat(formData.email),
+      weight: validateWeightFormat(formData.weight),
+      height: validateHeightFormat(formData.height),
+      temperature: validateTemperatureFormat(formData.temperature),
+      city: validateCityFormat(formData.city),
+      country: validateCountryFormat(formData.country),
+      occupation: validateOccupationFormat(formData.occupation),
+      reason: validateReasonFormat(formData.reason),
+      testReport: validateTestReportFormat(formData.testReport),
+      bp: validateBpFormat(formData.bp),
+      nid: validateNidFormat(formData.nid),
+      address: validateAddressFormat(formData.address)
+    };
+    
+    // Update validation errors for display
+    setValidationErrors(formatErrors);
+    
+    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    
+    setIsSubmitted(true);
+    return requiredValid && formatValid;
   };
 
   /* ---------- Load Departments ---------- */
@@ -451,71 +669,6 @@ export default function NewRegistration({ isSidebarOpen }) {
     };
   }, []);
 
-  const handleChange = (field) => (e) => {
-    const val = e.target.value;
-    setFormData((prev) => ({ ...prev, [field]: val }));
-    // Clear error for this field when user starts typing
-    if (isSubmitted && errors[field]) {
-      const error = validateField(field, val);
-      if (error === "") {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      } else {
-        setErrors((prev) => ({ ...prev, [field]: error }));
-      }
-    }
-  };
-
-  const handleDropdownChange = (field) => (value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field when user selects an option
-    if (isSubmitted && errors[field]) {
-      const error = validateField(field, value);
-      if (error === "") {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      } else {
-        setErrors((prev) => ({ ...prev, [field]: error }));
-      }
-    }
-  };
-
-  const handleDateChange = (field) => (date) => {
-    setFormData((prev) => ({ ...prev, [field]: date }));
-    // Clear error for this field when user selects a date
-    if (isSubmitted && errors[field]) {
-      const error = validateField(field, date);
-      if (error === "") {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      } else {
-        setErrors((prev) => ({ ...prev, [field]: error }));
-      }
-    }
-  };
-
-  const validateForm = () => {
-    const newErrors = {};
-    let isValid = true;
-
-    // Validate all fields
-    Object.keys(formData).forEach((field) => {
-      const error = validateField(field, formData[field]);
-      if (error) {
-        newErrors[field] = error;
-        isValid = false;
-      }
-    });
-
-    // Validate photo separately
-    const photoError = validateField("photo", "");
-    if (photoError) {
-      newErrors.photo = photoError;
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    setIsSubmitted(true);
-    return isValid;
-  };
-
   const handleClear = () => {
     setFormData({
       fullname: "",
@@ -548,7 +701,8 @@ export default function NewRegistration({ isSidebarOpen }) {
     });
     setPhotoPreview(null);
     setPhotoFile(null);
-    setErrors({});
+    setValidationErrors({});
+    setFieldErrors({});
     setIsSubmitted(false);
   };
 
@@ -559,7 +713,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     
     const isValid = validateForm();
     if (!isValid) {
-      errorToast("Please fill all required fields correctly.");
+      errorToast("Please fix all validation errors before saving.");
       return;
     }
     
@@ -661,11 +815,11 @@ export default function NewRegistration({ isSidebarOpen }) {
               setPhotoPreview={setPhotoPreview}
               onFileSelect={(file) => {
                 setPhotoFile(file);
-                if (isSubmitted && errors.photo) {
-                  setErrors((prev) => ({ ...prev, photo: "" }));
+                if (isSubmitted && fieldErrors.photo) {
+                  setFieldErrors(prev => ({ ...prev, photo: "" }));
                 }
               }}
-              error={errors.photo}
+              error={fieldErrors.photo}
             />
           </div>
         </div>
@@ -682,17 +836,21 @@ export default function NewRegistration({ isSidebarOpen }) {
               <InputField
                 label="Full Name"
                 value={formData.fullname}
-                onChange={handleChange("fullname")}
+                onChange={handleInputChange("fullname")}
+                onFocus={() => setFocusedField("fullname")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter full name"
                 required
-                error={errors.fullname}
+                error={validationErrors.fullname || fieldErrors.fullname}
               />
               <DateField
                 label="Date of Birth"
                 value={formData.dob}
                 onChange={handleDateChange("dob")}
+                onFocus={() => setFocusedField("dob")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.dob}
+                error={fieldErrors.dob}
               />
               <Dropdown
                 label="Gender"
@@ -702,108 +860,134 @@ export default function NewRegistration({ isSidebarOpen }) {
                   id: g,
                   name: g,
                 }))}
+                onFocus={() => setFocusedField("gender")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.gender}
+                error={fieldErrors.gender}
               />
               <InputField
                 label="Age"
                 type="number"
                 value={formData.age}
-                onChange={handleChange("age")}
-                placeholder="Enter age"
+                onChange={handleInputChange("age")}
+                onFocus={() => setFocusedField("age")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="Enter age (1-150)"
                 required
-                error={errors.age}
+                error={validationErrors.age || fieldErrors.age}
               />
               <Dropdown
                 label="Marital Status"
                 value={formData.maritalStatus}
                 onChange={handleDropdownChange("maritalStatus")}
                 options={maritalStatusOptions.map((m) => ({ id: m, name: m }))}
+                onFocus={() => setFocusedField("maritalStatus")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.maritalStatus}
+                error={fieldErrors.maritalStatus}
               />
               <InputField
                 label="Address"
                 value={formData.address}
-                onChange={handleChange("address")}
+                onChange={handleInputChange("address")}
+                onFocus={() => setFocusedField("address")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter address"
                 required
-                error={errors.address}
+                error={validationErrors.address || fieldErrors.address}
               />
               <InputField
                 label="Phone"
                 type="tel"
                 value={formData.phone}
-                onChange={handleChange("phone")}
+                onChange={handleInputChange("phone")}
+                onFocus={() => setFocusedField("phone")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter 10 digit phone no"
                 required
-                error={errors.phone}
+                error={validationErrors.phone || fieldErrors.phone}
               />
               <InputField
                 label="Email ID"
                 type="email"
                 value={formData.email}
-                onChange={handleChange("email")}
-                placeholder="Enter email"
+                onChange={handleInputChange("email")}
+                onFocus={() => setFocusedField("email")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="example@domain.com"
                 required
-                error={errors.email}
+                error={validationErrors.email || fieldErrors.email}
               />
               <InputField
                 label="National ID"
                 value={formData.nid}
-                onChange={handleChange("nid")}
+                onChange={handleInputChange("nid")}
+                onFocus={() => setFocusedField("nid")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter NID"
                 required
-                error={errors.nid}
+                error={validationErrors.nid || fieldErrors.nid}
               />
               <InputField
                 label="City"
                 value={formData.city}
-                onChange={handleChange("city")}
+                onChange={handleInputChange("city")}
+                onFocus={() => setFocusedField("city")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="City"
                 required
-                error={errors.city}
+                error={validationErrors.city || fieldErrors.city}
               />
               <InputField
                 label="Country"
                 value={formData.country}
-                onChange={handleChange("country")}
+                onChange={handleInputChange("country")}
+                onFocus={() => setFocusedField("country")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Country"
                 required
-                error={errors.country}
+                error={validationErrors.country || fieldErrors.country}
               />
               <DateField
                 label="Date of Registration"
                 value={formData.dor}
                 onChange={handleDateChange("dor")}
+                onFocus={() => setFocusedField("dor")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.dor}
+                error={fieldErrors.dor}
               />
               <InputField
                 label="Occupation"
                 value={formData.occupation}
-                onChange={handleChange("occupation")}
+                onChange={handleInputChange("occupation")}
+                onFocus={() => setFocusedField("occupation")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Enter occupation"
                 required
-                error={errors.occupation}
+                error={validationErrors.occupation || fieldErrors.occupation}
               />
               <InputField
                 label="Weight (kg)"
                 type="number"
                 value={formData.weight}
-                onChange={handleChange("weight")}
-                placeholder="kg"
+                onChange={handleInputChange("weight")}
+                onFocus={() => setFocusedField("weight")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="kg (1-300)"
                 required
-                error={errors.weight}
+                error={validationErrors.weight || fieldErrors.weight}
               />
               <InputField
                 label="Height (cm)"
                 type="number"
                 value={formData.height}
-                onChange={handleChange("height")}
-                placeholder="cm"
+                onChange={handleInputChange("height")}
+                onFocus={() => setFocusedField("height")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="cm (1-250)"
                 required
-                error={errors.height}
+                error={validationErrors.height || fieldErrors.height}
               />
             </div>
           </div>
@@ -816,33 +1000,41 @@ export default function NewRegistration({ isSidebarOpen }) {
                 value={formData.bloodGroup}
                 onChange={handleDropdownChange("bloodGroup")}
                 options={bloodGroups.map((b) => ({ id: b, name: b }))}
+                onFocus={() => setFocusedField("bloodGroup")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.bloodGroup}
+                error={fieldErrors.bloodGroup}
               />
               <InputField
                 label="Blood Pressure"
                 value={formData.bp}
-                onChange={handleChange("bp")}
+                onChange={handleInputChange("bp")}
+                onFocus={() => setFocusedField("bp")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="e.g. 120/80"
                 required
-                error={errors.bp}
+                error={validationErrors.bp || fieldErrors.bp}
               />
               <InputField
                 label="Temperature"
                 type="number"
                 value={formData.temperature}
-                onChange={handleChange("temperature")}
-                placeholder="°C"
+                onChange={handleInputChange("temperature")}
+                onFocus={() => setFocusedField("temperature")}
+                onBlur={() => setFocusedField(null)}
+                placeholder="°C (30-50)"
                 required
-                error={errors.temperature}
+                error={validationErrors.temperature || fieldErrors.temperature}
               />
               <Dropdown
                 label="Consultation Type"
                 value={formData.consultType}
                 onChange={handleDropdownChange("consultType")}
                 options={consultationTypes.map((c) => ({ id: c, name: c }))}
+                onFocus={() => setFocusedField("consultType")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.consultType}
+                error={fieldErrors.consultType}
               />
               <Dropdown
                 label="Department"
@@ -850,8 +1042,10 @@ export default function NewRegistration({ isSidebarOpen }) {
                 onChange={handleDropdownChange("department_id")}
                 options={departments}
                 loading={loadingDepts}
+                onFocus={() => setFocusedField("department")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.department_id}
+                error={fieldErrors.department_id}
               />
               <Dropdown
                 label="Consulting Doctor"
@@ -865,23 +1059,29 @@ export default function NewRegistration({ isSidebarOpen }) {
                 placeholder="Select Department First"
                 idField="id"
                 nameField="display"
+                onFocus={() => setFocusedField("staff")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.staff_id}
+                error={fieldErrors.staff_id}
               />
               <Dropdown
                 label="Appointment Type"
                 value={formData.apptType}
                 onChange={handleDropdownChange("apptType")}
                 options={appointmentTypes.map((a) => ({ id: a, name: a }))}
+                onFocus={() => setFocusedField("apptType")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.apptType}
+                error={fieldErrors.apptType}
               />
               <DateField
                 label="Admit Date"
                 value={formData.admitDate}
                 onChange={handleDateChange("admitDate")}
+                onFocus={() => setFocusedField("admitDate")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.admitDate}
+                error={fieldErrors.admitDate}
               />
               <Dropdown
                 label="Room / Bed No"
@@ -890,24 +1090,30 @@ export default function NewRegistration({ isSidebarOpen }) {
                 options={availableBeds}
                 placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
                 loading={loadingBeds}
+                onFocus={() => setFocusedField("roomNo")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.roomNo}
+                error={fieldErrors.roomNo}
               />
               <InputField
                 label="Test Report"
                 value={formData.testReport}
-                onChange={handleChange("testReport")}
+                onChange={handleInputChange("testReport")}
+                onFocus={() => setFocusedField("testReport")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Details"
                 required
-                error={errors.testReport}
+                error={validationErrors.testReport || fieldErrors.testReport}
               />
               <Dropdown
                 label="Casualty"
                 value={formData.casualty}
                 onChange={handleDropdownChange("casualty")}
                 options={casualtyTypes.map((c) => ({ id: c, name: c }))}
+                onFocus={() => setFocusedField("casualty")}
+                onBlur={() => setFocusedField(null)}
                 required
-                error={errors.casualty}
+                error={fieldErrors.casualty}
               />
             </div>
             <div className="mt-4">
@@ -919,12 +1125,23 @@ export default function NewRegistration({ isSidebarOpen }) {
               </label>
               <textarea
                 value={formData.reason}
-                onChange={handleChange("reason")}
+                onChange={handleInputChange("reason")}
+                onFocus={() => setFocusedField("reason")}
+                onBlur={() => setFocusedField(null)}
                 placeholder="Describe symptoms"
-                className="w-full h-20 mt-1 px-3 py-2 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-[14px]"
+                className={`w-full h-20 mt-1 px-3 py-2 rounded-[8px] border bg-white dark:bg-transparent 
+                           text-black dark:text-[#0EFF7B] outline-none text-[14px]
+                           ${focusedField === "reason" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
-              {errors.reason && <p className="text-red-500 text-xs mt-1">{errors.reason}</p>}
+              {/* Format validation error - shows while typing */}
+              {validationErrors.reason && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.reason}</p>
+              )}
+              {/* Required field error - only shows after submit attempt */}
+              {fieldErrors.reason && !validationErrors.reason && (
+                <p className="text-red-500 text-xs mt-1">{fieldErrors.reason}</p>
+              )}
             </div>
           </div>
           {/* Buttons */}
@@ -938,7 +1155,8 @@ export default function NewRegistration({ isSidebarOpen }) {
             </button>
             <button
               type="submit"
-              className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B]"
+              disabled={Object.values(validationErrors).some(error => error !== "")}
+              className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B] disabled:opacity-70"
             >
               Add Patient..!
             </button>

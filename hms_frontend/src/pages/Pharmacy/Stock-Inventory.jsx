@@ -21,7 +21,6 @@ const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
-//const API_BASE = "http://127.0.0.1:8000/stock";
 
 const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
@@ -120,6 +119,20 @@ const StockInventory = () => {
     vendor: "",
     vendor_id: "",
     quantity: "",
+    item_code: "",
+    rack_no: "",
+    shelf_no: "",
+    unit_price: "",
+    status: "IN STOCK",
+  });
+  const [editStock, setEditStock] = useState({
+    product_name: "",
+    dosage: "",
+    category: "",
+    batch_number: "",
+    vendor: "",
+    vendor_id: "",
+    add_quantity: "",
     item_code: "",
     rack_no: "",
     shelf_no: "",
@@ -281,15 +294,17 @@ const StockInventory = () => {
     };
   }, [openDropdownId]);
 
-  // Validation function for ALL fields
-  const validateForm = () => {
+  // Validation function for Add Stock form
+  const validateAddForm = () => {
     const errors = {};
-    
+
     // Required fields with custom messages
-    if (!newStock.product_name.trim()) errors.product_name = "Product name is required";
+    if (!newStock.product_name.trim())
+      errors.product_name = "Product name is required";
     if (!newStock.dosage.trim()) errors.dosage = "Dosage is required";
     if (!newStock.category) errors.category = "Category is required";
-    if (!newStock.batch_number.trim()) errors.batch_number = "Batch number is required";
+    if (!newStock.batch_number.trim())
+      errors.batch_number = "Batch number is required";
     if (!newStock.vendor.trim()) errors.vendor = "Vendor is required";
     if (!newStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
     if (!newStock.quantity) errors.quantity = "Quantity is required";
@@ -298,7 +313,7 @@ const StockInventory = () => {
     if (!newStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
     if (!newStock.unit_price) errors.unit_price = "Unit price is required";
     if (!newStock.status) errors.status = "Status is required";
-    
+
     // Validate quantity is a valid positive number
     if (newStock.quantity) {
       const qty = parseInt(newStock.quantity);
@@ -308,7 +323,7 @@ const StockInventory = () => {
         errors.quantity = "Quantity must be non-negative";
       }
     }
-    
+
     // Validate unit price is a valid positive number
     if (newStock.unit_price) {
       const price = parseFloat(newStock.unit_price);
@@ -318,7 +333,50 @@ const StockInventory = () => {
         errors.unit_price = "Unit price must be non-negative";
       }
     }
-    
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Validation function for Edit Stock form
+  const validateEditForm = () => {
+    const errors = {};
+
+    // Required fields for edit (add_quantity is optional)
+    if (!editStock.product_name.trim())
+      errors.product_name = "Product name is required";
+    if (!editStock.dosage.trim()) errors.dosage = "Dosage is required";
+    if (!editStock.category) errors.category = "Category is required";
+    if (!editStock.batch_number.trim())
+      errors.batch_number = "Batch number is required";
+    if (!editStock.vendor.trim()) errors.vendor = "Vendor is required";
+    if (!editStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
+    if (!editStock.item_code.trim()) errors.item_code = "Item code is required";
+    if (!editStock.rack_no.trim()) errors.rack_no = "Rack No is required";
+    if (!editStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
+    if (!editStock.unit_price) errors.unit_price = "Unit price is required";
+    if (!editStock.status) errors.status = "Status is required";
+
+    // Validate add_quantity if provided
+    if (editStock.add_quantity) {
+      const addQty = parseInt(editStock.add_quantity);
+      if (isNaN(addQty)) {
+        errors.add_quantity = "Quantity must be a valid number";
+      } else if (addQty < 0) {
+        errors.add_quantity = "Quantity must be non-negative";
+      }
+    }
+
+    // Validate unit price is a valid positive number
+    if (editStock.unit_price) {
+      const price = parseFloat(editStock.unit_price);
+      if (isNaN(price)) {
+        errors.unit_price = "Unit price must be a valid number";
+      } else if (price < 0) {
+        errors.unit_price = "Unit price must be non-negative";
+      }
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -407,14 +465,12 @@ const StockInventory = () => {
 
   const handleAddStock = async (e) => {
     e.preventDefault();
-    
-    // Remove the default browser validation by not using required attribute
-    // Validate form before submission
-    if (!validateForm()) {
+
+    if (!validateAddForm()) {
       errorToast("Please fill all required fields correctly");
       return;
     }
-    
+
     try {
       const stockData = {
         product_name: newStock.product_name.trim(),
@@ -447,7 +503,7 @@ const StockInventory = () => {
         unit_price: "",
         status: "IN STOCK",
       });
-      setFormErrors({}); // Clear errors
+      setFormErrors({});
     } catch (err) {
       console.error("Error adding stock:", err);
       setError(err.message || "Failed to add stock");
@@ -456,40 +512,39 @@ const StockInventory = () => {
 
   const handleEditStock = async (e) => {
     e.preventDefault();
-    
-    // Remove the default browser validation by not using required attribute
-    // Validate form before submission
-    if (!validateForm()) {
-      errorToast("Please fill all required fields correctly");
+
+    if (!validateEditForm()) {
+      errorToast("Please fill required fields correctly");
       return;
     }
-    
+
     try {
       const stockData = {
-        product_name: newStock.product_name.trim(),
-        dosage: newStock.dosage.trim(),
-        category: newStock.category,
-        batch_number: newStock.batch_number.trim(),
-        vendor: newStock.vendor.trim(),
-        quantity: parseInt(newStock.quantity) || 0,
-        vendor_id: newStock.vendor_id.trim(),
-        item_code: newStock.item_code.trim(),
-        rack_no: newStock.rack_no.trim(),
-        shelf_no: newStock.shelf_no.trim(),
-        unit_price: parseFloat(newStock.unit_price) || 0,
-        status: mapStatusToBackend(newStock.status),
+        product_name: editStock.product_name.trim(),
+        dosage: editStock.dosage.trim(),
+        category: editStock.category,
+        batch_number: editStock.batch_number.trim(),
+        vendor: editStock.vendor.trim(),
+        add_quantity: parseInt(editStock.add_quantity) || 0,
+        vendor_id: editStock.vendor_id.trim(),
+        item_code: editStock.item_code.trim(),
+        rack_no: editStock.rack_no.trim(),
+        shelf_no: editStock.shelf_no.trim(),
+        unit_price: parseFloat(editStock.unit_price) || 0,
+        status: mapStatusToBackend(editStock.status),
       };
+
       await updateStock(editStockId, stockData);
       await fetchStocks(); // Refresh the list
       setShowEditStockPopup(false);
-      setNewStock({
+      setEditStock({
         product_name: "",
         dosage: "",
         category: "",
         batch_number: "",
         vendor: "",
         vendor_id: "",
-        quantity: "",
+        add_quantity: "",
         item_code: "",
         rack_no: "",
         shelf_no: "",
@@ -497,7 +552,7 @@ const StockInventory = () => {
         status: "IN STOCK",
       });
       setEditStockId(null);
-      setFormErrors({}); // Clear errors
+      setFormErrors({});
     } catch (err) {
       console.error("Error updating stock:", err);
       setError(err.message || "Failed to update stock");
@@ -505,15 +560,17 @@ const StockInventory = () => {
   };
 
   const openEditPopup = (item) => {
-    console.log("Editing item:", item);
-    setNewStock({
+    const currentStockItem = inventoryData.find(
+      (stock) => stock.id === item.id
+    );
+    setEditStock({
       product_name: item.name,
       dosage: item.dosage || "",
       category: item.category,
       batch_number: item.batch,
       vendor: item.vendor,
       vendor_id: item.vendorCode,
-      quantity: item.stock.toString(),
+      add_quantity: "",
       status: item.status,
       item_code: item.item_code || "",
       rack_no: item.rack_no || "",
@@ -522,7 +579,7 @@ const StockInventory = () => {
     });
     setEditStockId(item.id);
     setShowEditStockPopup(true);
-    setFormErrors({}); // Clear any existing errors
+    setFormErrors({});
   };
 
   const handleSort = (column) => {
@@ -543,7 +600,6 @@ const StockInventory = () => {
     const lowStock = inventoryData.filter(
       (item) => item.status === "LOW STOCK"
     ).length;
-    // Calculate total value (simplified)
     const totalValue = inventoryData.reduce((sum, item) => {
       return sum + item.stock * (item.unit_price || 0);
     }, 0);
@@ -571,7 +627,14 @@ const StockInventory = () => {
     "Dec",
   ];
 
-  const Dropdown = ({ label, value, onChange, options, error, required = true }) => (
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    error,
+    required = true,
+  }) => (
     <div>
       <label
         className="text-sm text-black dark:text-white mb-1 flex items-center gap-1"
@@ -591,9 +654,7 @@ const StockInventory = () => {
               <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          {error && (
-            <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>
-          )}
+          {error && <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>}
           <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-white dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
@@ -632,10 +693,7 @@ const StockInventory = () => {
   }
 
   return (
-    <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col
-     bg-white dark:bg-transparent overflow-hidden relative"
-    >
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
       {/* Error Display */}
       {error && (
         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded">
@@ -672,6 +730,7 @@ const StockInventory = () => {
           zIndex: 0,
         }}
       ></div>
+
       <div className="flex justify-between items-center mb-6 mt-4 w-full">
         <div>
           <h1
@@ -691,21 +750,15 @@ const StockInventory = () => {
         <button
           onClick={() => {
             setShowAddStockPopup(true);
-            setFormErrors({}); // Clear errors when opening popup
+            setFormErrors({});
           }}
-          className="w-[200px] h-[40px] flex items-center justify-center
-            bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
-            border-b-[2px] border-[#0EFF7B]
-            shadow-[0px_2px_12px_0px_#00000040]
-            hover:opacity-90
-            text-white font-semibold
-            px-4 py-2 rounded-[8px]
-            transition duration-300 ease-in-out"
+          className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           + Add Stock
         </button>
       </div>
+
       <div className="flex items-center justify-between w-full mb-6 text-sm">
         <div className="flex gap-4">
           {["Today", "Week", "Month", "Year"].map((filter) => (
@@ -778,6 +831,7 @@ const StockInventory = () => {
           </div>
         </div>
       </div>
+
       {/* Statistics Cards */}
       <div className="bg-gray-100 dark:bg-[#0D0D0D] px-6 py-6 w-full h-[102px] rounded-2xl mb-6">
         <div className="grid grid-cols-4 gap-6 text-sm">
@@ -831,7 +885,9 @@ const StockInventory = () => {
           ))}
         </div>
       </div>
+
       <div className="flex flex-wrap w-full gap-4 mb-6">
+        {/* Department Stocks Card */}
         <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3
             className="text-[#08994A] dark:text-[#0EFF7B] text-[14px] font-semibold mb-1"
@@ -933,6 +989,8 @@ const StockInventory = () => {
             </svg>
           </div>
         </div>
+
+        {/* Upcoming Stocks Card */}
         <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
             <span
@@ -1018,6 +1076,8 @@ const StockInventory = () => {
             </li>
           </ul>
         </div>
+
+        {/* Expiring Stocks Card */}
         <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
             <span
@@ -1080,6 +1140,7 @@ const StockInventory = () => {
           </ul>
         </div>
       </div>
+
       <h3
         className="w-full h-[22px] font-medium text-[18px] leading-[22px] tracking-normal text-black dark:text-white mb-1"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1092,6 +1153,7 @@ const StockInventory = () => {
       >
         List of all stock items ({inventoryData.length} total)
       </p>
+
       <div className="w-full bg-[#ffffff] dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
         <div className="flex justify-between items-center w-full">
           <div className="relative">
@@ -1134,12 +1196,9 @@ const StockInventory = () => {
                 size={16}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Search
-                  </span>
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                Search
+              </span>
               <input
                 type="text"
                 placeholder="Search Product Name.."
@@ -1155,12 +1214,9 @@ const StockInventory = () => {
                 className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
               >
                 <Filter size={16} className="text-[#0EFF7B]" />
-                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Filter
-                  </span>
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                  Filter
+                </span>
               </button>
               {showFilterPopup && (
                 <div className="absolute top-full mt-4 left-[-110px] w-[188px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
@@ -1220,29 +1276,18 @@ const StockInventory = () => {
                 selectedRows.length > 0 && setShowDeletePopup(true)
               }
               disabled={selectedRows.length === 0}
-              className={`
-                relative group flex items-center justify-center
-                w-[32px] h-[32px]
-                rounded-[20px]
-                bg-gray-100 dark:bg-[#0EFF7B1A]
-                text-[#08994A] dark:text-white
-                ${
-                  selectedRows.length === 0
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }
-              `}
+              className={`relative group flex items-center justify-center w-[32px] h-[32px] rounded-[20px] bg-gray-100 dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white ${
+                selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               <Trash2 size={16} className="text-[#0EFF7B]" />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete  
-                  </span>
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                Delete
+              </span>
             </button>
           </div>
         </div>
+
         <div className="overflow-x-hidden">
           <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
             <thead className="border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
@@ -1410,8 +1455,8 @@ const StockInventory = () => {
                           openDropdownId === row.id ? "block" : "hidden"
                         } ${
                           index >= sortedData.length - 3
-                            ? "bottom-0 mb-8" // Show above for last few items
-                            : "top-0 mt-8" // Show below for other items
+                            ? "bottom-0 mb-8"
+                            : "top-0 mt-8"
                         }`}
                       >
                         <button
@@ -1458,6 +1503,7 @@ const StockInventory = () => {
             </tbody>
           </table>
         </div>
+
         <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
           <span style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
             Page{" "}
@@ -1499,16 +1545,11 @@ const StockInventory = () => {
       {/* Add Stock Popup */}
       {showAddStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
               className="w-[780px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              {/* Header */}
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-black dark:text-white font-medium text-[18px] leading-[21px]">
                   Add New Stock
@@ -1523,7 +1564,7 @@ const StockInventory = () => {
                   <X size={18} className="text-black dark:text-white" />
                 </button>
               </div>
-              {/* 3×3 Grid Form */}
+
               <form onSubmit={handleAddStock} noValidate>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                   {/* Product Name */}
@@ -1536,18 +1577,22 @@ const StockInventory = () => {
                       placeholder="Enter product name"
                       value={newStock.product_name}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, product_name: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.product_name) {
-                          setFormErrors({...formErrors, product_name: ""});
-                        }
+                        setNewStock({
+                          ...newStock,
+                          product_name: e.target.value,
+                        });
+                        if (formErrors.product_name)
+                          setFormErrors({ ...formErrors, product_name: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.product_name}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.product_name}
+                      </p>
                     )}
                   </div>
+
                   {/* Dosage */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1559,17 +1604,18 @@ const StockInventory = () => {
                       value={newStock.dosage}
                       onChange={(e) => {
                         setNewStock({ ...newStock, dosage: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.dosage) {
-                          setFormErrors({...formErrors, dosage: ""});
-                        }
+                        if (formErrors.dosage)
+                          setFormErrors({ ...formErrors, dosage: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.dosage}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.dosage}
+                      </p>
                     )}
                   </div>
+
                   {/* Category */}
                   <div>
                     <Dropdown
@@ -1577,17 +1623,15 @@ const StockInventory = () => {
                       value={newStock.category}
                       onChange={(val) => {
                         setNewStock({ ...newStock, category: val });
-                        // Clear error when user selects a category
-                        if (formErrors.category) {
-                          setFormErrors({...formErrors, category: ""});
-                        }
+                        if (formErrors.category)
+                          setFormErrors({ ...formErrors, category: "" });
                       }}
                       options={categories}
-                      placeholder="Select category"
                       error={formErrors.category}
                       required={true}
                     />
                   </div>
+
                   {/* Batch Number */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1598,18 +1642,22 @@ const StockInventory = () => {
                       placeholder="Enter Batch Number"
                       value={newStock.batch_number}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, batch_number: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.batch_number) {
-                          setFormErrors({...formErrors, batch_number: ""});
-                        }
+                        setNewStock({
+                          ...newStock,
+                          batch_number: e.target.value,
+                        });
+                        if (formErrors.batch_number)
+                          setFormErrors({ ...formErrors, batch_number: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.batch_number}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.batch_number}
+                      </p>
                     )}
                   </div>
+
                   {/* Vendor */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1621,17 +1669,18 @@ const StockInventory = () => {
                       value={newStock.vendor}
                       onChange={(e) => {
                         setNewStock({ ...newStock, vendor: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.vendor) {
-                          setFormErrors({...formErrors, vendor: ""});
-                        }
+                        if (formErrors.vendor)
+                          setFormErrors({ ...formErrors, vendor: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.vendor}
+                      </p>
                     )}
                   </div>
+
                   {/* Vendor ID */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1643,17 +1692,18 @@ const StockInventory = () => {
                       value={newStock.vendor_id}
                       onChange={(e) => {
                         setNewStock({ ...newStock, vendor_id: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.vendor_id) {
-                          setFormErrors({...formErrors, vendor_id: ""});
-                        }
+                        if (formErrors.vendor_id)
+                          setFormErrors({ ...formErrors, vendor_id: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor_id}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.vendor_id}
+                      </p>
                     )}
                   </div>
+
                   {/* Quantity */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1665,18 +1715,19 @@ const StockInventory = () => {
                       value={newStock.quantity}
                       onChange={(e) => {
                         setNewStock({ ...newStock, quantity: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.quantity) {
-                          setFormErrors({...formErrors, quantity: ""});
-                        }
+                        if (formErrors.quantity)
+                          setFormErrors({ ...formErrors, quantity: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
                     {formErrors.quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.quantity}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.quantity}
+                      </p>
                     )}
                   </div>
+
                   {/* Item Code */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1688,17 +1739,18 @@ const StockInventory = () => {
                       value={newStock.item_code}
                       onChange={(e) => {
                         setNewStock({ ...newStock, item_code: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.item_code) {
-                          setFormErrors({...formErrors, item_code: ""});
-                        }
+                        if (formErrors.item_code)
+                          setFormErrors({ ...formErrors, item_code: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.item_code}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.item_code}
+                      </p>
                     )}
                   </div>
+
                   {/* Rack No */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1710,17 +1762,18 @@ const StockInventory = () => {
                       value={newStock.rack_no}
                       onChange={(e) => {
                         setNewStock({ ...newStock, rack_no: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.rack_no) {
-                          setFormErrors({...formErrors, rack_no: ""});
-                        }
+                        if (formErrors.rack_no)
+                          setFormErrors({ ...formErrors, rack_no: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.rack_no}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.rack_no}
+                      </p>
                     )}
                   </div>
+
                   {/* Shelf No */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1732,17 +1785,18 @@ const StockInventory = () => {
                       value={newStock.shelf_no}
                       onChange={(e) => {
                         setNewStock({ ...newStock, shelf_no: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.shelf_no) {
-                          setFormErrors({...formErrors, shelf_no: ""});
-                        }
+                        if (formErrors.shelf_no)
+                          setFormErrors({ ...formErrors, shelf_no: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.shelf_no}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.shelf_no}
+                      </p>
                     )}
                   </div>
+
                   {/* Unit Price */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1753,20 +1807,24 @@ const StockInventory = () => {
                       placeholder="Enter Unit Price"
                       value={newStock.unit_price}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, unit_price: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.unit_price) {
-                          setFormErrors({...formErrors, unit_price: ""});
-                        }
+                        setNewStock({
+                          ...newStock,
+                          unit_price: e.target.value,
+                        });
+                        if (formErrors.unit_price)
+                          setFormErrors({ ...formErrors, unit_price: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
                     {formErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.unit_price}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.unit_price}
+                      </p>
                     )}
                   </div>
+
                   {/* Status */}
                   <div>
                     <Dropdown
@@ -1774,19 +1832,16 @@ const StockInventory = () => {
                       value={newStock.status}
                       onChange={(val) => {
                         setNewStock({ ...newStock, status: val });
-                        // Clear error when user selects status
-                        if (formErrors.status) {
-                          setFormErrors({...formErrors, status: ""});
-                        }
+                        if (formErrors.status)
+                          setFormErrors({ ...formErrors, status: "" });
                       }}
                       options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-                      placeholder="Select status"
                       error={formErrors.status}
                       required={true}
                     />
                   </div>
                 </div>
-                {/* Buttons */}
+
                 <div className="flex justify-center gap-6 mt-8">
                   <button
                     type="button"
@@ -1814,16 +1869,11 @@ const StockInventory = () => {
       {/* Edit Stock Popup */}
       {showEditStockPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
               className="w-[780px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
-              {/* Header */}
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-black dark:text-white font-medium text-[18px] leading-[21px]">
                   Edit Stock
@@ -1831,14 +1881,14 @@ const StockInventory = () => {
                 <button
                   onClick={() => {
                     setShowEditStockPopup(false);
-                    setNewStock({
+                    setEditStock({
                       product_name: "",
                       dosage: "",
                       category: "",
                       batch_number: "",
                       vendor: "",
                       vendor_id: "",
-                      quantity: "",
+                      add_quantity: "",
                       item_code: "",
                       rack_no: "",
                       shelf_no: "",
@@ -1853,7 +1903,7 @@ const StockInventory = () => {
                   <X size={18} className="text-black dark:text-white" />
                 </button>
               </div>
-              {/* 3×3 Grid Form */}
+
               <form onSubmit={handleEditStock} noValidate>
                 <div className="grid grid-cols-3 gap-x-6 gap-y-5">
                   {/* Product Name */}
@@ -1864,20 +1914,24 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter product name"
-                      value={newStock.product_name}
+                      value={editStock.product_name}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, product_name: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.product_name) {
-                          setFormErrors({...formErrors, product_name: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          product_name: e.target.value,
+                        });
+                        if (formErrors.product_name)
+                          setFormErrors({ ...formErrors, product_name: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.product_name}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.product_name}
+                      </p>
                     )}
                   </div>
+
                   {/* Dosage */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1886,38 +1940,37 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="e.g. 500mg, 10ml"
-                      value={newStock.dosage}
+                      value={editStock.dosage}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, dosage: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.dosage) {
-                          setFormErrors({...formErrors, dosage: ""});
-                        }
+                        setEditStock({ ...editStock, dosage: e.target.value });
+                        if (formErrors.dosage)
+                          setFormErrors({ ...formErrors, dosage: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.dosage}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.dosage}
+                      </p>
                     )}
                   </div>
+
                   {/* Category */}
                   <div>
                     <Dropdown
                       label="Category"
-                      value={newStock.category}
+                      value={editStock.category}
                       onChange={(val) => {
-                        setNewStock({ ...newStock, category: val });
-                        // Clear error when user selects a category
-                        if (formErrors.category) {
-                          setFormErrors({...formErrors, category: ""});
-                        }
+                        setEditStock({ ...editStock, category: val });
+                        if (formErrors.category)
+                          setFormErrors({ ...formErrors, category: "" });
                       }}
                       options={categories}
-                      placeholder="Select category"
                       error={formErrors.category}
                       required={true}
                     />
                   </div>
+
                   {/* Batch Number */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1926,20 +1979,24 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Batch Number"
-                      value={newStock.batch_number}
+                      value={editStock.batch_number}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, batch_number: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.batch_number) {
-                          setFormErrors({...formErrors, batch_number: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          batch_number: e.target.value,
+                        });
+                        if (formErrors.batch_number)
+                          setFormErrors({ ...formErrors, batch_number: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.batch_number}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.batch_number}
+                      </p>
                     )}
                   </div>
+
                   {/* Vendor */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1948,20 +2005,21 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Vendor"
-                      value={newStock.vendor}
+                      value={editStock.vendor}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, vendor: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.vendor) {
-                          setFormErrors({...formErrors, vendor: ""});
-                        }
+                        setEditStock({ ...editStock, vendor: e.target.value });
+                        if (formErrors.vendor)
+                          setFormErrors({ ...formErrors, vendor: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.vendor}
+                      </p>
                     )}
                   </div>
+
                   {/* Vendor ID */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -1970,43 +2028,68 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Vendor ID"
-                      value={newStock.vendor_id}
+                      value={editStock.vendor_id}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, vendor_id: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.vendor_id) {
-                          setFormErrors({...formErrors, vendor_id: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          vendor_id: e.target.value,
+                        });
+                        if (formErrors.vendor_id)
+                          setFormErrors({ ...formErrors, vendor_id: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.vendor_id}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.vendor_id}
+                      </p>
                     )}
                   </div>
-                  {/* Quantity */}
+
+                  {/* Add Quantity */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Quantity<span className="text-[#FF2424]">*</span>
+                      Add Quantity
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        (Optional)
+                      </span>
                     </label>
                     <input
                       type="number"
-                      placeholder="Stock Quantity"
-                      value={newStock.quantity}
+                      placeholder="Enter quantity to add"
+                      value={editStock.add_quantity}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, quantity: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.quantity) {
-                          setFormErrors({...formErrors, quantity: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          add_quantity: e.target.value,
+                        });
+                        if (formErrors.add_quantity)
+                          setFormErrors({ ...formErrors, add_quantity: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
-                    {formErrors.quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.quantity}</p>
+                    {formErrors.add_quantity && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.add_quantity}
+                      </p>
                     )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Current stock will be increased by this amount
+                    </p>
                   </div>
+
+                  {/* Current Quantity (Read-only) */}
+                  <div>
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1">
+                      Current Quantity
+                    </label>
+                    <div className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] text-black dark:text-white flex items-center">
+                      {inventoryData.find((item) => item.id === editStockId)
+                        ?.stock || 0}
+                    </div>
+                  </div>
+
                   {/* Item Code */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -2015,20 +2098,24 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Item Code"
-                      value={newStock.item_code}
+                      value={editStock.item_code}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, item_code: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.item_code) {
-                          setFormErrors({...formErrors, item_code: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          item_code: e.target.value,
+                        });
+                        if (formErrors.item_code)
+                          setFormErrors({ ...formErrors, item_code: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.item_code}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.item_code}
+                      </p>
                     )}
                   </div>
+
                   {/* Rack No */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -2037,20 +2124,21 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Rack No"
-                      value={newStock.rack_no}
+                      value={editStock.rack_no}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, rack_no: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.rack_no) {
-                          setFormErrors({...formErrors, rack_no: ""});
-                        }
+                        setEditStock({ ...editStock, rack_no: e.target.value });
+                        if (formErrors.rack_no)
+                          setFormErrors({ ...formErrors, rack_no: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.rack_no}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.rack_no}
+                      </p>
                     )}
                   </div>
+
                   {/* Shelf No */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -2059,20 +2147,24 @@ const StockInventory = () => {
                     <input
                       type="text"
                       placeholder="Enter Shelf Number"
-                      value={newStock.shelf_no}
+                      value={editStock.shelf_no}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, shelf_no: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.shelf_no) {
-                          setFormErrors({...formErrors, shelf_no: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          shelf_no: e.target.value,
+                        });
+                        if (formErrors.shelf_no)
+                          setFormErrors({ ...formErrors, shelf_no: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.shelf_no}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.shelf_no}
+                      </p>
                     )}
                   </div>
+
                   {/* Unit Price */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -2081,55 +2173,56 @@ const StockInventory = () => {
                     <input
                       type="number"
                       placeholder="Enter Unit Price"
-                      value={newStock.unit_price}
+                      value={editStock.unit_price}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, unit_price: e.target.value });
-                        // Clear error when user starts typing
-                        if (formErrors.unit_price) {
-                          setFormErrors({...formErrors, unit_price: ""});
-                        }
+                        setEditStock({
+                          ...editStock,
+                          unit_price: e.target.value,
+                        });
+                        if (formErrors.unit_price)
+                          setFormErrors({ ...formErrors, unit_price: "" });
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
                     {formErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">{formErrors.unit_price}</p>
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {formErrors.unit_price}
+                      </p>
                     )}
                   </div>
+
                   {/* Status */}
                   <div>
                     <Dropdown
                       label="Status"
-                      value={newStock.status}
+                      value={editStock.status}
                       onChange={(val) => {
-                        setNewStock({ ...newStock, status: val });
-                        // Clear error when user selects status
-                        if (formErrors.status) {
-                          setFormErrors({...formErrors, status: ""});
-                        }
+                        setEditStock({ ...editStock, status: val });
+                        if (formErrors.status)
+                          setFormErrors({ ...formErrors, status: "" });
                       }}
                       options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-                      placeholder="Select status"
                       error={formErrors.status}
                       required={true}
                     />
                   </div>
                 </div>
-                {/* Buttons */}
+
                 <div className="flex justify-center gap-6 mt-8">
                   <button
                     type="button"
                     onClick={() => {
                       setShowEditStockPopup(false);
-                      setNewStock({
+                      setEditStock({
                         product_name: "",
                         dosage: "",
                         category: "",
                         batch_number: "",
                         vendor: "",
                         vendor_id: "",
-                        quantity: "",
+                        add_quantity: "",
                         item_code: "",
                         rack_no: "",
                         shelf_no: "",

@@ -27,8 +27,17 @@ const Profile = () => {
   const [originalImage, setOriginalImage] = useState(ProfileImage);
   const [currentTime, setCurrentTime] = useState("");
   
-  // New state for field validation errors
+  // State for form submission validation errors
   const [fieldErrors, setFieldErrors] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    location: ""
+  });
+
+  // State for real-time format validation during typing
+  const [validationErrors, setValidationErrors] = useState({
     name: "",
     email: "",
     phone: "",
@@ -203,8 +212,46 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
-  // Validate required fields
-  const validateFields = () => {
+  // Real-time format validation functions (for typing)
+  const validateNameFormat = (value) => {
+    if (/[0-9]/.test(value)) return "Name should not contain numbers";
+    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid name";
+    return "";
+  };
+
+  const validateEmailFormat = (value) => {
+    if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+    // Check for @email.com
+    if (value.trim() && /@email\.com$/i.test(value)) return "Please use a valid email domain, not @email.com";
+    return "";
+  };
+
+  const validatePhoneFormat = (value) => {
+    // Remove all non-digit characters for validation
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    if (digitsOnly && !/^91/.test(digitsOnly)) return "Phone number must start with 91";
+    
+    if (digitsOnly && digitsOnly.length !== 12) return "Phone number must be exactly 12 digits";
+    
+    if (digitsOnly && !/^91\d{10}$/.test(digitsOnly)) return "Please enter a valid phone number in format: 91 XXXXXXXXXX";
+    return "";
+  };
+
+  const validateRoleFormat = (value) => {
+    if (/[0-9]/.test(value)) return "Role should not contain numbers";
+    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid role";
+    return "";
+  };
+
+  const validateLocationFormat = (value) => {
+    if (/[0-9]/.test(value)) return "Location should not contain numbers";
+    if (value.trim() && value !== "Not provided" && !/^[A-Za-z\s,.'-]{2,}$/.test(value)) return "Please enter a valid location (letters and spaces only)";
+    return "";
+  };
+
+  // Required field validation (only for submission)
+  const validateRequiredFields = () => {
     const errors = {
       name: "",
       email: "",
@@ -224,17 +271,11 @@ const Profile = () => {
     if (!profileData.email.trim()) {
       errors.email = "Email is required";
       isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
-      errors.email = "Please enter a valid email address";
-      isValid = false;
     }
 
     // Phone validation
     if (!profileData.phone.trim()) {
       errors.phone = "Phone number is required";
-      isValid = false;
-    } else if (!/^[\d\s\-\+\(\)]{10,}$/.test(profileData.phone.replace(/\s/g, ''))) {
-      errors.phone = "Please enter a valid phone number (at least 10 digits)";
       isValid = false;
     }
 
@@ -252,6 +293,107 @@ const Profile = () => {
 
     setFieldErrors(errors);
     return isValid;
+  };
+
+  // Function to capitalize first letter of each word
+  const capitalizeName = (value) => {
+    return value
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Real-time validation on input change (only format validation)
+  const handleInputChange = (field, value) => {
+    let processedValue = value;
+    
+    // Capitalize first letter of each word for name field
+    if (field === "name") {
+      processedValue = capitalizeName(value);
+    }
+    
+    // Capitalize first letter for role field
+    if (field === "role") {
+      processedValue = value.charAt(0).toUpperCase() + value.slice(1);
+    }
+    
+    setProfileData((prev) => ({ ...prev, [field]: processedValue }));
+    
+    // Clear format validation error when user starts typing
+    setValidationErrors(prev => ({
+      ...prev,
+      [field]: ""
+    }));
+    
+    // Perform real-time format validation on processed value
+    let formatError = "";
+    
+    switch (field) {
+      case "name":
+        formatError = validateNameFormat(processedValue);
+        break;
+      case "email":
+        formatError = validateEmailFormat(processedValue);
+        break;
+      case "phone":
+        formatError = validatePhoneFormat(processedValue);
+        break;
+      case "role":
+        formatError = validateRoleFormat(processedValue);
+        break;
+      case "location":
+        formatError = validateLocationFormat(processedValue);
+        break;
+      default:
+        break;
+    }
+    
+    setValidationErrors(prev => ({
+      ...prev,
+      [field]: formatError
+    }));
+  };
+
+  // Format phone number as user types (91 XXXXXXXXXX)
+  const handlePhoneChange = (value) => {
+    // Remove all non-digit characters
+    let digits = value.replace(/\D/g, '');
+    
+    // Limit to 12 digits (91 + 10 digits)
+    digits = digits.substring(0, 12);
+    
+    // Format as 91 XXXXXXXXXX
+    let formatted = digits;
+    if (digits.length > 2) {
+      formatted = `91 ${digits.substring(2)}`;
+    } else if (digits.length > 0) {
+      formatted = digits;
+    }
+    
+    handleInputChange("phone", formatted);
+  };
+
+  // Validate all fields before submission
+  const validateFields = () => {
+    // First check required fields
+    const requiredValid = validateRequiredFields();
+    
+    // Then check format validation
+    const formatErrors = {
+      name: validateNameFormat(profileData.name),
+      email: validateEmailFormat(profileData.email),
+      phone: validatePhoneFormat(profileData.phone),
+      role: validateRoleFormat(profileData.role),
+      location: validateLocationFormat(profileData.location)
+    };
+    
+    // Update validation errors for display
+    setValidationErrors(formatErrors);
+    
+    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    
+    return requiredValid && formatValid;
   };
 
   // Clear field errors when input changes
@@ -277,6 +419,13 @@ const Profile = () => {
         role: "",
         location: ""
       });
+      setValidationErrors({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        location: ""
+      });
     }
     setIsEditing(!isEditing);
   };
@@ -285,7 +434,7 @@ const Profile = () => {
   const handleSaveChanges = async () => {
     // Validate fields before submitting
     if (!validateFields()) {
-      errorToast("Please fill in all required fields correctly");
+      errorToast("Please fix all validation errors before saving");
       return;
     }
 
@@ -293,7 +442,11 @@ const Profile = () => {
     if (selectedFile) formData.append("profile_picture", selectedFile);
     if (profileData.name) formData.append("full_name", profileData.name);
     if (profileData.email) formData.append("email", profileData.email);
-    if (profileData.phone) formData.append("phone", profileData.phone);
+    if (profileData.phone) {
+      // Remove formatting for backend storage
+      const cleanPhone = profileData.phone.replace(/\D/g, '');
+      formData.append("phone", cleanPhone);
+    }
     if (profileData.role) formData.append("designation", profileData.role);
 
     // Parse location back to address, city, country
@@ -316,6 +469,13 @@ const Profile = () => {
         role: "",
         location: ""
       });
+      setValidationErrors({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        location: ""
+      });
       successToast("Profile updated successfully!");
 
       // Full page refresh to update header profile image and other global states
@@ -328,13 +488,6 @@ const Profile = () => {
       errorToast(errorMsg);
       console.error("Update error:", err.response?.data || err.message);
     }
-  };
-
-  // Input Change
-  const handleInputChange = (field, value) => {
-    setProfileData((prev) => ({ ...prev, [field]: value }));
-    // Clear error for this field when user starts typing
-    clearFieldError(field);
   };
 
   // Change Password
@@ -560,28 +713,32 @@ const Profile = () => {
                 field: "name", 
                 type: "text", 
                 required: true,
-                error: fieldErrors.name
+                formatError: validationErrors.name,
+                requiredError: fieldErrors.name
               },
               { 
                 label: "Email", 
                 field: "email", 
                 type: "email", 
                 required: true,
-                error: fieldErrors.email
+                formatError: validationErrors.email,
+                requiredError: fieldErrors.email
               },
               { 
                 label: "Phone", 
                 field: "phone", 
                 type: "tel", 
                 required: true,
-                error: fieldErrors.phone
+                formatError: validationErrors.phone,
+                requiredError: fieldErrors.phone
               },
               { 
                 label: "Role", 
                 field: "role", 
                 type: "text", 
                 required: true,
-                error: fieldErrors.role
+                formatError: validationErrors.role,
+                requiredError: fieldErrors.role
               },
               {
                 label: "Department",
@@ -600,7 +757,8 @@ const Profile = () => {
                 field: "location", 
                 type: "text", 
                 required: true,
-                error: fieldErrors.location
+                formatError: validationErrors.location,
+                requiredError: fieldErrors.location
               },
               {
                 label: "Time",
@@ -611,7 +769,7 @@ const Profile = () => {
                   <FaClock className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
                 ),
               },
-            ].map(({ label, field, type, readOnly, icon, required, error }) => (
+            ].map(({ label, field, type, readOnly, icon, required, formatError, requiredError }) => (
               <div key={field} className="flex flex-col">
                 <div className="flex items-center mb-1">
                   <label className="text-sm">{label}</label>
@@ -634,7 +792,11 @@ const Profile = () => {
                     }
                     onChange={(e) => {
                       if (field === "currentTime") return;
-                      handleInputChange(field, e.target.value);
+                      if (field === "phone") {
+                        handlePhoneChange(e.target.value);
+                      } else {
+                        handleInputChange(field, e.target.value);
+                      }
                     }}
                     readOnly={!isEditing || readOnly}
                     className={`w-full ${icon ? "pl-9" : "pl-2"} p-2 rounded-lg ${
@@ -645,9 +807,14 @@ const Profile = () => {
                   />
                 </div>
                 
-                {/* Error message display - only show during edit mode */}
-                {isEditing && error && (
-                  <p className="text-red-500 text-xs mt-1">{error}</p>
+                {/* Format validation error - shows while typing */}
+                {isEditing && formatError && (
+                  <p className="text-red-500 text-xs mt-1">{formatError}</p>
+                )}
+                
+                {/* Required field error - only shows after submit attempt */}
+                {isEditing && requiredError && !formatError && (
+                  <p className="text-red-500 text-xs mt-1">{requiredError}</p>
                 )}
               </div>
             ))}
@@ -656,7 +823,8 @@ const Profile = () => {
               <div className="col-span-2 flex justify-end mt-4">
                 <button
                   onClick={handleSaveChanges}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90"
+                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={Object.values(validationErrors).some(error => error !== "")}
                 >
                   Save changes
                 </button>

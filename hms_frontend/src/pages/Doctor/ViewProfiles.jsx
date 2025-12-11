@@ -491,10 +491,12 @@ import {
   Users,
   Activity,
   Star,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
+import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 
-//const API_BASE = "http://127.0.0.1:8000";
 const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
@@ -506,6 +508,8 @@ const DoctorProfile = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
+  const [departments, setDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -518,6 +522,7 @@ const DoctorProfile = () => {
     education: "",
     quote: "",
     experience: "",
+    department_id: "",
     department: "",
     licenseNumber: "",
     specialization: "",
@@ -528,13 +533,126 @@ const DoctorProfile = () => {
     status: "active",
     profilePictureFile: null,
     profilePicturePreview: null,
-
-    // New dynamic fields
     aboutPhysician: "",
     shiftTiming: "",
   });
 
+  // Custom Dropdown Component
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options,
+    disabled = false,
+    placeholder = "Select",
+    fullWidth = false,
+    loading = false,
+  }) => {
+    // Find selected option
+    const selectedOption = options.find(
+      (opt) => String(opt.id) === String(value)
+    );
+    const displayValue = selectedOption?.name || placeholder;
+
+    return (
+      <div>
+        <label className="text-sm text-black dark:text-white block mb-1">
+          {label}
+        </label>
+        <Listbox
+          value={value}
+          onChange={onChange}
+          disabled={disabled || loading}
+        >
+          <div className="relative">
+            <Listbox.Button
+              className={`${
+                fullWidth ? "w-full" : "w-full"
+              } h-[42px] px-3 pr-8 rounded-[8px] border flex items-center ${
+                disabled || loading
+                  ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50"
+                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+              } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] truncate`}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading...
+                </span>
+              ) : (
+                displayValue
+              )}
+              <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+              </span>
+            </Listbox.Button>
+            {!loading && !disabled && (
+              <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-white dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+                {options.length === 0 ? (
+                  <div className="py-2 px-3 text-sm text-gray-500">
+                    No options available
+                  </div>
+                ) : (
+                  options.map((option) => (
+                    <Listbox.Option
+                      key={option.id}
+                      value={option.id}
+                      className={({ active }) =>
+                        `cursor-pointer select-none py-2 px-3 text-sm ${
+                          active
+                            ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        }`
+                      }
+                    >
+                      {option.name}
+                    </Listbox.Option>
+                  ))
+                )}
+              </Listbox.Options>
+            )}
+          </div>
+        </Listbox>
+      </div>
+    );
+  };
+
+  // Fetch departments from API
+  const fetchDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/patients/departments`);
+      if (!response.ok) throw new Error("Failed to fetch departments");
+
+      const data = await response.json();
+
+      // Format departments to ensure consistent structure
+      const formattedDepartments = Array.isArray(data.departments)
+        ? data.departments.map((dept) => ({
+            id: dept.id || dept.department_id || dept.value,
+            name:
+              dept.name ||
+              dept.department_name ||
+              dept.label ||
+              "Unnamed Department",
+          }))
+        : [];
+
+      console.log("Fetched departments:", formattedDepartments);
+      setDepartments(formattedDepartments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      errorToast("Failed to load departments");
+      setDepartments([]);
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
   useEffect(() => {
+    // Fetch departments when component mounts
+    fetchDepartments();
+
     const fetchProfileData = async () => {
       try {
         setLoading(true);
@@ -552,6 +670,9 @@ const DoctorProfile = () => {
         const data = await response.json();
         setProfileData(data);
 
+        // Find department name from departments list if available
+        const departmentName = data.department || "";
+
         // Sync formData with fresh profile data including new fields
         setFormData({
           name: data.full_name || "",
@@ -565,7 +686,8 @@ const DoctorProfile = () => {
             data.about_physician ||
             "Dedicated to providing compassionate, patient-centered care.",
           experience: data.experience || "10+ years",
-          department: data.department || "",
+          department_id: data.department_id || "", // Store department ID separately
+          department: departmentName, // Store department name for display
           licenseNumber: data.license_number || data.national_id || "",
           specialization: data.specialization || "",
           boardCertifications:
@@ -579,8 +701,6 @@ const DoctorProfile = () => {
           status: data.status || "active",
           profilePictureFile: null,
           profilePicturePreview: null,
-
-          // New dynamic fields
           aboutPhysician: data.about_physician || "",
           shiftTiming: data.shift_timing || "",
         });
@@ -596,7 +716,9 @@ const DoctorProfile = () => {
     fetchProfileData();
   }, [location, navigate]);
 
-  const handleEditClick = () => setShowEditModal(true);
+  const handleEditClick = () => {
+    setShowEditModal(true);
+  };
 
   const getProfilePictureUrl = (profilePicturePath) => {
     if (!profilePicturePath) return null;
@@ -608,6 +730,9 @@ const DoctorProfile = () => {
   const handleCloseModal = () => {
     setShowEditModal(false);
     if (profileData) {
+      // Find department name from departments list
+      const departmentName = profileData.department || "";
+
       setFormData((prev) => ({
         ...prev,
         name: profileData.full_name || "",
@@ -627,6 +752,10 @@ const DoctorProfile = () => {
         languagesSpoken: profileData.languages_spoken || "",
         awards: profileData.awards_recognitions || "",
         shiftTiming: profileData.shift_timing || "",
+        department_id: profileData.department_id || "",
+        department: departmentName,
+        profilePictureFile: null,
+        profilePicturePreview: null,
       }));
     }
   };
@@ -634,6 +763,19 @@ const DoctorProfile = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle department change
+  const handleDepartmentChange = (deptId) => {
+    // Find department name from the selected ID
+    const selectedDept = departments.find(
+      (dept) => String(dept.id) === String(deptId)
+    );
+    setFormData((prev) => ({
+      ...prev,
+      department_id: deptId,
+      department: selectedDept?.name || "",
+    }));
   };
 
   const refreshPatientCount = async () => {
@@ -688,6 +830,11 @@ const DoctorProfile = () => {
       updateData.append("national_id", formData.licenseNumber);
       updateData.append("status", formData.status);
 
+      // Department field - send ID to backend
+      if (formData.department_id) {
+        updateData.append("department_id", formData.department_id);
+      }
+
       // New dynamic fields
       updateData.append("education", formData.education);
       updateData.append("about_physician", formData.aboutPhysician);
@@ -724,7 +871,7 @@ const DoctorProfile = () => {
       // Update the source of truth
       setProfileData(updatedData);
 
-      // Keep formData in sync
+      // Update formData with new values
       setFormData((prev) => ({
         ...prev,
         name: updatedData.full_name || "",
@@ -744,6 +891,8 @@ const DoctorProfile = () => {
         languagesSpoken: updatedData.languages_spoken || "",
         awards: updatedData.awards_recognitions || "",
         shiftTiming: updatedData.shift_timing || "",
+        department_id: updatedData.department_id || "",
+        department: updatedData.department || "",
         profilePictureFile: null,
         profilePicturePreview: null,
       }));
@@ -779,6 +928,30 @@ const DoctorProfile = () => {
       </div>
     );
   }
+
+  // Static options for other dropdowns
+  const statusOptions = [
+    { id: "active", name: "Available" },
+    { id: "unavailable", name: "Unavailable" },
+    { id: "on_leave", name: "On Leave" },
+  ];
+
+  const bloodGroupOptions = [
+    { id: "A+", name: "A+" },
+    { id: "A-", name: "A-" },
+    { id: "B+", name: "B+" },
+    { id: "B-", name: "B-" },
+    { id: "AB+", name: "AB+" },
+    { id: "AB-", name: "AB-" },
+    { id: "O+", name: "O+" },
+    { id: "O-", name: "O-" },
+  ];
+
+  const genderOptions = [
+    { id: "Male", name: "Male" },
+    { id: "Female", name: "Female" },
+    { id: "Other", name: "Other" },
+  ];
 
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
@@ -1324,22 +1497,22 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
+                {/* Gender Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Gender
                   </label>
-                  <select
-                    name="gender"
+                  <Dropdown
                     value={formData.gender}
-                    onChange={handleInputChange}
-                    className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
-                  >
-                    <option value="">Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
+                    onChange={(val) =>
+                      setFormData((prev) => ({ ...prev, gender: val }))
+                    }
+                    options={genderOptions}
+                    placeholder="Select Gender"
+                  />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Age
@@ -1352,27 +1525,22 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
+                {/* Blood Group Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Blood Group
                   </label>
-                  <select
-                    name="bloodGroup"
+                  <Dropdown
                     value={formData.bloodGroup}
-                    onChange={handleInputChange}
-                    className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
-                  >
-                    <option value="">Select Blood Group</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </select>
+                    onChange={(val) =>
+                      setFormData((prev) => ({ ...prev, bloodGroup: val }))
+                    }
+                    options={bloodGroupOptions}
+                    placeholder="Select Blood Group"
+                  />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Contact
@@ -1385,6 +1553,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Email
@@ -1397,6 +1566,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Education
@@ -1409,6 +1579,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Experience
@@ -1421,18 +1592,26 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
+                {/* Department Dropdown - Dynamic */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Department
                   </label>
-                  <input
-                    type="text"
-                    name="department"
-                    value={formData.department}
-                    onChange={handleInputChange}
-                    className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
+                  <Dropdown
+                    value={formData.department_id}
+                    onChange={handleDepartmentChange}
+                    options={departments}
+                    placeholder={
+                      departmentsLoading
+                        ? "Loading departments..."
+                        : "Select Department"
+                    }
+                    disabled={departmentsLoading}
+                    loading={departmentsLoading}
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     License Number
@@ -1445,6 +1624,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Specialization
@@ -1457,6 +1637,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Board Certifications
@@ -1469,6 +1650,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Professional Memberships
@@ -1481,6 +1663,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Languages Spoken
@@ -1493,6 +1676,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Awards & Recognitions
@@ -1505,6 +1689,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Shift Timing
@@ -1518,6 +1703,7 @@ const DoctorProfile = () => {
                     placeholder="e.g., 09:00 AM - 05:00 PM"
                   />
                 </div>
+
                 <div className="col-span-3">
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     About Physician
@@ -1530,20 +1716,19 @@ const DoctorProfile = () => {
                     placeholder="Dedicated to providing compassionate, patient-centered care."
                   />
                 </div>
+
+                {/* Status Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Status
                   </label>
-                  <select
-                    name="status"
+                  <Dropdown
                     value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
-                  >
-                    <option value="active">Available</option>
-                    <option value="unavailable">Unavailable</option>
-                    <option value="on_leave">On Leave</option>
-                  </select>
+                    onChange={(val) =>
+                      setFormData((prev) => ({ ...prev, status: val }))
+                    }
+                    options={statusOptions}
+                  />
                 </div>
               </div>
             </div>

@@ -264,6 +264,7 @@ from pydantic import BaseModel
 from HMS_backend.models import HospitalInvoiceHistory, HospitalInvoiceItem, Patient
 from datetime import date
 from typing import List, Optional
+from decimal import Decimal
 import csv
 import io
 import openpyxl
@@ -632,45 +633,63 @@ async def export_csv(include_items: bool = False):
 
 @router.get("/export/excel")
 async def export_excel():
-    invoices = await sync_to_async(list)(HospitalInvoiceHistory.objects.prefetch_related("items").all())
+    from decimal import Decimal
+
+    invoices = await sync_to_async(list)(
+        HospitalInvoiceHistory.objects.prefetch_related("items").all()
+    )
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Hospital Invoices"
 
     # Header
-    header = ["Invoice ID", "Date", "Patient", "ID", "Dept", "Item", "Desc", "Qty", "Price", "Amount", "Subtotal", "Tax", "Total", "Status"]
+    header = [
+        "Invoice ID", "Date", "Patient", "ID", "Dept",
+        "Item", "Desc", "Qty", "Price", "Amount",
+        "Subtotal", "Tax", "Total", "Status"
+    ]
     ws.append(header)
 
     for inv in invoices:
         items = list(inv.items.all())
-        subtotal = sum(float(i.amount) for i in items) if items else 0
-        tax = subtotal * (inv.tax_percent / 100)
+
+        # ---- Decimal Safe ----
+        subtotal = sum(Decimal(str(i.amount)) for i in items) if items else Decimal("0")
+        tax_percent = Decimal(str(inv.tax_percent))
+        tax = subtotal * (tax_percent / Decimal("100"))
         total = subtotal + tax
 
         dept = await get_department_name(inv.patient_id)
 
         if items:
-            for i, item in enumerate(items, 1):
+            for row_index, item in enumerate(items, 1):
                 ws.append([
-                    inv.invoice_id if i == 1 else "",
-                    inv.date if i == 1 else "",
-                    inv.patient_name if i == 1 else "",
-                    inv.patient_id if i == 1 else "",
-                    dept if i == 1 else "",
+                    inv.invoice_id if row_index == 1 else "",
+                    inv.date if row_index == 1 else "",
+                    inv.patient_name if row_index == 1 else "",
+                    inv.patient_id if row_index == 1 else "",
+                    dept if row_index == 1 else "",
                     item.s_no,
                     item.description,
                     item.quantity,
                     float(item.unit_price),
                     float(item.amount),
-                    subtotal if i == 1 else "",
-                    tax if i == 1 else "",
-                    total if i == 1 else "",
-                    inv.status if i == 1 else "",
+                    float(subtotal) if row_index == 1 else "",
+                    float(tax) if row_index == 1 else "",
+                    float(total) if row_index == 1 else "",
+                    inv.status if row_index == 1 else "",
+                
                 ])
         else:
-            ws.append([inv.invoice_id, inv.date, inv.patient_name, inv.patient_id, dept, "", "No items", "", "", "", subtotal, tax, total, inv.status])
+            ws.append([
+                inv.invoice_id, inv.date, inv.patient_name, inv.patient_id, dept,
+                "", "No items", "", "", "",
+                float(subtotal), float(tax), float(total),
+                inv.status
+            ])
 
+    # ---- Create Excel file ----
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)

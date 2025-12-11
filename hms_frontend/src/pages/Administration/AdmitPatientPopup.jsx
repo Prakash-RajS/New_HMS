@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown } from "lucide-react";
-import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
-
 
 const API_BASE =
   window.location.hostname === "18.119.210.2"
@@ -12,51 +10,122 @@ const API_BASE =
     : "http://localhost:8000";
 
 /* -------------------------------------------------
-   Dropdown – EXACT SAME AS YOUR DESIGN
+   TypeAhead Dropdown Component
 ------------------------------------------------- */
-const Dropdown = ({ label, value, onChange, options, error, disabled = false }) => (
-  <div>
-    <label className="text-sm text-black dark:text-white">{label}</label>
-    <Listbox value={value} onChange={onChange} disabled={disabled}>
-      <div className="relative mt-1 w-[228px]">
-        <Listbox.Button
-          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-                     outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {value || "Select"}
-          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-          </span>
-        </Listbox.Button>
+const TypeAheadDropdown = ({
+  label,
+  value,
+  onChange,
+  options,
+  error,
+  disabled = false,
+  placeholder = "Type to search...",
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState(value || "");
+  const [filteredOptions, setFilteredOptions] = useState(options);
+  const dropdownRef = useRef(null);
 
-        <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 
-                     border border-gray-300 dark:border-[#3A3A3A] left-[2px]"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {options.map((opt, idx) => (
-            <Listbox.Option
-              key={idx}
-              value={opt}
-              className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-[12px] 
-                 ${active ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-[#0EFF7B]"}
-                 ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
-              }
-            >
-              {opt}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
+  // Update input value when value prop changes
+  useEffect(() => {
+    setInputValue(value || "");
+  }, [value]);
+
+  // Filter options based on input value
+  useEffect(() => {
+    if (inputValue.trim() === "") {
+      setFilteredOptions(options.slice(0, 10)); // Show first 10 when empty
+    } else {
+      const filtered = options.filter(
+        (option) =>
+          option.label.toLowerCase().includes(inputValue.toLowerCase()) ||
+          option.value.toLowerCase().includes(inputValue.toLowerCase())
+      );
+      setFilteredOptions(filtered.slice(0, 10)); // Limit to 10 results
+    }
+  }, [inputValue, options]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange(newValue);
+    setIsOpen(true);
+  };
+
+  const handleOptionSelect = (optionValue, optionLabel) => {
+    setInputValue(optionLabel);
+    onChange(optionValue);
+    setIsOpen(false);
+  };
+
+  const handleInputFocus = () => {
+    setIsOpen(true);
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <label className="text-sm text-black dark:text-white">{label}</label>
+      <div className="relative mt-1 w-[228px]">
+        <div className="relative">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            placeholder={placeholder}
+            disabled={disabled}
+            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                       bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+                       outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+          </div>
+        </div>
+
+        {/* Dropdown Suggestions */}
+        {isOpen && filteredOptions.length > 0 && (
+          <div className="absolute z-50 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto">
+            <div className="max-h-48 overflow-y-auto">
+              {filteredOptions.map((option, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleOptionSelect(option.value, option.label)}
+                  className={`cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] 
+                             hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] hover:text-[#08994A] dark:hover:text-[#0EFF7B]
+                             ${
+                               value === option.value
+                                 ? "bg-[#08994A33] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B] font-medium"
+                                 : "text-black dark:text-[#0EFF7B]"
+                             }`}
+                >
+                  {option.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      {error && <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>}
-    </Listbox>
-  </div>
-);
+      {error && (
+        <p className="text-red-500 dark:text-red-400 text-xs mt-1">{error}</p>
+      )}
+    </div>
+  );
+};
 
 /* -------------------------------------------------
-   AdmitPatientPopup – DESIGN 100% SAME, YOUR TOAST INTEGRATED
+   AdmitPatientPopup – Updated with type-ahead dropdowns
 ------------------------------------------------- */
 const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -72,22 +141,88 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  // Load bed groups
+  // Patient data
+  const [allPatients, setAllPatients] = useState([]);
+  const [patientNameOptions, setPatientNameOptions] = useState([]);
+  const [patientIdOptions, setPatientIdOptions] = useState([]);
+
+  // Load bed groups AND patients
   useEffect(() => {
-    fetch(`${API_BASE}/bedgroups/all`)
-      .then((r) => r.json())
-      .then((groups) => {
-        const names = groups.map((g) => g.bedGroup);
-        setBedGroups(names);
-        if (names.length > 0) {
-          setFormData((prev) => ({ ...prev, bedGroup: names[0] }));
+    const fetchData = async () => {
+      try {
+        // Fetch bed groups
+        const groupsRes = await fetch(`${API_BASE}/bedgroups/all`);
+        if (!groupsRes.ok) throw new Error("Failed to fetch bed groups");
+        const groups = await groupsRes.json();
+
+        const bedGroupOptions = groups.map((g) => ({
+          value: g.bedGroup,
+          label: g.bedGroup,
+        }));
+        setBedGroups(bedGroupOptions);
+        if (bedGroupOptions.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            bedGroup: bedGroupOptions[0].value,
+          }));
         }
-      })
-      .catch(() => {
-        const msg = "Failed to load bed groups";
+
+        // Fetch patients - adjust endpoint based on your API
+        const patientsRes = await fetch(`${API_BASE}/medicine_allocation/edit`);
+        if (patientsRes.ok) {
+          const patientsData = await patientsRes.json();
+
+          // Check if response is array or has patients property
+          let patientsList = [];
+          if (Array.isArray(patientsData)) {
+            patientsList = patientsData;
+          } else if (patientsData.patients) {
+            patientsList = patientsData.patients;
+          }
+
+          setAllPatients(patientsList);
+
+          // Create name options (remove duplicates)
+          const nameOptions = Array.from(
+            new Map(
+              patientsList
+                .filter((p) => p.full_name)
+                .map((p) => [
+                  p.full_name,
+                  {
+                    value: p.full_name,
+                    label: p.full_name,
+                  },
+                ])
+            ).values()
+          );
+
+          // Create ID options (remove duplicates)
+          const idOptions = Array.from(
+            new Map(
+              patientsList
+                .filter((p) => p.patient_unique_id)
+                .map((p) => [
+                  p.patient_unique_id,
+                  {
+                    value: p.patient_unique_id,
+                    label: p.patient_unique_id,
+                  },
+                ])
+            ).values()
+          );
+
+          setPatientNameOptions(nameOptions);
+          setPatientIdOptions(idOptions);
+        }
+      } catch (err) {
+        const msg = "Failed to load data";
         setServerError(msg);
         errorToast(msg);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   // Load free beds when group changes
@@ -99,13 +234,21 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
       .then((groups) => {
         const group = groups.find((g) => g.bedGroup === formData.bedGroup);
         if (group) {
-          const free = group.beds
+          const freeBeds = group.beds
             .filter((b) => !b.is_occupied)
-            .map((b) => `Bed ${b.bed_number}`)
-            .sort();
-          setAvailableBeds(free);
-          if (free.length > 0 && !formData.bedNumber) {
-            setFormData((prev) => ({ ...prev, bedNumber: free[0] }));
+            .map((b) => ({
+              value: `Bed ${b.bed_number}`,
+              label: `Bed ${b.bed_number}`,
+            }))
+            .sort(
+              (a, b) =>
+                parseInt(a.label.replace("Bed ", "")) -
+                parseInt(b.label.replace("Bed ", ""))
+            );
+
+          setAvailableBeds(freeBeds);
+          if (freeBeds.length > 0 && !formData.bedNumber) {
+            setFormData((prev) => ({ ...prev, bedNumber: freeBeds[0].value }));
           } else {
             setFormData((prev) => ({ ...prev, bedNumber: "" }));
           }
@@ -113,10 +256,45 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
       });
   }, [formData.bedGroup]);
 
+  // Handle patient name selection
+  const handlePatientNameSelect = (name) => {
+    // Find the patient by name
+    const selectedPatient = allPatients.find((p) => p.full_name === name);
+
+    setFormData((prev) => {
+      const newData = { ...prev, name: name };
+
+      // If we found a matching patient, auto-fill the ID
+      if (selectedPatient && selectedPatient.patient_unique_id) {
+        newData.patientId = selectedPatient.patient_unique_id;
+      }
+
+      return newData;
+    });
+  };
+
+  // Handle patient ID selection
+  const handlePatientIdSelect = (id) => {
+    // Find the patient by ID
+    const selectedPatient = allPatients.find((p) => p.patient_unique_id === id);
+
+    setFormData((prev) => {
+      const newData = { ...prev, patientId: id };
+
+      // If we found a matching patient, auto-fill the name
+      if (selectedPatient && selectedPatient.full_name) {
+        newData.name = selectedPatient.full_name;
+      }
+
+      return newData;
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = "Patient name is required";
-    if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
+    if (!formData.patientId.trim())
+      newErrors.patientId = "Patient ID is required";
     if (!formData.bedGroup) newErrors.bedGroup = "Bed group is required";
     if (!formData.bedNumber) newErrors.bedNumber = "Select a free bed";
     if (!formData.admitDate) newErrors.admitDate = "Admit date is required";
@@ -175,7 +353,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
       const result = await response.json();
 
       // SUCCESS TOAST
-      successToast(`Patient "${formData.name}" admitted to ${formData.bedNumber}!`);
+      successToast(
+        `Patient "${formData.name}" admitted to ${formData.bedNumber}!`
+      );
 
       // Notify parent to refresh
       if (onSuccess) onSuccess();
@@ -199,11 +379,15 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     const [m, d, y] = dateStr.split("/").map(Number);
     if (!m || !d || !y) return null;
     const date = new Date(y, m - 1, d);
-    return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d ? date : null;
+    return date.getFullYear() === y &&
+      date.getMonth() === m - 1 &&
+      date.getDate() === d
+      ? date
+      : null;
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       <div
         className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
         style={{
@@ -242,66 +426,76 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </button>
         </div>
 
-        {serverError && <p className="text-red-500 text-sm mb-4">{serverError}</p>}
+        {serverError && (
+          <p className="text-red-500 text-sm mb-4">{serverError}</p>
+        )}
 
         {/* Form Grid */}
         <div className="grid grid-cols-2 gap-6">
-          {/* Patient Name */}
+          {/* Patient Name - TypeAhead Dropdown */}
           <div>
             <label className="text-sm">
               Patient Name <span className="text-red-500">*</span>
             </label>
-            <input
+            <TypeAheadDropdown
+              label=""
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter name"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+              onChange={handlePatientNameSelect}
+              options={patientNameOptions}
+              error={errors.name}
+              placeholder="Type patient name..."
             />
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
 
-          {/* Patient ID */}
+          {/* Patient ID - TypeAhead Dropdown */}
           <div>
             <label className="text-sm">
               Patient ID <span className="text-red-500">*</span>
             </label>
-            <input
+            <TypeAheadDropdown
+              label=""
               value={formData.patientId}
-              onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
-              placeholder="Enter ID"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+              onChange={handlePatientIdSelect}
+              options={patientIdOptions}
+              error={errors.patientId}
+              placeholder="Type patient ID..."
             />
-            {errors.patientId && <p className="text-red-500 text-xs mt-1">{errors.patientId}</p>}
           </div>
 
-          {/* Bed Group */}
+          {/* Bed Group - TypeAhead Dropdown */}
           <div>
             <label className="text-sm text-black dark:text-white">
               Bed Group <span className="text-red-500">*</span>
             </label>
-            <Dropdown
+            <TypeAheadDropdown
+              label=""
               value={formData.bedGroup}
-              onChange={(v) => setFormData({ ...formData, bedGroup: v, bedNumber: "" })}
+              onChange={(v) =>
+                setFormData({ ...formData, bedGroup: v, bedNumber: "" })
+              }
               options={bedGroups}
               error={errors.bedGroup}
+              placeholder="Type bed group..."
             />
           </div>
 
-          {/* Bed Number */}
+          {/* Bed Number - TypeAhead Dropdown */}
           <div>
             <label className="text-sm text-black dark:text-white">
               Bed Number <span className="text-red-500">*</span>
             </label>
-            <Dropdown
+            <TypeAheadDropdown
+              label=""
               value={formData.bedNumber}
               onChange={(v) => setFormData({ ...formData, bedNumber: v })}
               options={availableBeds}
               error={errors.bedNumber}
               disabled={!availableBeds.length}
+              placeholder={
+                availableBeds.length
+                  ? "Type bed number..."
+                  : "No beds available"
+              }
             />
           </div>
 
@@ -341,10 +535,15 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
                 }
               />
               <div className="absolute right-3 top-3.5 pointer-events-none">
-                <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                <Calendar
+                  size={18}
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                />
               </div>
             </div>
-            {errors.admitDate && <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>}
+            {errors.admitDate && (
+              <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>
+            )}
           </div>
         </div>
 
