@@ -94,7 +94,7 @@ pipeline {
                         echo "📦 Installing dependencies inside venv..."
                         source .venv/bin/activate
                         pip install --upgrade pip setuptools wheel
-                        pip install "uvicorn[standard]" websockets httptools uvloop
+                        pip install gunicorn
                         pip install -r requirement.txt
  
                         echo "🚀 Applying Django migrations..."
