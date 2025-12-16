@@ -37,7 +37,7 @@ const GlobalBackgroundText = ({ isCollapsed }) => {
           lineHeight: 1,
         }}
       >
-        Stackly Care
+        Stackly Care7
       </h1>
     </div>
   );
