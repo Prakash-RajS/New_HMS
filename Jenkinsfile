@@ -6,7 +6,7 @@ pipeline {
         BRANCH = 'main'
  
         DEPLOY_USER = 'ubuntu'
-        DEPLOY_HOST = '18.119.210.2'
+        DEPLOY_HOST = '3.133.64.23'
         DEPLOY_SSH = 'hms-ec2-deploy-key'
  
         REMOTE_BASE = '/home/ubuntu/jenkins-hms-agent'
@@ -32,7 +32,7 @@ pipeline {
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: "*/${BRANCH}"]],
-                    userRemoteConfigs: [[url: "${GIT_REPO}", credentialsId: 'github-token']]
+                    userRemoteConfigs: [[url: "${GIT_REPO}", credentialsId: 'github-token-hms']]
                 ])
             }
         }
