@@ -759,7 +759,7 @@ const LoginPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
             >
-              Life is Happy when you are Healthy
+              Life is Happy when you are 
             </motion.p>
 
             {/* Login Form */}
