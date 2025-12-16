@@ -12,7 +12,7 @@ from datetime import date
 from jose import JWTError, jwt
 from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport
 from HMS_backend.models import Patient, Department, Staff, Stock
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/medicine_allocation", tags=["Medicine Allocation"])
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/medicine_allocation", tags=["Medicine Allocation"])
 SECRET_KEY = "super_secret_123"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-PHOTO_DIR = "fastapi_app/Patient_photos"
+PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
 
 def parse_date(date_str: Optional[str]):

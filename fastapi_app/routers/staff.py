@@ -8,7 +8,7 @@ from HMS_backend.models import Staff, Department
 from asgiref.sync import sync_to_async
 import os
 import traceback
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/staff", tags=["Staffs"])
 
@@ -257,10 +257,10 @@ async def add_staff(
         # Handle file uploads
         cert_paths = []
         if certificates:
-            os.makedirs("fastapi_app/Staff_documents", exist_ok=True)
+            os.makedirs("Fastapi_app/Staff_documents", exist_ok=True)
             for cert in certificates:
                 if cert.filename:  # Only process if filename exists
-                    cert_path = f"fastapi_app/Staff_documents/{staff.id}_{cert.filename}"
+                    cert_path = f"Fastapi_app/Staff_documents/{staff.id}_{cert.filename}"
                     with open(cert_path, "wb") as f:
                         content = await cert.read()
                         f.write(content)
@@ -268,8 +268,8 @@ async def add_staff(
 
         pic_path = None
         if profile_picture and profile_picture.filename:
-            os.makedirs("fastapi_app/staffs_pictures", exist_ok=True)
-            pic_path = f"fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
+            os.makedirs("Fastapi_app/staffs_pictures", exist_ok=True)
+            pic_path = f"Fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
             with open(pic_path, "wb") as f:
                 content = await profile_picture.read()
                 f.write(content)
@@ -487,7 +487,7 @@ async def update_staff(
         # Handle file uploads
         cert_paths = []
         if certificates:
-            os.makedirs("fastapi_app/Staff_documents", exist_ok=True)
+            os.makedirs("Fastapi_app/Staff_documents", exist_ok=True)
             for cert in certificates:
                 if cert.filename:
                     cert_path = f"fastapi_app/Staff_documents/{staff.id}_{cert.filename}"
@@ -497,8 +497,8 @@ async def update_staff(
 
         pic_path = None
         if profile_picture and profile_picture.filename:
-            os.makedirs("fastapi_app/staffs_pictures", exist_ok=True)
-            pic_path = f"fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
+            os.makedirs("Fastapi_app/staffs_pictures", exist_ok=True)
+            pic_path = f"Fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
             with open(pic_path, "wb") as f:
                 f.write(await profile_picture.read())
 

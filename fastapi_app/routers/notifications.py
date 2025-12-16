@@ -1,5 +1,5 @@
 from email import message
-from fastapi_app.services.websocket_service import manager, notify_clients
+from Fastapi_app.services.websocket_service import manager, notify_clients
 from datetime import datetime
 from typing import Dict, Any, Optional
 

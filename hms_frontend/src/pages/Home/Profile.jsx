@@ -72,10 +72,12 @@ const Profile = () => {
 
   // Get JWT Token
   const getToken = () => localStorage.getItem("token") || "";
-  const backendUrl =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : "http://localhost:8000";
+    const backendUrl =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000"
+    : "http://localhost:8000";
 
   // Axios with auth - UPDATED BASE URL
   const api = axios.create({

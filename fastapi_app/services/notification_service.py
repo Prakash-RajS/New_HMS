@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional  # ← THIS WAS MISSING!
 
 # Your existing imports
-from fastapi_app.main import manager
-from fastapi_app.services.websocket_service import notify_clients
+from Fastapi_app.main import manager
+from Fastapi_app.services.websocket_service import notify_clients
 
 
 class NotificationService:

@@ -710,7 +710,7 @@ async def delete_donor(donor_id: int):
                 'status': donor.status
             }
             donor.delete()
-            return donor_data
+            return donor_data 
         except Donor.DoesNotExist:
             raise HTTPException(status_code=404, detail="Donor not found.")
     try:
@@ -761,7 +761,7 @@ async def record_donation(donor_id: int, units_donated: int):
             await run_in_threadpool(blood_group.save)
            
             # Send blood stock update notification
-            from fastapi_app.routers.add_bloodgroup import safe_send_blood_notification
+            from Fastapi_app.routers.add_bloodgroup import safe_send_blood_notification
             blood_group_data = {
                 'id': blood_group.id,
                 'blood_type': blood_group.blood_type,

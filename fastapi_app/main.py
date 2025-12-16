@@ -225,7 +225,7 @@
 # --------------------------------------------------------------
 # 1. Django must be configured **first**, before any Django models are imported
 # --------------------------------------------------------------
-import fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
+import Fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
 # -------------------------------------------------------------
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -239,12 +239,12 @@ from datetime import datetime
 import asyncio
 
 # Import WebSocket service
-from fastapi_app.services.websocket_service import manager, notify_clients
+from Fastapi_app.services.websocket_service import manager, notify_clients
 
 # ----------------------------------------------------------------
 # Import routers **after** Django is ready
 # ----------------------------------------------------------------
-from fastapi_app.routers import (
+from Fastapi_app.routers import (
     department, appointments, staff, new_registration, add_bloodgroup,
     blood_donor, labreport, bed_group_list, staffmanagement, payroll,
     attendance, stock, ambulance, billing, auth, security,
@@ -279,6 +279,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://18.119.210.2",
         "http://3.133.64.23"
     ],
     allow_credentials=True,
@@ -295,7 +296,7 @@ app.mount(
     name="profile_pictures",
 )
 
-PATIENT_PHOTOS_DIR = os.path.abspath("fastapi_app/Patient_photos")
+PATIENT_PHOTOS_DIR = os.path.abspath("Fastapi_app/Patient_photos")
 os.makedirs(PATIENT_PHOTOS_DIR, exist_ok=True)
 app.mount(
     "/static/patient_photos", 
@@ -303,19 +304,19 @@ app.mount(
     name="patient_photos"
 )
 
-STAFF_PICTURES_DIR = os.path.abspath("fastapi_app/staffs_pictures")
+STAFF_PICTURES_DIR = os.path.abspath("Fastapi_app/staffs_pictures")
 os.makedirs(STAFF_PICTURES_DIR, exist_ok=True)
 app.mount(
     "/static/staffs_pictures",
     StaticFiles(directory=STAFF_PICTURES_DIR),
     name="staffs_pictures"
 )
-INVOICE_DIR = os.path.abspath("fastapi_app/pharmacy/invoices")
+INVOICE_DIR = os.path.abspath("Fastapi_app/pharmacy/invoices")
 os.makedirs(INVOICE_DIR, exist_ok=True)
 
 app.mount("/invoices", StaticFiles(directory=INVOICE_DIR), name="invoices")
 
-HOSPITALBILLING_DIR = os.path.abspath("fastapi_app/invoices_generator")
+HOSPITALBILLING_DIR = os.path.abspath("Fastapi_app/invoices_generator")
 os.makedirs(HOSPITALBILLING_DIR, exist_ok=True)
 
 # Mount the static files directory so invoices can be served/downloaded

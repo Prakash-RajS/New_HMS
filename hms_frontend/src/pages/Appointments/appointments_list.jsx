@@ -20,7 +20,10 @@ import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
+
 
 //const API = "http://127.0.0.1:8000/appointments";
 

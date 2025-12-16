@@ -39,9 +39,11 @@ const [userProfile, setUserProfile] = useState({
   // Search results
   const searchResults = useMemo(() => searchMenu(searchQuery), [searchQuery]);
 // const API_BASE_URL = "http://localhost:8000";
-const API_BASE_URL =
+  const API_BASE_URL =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
   // Sample email data (you can replace with real data)
   const mails = [

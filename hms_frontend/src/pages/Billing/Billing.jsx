@@ -20,9 +20,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const APIBASE =
+ const APIBASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
 
 // API Base URL configuration

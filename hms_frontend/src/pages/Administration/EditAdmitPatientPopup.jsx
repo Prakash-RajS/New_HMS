@@ -6,9 +6,11 @@ import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 
 //const API_BASE = "http://localhost:8000";
-const API_BASE =
+  const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
 /* -------------------------------------------------
    Dropdown Component

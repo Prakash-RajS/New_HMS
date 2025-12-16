@@ -6,7 +6,7 @@ from django.db import transaction
 from HMS_backend.models import Appointment, Department, Staff
 from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 

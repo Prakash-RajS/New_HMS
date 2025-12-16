@@ -16,10 +16,12 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const API =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : "http://localhost:8000";
+    const API =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000"
+    : "http://localhost:8000";
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateDepartmentNameFormat = (value) => {

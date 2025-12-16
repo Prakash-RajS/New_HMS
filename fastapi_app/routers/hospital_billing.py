@@ -274,7 +274,7 @@ from zipfile import ZipFile
 from fastapi.responses import StreamingResponse, FileResponse
 import time
 from asgiref.sync import sync_to_async
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/hospital-billing", tags=["Hospital Billing Management"])
 
@@ -493,7 +493,7 @@ async def download_pdf(invoice_id: str):
         else:
             # Fallback to file system
             BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            fallback_path = os.path.join(BASE_DIR, "fastapi_app", "invoices_generator", f"{invoice_id}.pdf")
+            fallback_path = os.path.join(BASE_DIR, "Fastapi_app", "invoices_generator", f"{invoice_id}.pdf")
             if os.path.exists(fallback_path):
                 pdf_path = fallback_path
             else:
@@ -533,7 +533,7 @@ async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: Back
                     if invoice.pdf_file and os.path.exists(invoice.pdf_file.path):
                         pdf_path = invoice.pdf_file.path
                     else:
-                        fallback = os.path.join("fastapi_app", "invoices_generator", f"{inv_id}.pdf")
+                        fallback = os.path.join("Fastapi_app", "invoices_generator", f"{inv_id}.pdf")
                         if os.path.exists(fallback):
                             pdf_path = fallback
 

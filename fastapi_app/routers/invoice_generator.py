@@ -231,7 +231,7 @@ django.setup()
 from HMS_backend.models import HospitalInvoiceHistory, HospitalInvoiceItem, Patient
 
 # Paths
-APP_DIR = os.path.join(BASE_DIR, "fastapi_app")
+APP_DIR = os.path.join(BASE_DIR, "Fastapi_app")
 TEMPLATE_DIR = os.path.join(APP_DIR, "frontend")
 PDF_OUTPUT_DIR = os.path.join(APP_DIR, "invoices_generator")
 os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)

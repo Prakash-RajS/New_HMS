@@ -7,7 +7,7 @@ from HMS_backend.models import Department, Staff, Patient, Appointment, Medicine
 from datetime import datetime
 from asgiref.sync import sync_to_async
 import logging
-from fastapi_app.routers.notifications import NotificationService   
+from Fastapi_app.routers.notifications import NotificationService   
 
 logger = logging.getLogger(__name__)
 

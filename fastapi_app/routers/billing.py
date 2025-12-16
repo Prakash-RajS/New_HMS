@@ -249,7 +249,7 @@ from asgiref.sync import sync_to_async
 from django.db import transaction
 
 # Import NotificationService
-from fastapi_app.services.notification_service import NotificationService
+from Fastapi_app.services.notification_service import NotificationService
 
 router = APIRouter(prefix="/billing", tags=["Billing Management"])
 
@@ -510,7 +510,7 @@ async def update_invoice_status(invoice_id: str, payload: StatusUpdate):
 @router.get("/pdf/{invoice_id}")
 async def get_pdf(invoice_id: str):
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    INVOICE_DIR = os.path.join(BASE_DIR, "fastapi_app", "pharmacy", "invoices")
+    INVOICE_DIR = os.path.join(BASE_DIR, "Fastapi_app", "pharmacy", "invoices")
     pdf_path = os.path.join(INVOICE_DIR, f"{invoice_id}.pdf")
 
     if not os.path.exists(pdf_path):
@@ -530,7 +530,7 @@ async def get_pdf(invoice_id: str):
 @router.post("/download-selected")
 async def download_selected(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks):
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    INVOICE_DIR = os.path.join(BASE_DIR, "fastapi_app", "pharmacy", "invoices")
+    INVOICE_DIR = os.path.join(BASE_DIR, "Fastapi_app", "pharmacy", "invoices")
 
     temp_zip_path = tempfile.mktemp(suffix=".zip")
     try:

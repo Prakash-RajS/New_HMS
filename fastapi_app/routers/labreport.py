@@ -6,7 +6,7 @@ from typing import ClassVar
 from django.db import transaction, IntegrityError
 from HMS_backend.models import LabReport, Patient
 from datetime import datetime
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 from asgiref.sync import sync_to_async
 
 router = APIRouter(prefix="/labreports", tags=["Lab Reports"])

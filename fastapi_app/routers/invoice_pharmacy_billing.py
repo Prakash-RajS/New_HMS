@@ -341,7 +341,7 @@ from HMS_backend.models import (
 )
 
 # Import notification service
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 
 router = APIRouter(prefix="/pharmacy", tags=["Pharmacy Billing Management"])
 

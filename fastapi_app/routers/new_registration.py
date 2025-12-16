@@ -550,10 +550,10 @@ from HMS_backend import models
 from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAllocation
 
 from django.db.models import Q, F  # ← ADDED F
-from fastapi_app.routers.notifications import NotificationService
+from Fastapi_app.routers.notifications import NotificationService
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
-PHOTO_DIR = "fastapi_app/Patient_photos"
+PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
 
 # Base URL for static files
