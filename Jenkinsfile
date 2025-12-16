@@ -9,7 +9,7 @@ pipeline {
         DEPLOY_HOST = '3.133.64.23'
         DEPLOY_SSH = 'hms-ec2-deploy-key'
  
-        REMOTE_BASE = '/home/ubuntu/jenkins-hms-agent'
+        REMOTE_BASE = '/home/ubuntu/stackly-hms'
         FRONTEND_DIR = "${REMOTE_BASE}/hms_frontend"
         FASTAPI_DIR = "${REMOTE_BASE}/fastapi_app"
         FRONTEND_BUILD = 'dist'
