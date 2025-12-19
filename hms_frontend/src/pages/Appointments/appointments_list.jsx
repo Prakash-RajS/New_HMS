@@ -114,7 +114,7 @@ const AppointmentList = () => {
         id: item.id,
         patient: item.patient_name,
         date: item.created_at ? item.created_at.slice(0, 10) : "",
-        appointmentDate:
+        appointment_date:
           item.appointment_date || item.created_at?.slice(0, 10) || "",
         patientId: item.patient_id,
         department: item.department,
@@ -244,13 +244,13 @@ const AppointmentList = () => {
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appt) => {
       // Date-based filtering (main tabs)
-      if (activeMainTab === "Today" && !isToday(appt.appointmentDate)) {
+      if (activeMainTab === "Today" && !isToday(appt.appointment_date)) {
         return false;
       }
-      if (activeMainTab === "Upcoming" && !isUpcoming(appt.appointmentDate)) {
+      if (activeMainTab === "Upcoming" && !isUpcoming(appt.appointment_date)) {
         return false;
       }
-      if (activeMainTab === "Past" && !isPast(appt.appointmentDate)) {
+      if (activeMainTab === "Past" && !isPast(appt.appointment_date)) {
         return false;
       }
       // "All" tab shows everything, no date filter needed
@@ -321,21 +321,30 @@ const AppointmentList = () => {
   }, [currentPage, filteredAppointments, itemsPerPage]);
 
   // === Selection handlers ===
-  const handleCheckboxChange = (id) => {
-    if (selectedAppointments.includes(id)) {
-      setSelectedAppointments(selectedAppointments.filter((sid) => sid !== id));
-    } else {
-      setSelectedAppointments([...selectedAppointments, id]);
-    }
-  };
-
   const handleSelectAll = () => {
-    if (selectedAppointments.length === currentAppointments.length) {
+    if (
+      selectedAppointments.length === currentAppointments.length &&
+      currentAppointments.every((appt) =>
+        selectedAppointments.includes(appt.id)
+      )
+    ) {
+      // All are selected → deselect all
       setSelectedAppointments([]);
     } else {
-      setSelectedAppointments(currentAppointments.map((_, idx) => idx));
+      // Select all on current page
+      setSelectedAppointments(currentAppointments.map((appt) => appt.id));
     }
   };
+ 
+const handleCheckboxChange = (id) => {
+    setSelectedAppointments(
+      (prev) =>
+        prev.includes(id)
+          ? prev.filter((sid) => sid !== id) // remove if already selected
+          : [...prev, id] // add if not selected
+    );
+  };
+ 
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -347,8 +356,7 @@ const AppointmentList = () => {
     setShowFilterPopup(false);
     setCurrentPage(1);
   };
-
-  const handleClearFilters = () => {
+const handleClearFilters = () => {
     setFiltersData({
       patientName: "",
       patientId: "",
@@ -358,8 +366,8 @@ const AppointmentList = () => {
       date: "",
     });
     setCurrentPage(1);
-    setShowFilterPopup(false);
   };
+  
 
   // === Dropdown component ===
   const Dropdown = ({
@@ -589,13 +597,19 @@ const AppointmentList = () => {
       {/* Table */}
       <div className="overflow-x-auto relative z-10">
         <table className="w-full text-left text-sm">
-          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] h-12  font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input
                   type="checkbox"
-                  // checked={selectAll}
+                  checked={
+                    currentAppointments.length > 0 &&
+                    currentAppointments.every((appt) =>
+                      selectedAppointments.includes(appt.id)
+                    )
+                  }
                   onChange={handleSelectAll}
+                  
                   className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
               </th>
@@ -621,8 +635,9 @@ const AppointmentList = () => {
                     <input
                       type="checkbox"
                       className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                      checked={selectedAppointments.includes(idx)}
-                      onChange={() => handleCheckboxChange(idx)}
+                      checked={selectedAppointments.includes(appt.id)}
+                    onChange={() => handleCheckboxChange(appt.id)}
+                      
                     />
                   </td>
 
@@ -631,7 +646,7 @@ const AppointmentList = () => {
                       {appt.patient}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                      {appt.date}
+                      {appt.appointment_date}
                     </div>
                   </td>
 
@@ -872,7 +887,7 @@ const AppointmentList = () => {
                     }
                   >
                     <input
-                      type="date"
+                      
                       id="filterDateInput"
                       name="date"
                       value={filtersData.date}

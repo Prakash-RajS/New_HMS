@@ -1,14 +1,21 @@
-from fastapi import APIRouter, HTTPException, status,Query
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from typing import List, Optional, Literal
-from pydantic import BaseModel, validator
-from datetime import datetime,date
+from pydantic import BaseModel, validator, Field
+from datetime import datetime, date, time, timezone
 from django.db import transaction
-from HMS_backend.models import Appointment, Department, Staff
+from django.db.models import Q
+from Fastapi_app.routers.auth import get_current_user
+from HMS_backend.models import Appointment, Department, Staff, User
 from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
 from Fastapi_app.routers.notifications import NotificationService
 
+
+# Assuming you have auth setup - if not, we'll create a simple version
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
+
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+security = HTTPBearer()
 
 # ---------- Schemas ----------
 class AppointmentCreate(BaseModel):
@@ -19,6 +26,22 @@ class AppointmentCreate(BaseModel):
     phone_no: str
     appointment_type: Literal["checkup", "followup", "emergency"]
     status: Literal["new", "normal", "severe","active","inactive","completed","cancelled","emergency"] = "new"
+    appointment_date: date = Field(..., description="Appointment date")
+    appointment_time: time = Field(..., description="Appointment time")
+
+    @validator("appointment_date")
+    def validate_future_date(cls, v):
+        if v < date.today():
+            raise ValueError("Appointment date cannot be in the past")
+        return v
+    
+    @validator("appointment_time")
+    def validate_time_with_date(cls, v, values):
+        if 'appointment_date' in values and values['appointment_date'] == date.today():
+            now = datetime.now().time()
+            if v < now:
+                raise ValueError("Appointment time cannot be in the past for today")
+        return v
 
 class AppointmentUpdate(BaseModel):
     patient_name: Optional[str] = None
@@ -29,12 +52,20 @@ class AppointmentUpdate(BaseModel):
     appointment_type: Optional[Literal["checkup", "followup", "emergency"]] = None
     status: Optional[Literal["new", "normal", "severe", "completed", "cancelled","active","inactive","emergency"]] = None
     appointment_date: Optional[date] = None
+    appointment_time: Optional[time] = None
 
     @validator("appointment_date")
-    def require_date_for_final_status(cls, v, values):
-        status = values.get("status")
-        if status in ["completed", "cancelled"] and v is None:
-            raise ValueError("appointment_date is required when status is completed or cancelled")
+    def validate_future_date_on_update(cls, v):
+        if v and v < date.today():
+            raise ValueError("Appointment date cannot be in the past")
+        return v
+    
+    @validator("appointment_time")
+    def validate_time_with_date_update(cls, v, values):
+        if v and 'appointment_date' in values and values['appointment_date'] == date.today():
+            now = datetime.now().time()
+            if v < now:
+                raise ValueError("Appointment time cannot be in the past for today")
         return v
 
 class AppointmentOut(BaseModel):
@@ -47,8 +78,14 @@ class AppointmentOut(BaseModel):
     phone_no: str
     appointment_type: str
     status: str
+    appointment_date: date
+    appointment_time: time
+    appointment_datetime: Optional[datetime] = None  # Combined for backward compatibility
     created_at: datetime
     updated_at: datetime
+
+    class Config:
+        arbitrary_types_allowed = True
 
 # ---------- Dropdown Response Models ----------
 class DepartmentOut(BaseModel):
@@ -61,16 +98,19 @@ class StaffOut(BaseModel):
 
 # ---------- Helper ----------
 def appointment_to_out(appt: Appointment) -> AppointmentOut:
+    
     return AppointmentOut(
         id=appt.id,
         patient_name=appt.patient_name,
         patient_id=appt.patient_id,
-        department=appt.department.name,
-        doctor=appt.staff.full_name,
+        department=appt.department.name if appt.department else '',
+        doctor=appt.staff.full_name if appt.staff else '',
         room_no=appt.room_no,
         phone_no=appt.phone_no,
         appointment_type=appt.appointment_type,
         status=appt.status,
+        appointment_date=appt.appointment_date,
+        appointment_time=appt.appointment_time,
         created_at=appt.created_at,
         updated_at=appt.updated_at,
     )
@@ -98,6 +138,8 @@ async def create_appointment(payload: AppointmentCreate):
                 phone_no=payload.phone_no,
                 appointment_type=payload.appointment_type,
                 status=payload.status,
+                appointment_date=payload.appointment_date,
+                appointment_time=payload.appointment_time,
             )
             return Appointment.objects.select_related('department', 'staff').get(id=appointment.id)
 
@@ -119,14 +161,12 @@ async def list_appointments():
     return [appointment_to_out(appt) for appt in appointments]
 
 
-# backend/appointments/router.py
 @router.put("/{appointment_id}", response_model=AppointmentOut)
 async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     @sync_to_async
     def get_appointment():
         try:
             return Appointment.objects.select_related('department', 'staff').get(id=appointment_id)
-        
         except Appointment.DoesNotExist:
             return None
     
@@ -140,14 +180,12 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     if payload.department_id is not None:
         try:
             department = await sync_to_async(Department.objects.get)(id=payload.department_id)
-            
             appt.department = department
         except Department.DoesNotExist:
             raise HTTPException(status_code=404, detail="Department not found")
     if payload.staff_id is not None:
         try:
             staff = await sync_to_async(Staff.objects.get)(id=payload.staff_id)
-            
             appt.staff = staff
         except Staff.DoesNotExist:
             raise HTTPException(status_code=404, detail="Staff not found")
@@ -159,6 +197,10 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
         appt.appointment_type = payload.appointment_type
     if payload.status is not None:
         appt.status = payload.status
+    if payload.appointment_date is not None:
+        appt.appointment_date = payload.appointment_date
+    if payload.appointment_time is not None:
+        appt.appointment_time = payload.appointment_time
 
     @sync_to_async
     def save_appointment():
@@ -169,7 +211,6 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     try:
         updated_appt = await save_appointment()
         await NotificationService.send_appointment_updated(updated_appt, updated_appt.staff, updated_appt.department)
-
         return appointment_to_out(updated_appt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update: {str(e)}")
@@ -177,7 +218,6 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
 
 @router.delete("/{appointment_id}", status_code=204)
 async def delete_appointment(appointment_id: int):
-    # First get the appointment data for notification
     @sync_to_async
     def get_appointment_data():
         try:
@@ -185,12 +225,10 @@ async def delete_appointment(appointment_id: int):
         except Appointment.DoesNotExist:
             return None
 
-    # Get appointment before deletion
     appointment = await get_appointment_data()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # Store data for notification
     appointment_data = {
         'id': appointment.id,
         'patient_name': appointment.patient_name,
@@ -210,16 +248,11 @@ async def delete_appointment(appointment_id: int):
     if not deleted:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    # ✅ ADD JUST THIS ONE LINE for notification
     await NotificationService.send_appointment_deleted(appointment_data)
      
 
-
-
-
 @router.get("/departments", response_model=List[DepartmentOut])
 async def get_departments():
-    """Return active departments: [{id, name}, …]"""
     depts = await run_in_threadpool(
         lambda: list(
             Department.objects.filter(status="active")
@@ -232,8 +265,6 @@ async def get_departments():
 
 @router.get("/staff", response_model=List[StaffOut])
 async def get_staff_by_department(department_id: int = Query(..., gt=0)):
-    """Return staff belonging to the given department."""
-    # Validate department exists & active
     try:
         await run_in_threadpool(
             Department.objects.get, id=department_id, status="active"
@@ -249,3 +280,59 @@ async def get_staff_by_department(department_id: int = Query(..., gt=0)):
         )
     )
     return staff
+
+# ---------- My Calendar Endpoint (For Logged-in Users) ----------
+@router.get("/my-calendar/", response_model=List[AppointmentOut])
+async def get_my_calendar_appointments(
+    year: Optional[int] = Query(None, description="Year filter"),
+    month: Optional[int] = Query(None, description="Month filter (1-12)"),
+    current_user: User = Depends(get_current_user),  # Your auth dependency
+):
+    """
+    Get appointments for the currently logged-in doctor/nurse
+    """
+    try:
+        @sync_to_async
+        def get_my_appointments():
+            # Get staff profile for current user
+            try:
+                staff = Staff.objects.get(user=current_user)
+                print(f"📅 Fetching appointments for logged-in user: {current_user.username}")
+                print(f"👨‍⚕️ Staff: {staff.full_name} (ID: {staff.id})")
+            except Staff.DoesNotExist:
+                raise HTTPException(
+                    status_code=404, 
+                    detail="No staff profile found for your account. Please contact administrator."
+                )
+            
+            # Get appointments for this staff
+            queryset = Appointment.objects.select_related('department', 'staff').filter(staff_id=staff.id)
+            
+            # Apply year/month filter if provided - using appointment_date field
+            if year and month:
+                print(f"🔍 Filtering by: {year}-{month}")
+                # Start of month
+                start_date = date(year, month, 1)
+                # End of month
+                if month == 12:
+                    end_date = date(year + 1, 1, 1)
+                else:
+                    end_date = date(year, month + 1, 1)
+                
+                # Filter by appointment_date field
+                queryset = queryset.filter(
+                    Q(appointment_date__gte=start_date, appointment_date__lt=end_date)
+                )
+            
+            appointments_list = list(queryset.order_by('appointment_date', 'appointment_time', 'created_at'))
+            print(f"✅ Found {len(appointments_list)} appointments")
+            return appointments_list
+        
+        appointments = await get_my_appointments()
+        return [appointment_to_out(appt) for appt in appointments]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch appointments: {str(e)}")

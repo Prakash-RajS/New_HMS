@@ -6,14 +6,12 @@ import { Listbox } from "@headlessui/react";
 import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
-//const API_BASE = "http://localhost:8000";
 
 const EditPatientPopup = ({
   patientId,
@@ -27,6 +25,7 @@ const EditPatientPopup = ({
   const [doctors, setDoctors] = useState([]);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   // API Helpers
   const api = {
@@ -83,16 +82,8 @@ const EditPatientPopup = ({
     fetchPatient();
   }, [patientId, initialPatient, onClose]);
 
-  // Initialize form with defaults/fallbacks for preloading
+  // Initialize form data
   const initializeForm = (p) => {
-    // Debug logs to check raw values from backend
-    console.log('Raw backend data for edit:', {
-      casualty_status: p.casualty_status,
-      appointment_type: p.appointment_type,
-      staff_id: p.staff_id,
-      department_id: p.department_id,
-    });
-
     const data = {
       id: p.id,
       patient_unique_id: p.patient_unique_id || "",
@@ -102,22 +93,16 @@ const EditPatientPopup = ({
       staff_id: p.staff_id || "",
       appointment_type: p.appointment_type || "Check-up",
       status: p.casualty_status || "Active",
-      date_of_registration: p.date_of_registration || "",
+      date_of_registration: p.date_of_registration || "", // Expected: YYYY-MM-DD or MM/dd/yyyy
       photo_file: null,
       photo_url: p.photo_url || "/default-avatar.png",
     };
-
-    // Additional debug after defaults
-    console.log('Initialized formData:', {
-      status: data.status,
-      appointment_type: data.appointment_type,
-    });
 
     setFormData(data);
     setPreviewUrl(p.photo_url || "/default-avatar.png");
   };
 
-  // Load doctors (with loading state)
+  // Load doctors when department changes
   const loadDoctors = async (deptId) => {
     if (!deptId) {
       setDoctors([]);
@@ -127,7 +112,6 @@ const EditPatientPopup = ({
     try {
       const res = await api.getDoctors(deptId);
       setDoctors(res.data.staff || []);
-      console.log(`Loaded ${res.data.staff?.length || 0} doctors for dept ${deptId}`);
     } catch (err) {
       console.error("Failed to load doctors:", err);
       errorToast("Failed to load doctors");
@@ -137,10 +121,11 @@ const EditPatientPopup = ({
     }
   };
 
-  // Load doctors on dept change or initial
   useEffect(() => {
     if (formData?.department_id) {
       loadDoctors(formData.department_id);
+    } else {
+      setDoctors([]);
     }
   }, [formData?.department_id]);
 
@@ -154,36 +139,85 @@ const EditPatientPopup = ({
   }, [formData?.photo_file]);
 
   // Date helpers
-  const parseDate = (dateStr) => {
+  const parseDateForPicker = (dateStr) => {
     if (!dateStr) return null;
-    const [m, d, y] = dateStr.split("/").map(Number);
+    // Handle both YYYY-MM-DD and MM/dd/yyyy
+    const parts = dateStr.split(/[-/]/);
+    if (parts.length !== 3) return null;
+    const [y, m, d] =
+      parts[0].length === 4
+        ? [parts[0], parts[1], parts[2]]
+        : [parts[2], parts[0], parts[1]];
     return new Date(y, m - 1, d);
   };
-  const formatDate = (date) => {
+
+  const formatDateForDisplay = (date) => {
     if (!date) return "";
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
       date.getDate()
     ).padStart(2, "0")}/${date.getFullYear()}`;
   };
 
+  const formatDateForBackend = (dateStr) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("/");
+    if (parts.length !== 3) return "";
+    const [m, d, y] = parts;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`; // YYYY-MM-DD
+  };
+
+  // Phone validation (exactly 10 digits)
+  const handlePhoneChange = (value) => {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (digitsOnly.length <= 10) {
+      setFormData((prev) => ({ ...prev, phone_number: digitsOnly }));
+      if (digitsOnly.length === 10) {
+        setPhoneError("");
+      } else if (digitsOnly.length > 0) {
+        setPhoneError("Phone number must be exactly 10 digits");
+      } else {
+        setPhoneError("");
+      }
+    }
+  };
+
+  // Department change → clear doctor
+  const handleDeptChange = (deptId) => {
+    setFormData((prev) => ({
+      ...prev,
+      department_id: deptId,
+      staff_id: "",
+    }));
+  };
+
   // Submit update
   const handleUpdate = async () => {
+    // Final phone validation
+    if (formData.phone_number.length !== 10) {
+      setPhoneError("Phone number must be exactly 10 digits");
+      errorToast("Please enter a valid 10-digit phone number");
+      return;
+    }
+
     if (!formData?.patient_unique_id) {
       errorToast("Patient ID is missing!");
       return;
     }
+
     const payload = {
       full_name: formData.full_name.trim(),
-      phone_number: formData.phone_number.trim(),
+      phone_number: formData.phone_number,
       appointment_type: formData.appointment_type,
       status: formData.status,
-      date_of_registration: formData.date_of_registration,
+      date_of_registration: formatDateForBackend(formData.date_of_registration),
       department_id: formData.department_id || null,
       staff_id: formData.staff_id || null,
     };
+
     if (formData.photo_file) {
       payload.photo = formData.photo_file;
     }
+
     try {
       setError("");
       await api.updatePatient(formData.patient_unique_id, payload);
@@ -197,72 +231,62 @@ const EditPatientPopup = ({
     }
   };
 
-  // Department change
-  const handleDeptChange = (deptId) => {
-    setFormData((prev) => ({
-      ...prev,
-      department_id: deptId,
-      staff_id: "",
-    }));
-  };
-
-  // Dropdown Component (updated to fallback to raw value if not in options)
+  // Reusable Dropdown
   const Dropdown = ({
     label,
     value,
     onChange,
-    options,
+    options = [],
     disabled = false,
     placeholder = "Select",
-    fullWidth = false,
     loading = false,
   }) => {
-    // Find matching option or fallback to value
-    const selectedLabel = options.find((o) => o.id === value)?.name ||
-                         options.find((o) => o.id === value)?.full_name ||
-                         value || // Fallback: show raw value if not in options
-                         placeholder;
+    const selectedLabel =
+      options.find((o) => o.id === value)?.name ||
+      options.find((o) => o.id === value)?.full_name ||
+      value ||
+      placeholder;
 
     return (
       <div>
         <label className="text-sm text-black dark:text-white block mb-1">
           {label}
         </label>
-        <Listbox value={value} onChange={onChange} disabled={disabled || loading}>
+        <Listbox
+          value={value}
+          onChange={onChange}
+          disabled={disabled || loading}
+        >
           <div className="relative">
             <Listbox.Button
-              className={`${fullWidth ? 'w-full' : 'w-full sm:w-[160px]'} h-[33px] px-3 pr-8 rounded-[8px] border flex items-center ${
+              className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border flex items-center justify-between text-left text-[14px] truncate ${
                 disabled || loading
-                  ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50"
+                  ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-70"
                   : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
-              } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] truncate`}
+              } text-black dark:text-[#0EFF7B]`}
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                selectedLabel
+              <span>{loading ? "Loading..." : selectedLabel}</span>
+              {!loading && (
+                <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2" />
               )}
-              <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-              </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-white dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-40 overflow-auto">
-              {options.length === 0 ? (
-                <div className="py-2 px-3 text-sm text-gray-500">No options available</div>
+            <Listbox.Options className="absolute z-[100] mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-auto">
+              {options.length === 0 && !loading ? (
+                <div className="py-2 px-3 text-sm text-gray-500">
+                  No options
+                </div>
               ) : (
-                options.map((option) => (
+                options.map((opt) => (
                   <Listbox.Option
-                    key={option.id}
-                    value={option.id}
+                    key={opt.id}
+                    value={opt.id}
                     className={({ active }) =>
-                      `cursor-pointer select-none py-2 px-3 text-sm ${
-                        active
-                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                          : "text-black dark:text-white"
+                      `cursor-pointer py-2 px-3 text-sm ${
+                        active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : ""
                       }`
                     }
                   >
-                    {option.name || option.full_name}
+                    {opt.name || opt.full_name || opt}
                   </Listbox.Option>
                 ))
               )}
@@ -274,13 +298,21 @@ const EditPatientPopup = ({
   };
 
   const appointmentTypes = ["Check-up", "Follow-up", "Emergency"];
-  const statuses = ["Active", "New", "Normal", "Severe", "Critical", "Completed", "Cancelled"];
+  const statuses = [
+    "Active",
+    "New",
+    "Normal",
+    "Severe",
+    "Critical",
+    "Completed",
+    "Cancelled",
+  ];
 
   if (!formData) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/70 z-50">
-        <div className="flex items-center gap-2 text-white text-lg">
-          <Loader2 className="animate-spin" />
+        <div className="flex items-center gap-3 text-white text-lg">
+          <Loader2 className="animate-spin h-6 w-6" />
           Loading patient data...
         </div>
       </div>
@@ -293,7 +325,7 @@ const EditPatientPopup = ({
         <div className="rounded-[19px] bg-white dark:bg-[#000000] p-4 sm:p-6 shadow-lg">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-1">
-            <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+            <h3 className="text-black dark:text-white font-medium text-[16px]">
               Edit Patient
             </h3>
             <button
@@ -303,24 +335,26 @@ const EditPatientPopup = ({
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
+
           {error && (
-            <div className="mb-1 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-200 rounded-lg text-sm">
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 border border-red-400 text-red-700 dark:text-red-200 rounded-lg text-sm">
               {error}
             </div>
           )}
+
           {/* Photo */}
-          <div className="flex justify-center mb-1">
+          <div className="flex justify-center mb-6">
             <div className="relative group">
               <img
                 src={previewUrl}
                 alt="Profile"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-[#0EFF7B] shadow-md"
+                className="w-24 h-24 rounded-full object-cover border-2 border-[#0EFF7B] shadow-md"
               />
               <label
                 htmlFor="photo-upload"
-                className="absolute bottom-0 right-0 bg-gradient-to-r from-[#025126] to-[#0D7F41] p-1.5 sm:p-2 rounded-full cursor-pointer shadow-lg hover:scale-110 transition"
+                className="absolute bottom-0 right-0 bg-gradient-to-r from-[#025126] to-[#0D7F41] p-2 rounded-full cursor-pointer shadow-lg hover:scale-110 transition"
               >
-                <Upload size={14} className="text-white" />
+                <Upload size={16} className="text-white" />
                 <input
                   id="photo-upload"
                   type="file"
@@ -336,11 +370,11 @@ const EditPatientPopup = ({
               </label>
             </div>
           </div>
-          {/* Form - 3 Column Grid */}
+
+          {/* Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {/* Column 1 */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Patient Name */}
+            <div className="space-y-6">
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
                   Patient Name
@@ -354,39 +388,37 @@ const EditPatientPopup = ({
                     }))
                   }
                   placeholder="Enter name"
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-sm"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                 />
               </div>
-              {/* Department */}
+
               <Dropdown
                 label="Department"
                 value={formData.department_id}
                 onChange={handleDeptChange}
                 options={departments}
                 placeholder="Select Department"
-                fullWidth
               />
-              {/* Registration Date */}
+
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
                   Registration Date
                 </label>
                 <div className="relative">
                   <DatePicker
-                    selected={parseDate(formData.date_of_registration)}
+                    selected={parseDateForPicker(formData.date_of_registration)}
                     onChange={(date) =>
                       setFormData((prev) => ({
                         ...prev,
-                        date_of_registration: formatDate(date),
+                        date_of_registration: formatDateForDisplay(date),
                       }))
                     }
+                    maxDate={new Date()} // Prevent future dates
                     dateFormat="MM/dd/yyyy"
                     placeholderText="MM/DD/YYYY"
-                    className="w-full !h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                     wrapperClassName="w-full"
-                    showPopperArrow={false}
                     popperClassName="z-[100]"
-                    popperProps={{ strategy: "fixed" }}
                   />
                   <Calendar
                     size={18}
@@ -395,20 +427,20 @@ const EditPatientPopup = ({
                 </div>
               </div>
             </div>
+
             {/* Column 2 */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Normal ID (Django PK) - Read-only */}
+            <div className="space-y-6">
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
-                  ID
+                  ID (Internal)
                 </label>
                 <input
                   value={formData.id}
                   readOnly
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-green-100 text-black dark:text-black cursor-not-allowed text-sm"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-gray-800 text-black dark:text-gray-400 cursor-not-allowed text-sm"
                 />
               </div>
-              {/* Doctor */}
+
               <Dropdown
                 label="Doctor"
                 value={formData.staff_id}
@@ -417,17 +449,16 @@ const EditPatientPopup = ({
                 }
                 options={doctors}
                 placeholder={
-                  doctorsLoading 
-                    ? "Loading..." 
-                    : !formData.department_id 
-                      ? "Select Dept First" 
-                      : "Select Doctor"
+                  doctorsLoading
+                    ? "Loading..."
+                    : !formData.department_id
+                    ? "Select Dept First"
+                    : "Select Doctor"
                 }
-                disabled={!formData.department_id || doctorsLoading}
-                fullWidth
+                disabled={!formData.department_id}
                 loading={doctorsLoading}
               />
-              {/* Status */}
+
               <Dropdown
                 label="Status"
                 value={formData.status}
@@ -435,12 +466,11 @@ const EditPatientPopup = ({
                   setFormData((prev) => ({ ...prev, status: val }))
                 }
                 options={statuses.map((s) => ({ id: s, name: s }))}
-                fullWidth
               />
             </div>
+
             {/* Column 3 */}
-            <div className="space-y-4 sm:space-y-6">
-              {/* Patient Unique ID - Read-only */}
+            <div className="space-y-6">
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
                   Patient ID
@@ -448,10 +478,10 @@ const EditPatientPopup = ({
                 <input
                   value={formData.patient_unique_id || ""}
                   readOnly
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-green-100 text-black dark:text-black cursor-not-allowed text-sm"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-gray-800 text-black dark:text-gray-400 cursor-not-allowed text-sm"
                 />
               </div>
-              {/* Phone */}
+
               <div>
                 <label className="text-sm text-black dark:text-white block mb-1">
                   Phone Number
@@ -459,18 +489,16 @@ const EditPatientPopup = ({
                 <input
                   type="tel"
                   value={formData.phone_number}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      phone_number: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter phone"
-                  maxLength="15"
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none text-sm"
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  placeholder="Enter 10-digit phone"
+                  maxLength="10"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                 />
+                {phoneError && (
+                  <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+                )}
               </div>
-              {/* Appointment Type */}
+
               <Dropdown
                 label="Appointment Type"
                 value={formData.appointment_type}
@@ -478,23 +506,23 @@ const EditPatientPopup = ({
                   setFormData((prev) => ({ ...prev, appointment_type: val }))
                 }
                 options={appointmentTypes.map((t) => ({ id: t, name: t }))}
-                fullWidth
               />
             </div>
           </div>
+
           {/* Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 mt-6 sm:mt-8">
+          <div className="flex flex-col sm:flex-row justify-center gap-3 mt-8">
             <button
               onClick={onClose}
-              className="w-full sm:w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900 transition"
+              className="w-full sm:w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] bg-white dark:bg-transparent text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition"
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
-              className="w-full sm:w-[144px] h-[34px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition flex items-center justify-center gap-2"
+              className="w-full sm:w-[144px] h-[34px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B] hover:scale-105 transition flex items-center justify-center"
             >
-              Update
+              Update Patient
             </button>
           </div>
         </div>

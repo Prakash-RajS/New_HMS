@@ -7,17 +7,12 @@ import { successToast, errorToast } from "../../components/Toast.jsx";
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
 
 const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
-
 
 export default function AddAppointmentPopup({ onClose, onSuccess }) {
   // Add validation state
@@ -34,6 +29,8 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     phone_no: "",
     appointment_type: "",
     status: "",
+    appointment_date: "", // Separate date field
+    appointment_time: "", // Separate time field
   });
 
   // ── Dropdown data ───────────────────────────────────────────────────
@@ -54,6 +51,17 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
 
   const validatePhoneFormat = (value) => {
     if (value.trim() && !/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  const validateAppointmentDateTime = () => {
+    if (!formData.appointment_date) return "Appointment date is required";
+    if (!formData.appointment_time) return "Appointment time is required";
+    
+    const selectedDate = new Date(`${formData.appointment_date}T${formData.appointment_time}`);
+    const now = new Date();
+    
+    if (selectedDate < now) return "Appointment date and time cannot be in the past";
     return "";
   };
 
@@ -94,6 +102,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     
     if (!formData.status) {
       errors.status = "Status is required";
+      isValid = false;
+    }
+    
+    if (!formData.appointment_date) {
+      errors.appointment_date = "Appointment date is required";
+      isValid = false;
+    }
+    
+    if (!formData.appointment_time) {
+      errors.appointment_time = "Appointment time is required";
       isValid = false;
     }
     
@@ -154,6 +172,17 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
         [field]: formatError
       }));
     }
+    
+    // Clear datetime validation when either date or time changes
+    if (field === "appointment_date" || field === "appointment_time") {
+      if (validationErrors.appointment_date_time) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.appointment_date_time;
+          return newErrors;
+        });
+      }
+    }
   };
 
   // ── Validate all fields before submission ────────────────────────────
@@ -164,7 +193,8 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     // Then check format validation
     const formatErrors = {
       patient_name: validatePatientNameFormat(formData.patient_name),
-      phone_no: validatePhoneFormat(formData.phone_no)
+      phone_no: validatePhoneFormat(formData.phone_no),
+      appointment_date_time: validateAppointmentDateTime()
     };
     
     // Update validation errors for display
@@ -255,6 +285,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     return () => (mounted = false);
   }, [formData.department_id]);
 
+  // ── Get tomorrow's date for default ────────────────────────────────
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   // ── Save handler with validation ───────────────────────────────────
   const handleSave = async () => {
     // Validate all fields
@@ -265,6 +305,13 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
 
     setSaving(true);
     try {
+      // Format time to HH:MM:SS
+      const formatTime = (timeStr) => {
+        if (!timeStr) return "";
+        const [hours, minutes] = timeStr.split(":");
+        return `${hours}:${minutes}:00`;
+      };
+
       const payload = {
         patient_name: formData.patient_name.trim(),
         department_id: Number(formData.department_id),
@@ -273,27 +320,49 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
         phone_no: formData.phone_no || null,
         appointment_type: formData.appointment_type,
         status: formData.status,
+        appointment_date: formData.appointment_date,
+        appointment_time: formatTime(formData.appointment_time),
       };
+      
+      console.log("Sending payload:", payload);
+      
       const res = await fetch(`${API}/create_appointment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      
+      // First check if response is ok
       if (!res.ok) {
-        let msg = "Failed to create appointment";
+        // Try to get error message
+        let errorText;
         try {
-          const err = await res.json();
-          msg = err.detail || err.message || JSON.stringify(err);
-        } catch {}
-        throw new Error(msg);
+          errorText = await res.text();
+          console.error("Error response:", errorText);
+          
+          let errorMessage = "Failed to create appointment";
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || JSON.stringify(errorJson);
+          } catch {
+            errorMessage = errorText || "Unknown server error";
+          }
+          
+          throw new Error(`Server error (${res.status}): ${errorMessage}`);
+        } catch (e) {
+          throw new Error(`Server error (${res.status}): ${e.message}`);
+        }
       }
+      
+      // If response is ok, parse it
+      const data = await res.json();
       successToast("Appointment added successfully!");
       onSuccess?.();
       onClose?.();
     } catch (e) {
+      console.error("Save error details:", e);
       const message = e.message || "Something went wrong. Please try again.";
       errorToast(message);
-      console.error("Save error:", e);
     } finally {
       setSaving(false);
     }
@@ -700,7 +769,58 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 </div>
               )}
             </div>
+            {/* Appointment Date */}
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Appointment Date <span className="text-red-700">*</span>
+              </label>
+              <input
+                type="date"
+                value={formData.appointment_date}
+                onChange={(e) => handleInputChange("appointment_date", e.target.value)}
+                onFocus={() => setFocusedField("appointment_date")}
+                onBlur={() => setFocusedField(null)}
+                min={new Date().toISOString().split('T')[0]}
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                           outline-none text-black dark:text-[#0EFF7B]
+                           ${focusedField === "appointment_date" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+              />
+              {fieldErrors.appointment_date && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.appointment_date}</span>
+                </div>
+              )}
+            </div>
+            {/* Appointment Time */}
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Appointment Time <span className="text-red-700">*</span>
+              </label>
+              <input
+                type="time"
+                value={formData.appointment_time}
+                onChange={(e) => handleInputChange("appointment_time", e.target.value)}
+                onFocus={() => setFocusedField("appointment_time")}
+                onBlur={() => setFocusedField(null)}
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                           outline-none text-black dark:text-[#0EFF7B]
+                           ${focusedField === "appointment_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+              />
+              {fieldErrors.appointment_time && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.appointment_time}</span>
+                </div>
+              )}
+            </div>
           </div>
+          
+          {/* Combined date-time validation error */}
+          {validationErrors.appointment_date_time && (
+            <div className="mt-2">
+              <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.appointment_date_time}</span>
+            </div>
+          )}
+          
           {/* Buttons */}
           <div className="flex justify-center gap-2 mt-8">
             <button

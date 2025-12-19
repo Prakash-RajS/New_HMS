@@ -379,6 +379,8 @@ import { ToastProvider } from "./components/Toast.jsx";
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
 import Profile from "./pages/Home/Profile.jsx";
 import AppointmentList from "./pages/Appointments/appointments_list.jsx";
+import AppointmentCalendar from "./pages/Appointments/Calender.jsx";
+
 import NewRegistration from "./pages/Patients/new-registration";
 import IpdOpd from "./pages/Patients/ipd-opd.jsx";
 import PatientProfile from "./pages/Patients/PatientProfile.jsx";
@@ -632,6 +634,14 @@ function AppContent({ contentRef }) {
                 </ProtectedRoute>
               }
             />
+            <Route
+  path="/appointments/calendar"
+  element={
+    <ProtectedRoute>
+      <AppointmentCalendar />
+    </ProtectedRoute>
+  }
+/>
 
             {/* Clinical Resources */}
             <Route

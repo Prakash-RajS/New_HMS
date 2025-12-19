@@ -755,7 +755,7 @@
 
 // src/components/AppointmentListOPD.jsx
 // src/components/AppointmentListOPD.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -774,14 +774,10 @@ import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 
-
-  const API =
+const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
-//const API = "http://localhost:8000";
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -815,7 +811,7 @@ const AppointmentListOPD = () => {
   const statusFilters = ["All", "New", "Normal", "Severe", "Completed", "Cancelled"];
 
   // ---------- FETCH OPD ----------
-  const fetchOPD = async (p = 1, s = search) => {
+  const fetchOPD = async (p = 1, s = search, filterParams = filters) => {
     setLoading(true);
     setErr("");
     try {
@@ -823,6 +819,19 @@ const AppointmentListOPD = () => {
       url.searchParams.set("page", p);
       url.searchParams.set("limit", perPage);
       if (s) url.searchParams.set("search", s);
+      
+      // Add filter parameters to API call
+      if (filterParams.patientName) url.searchParams.set("patient_name", filterParams.patientName);
+      if (filterParams.patientId) url.searchParams.set("patient_id", filterParams.patientId);
+      if (filterParams.department) url.searchParams.set("department", filterParams.department);
+      if (filterParams.doctor) url.searchParams.set("doctor", filterParams.doctor);
+      if (filterParams.status) url.searchParams.set("status", filterParams.status);
+      if (filterParams.date) {
+        const dateObj = new Date(filterParams.date);
+        const formattedDate = dateObj.toISOString().split('T')[0];
+        url.searchParams.set("date", formattedDate);
+      }
+      if (activeFilter !== "All") url.searchParams.set("casualty_status", activeFilter);
 
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -830,7 +839,7 @@ const AppointmentListOPD = () => {
       const json = await res.json();
 
       const mapped = (json.patients || []).map((p) => ({
-        id: p.id, // Django PK (1,2,3…)
+        id: p.id,
         patient: p.full_name || "Unknown",
         date: p.date_of_registration
           ? new Date(p.date_of_registration).toLocaleDateString("en-GB")
@@ -867,49 +876,16 @@ const AppointmentListOPD = () => {
     fetchOPD(page, search);
   }, [page]);
 
-  // Reset page on filter change
-  useEffect(() => {
-    setPage(1);
-  }, [filters, activeFilter]);
-
-  // ---------- FILTER ----------
-  const filtered = useMemo(() => {
-    return appointments.filter((a) => {
-      if (activeFilter !== "All" && a.status !== activeFilter) return false;
-      if (
-        filters.patientName &&
-        !a.patient.toLowerCase().includes(filters.patientName.toLowerCase())
-      )
-        return false;
-      if (
-        filters.patientId &&
-        !a.patientId.toLowerCase().includes(filters.patientId.toLowerCase())
-      )
-        return false;
-      if (filters.department && a.department !== filters.department)
-        return false;
-      if (filters.doctor && a.doctor !== filters.doctor) return false;
-      if (filters.status && a.status !== filters.status) return false;
-      if (filters.date && a.date !== filters.date) return false;
-      return true;
-    });
-  }, [appointments, activeFilter, filters]);
-
-  const current = useMemo(() => {
-    const start = (page - 1) * perPage;
-    return filtered.slice(start, start + perPage);
-  }, [page, filtered]);
-
   // ---------- CHECKBOX ----------
   const toggle = (idx) => {
-    const gIdx = (page - 1) * perPage + idx;
     setSelected((p) =>
-      p.includes(gIdx) ? p.filter((i) => i !== gIdx) : [...p, gIdx]
+      p.includes(idx) ? p.filter((i) => i !== idx) : [...p, idx]
     );
   };
+  
   const selectAll = () => {
-    if (selected.length === current.length) setSelected([]);
-    else setSelected(current.map((_, i) => (page - 1) * perPage + i));
+    if (selected.length === appointments.length) setSelected([]);
+    else setSelected(appointments.map((_, i) => i));
   };
 
   // ---------- FILTER HANDLERS ----------
@@ -917,6 +893,7 @@ const AppointmentListOPD = () => {
     const { name, value } = e.target;
     setFilters((p) => ({ ...p, [name]: value }));
   };
+  
   const clearFilters = () => {
     setFilters({
       patientName: "",
@@ -929,6 +906,15 @@ const AppointmentListOPD = () => {
     setActiveFilter("All");
     setShowFilter(false);
     setPage(1);
+    // Fetch with cleared filters
+    fetchOPD(1, search, {
+      patientName: "",
+      patientId: "",
+      department: "",
+      doctor: "",
+      status: "",
+      date: "",
+    });
   };
 
   // ---------- REFRESH ----------
@@ -975,10 +961,9 @@ const AppointmentListOPD = () => {
                 value={o}
                 className={({ active, selected }) => `
                   cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                  ${
-                    active
-                      ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                      : "text-black dark:text-white"
+                  ${active
+                    ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                    : "text-black dark:text-white"
                   }
                   ${selected ? "font-medium text-[#0EFF7B]" : ""}`}
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1001,6 +986,10 @@ const AppointmentListOPD = () => {
     Cancelled: "bg-gray-700 text-gray-300",
   };
 
+  // Calculate current page range
+  const startItem = total > 0 ? (page - 1) * perPage + 1 : 0;
+  const endItem = Math.min(page * perPage, total);
+
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
@@ -1010,7 +999,7 @@ const AppointmentListOPD = () => {
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
             zIndex: 0,
           }}
-        ></div>{/* Gradient Border */}
+        ></div>
       <div
         style={{
           position: "absolute",
@@ -1081,10 +1070,9 @@ const AppointmentListOPD = () => {
             <button
               key={t}
               className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
-                ${
-                  activeTab === t
-                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white"
-                    : "bg-gray-100 text-gray-800 dark:bg-[#1E1E1E] dark:text-gray-300"
+                ${activeTab === t
+                  ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white"
+                  : "bg-gray-100 text-gray-800 dark:bg-[#1E1E1E] dark:text-gray-300"
                 }`}
               onClick={() =>
                 t === "In-Patients"
@@ -1118,25 +1106,27 @@ const AppointmentListOPD = () => {
       </div>
 
       {/* Status Filters */}
-     <div className="w-full overflow-x-auto h-[50px] flex items-center mb-8 px-2 relative z-10">
-  {/* This wrapper ensures tabs take full width + scrollable */}
-  <div className="flex gap-3 w-full">
-    {statusFilters.map((f) => (
-      <button
-        key={f}
-        onClick={() => setActiveFilter(f)}
-        className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-          ${
-            activeFilter === f
-              ? "bg-[#08994A] text-white shadow-sm"
-              : "text-gray-800 hover:text-green-600 dark:text-white"
-          }`}
-      >
-        {f}
-      </button>
-    ))}
-  </div>
-</div>
+      <div className="w-full overflow-x-auto h-[50px] flex items-center mb-8 px-2 relative z-10">
+        <div className="flex gap-3 w-full">
+          {statusFilters.map((f) => (
+            <button
+              key={f}
+              onClick={() => {
+                setActiveFilter(f);
+                setPage(1);
+                fetchOPD(1, search);
+              }}
+              className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                ${activeFilter === f
+                  ? "bg-[#08994A] text-white shadow-sm"
+                  : "text-gray-800 hover:text-green-600 dark:text-white"
+                }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1155,7 +1145,7 @@ const AppointmentListOPD = () => {
                     type="checkbox"
                     className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     checked={
-                      current.length > 0 && selected.length === current.length
+                      appointments.length > 0 && selected.length === appointments.length
                     }
                     onChange={selectAll}
                   />
@@ -1172,77 +1162,73 @@ const AppointmentListOPD = () => {
               </tr>
             </thead>
             <tbody>
-              {current.length > 0 ? (
-                current.map((a, i) => {
-                  const gIdx = (page - 1) * perPage + i;
-                  return (
-                    <tr
-                      key={gIdx}
-                      className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
-                    >
-                      <td className="px-2">
-                        <input
-                          type="checkbox"
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                          checked={selected.includes(gIdx)}
-                          onChange={() => toggle(i)}
-                        />
-                      </td>
-                      <td className="py-3">
-                        <div className="font-medium text-black dark:text-white">
-                          {a.patient}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          {a.date}
-                        </div>
-                      </td>
-                      <td className="text-black dark:text-white">
-                        {a.patientId}
-                      </td>
-                      <td className="text-black dark:text-white">
-                        {a.department}
-                      </td>
-                      <td className="text-black dark:text-white">{a.doctor}</td>
-                      <td className="text-black dark:text-white">{a.room}</td>
-                      <td className="text-black dark:text-white">
-                        {a.treatment}
-                      </td>
-                      <td className="text-black dark:text-white">
-                        {a.discharge}
-                      </td>
-                      <td>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            statusColors[a.status] ||
-                            "bg-gray-200 text-gray-700"
+              {appointments.length > 0 ? (
+                appointments.map((a, i) => (
+                  <tr
+                    key={a.id || i}
+                    className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
+                  >
+                    <td className="px-2">
+                      <input
+                        type="checkbox"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        checked={selected.includes(i)}
+                        onChange={() => toggle(i)}
+                      />
+                    </td>
+                    <td className="py-3">
+                      <div className="font-medium text-black dark:text-white">
+                        {a.patient}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {a.date}
+                      </div>
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {a.patientId}
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {a.department}
+                    </td>
+                    <td className="text-black dark:text-white">{a.doctor}</td>
+                    <td className="text-black dark:text-white">{a.room}</td>
+                    <td className="text-black dark:text-white">
+                      {a.treatment}
+                    </td>
+                    <td className="text-black dark:text-white">
+                      {a.discharge}
+                    </td>
+                    <td>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${statusColors[a.status] ||
+                          "bg-gray-200 text-gray-700"
                           }`}
-                        >
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="text-center">
-                        <div className="flex justify-center gap-2">
-                          <Edit2
-                            size={16}
-                            onClick={() => {
-                              setSelAppt(a);
-                              setShowEdit(true);
-                            }}
-                            className="text-[#08994A] cursor-pointer"
-                          />
-                          <Trash2
-                            size={16}
-                            onClick={() => {
-                              setSelAppt(a);
-                              setShowDel(true);
-                            }}
-                            className="text-red-500 cursor-pointer"
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
+                      >
+                        {a.status}
+                      </span>
+                    </td>
+                    <td className="text-center">
+                      <div className="flex justify-center gap-2">
+                        <Edit2
+                          size={16}
+                          onClick={() => {
+                            setSelAppt(a);
+                            setShowEdit(true);
+                          }}
+                          className="text-[#08994A] cursor-pointer"
+                        />
+                        <Trash2
+                          size={16}
+                          onClick={() => {
+                            setSelAppt(a);
+                            setShowDel(true);
+                          }}
+                          className="text-red-500 cursor-pointer"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : (
                 <tr>
                   <td
@@ -1265,25 +1251,23 @@ const AppointmentListOPD = () => {
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
             {page}
           </span>{" "}
-          of {pages} ({total > 0 ? (page - 1) * perPage + 1 : 0}-
-          {Math.min(page * perPage, total)} of {total} Patients)
+          of {pages} ({startItem}-
+          {endItem} of {total} Patients)
         </div>
         <div className="flex items-center gap-x-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-              page === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${page === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
           >
             <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
             disabled={page === pages}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
-              page === pages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-            }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${page === pages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
           >
             <ChevronRight
               size={12}
@@ -1403,7 +1387,11 @@ const AppointmentListOPD = () => {
                   Clear
                 </button>
                 <button
-                  onClick={() => setShowFilter(false)}
+                  onClick={() => {
+                    setShowFilter(false);
+                    setPage(1);
+                    fetchOPD(1, search, filters);
+                  }}
                   className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
                 >
                   Filter
@@ -1417,12 +1405,12 @@ const AppointmentListOPD = () => {
       {/* ---------- EDIT POPUP ---------- */}
       {showEdit && selAppt && (
         <EditPatientPopup
-          patientId={selAppt.id} // Django PK
+          patientId={selAppt.id}
           onClose={() => {
             setShowEdit(false);
             setSelAppt(null);
           }}
-          onUpdate={refreshData} // Refresh after save
+          onUpdate={refreshData}
         />
       )}
 

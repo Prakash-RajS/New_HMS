@@ -3,46 +3,62 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-//const API = "http://127.0.0.1:8000/appointments";
-//const BED_API = "http://127.0.0.1:8000/bedgroups";
-
 
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
 
 const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
 
-
-    
 export default function EditAppointmentPopup({
   onClose,
   appointment,
   onUpdate,
 }) {
+  // Parse appointment_time if it's in datetime format
+  const parseTimeFromAppointment = (appt) => {
+    let appointmentDate = appt.appointment_date || "";
+    let appointmentTime = appt.appointment_time || "";
+    
+    // If appointment_datetime exists, parse date and time from it
+    if (appt.appointment_datetime) {
+      const dt = new Date(appt.appointment_datetime);
+      appointmentDate = dt.toISOString().split('T')[0];
+      const hours = dt.getHours().toString().padStart(2, '0');
+      const minutes = dt.getMinutes().toString().padStart(2, '0');
+      appointmentTime = `${hours}:${minutes}`;
+    } else if (appt.appointment_time && appt.appointment_time.includes(':')) {
+      // If time is already in HH:MM:SS format, convert to HH:MM
+      const timeParts = appt.appointment_time.split(':');
+      appointmentTime = `${timeParts[0]}:${timeParts[1]}`;
+    }
+    
+    return { appointmentDate, appointmentTime };
+  };
+
+  const { appointmentDate, appointmentTime } = parseTimeFromAppointment(appointment);
+
   // Normalize incoming appointment to match backend keys
   const initialData = {
     id: appointment.id,
     patient_name: appointment.patient_name || "",
     patient_id: appointment.patient_id || "",
-    department_id: appointment.department_id || "", // backend uses ID
+    department_id: appointment.department_id || "",
     staff_id: appointment.staff_id || "",
     room_no: appointment.room_no || "",
     phone_no: appointment.phone_no || "",
     appointment_type: appointment.appointment_type || "checkup",
     status: appointment.status || "new",
-    appointment_date: appointment.appointment_date || "", // optional
-    department_name: appointment.department_name || "", // temp for preloading
-    staff_name: appointment.staff_name || "", // temp for preloading
+    appointment_date: appointmentDate,
+    appointment_time: appointmentTime,
+    department_name: appointment.department_name || "",
+    staff_name: appointment.staff_name || "",
   };
+
   const [formData, setFormData] = useState(initialData);
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -52,8 +68,92 @@ export default function EditAppointmentPopup({
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const dateRef = React.useRef(null);
   const styleRef = React.useRef(null);
+
+  // Validation functions
+  const validatePatientNameFormat = (value) => {
+    if (value.trim() && !/^[A-Za-z\s'-]+$/.test(value)) 
+      return "Name should only contain letters, spaces, hyphens, and apostrophes";
+    if (value.trim() && value.trim().length < 2) 
+      return "Name must be at least 2 characters";
+    return "";
+  };
+
+  const validatePhoneFormat = (value) => {
+    if (value.trim() && !/^\d{10}$/.test(value)) 
+      return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  const validateAppointmentDateTime = () => {
+    if (!formData.appointment_date) return "Appointment date is required";
+    if (!formData.appointment_time) return "Appointment time is required";
+    
+    const selectedDate = new Date(`${formData.appointment_date}T${formData.appointment_time}`);
+    const now = new Date();
+    
+    if (selectedDate < now) return "Appointment date and time cannot be in the past";
+    return "";
+  };
+
+  // Handle input change
+  const handleInputChange = (field, value) => {
+    let processedValue = value;
+    
+    // Capitalize first letter of each word for patient name
+    if (field === "patient_name") {
+      processedValue = value
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
+    
+    // Clear validation errors when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    // Perform real-time format validation
+    let formatError = "";
+    
+    switch (field) {
+      case "patient_name":
+        formatError = validatePatientNameFormat(processedValue);
+        break;
+      case "phone_no":
+        formatError = validatePhoneFormat(processedValue);
+        break;
+      default:
+        break;
+    }
+    
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    }
+    
+    // Clear datetime validation when either date or time changes
+    if (field === "appointment_date" || field === "appointment_time") {
+      if (validationErrors.appointment_date_time) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.appointment_date_time;
+          return newErrors;
+        });
+      }
+    }
+  };
 
   // Load departments
   useEffect(() => {
@@ -73,6 +173,7 @@ export default function EditAppointmentPopup({
       });
     return () => (mounted = false);
   }, []);
+
   // Load available beds
   useEffect(() => {
     let mounted = true;
@@ -101,6 +202,7 @@ export default function EditAppointmentPopup({
       });
     return () => (mounted = false);
   }, []);
+
   // Preload department_id from name after departments load
   useEffect(() => {
     if (departments.length > 0 && formData.department_name && !formData.department_id) {
@@ -109,11 +211,12 @@ export default function EditAppointmentPopup({
         setFormData((prev) => ({
           ...prev,
           department_id: matchingDept.id,
-          department_name: "", // clear temp
+          department_name: "",
         }));
       }
     }
   }, [departments, formData.department_name, formData.department_id]);
+
   // Load doctors when department changes
   useEffect(() => {
     if (!formData.department_id) {
@@ -136,6 +239,7 @@ export default function EditAppointmentPopup({
       });
     return () => (mounted = false);
   }, [formData.department_id]);
+
   // Preload staff_id from name after doctors load
   useEffect(() => {
     if (doctors.length > 0 && formData.staff_name && !formData.staff_id) {
@@ -144,11 +248,12 @@ export default function EditAppointmentPopup({
         setFormData((prev) => ({
           ...prev,
           staff_id: matchingStaff.id,
-          staff_name: "", // clear temp
+          staff_name: "",
         }));
       }
     }
   }, [doctors, formData.staff_name, formData.staff_id]);
+
   useEffect(() => {
     if (
       ["completed", "cancelled"].includes(formData.status) &&
@@ -158,6 +263,7 @@ export default function EditAppointmentPopup({
       setFormData((prev) => ({ ...prev, appointment_date: today }));
     }
   }, [formData.status]);
+
   // Add CSS to hide default date picker icon
   useEffect(() => {
     const style = document.createElement('style');
@@ -178,6 +284,7 @@ export default function EditAppointmentPopup({
       }
     };
   }, []);
+
   // Reusable Dropdown
   const Dropdown = ({
     label,
@@ -187,13 +294,14 @@ export default function EditAppointmentPopup({
     placeholder,
     loading,
     isObject = false,
+    required = false,
   }) => (
     <div>
       <label
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
-        {label}
+        {label} {required && <span className="text-red-700">*</span>}
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
@@ -217,8 +325,8 @@ export default function EditAppointmentPopup({
               placeholder
             )}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                        <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                       </span>
+              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+            </span>
           </Listbox.Button>
           <Listbox.Options
             className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
@@ -254,19 +362,50 @@ export default function EditAppointmentPopup({
       </Listbox>
     </div>
   );
+
   // Handle Update
   const handleUpdate = async () => {
     setError(null);
-    if (
-      !formData.patient_name ||
-      !formData.department_id ||
-      !formData.staff_id
-    ) {
-      setError("Patient name, department, and doctor are required");
+    
+    // Validate required fields
+    const requiredErrors = {};
+    if (!formData.patient_name.trim()) requiredErrors.patient_name = "Patient name is required";
+    if (!formData.department_id) requiredErrors.department_id = "Department is required";
+    if (!formData.staff_id) requiredErrors.staff_id = "Doctor is required";
+    if (!formData.room_no) requiredErrors.room_no = "Room/Bed is required";
+    if (!formData.phone_no) requiredErrors.phone_no = "Phone number is required";
+    if (!formData.appointment_type) requiredErrors.appointment_type = "Appointment type is required";
+    if (!formData.status) requiredErrors.status = "Status is required";
+    if (!formData.appointment_date) requiredErrors.appointment_date = "Appointment date is required";
+    if (!formData.appointment_time) requiredErrors.appointment_time = "Appointment time is required";
+    
+    if (Object.keys(requiredErrors).length > 0) {
+      setError("Please fill all required fields");
       return;
     }
+    
+    // Validate format
+    const formatErrors = {
+      patient_name: validatePatientNameFormat(formData.patient_name),
+      phone_no: validatePhoneFormat(formData.phone_no),
+      appointment_date_time: validateAppointmentDateTime()
+    };
+    
+    if (Object.values(formatErrors).some(error => error !== "")) {
+      setValidationErrors(formatErrors);
+      setError("Please fix validation errors");
+      return;
+    }
+    
     setSaving(true);
     try {
+      // Format time to HH:MM:SS
+      const formatTime = (timeStr) => {
+        if (!timeStr) return "";
+        const [hours, minutes] = timeStr.split(":");
+        return `${hours}:${minutes}:00`;
+      };
+
       const payload = {
         patient_name: formData.patient_name,
         department_id: Number(formData.department_id),
@@ -275,15 +414,16 @@ export default function EditAppointmentPopup({
         phone_no: formData.phone_no || "",
         appointment_type: formData.appointment_type,
         status: formData.status,
+        appointment_date: formData.appointment_date,
+        appointment_time: formatTime(formData.appointment_time),
       };
-      if (formData.appointment_date) {
-        payload.appointment_date = formData.appointment_date;
-      }
+      
       const res = await fetch(`${API}/${formData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      
       if (!res.ok) {
         let msg = "Failed to update";
         try {
@@ -292,6 +432,7 @@ export default function EditAppointmentPopup({
         } catch {}
         throw new Error(msg);
       }
+      
       const updated = await res.json();
       successToast("Appointment updated successfully!");
       onUpdate?.(updated);
@@ -303,10 +444,12 @@ export default function EditAppointmentPopup({
       setSaving(false);
     }
   };
+
   const bedOptions = availableBeds.map((b) => ({
     id: b.id,
     name: b.name,
   }));
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div
@@ -348,26 +491,36 @@ export default function EditAppointmentPopup({
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
+          
           {/* Error */}
           {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
+          
+          {/* Validation Errors */}
+          {Object.values(validationErrors).map((errorMsg, index) => (
+            errorMsg && (
+              <div key={index} className="text-red-500 text-sm mb-1">
+                {errorMsg}
+              </div>
+            )
+          ))}
+
           {/* Form Grid */}
           <div className="grid grid-cols-3 gap-6">
             {/* Patient Name */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Patient Name
+                Patient Name <span className="text-red-700">*</span>
               </label>
               <input
                 value={formData.patient_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, patient_name: e.target.value })
-                }
+                onChange={(e) => handleInputChange("patient_name", e.target.value)}
                 placeholder="Enter name"
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
             </div>
+            
             {/* Patient ID */}
             <div>
               <label className="text-sm text-black dark:text-white">
@@ -380,6 +533,7 @@ export default function EditAppointmentPopup({
                             bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 outline-none"
               />
             </div>
+            
             {/* Department */}
             <Dropdown
               label="Department"
@@ -391,11 +545,13 @@ export default function EditAppointmentPopup({
               placeholder={loadingDept ? "Loading…" : "Select Department"}
               loading={loadingDept}
               isObject={true}
+              required={true}
             />
+            
             {/* Appointment Date */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Appointment Date
+                Appointment Date <span className="text-red-700">*</span>
               </label>
               <div 
                 className="relative cursor-pointer"
@@ -405,9 +561,8 @@ export default function EditAppointmentPopup({
                   type="date"
                   ref={dateRef}
                   value={formData.appointment_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, appointment_date: e.target.value })
-                  }
+                  onChange={(e) => handleInputChange("appointment_date", e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-[#0EFF7B] 
                              dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
                              dark:text-[#0EFF7B] outline-none cursor-pointer w-full"
@@ -418,6 +573,22 @@ export default function EditAppointmentPopup({
                 />
               </div>
             </div>
+            
+            {/* Appointment Time */}
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Appointment Time <span className="text-red-700">*</span>
+              </label>
+              <input
+                type="time"
+                value={formData.appointment_time}
+                onChange={(e) => handleInputChange("appointment_time", e.target.value)}
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
+                           dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
+                           dark:text-[#0EFF7B] outline-none"
+              />
+            </div>
+            
             {/* Room / Bed No */}
             <Dropdown
               label="Room / Bed No"
@@ -427,7 +598,9 @@ export default function EditAppointmentPopup({
               placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
               loading={loadingBeds}
               isObject={true}
+              required={true}
             />
+            
             {/* Doctor */}
             <Dropdown
               label="Doctor"
@@ -437,26 +610,28 @@ export default function EditAppointmentPopup({
               placeholder={loadingDoc ? "Loading…" : "Select Doctor"}
               loading={loadingDoc}
               isObject={true}
+              required={true}
             />
+            
             {/* Status */}
             <Dropdown
               label="Status"
               value={formData.status}
               onChange={(v) => setFormData({ ...formData, status: v })}
-              options={["new", "normal", "severe", "completed", "cancelled"]}
+              options={["new", "normal", "severe", "completed", "cancelled", "active", "inactive", "emergency"]}
               placeholder="Select Status"
+              required={true}
             />
+            
             {/* Phone */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Phone Number
+                Phone Number <span className="text-red-700">*</span>
               </label>
               <input
                 type="tel"
                 value={formData.phone_no}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone_no: e.target.value })
-                }
+                onChange={(e) => handleInputChange("phone_no", e.target.value)}
                 placeholder="Enter phone"
                 maxLength="10"
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
@@ -464,17 +639,18 @@ export default function EditAppointmentPopup({
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
             </div>
+            
             {/* Appointment Type */}
             <Dropdown
               label="Appointment Type"
               value={formData.appointment_type}
-              onChange={(v) =>
-                setFormData({ ...formData, appointment_type: v })
-              }
+              onChange={(v) => setFormData({ ...formData, appointment_type: v })}
               options={["checkup", "followup", "emergency"]}
               placeholder="Select Type"
+              required={true}
             />
           </div>
+          
           {/* Buttons */}
           <div className="flex justify-center gap-2 mt-8">
             <button
@@ -487,7 +663,7 @@ export default function EditAppointmentPopup({
             </button>
             <button
               onClick={handleUpdate}
-              disabled={saving}
+              disabled={saving || Object.values(validationErrors).some(error => error !== "")}
               className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                           bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                           shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]

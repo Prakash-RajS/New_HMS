@@ -15,12 +15,9 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient"; // <-- correct import
 
-
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
 //const API_BASE = "http://localhost:8000";
 
@@ -63,7 +60,7 @@ const ProfileSection = () => {
           name: p.full_name,
           room: p.room_number || "—",
           status: p.casualty_status,
-          type: p.type || "Out-patients",
+          type: p.type || (type === "Out-patients" ? "Out-patients" : "In-patients"), // FIXED: Correct type assignment
           photo_url: p.photo_url,
           phone_number: p.phone_number || "",
           appointment_type: p.appointment_type || "",
@@ -118,13 +115,13 @@ const ProfileSection = () => {
     });
   }, [patients, filters]);
 
-  const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
-  const displayed = filteredPatients.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  // FIXED: Use server-side total for pagination
+  const totalPages = Math.ceil(total / itemsPerPage);
+  const displayed = filteredPatients; // Use filtered patients from current page
 
-  const totalCount = filteredPatients.length;
+  // FIXED: Count calculations - these will only count patients on current page
+  // For accurate counts, you'd need separate API endpoints or fetch all data
+  const totalCount = total; // Use server-side total
   const inCount = filteredPatients.filter(
     (p) => p.type === "In-patients"
   ).length;
@@ -395,9 +392,9 @@ const ProfileSection = () => {
           of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
           {Math.min(
             currentPage * itemsPerPage,
-            filteredPatients.length
+            total
           )}{" "}
-          from {filteredPatients.length} Patients)
+          from {total} Patients) {/* FIXED: Use total instead of filteredPatients.length */}
         </div>
         <div className="flex items-center gap-x-2">
           <button

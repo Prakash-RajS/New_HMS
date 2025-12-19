@@ -6,14 +6,14 @@ import { useNavigate } from "react-router-dom";
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
 
-  const BED_API =
+const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
     : window.location.hostname === "3.133.64.23"
@@ -30,7 +30,12 @@ const formatToYMD = (dateStr) => {
 const safeStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
 
 /* ---------- Photo Upload ---------- */
-const PhotoUploadBox = ({ photoPreview, setPhotoPreview, onFileSelect, error = null }) => {
+const PhotoUploadBox = ({
+  photoPreview,
+  setPhotoPreview,
+  onFileSelect,
+  error = null,
+}) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -63,7 +68,9 @@ const PhotoUploadBox = ({ photoPreview, setPhotoPreview, onFileSelect, error = n
           <span className="text-xs md:text-sm">+ Add Photo</span>
         )}
       </label>
-      {error && <p className="text-red-500 text-xs mt-1 w-32 text-center">{error}</p>}
+      {error && (
+        <p className="text-red-500 text-xs mt-1 w-32 text-center">{error}</p>
+      )}
     </div>
   );
 };
@@ -97,7 +104,11 @@ const Dropdown = ({
           onBlur={onBlur}
           className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
                      flex items-center justify-between bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
-                     ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                     ${
+                       onFocus
+                         ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                         : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                     }`}
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           <span>
@@ -187,7 +198,11 @@ const InputField = ({
       placeholder={placeholder}
       className={`w-full h-[33px] px-3 rounded-[8px] border bg-white dark:bg-transparent 
                  text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]
-                 ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                 ${
+                   onFocus
+                     ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                 }`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
     {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -195,14 +210,42 @@ const InputField = ({
 );
 
 /* ---------- Date Field (Native Style) ---------- */
-const DateField = ({ label, value, onChange, placeholder, required = false, error = null, onFocus = () => {}, onBlur = () => {} }) => {
+// Inside NewRegistration.jsx – modify DateField component
+// Inside NewRegistration.jsx – Updated DateField component
+const DateField = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  restrictFuture = false, // Block future dates
+  restrictPast = false, // NEW: Block past dates
+}) => {
   const dateRef = React.useRef(null);
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
   const handleDateChange = (e) => {
-    onChange(e.target.value);
+    const selected = e.target.value;
+
+    // Block future dates if restrictFuture is true
+    if (restrictFuture && selected > today) {
+      return; // Ignore selection
+    }
+
+    // Block past dates if restrictPast is true
+    if (restrictPast && selected < today) {
+      return; // Ignore selection
+    }
+
+    onChange(selected);
   };
-  const handleClick = () => {
-    dateRef.current?.showPicker();
-  };
+
+  const minDate = restrictPast ? today : undefined;
+  const maxDate = restrictFuture ? today : undefined;
+
   return (
     <div className="space-y-1 w-full">
       <label
@@ -211,7 +254,10 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
       >
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <div className="relative cursor-pointer" onClick={handleClick}>
+      <div
+        className="relative cursor-pointer"
+        onClick={() => dateRef.current?.showPicker()}
+      >
         <input
           type="date"
           ref={dateRef}
@@ -219,9 +265,15 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
           onChange={handleDateChange}
           onFocus={onFocus}
           onBlur={onBlur}
-          className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border bg-white dark:bg-transparent 
+          min={minDate}
+          max={maxDate}
+          className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border bg-white dark:bg-transparent
                      text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]
-                     ${onFocus ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                     ${
+                       onFocus
+                         ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                         : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                     }`}
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         />
         <Calendar
@@ -230,6 +282,14 @@ const DateField = ({ label, value, onChange, placeholder, required = false, erro
         />
       </div>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {restrictFuture && value > today && (
+        <p className="text-red-500 text-xs mt-1">
+          Future dates are not allowed
+        </p>
+      )}
+      {restrictPast && value && value < today && (
+        <p className="text-red-500 text-xs mt-1">Past dates are not allowed</p>
+      )}
     </div>
   );
 };
@@ -273,16 +333,16 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
-  
+
   // Validation states
   const [validationErrors, setValidationErrors] = useState({}); // Format validation
   const [fieldErrors, setFieldErrors] = useState({}); // Required validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
+
   const styleRef = React.useRef(null);
   const navigate = useNavigate();
-  
+
   const maritalStatusOptions = ["Single", "Married", "Divorced", "Widowed"];
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const consultationTypes = ["General", "Specialist", "Emergency"];
@@ -291,77 +351,114 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateFullnameFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Name should contain only letters and spaces";
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value))
+      return "Name should contain only letters and spaces";
     return "";
   };
 
   const validateAgeFormat = (value) => {
-    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 150)) return "Age must be a positive number (1-150)";
+    if (
+      value.trim() &&
+      (isNaN(value) || Number(value) <= 0 || Number(value) > 150)
+    )
+      return "Age must be a positive number (1-150)";
     return "";
   };
 
   const validatePhoneFormat = (value) => {
-    if (value.trim() && !/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+    if (value.trim() && !/^\d{10}$/.test(value))
+      return "Phone number must be exactly 10 digits";
     return "";
   };
 
   const validateEmailFormat = (value) => {
-    if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
+    if (value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))
+      return "Please enter a valid email address";
     return "";
   };
 
   const validateWeightFormat = (value) => {
-    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 300)) return "Weight must be a positive number (1-300 kg)";
+    if (
+      value.trim() &&
+      (isNaN(value) || Number(value) <= 0 || Number(value) > 300)
+    )
+      return "Weight must be a positive number (1-300 kg)";
     return "";
   };
 
   const validateHeightFormat = (value) => {
-    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 250)) return "Height must be a positive number (1-250 cm)";
+    if (
+      value.trim() &&
+      (isNaN(value) || Number(value) <= 0 || Number(value) > 250)
+    )
+      return "Height must be a positive number (1-250 cm)";
     return "";
   };
 
   const validateTemperatureFormat = (value) => {
-    if (value.trim() && (isNaN(value) || Number(value) < 30 || Number(value) > 50)) return "Temperature must be a valid number (30-50°C)";
+    if (
+      value.trim() &&
+      (isNaN(value) || Number(value) < 30 || Number(value) > 50)
+    )
+      return "Temperature must be a valid number (30-50°C)";
     return "";
   };
 
   const validateCityFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "City should contain only letters and spaces";
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value))
+      return "City should contain only letters and spaces";
     return "";
   };
 
   const validateCountryFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Country should contain only letters and spaces";
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value))
+      return "Country should contain only letters and spaces";
     return "";
   };
 
   const validateOccupationFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value)) return "Occupation should contain only letters and spaces";
+    if (value.trim() && !/^[A-Za-z\s.'-]+$/.test(value))
+      return "Occupation should contain only letters and spaces";
     return "";
   };
 
   const validateReasonFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.,!?'-]+$/.test(value)) return "Reason should contain only letters and basic punctuation";
+    if (value.trim() && !/^[A-Za-z\s.,!?'-]+$/.test(value))
+      return "Reason should contain only letters and basic punctuation";
     return "";
   };
 
   const validateTestReportFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value)) return "Test report can contain letters, numbers and basic punctuation";
+    if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value))
+      return "Test report can contain letters, numbers and basic punctuation";
     return "";
   };
 
   const validateBpFormat = (value) => {
-    if (value.trim() && !/^[0-9/]+$/.test(value)) return "Blood pressure can only contain numbers and /";
+    if (value.trim() && !/^\d{2,3}\/\d{2,3}$/.test(value)) {
+      return "Blood pressure must be in format 120/80 (e.g., 120/80, 90/60)";
+    }
+    // Optional: add realistic range check
+    const [systolic, diastolic] = value.split("/");
+    if (systolic && diastolic) {
+      const sys = parseInt(systolic);
+      const dia = parseInt(diastolic);
+      if (sys < 70 || sys > 250 || dia < 40 || dia > 150) {
+        return "Blood pressure values out of realistic range";
+      }
+    }
     return "";
   };
 
   const validateNidFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z0-9\s-]+$/.test(value)) return "NID can contain letters, numbers, spaces and hyphens";
+    if (value.trim() && !/^[A-Za-z0-9\s-]+$/.test(value))
+      return "NID can contain letters, numbers, spaces and hyphens";
     return "";
   };
 
   const validateAddressFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z0-9\s.,#'/-]+$/.test(value)) return "Address can contain letters, numbers, spaces and basic punctuation";
+    if (value.trim() && !/^[A-Za-z0-9\s.,#'/-]+$/.test(value))
+      return "Address can contain letters, numbers, spaces and basic punctuation";
     return "";
   };
 
@@ -371,16 +468,43 @@ export default function NewRegistration({ isSidebarOpen }) {
     let isValid = true;
 
     const requiredFields = [
-      "fullname", "dob", "gender", "age", "maritalStatus", "address", 
-      "phone", "email", "nid", "city", "country", "dor", "occupation", 
-      "weight", "height", "bloodGroup", "bp", "temperature", "consultType", 
-      "apptType", "admitDate", "roomNo", "testReport", "casualty", "reason", 
-      "department_id", "staff_id"
+      "fullname",
+      "dob",
+      "gender",
+      "age",
+      "maritalStatus",
+      "address",
+      "phone",
+      "email",
+      "nid",
+      "city",
+      "country",
+      "dor",
+      "occupation",
+      "weight",
+      "height",
+      "bloodGroup",
+      "bp",
+      "temperature",
+      "consultType",
+      "apptType",
+      "admitDate",
+      "roomNo",
+      "testReport",
+      "casualty",
+      "reason",
+      "department_id",
+      "staff_id",
     ];
 
-    requiredFields.forEach(field => {
-      if (!formData[field] || (typeof formData[field] === 'string' && formData[field].trim() === "")) {
-        errors[field] = `${field.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} is required`;
+    requiredFields.forEach((field) => {
+      if (
+        !formData[field] ||
+        (typeof formData[field] === "string" && formData[field].trim() === "")
+      ) {
+        errors[field] = `${field
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase())} is required`;
         isValid = false;
       }
     });
@@ -399,9 +523,9 @@ export default function NewRegistration({ isSidebarOpen }) {
   const capitalizeName = (value) => {
     return value
       .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
   };
 
   const capitalizeWords = (value) => {
@@ -411,33 +535,37 @@ export default function NewRegistration({ isSidebarOpen }) {
   /* ---------- Handle Input Change ---------- */
   const handleInputChange = (field) => (e) => {
     let value = e.target.value;
-    
+
     // Apply auto-capitalization
     if (field === "fullname") {
       value = capitalizeName(value);
-    } else if (["city", "country", "occupation", "reason", "testReport", "bp"].includes(field)) {
+    } else if (
+      ["city", "country", "occupation", "reason", "testReport", "bp"].includes(
+        field
+      )
+    ) {
       value = capitalizeWords(value);
     }
-    
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Clear validation errors for this field
     if (validationErrors[field]) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
       });
     }
-    
+
     if (fieldErrors[field]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
       });
     }
-    
+
     // Perform real-time format validation
     let formatError = "";
     switch (field) {
@@ -489,29 +617,29 @@ export default function NewRegistration({ isSidebarOpen }) {
       default:
         break;
     }
-    
+
     if (formatError) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
-        [field]: formatError
+        [field]: formatError,
       }));
     }
   };
 
   const handleDropdownChange = (field) => (value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
+    setFormData((prev) => ({ ...prev, [field]: value }));
+
     // Clear validation errors for this field
     if (validationErrors[field]) {
-      setValidationErrors(prev => {
+      setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
       });
     }
-    
+
     if (fieldErrors[field]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -520,11 +648,11 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   const handleDateChange = (field) => (date) => {
-    setFormData(prev => ({ ...prev, [field]: date }));
-    
+    setFormData((prev) => ({ ...prev, [field]: date }));
+
     // Clear validation errors for this field
     if (fieldErrors[field]) {
-      setFieldErrors(prev => {
+      setFieldErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -536,7 +664,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   const validateForm = () => {
     // First check required fields
     const requiredValid = validateRequiredFields();
-    
+
     // Then check format validation
     const formatErrors = {
       fullname: validateFullnameFormat(formData.fullname),
@@ -553,14 +681,16 @@ export default function NewRegistration({ isSidebarOpen }) {
       testReport: validateTestReportFormat(formData.testReport),
       bp: validateBpFormat(formData.bp),
       nid: validateNidFormat(formData.nid),
-      address: validateAddressFormat(formData.address)
+      address: validateAddressFormat(formData.address),
     };
-    
+
     // Update validation errors for display
     setValidationErrors(formatErrors);
-    
-    const formatValid = !Object.values(formatErrors).some(error => error !== "");
-    
+
+    const formatValid = !Object.values(formatErrors).some(
+      (error) => error !== ""
+    );
+
     setIsSubmitted(true);
     return requiredValid && formatValid;
   };
@@ -654,7 +784,7 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   // Add CSS to hide default date picker icon
   useEffect(() => {
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = `
       input[type="date"]::-webkit-calendar-picker-indicator {
         display: none;
@@ -714,13 +844,13 @@ export default function NewRegistration({ isSidebarOpen }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const isValid = validateForm();
     if (!isValid) {
       errorToast("Please fix all validation errors before saving.");
       return;
     }
-    
+
     const body = new FormData();
     body.append("full_name", safeStr(formData.fullname));
     body.append("date_of_birth", formData.dob || "");
@@ -750,7 +880,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("department_id", safeStr(formData.department_id));
     body.append("staff_id", safeStr(formData.staff_id));
     if (photoFile) body.append("photo", photoFile);
-    
+
     try {
       const res = await fetch(`${API_BASE}/patients/register`, {
         method: "POST",
@@ -820,7 +950,7 @@ export default function NewRegistration({ isSidebarOpen }) {
               onFileSelect={(file) => {
                 setPhotoFile(file);
                 if (isSubmitted && fieldErrors.photo) {
-                  setFieldErrors(prev => ({ ...prev, photo: "" }));
+                  setFieldErrors((prev) => ({ ...prev, photo: "" }));
                 }
               }}
               error={fieldErrors.photo}
@@ -851,9 +981,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                 label="Date of Birth"
                 value={formData.dob}
                 onChange={handleDateChange("dob")}
-                onFocus={() => setFocusedField("dob")}
-                onBlur={() => setFocusedField(null)}
                 required
+                restrictFuture={true} // ADD THIS
                 error={fieldErrors.dob}
               />
               <Dropdown
@@ -959,6 +1088,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 onFocus={() => setFocusedField("dor")}
                 onBlur={() => setFocusedField(null)}
                 required
+                restrictPast={true} // ← This blocks past dates
                 error={fieldErrors.dor}
               />
               <InputField
@@ -1082,10 +1212,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                 label="Admit Date"
                 value={formData.admitDate}
                 onChange={handleDateChange("admitDate")}
-                onFocus={() => setFocusedField("admitDate")}
-                onBlur={() => setFocusedField(null)}
                 required
-                error={fieldErrors.admitDate}
+                restrictFuture={true} // ADD THIS (or false if future admission allowed)
               />
               <Dropdown
                 label="Room / Bed No"
@@ -1135,16 +1263,24 @@ export default function NewRegistration({ isSidebarOpen }) {
                 placeholder="Describe symptoms"
                 className={`w-full h-20 mt-1 px-3 py-2 rounded-[8px] border bg-white dark:bg-transparent 
                            text-black dark:text-[#0EFF7B] outline-none text-[14px]
-                           ${focusedField === "reason" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                           ${
+                             focusedField === "reason"
+                               ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                               : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                           }`}
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               />
               {/* Format validation error - shows while typing */}
               {validationErrors.reason && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.reason}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {validationErrors.reason}
+                </p>
               )}
               {/* Required field error - only shows after submit attempt */}
               {fieldErrors.reason && !validationErrors.reason && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.reason}</p>
+                <p className="text-red-500 text-xs mt-1">
+                  {fieldErrors.reason}
+                </p>
               )}
             </div>
           </div>
@@ -1159,7 +1295,9 @@ export default function NewRegistration({ isSidebarOpen }) {
             </button>
             <button
               type="submit"
-              disabled={Object.values(validationErrors).some(error => error !== "")}
+              disabled={Object.values(validationErrors).some(
+                (error) => error !== ""
+              )}
               className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B] disabled:opacity-70"
             >
               Add Patient..!

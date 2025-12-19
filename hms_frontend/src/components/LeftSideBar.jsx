@@ -290,6 +290,7 @@ import {
   Activity,
   Droplet,
   HeartPulse,
+  Calendar,
   Ambulance,
   User,
   ShieldCheck,
@@ -422,6 +423,12 @@ const menuItems = [
         icon: Pill,
         permission: "medicine_allocation",
       },
+      {
+              name: "Appointment Calendar", // ADDED TO DOCTORS/NURSE DROPDOWN
+              path: "/appointments/calendar",
+              icon: Calendar,
+              permission: "doctors_manage", // Same permission as other doctor items
+            },
     ],
   },
 

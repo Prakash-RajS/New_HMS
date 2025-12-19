@@ -297,11 +297,11 @@
 //               </div>
 //             </div>
 //           </div>
-          
+
 //           {/* Loading text */}
 //           <h2 className="text-black dark:text-white text-2xl font-bold mb-2">Hospital Management System</h2>
 //           <p className="text-gray-600 dark:text-gray-400 mb-8">Loading IPD Patient Module</p>
-          
+
 //           {/* Progress indicator */}
 //           <div className="w-80 bg-gray-300 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
 //             <div className="h-full bg-gradient-to-r from-[#025126] via-[#0EFF7B] to-[#025126] animate-[loadingBar_1.5s_ease-in-out_infinite]"></div>
@@ -780,18 +780,16 @@ import {
   Loader2,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import EditPatientPopup from "./EditPatient"; // <-- Updated import
+import EditPatientPopup from "./EditPatient.jsx";
 import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-
-  const API =
+const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
-//const API = "http://localhost:8000";
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -799,8 +797,8 @@ const AppointmentListIPD = () => {
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const [initialLoading, setInitialLoading] = useState(true); // Full screen loading
-  const [dataLoading, setDataLoading] = useState(false); // Data refresh loading
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const [activeTab, setActiveTab] = useState("In-Patients");
@@ -810,6 +808,11 @@ const AppointmentListIPD = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [showDel, setShowDel] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+
+  const [filterDepartments, setFilterDepartments] = useState([]);
+  const [filterDoctors, setFilterDoctors] = useState([]);
+  const [loadingFilterDepts, setLoadingFilterDepts] = useState(true);
+  const [loadingFilterDocs, setLoadingFilterDocs] = useState(false);
 
   const [filters, setFilters] = useState({
     patientName: "",
@@ -823,27 +826,58 @@ const AppointmentListIPD = () => {
   const navigate = useNavigate();
   const perPage = 10;
 
-  const statusFilters = ["All", "New", "Normal", "Severe", "Completed", "Cancelled"];
+  const statusFilters = [
+    "All",
+    "New",
+    "Normal",
+    "Severe",
+    "Completed",
+    "Cancelled",
+  ];
 
-  // ---------- FETCH ----------
-  const fetchData = async (p = page, s = search) => {
-    // Don't show data loading on initial fetch
-    if (!initialLoading) {
-      setDataLoading(true);
+  // Load departments for filter
+  useEffect(() => {
+    fetch(`${API}/patients/departments`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setFilterDepartments(data.departments || []))
+      .catch(() => setFilterDepartments([]))
+      .finally(() => setLoadingFilterDepts(false));
+  }, []);
+
+  // Load doctors when department changes
+  useEffect(() => {
+    if (!filters.department) {
+      setFilterDoctors([]);
+      setFilters((prev) => ({ ...prev, doctor: "" }));
+      return;
     }
+    setLoadingFilterDocs(true);
+    fetch(`${API}/patients/staff?department_id=${filters.department}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then((data) => setFilterDoctors(data.staff || []))
+      .catch(() => setFilterDoctors([]))
+      .finally(() => setLoadingFilterDocs(false));
+  }, [filters.department]);
+
+  // Fetch patients with server-side pagination
+  const fetchData = async (currentPage = page, currentSearch = search) => {
+    if (!initialLoading) setDataLoading(true);
     setErr("");
     try {
       const url = new URL(`${API}/patients`);
-      url.searchParams.set("page", p);
+      url.searchParams.set("page", currentPage);
       url.searchParams.set("limit", perPage);
-      if (s) url.searchParams.set("search", s);
+      if (currentSearch) url.searchParams.set("search", currentSearch);
 
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
 
+      const json = await res.json();
       const mapped = (json.patients || []).map((p) => ({
-        id: p.id, // Django PK (normal id)
+        id: p.id,
         patient: p.full_name,
         date: p.date_of_registration
           ? new Date(p.date_of_registration).toLocaleDateString("en-GB")
@@ -861,13 +895,13 @@ const AppointmentListIPD = () => {
       setAppointments(mapped);
       setTotal(json.total || 0);
       setPages(json.pages || 1);
-      setPage(json.page || p);
+      setPage(json.page || currentPage);
     } catch (e) {
       console.error(e);
       setErr("Failed to load patients");
     } finally {
       setDataLoading(false);
-      setInitialLoading(false); // Turn off full screen loading
+      setInitialLoading(false);
     }
   };
 
@@ -876,24 +910,28 @@ const AppointmentListIPD = () => {
     fetchData(1, "");
   }, []);
 
-  // Debounced search
+  // Search debounced
   useEffect(() => {
-    if (!initialLoading) {
-      const t = setTimeout(() => fetchData(1, search), 400);
-      return () => clearTimeout(t);
-    }
+    if (initialLoading) return;
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchData(1, search);
+    }, 400);
+    return () => clearTimeout(timer);
   }, [search]);
 
   // Page change
   useEffect(() => {
-    if (!initialLoading) {
-      fetchData(page, search);
-    }
+    if (initialLoading) return;
+    fetchData(page, search);
   }, [page]);
 
-  // ---------- FILTER ----------
+  // Client-side filtering for status + local filters
   const filtered = useMemo(() => {
-    const filterFormattedDate = filters.date ? new Date(filters.date).toLocaleDateString("en-GB") : "";
+    const filterFormattedDate = filters.date
+      ? new Date(filters.date).toLocaleDateString("en-GB")
+      : "";
+
     return appointments.filter((a) => {
       if (activeFilter !== "All" && a.status !== activeFilter) return false;
       if (
@@ -915,28 +953,31 @@ const AppointmentListIPD = () => {
     });
   }, [appointments, activeFilter, filters]);
 
-  const current = useMemo(() => {
-    const start = (page - 1) * perPage;
-    return filtered.slice(start, start + perPage);
-  }, [page, filtered]);
+  const current = filtered; // Since server gives 10, and we filter further
 
-  // ---------- CHECKBOX ----------
+  // Checkbox handlers
   const toggle = (idx) => {
     const gIdx = (page - 1) * perPage + idx;
     setSelected((p) =>
       p.includes(gIdx) ? p.filter((i) => i !== gIdx) : [...p, gIdx]
     );
   };
+
   const selectAll = () => {
-    if (selected.length === current.length) setSelected([]);
-    else setSelected(current.map((_, i) => (page - 1) * perPage + i));
+    if (selected.length === current.length) {
+      setSelected([]);
+    } else {
+      setSelected(current.map((_, i) => (page - 1) * perPage + i));
+    }
   };
 
-  // ---------- FILTER HANDLERS ----------
+  // Filter handlers
   const onFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((p) => ({ ...p, [name]: value }));
+    setPage(1);
   };
+
   const clearFilters = () => {
     setFilters({
       patientName: "",
@@ -947,81 +988,85 @@ const AppointmentListIPD = () => {
       date: "",
     });
     setActiveFilter("All");
-    setShowFilter(false);
     setPage(1);
   };
 
-  // ---------- REFRESH AFTER UPDATE ----------
-  const refreshData = async () => {
-    await fetchData(page, search);
-  };
+  const refreshData = () => fetchData(page, search);
 
-  // ---------- DELETE ----------
   const onDelete = async () => {
     if (!selAppt?.patientId) {
       errorToast("No patient selected");
       return;
     }
-
     try {
-      const pid = selAppt.patientId; // <-- correct ID
-      const r = await fetch(`${API}/patients/${pid}`, {
+      const r = await fetch(`${API}/patients/${selAppt.patientId}`, {
         method: "DELETE",
       });
-
-      if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(txt || "Delete failed");
-      }
-
-      // ---- SUCCESS ----
+      if (!r.ok) throw new Error((await r.text()) || "Delete failed");
       successToast(`Patient "${selAppt.patient}" deleted successfully!`);
-      await refreshData(); // refresh current page
+      await refreshData();
       setShowDel(false);
       setSelAppt(null);
     } catch (e) {
-      console.error(e);
       errorToast(e.message || "Failed to delete patient");
     }
   };
 
-  // ---------- DROPDOWN ----------
-  const Dropdown = ({ label, value, onChange, options }) => (
+  // Dropdown Component
+  // Replace your current Dropdown component with this updated version
+  const Dropdown = ({
+    label,
+    value,
+    onChange,
+    options = [],
+    loading = false,
+  }) => (
     <div>
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
+      <label className="text-sm text-black dark:text-white block mb-1">
         {label}
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            {value || "Select"}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] flex items-center justify-between">
+            <span>
+              {loading
+                ? "Loading..."
+                : Array.isArray(options) && options.length > 0
+                ? (typeof options[0] === "object"
+                    ? options.find((o) => o.id === value)?.name
+                    : options.find((o) => o === value)) ||
+                  value ||
+                  "Select"
+                : "Select"}
             </span>
+            <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2 pointer-events-none" />
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
-            {options.map((o) => (
-              <Listbox.Option
-                key={o}
-                value={o}
-                className={({ active, selected }) => `
-                  cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                  ${active
-                    ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                  }
-                  ${selected ? "font-medium text-[#0EFF7B]" : ""}`}
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {o}
-              </Listbox.Option>
-            ))}
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+            {loading ? (
+              <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
+            ) : options.length === 0 ? (
+              <div className="py-2 px-3 text-sm text-gray-500">No options</div>
+            ) : (
+              options.map((opt, i) => {
+                const optId = typeof opt === "object" ? opt.id : opt;
+                const optName = typeof opt === "object" ? opt.name : opt;
+                return (
+                  <Listbox.Option
+                    key={i}
+                    value={optId}
+                    className={({ active }) =>
+                      `cursor-pointer py-2 px-3 text-sm ${
+                        active
+                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                          : "text-black dark:text-white"
+                      }`
+                    }
+                  >
+                    {optName}
+                  </Listbox.Option>
+                );
+              })
+            )}
           </Listbox.Options>
         </div>
       </Listbox>
@@ -1040,13 +1085,13 @@ const AppointmentListIPD = () => {
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        ></div>{/* Gradient Border */}
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
       <div
         style={{
           position: "absolute",
@@ -1064,7 +1109,6 @@ const AppointmentListIPD = () => {
         }}
       ></div>
 
-      {/* Initial Component Loading Overlay */}
       {initialLoading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 z-40 rounded-xl">
           <div className="flex justify-center items-center h-64">
@@ -1073,7 +1117,6 @@ const AppointmentListIPD = () => {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
           IPD - Patient Lists
@@ -1087,7 +1130,6 @@ const AppointmentListIPD = () => {
         </button>
       </div>
 
-      {/* Today's Total */}
       <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
@@ -1119,16 +1161,16 @@ const AppointmentListIPD = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex justify-between items-center mb-4 relative z-10">
         <div className="flex gap-4">
           {["In-Patients", "Out-Patients"].map((t) => (
             <button
               key={t}
               className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
-                ${activeTab === t
-                  ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
-                  : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                ${
+                  activeTab === t
+                    ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
+                    : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
               onClick={() =>
                 t === "Out-Patients"
@@ -1157,29 +1199,23 @@ const AppointmentListIPD = () => {
             className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
           >
             <Filter size={18} className="text-green-600 dark:text-green-400" />
-            <span
-              className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-               px-3 py-1 text-xs rounded-md shadow-md
-               bg-white dark:bg-black text-black dark:text-white
-               opacity-0 group-hover:opacity-100
-               transition-all duration-150"
-            >
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
               Filter
             </span>
           </button>
         </div>
       </div>
 
-      {/* Status Filters */}
       <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
         <div className="w-full flex gap-3 justify-between">
           {statusFilters.map((f) => (
             <button
               key={f}
               className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-        ${activeFilter === f
-                  ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
-                  : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
+                ${
+                  activeFilter === f
+                    ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
+                    : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
                 }`}
               onClick={() => setActiveFilter(f)}
             >
@@ -1189,12 +1225,13 @@ const AppointmentListIPD = () => {
         </div>
       </div>
 
-      {/* Table Loading State */}
       {dataLoading ? (
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#0EFF7B] mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Refreshing data...</p>
+            <p className="text-gray-600 dark:text-gray-400">
+              Refreshing data...
+            </p>
           </div>
         </div>
       ) : err ? (
@@ -1207,7 +1244,9 @@ const AppointmentListIPD = () => {
                 <th className="py-3 px-2">
                   <input
                     type="checkbox"
-                    checked={selected.length > 0 && selected.length === current.length}
+                    checked={
+                      selected.length > 0 && selected.length === current.length
+                    }
                     onChange={selectAll}
                     className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
@@ -1264,17 +1303,16 @@ const AppointmentListIPD = () => {
                       </td>
                       <td>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${statusColors[a.status] ||
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            statusColors[a.status] ||
                             "bg-gray-200 text-gray-700"
-                            }`}
+                          }`}
                         >
                           {a.status}
                         </span>
                       </td>
                       <td className="text-center">
                         <div className="flex justify-center gap-4 relative overflow-visible">
-
-                          {/* EDIT ICON + TOOLTIP */}
                           <div className="relative group">
                             <Edit2
                               size={16}
@@ -1284,18 +1322,10 @@ const AppointmentListIPD = () => {
                               }}
                               className="text-[#08994A] dark:text-blue-400 cursor-pointer"
                             />
-                            <span
-                              className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50"
-                            >
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                               Edit
                             </span>
                           </div>
-
-                          {/* DELETE ICON + TOOLTIP */}
                           <div className="relative group">
                             <Trash2
                               size={16}
@@ -1305,20 +1335,12 @@ const AppointmentListIPD = () => {
                               }}
                               className="text-red-500 dark:text-gray-400 cursor-pointer"
                             />
-                            <span
-                              className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50"
-                            >
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                               Delete
                             </span>
                           </div>
-
                         </div>
                       </td>
-
                     </tr>
                   );
                 })
@@ -1337,7 +1359,6 @@ const AppointmentListIPD = () => {
         </div>
       )}
 
-      {/* Pagination */}
       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
@@ -1351,16 +1372,18 @@ const AppointmentListIPD = () => {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${page === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-              }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              page === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+            }`}
           >
             <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() => setPage((p) => Math.min(pages, p + 1))}
             disabled={page === pages}
-            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${page === pages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-              }`}
+            className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+              page === pages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+            }`}
           >
             <ChevronRight
               size={12}
@@ -1436,24 +1459,43 @@ const AppointmentListIPD = () => {
                   label="Department"
                   value={filters.department}
                   onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
-                  options={["Orthopedics", "Cardiology", "Neurology"]}
+                  options={
+                    loadingFilterDepts
+                      ? []
+                      : filterDepartments.map((d) => ({
+                          id: d.id || d.name || d.department_name,
+                          name: d.name || d.department_name,
+                        }))
+                  }
+                  loading={loadingFilterDepts}
                 />
                 <Dropdown
                   label="Status"
                   value={filters.status}
                   onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["New", "Normal", "Severe", "Completed", "Cancelled"]}
+                  options={[
+                    "New",
+                    "Normal",
+                    "Severe",
+                    "Completed",
+                    "Cancelled",
+                  ]}
                 />
                 <Dropdown
                   label="Doctor"
                   value={filters.doctor}
                   onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
-                  options={[
-                    "Dr.Sravan",
-                    "Dr.Ramesh",
-                    "Dr.Naveen",
-                    "Dr.Prakash",
-                  ]}
+                  options={
+                    loadingFilterDocs
+                      ? []
+                      : filterDoctors.map((doc) => ({
+                          id: doc.full_name,
+                          name: `${doc.full_name} – ${
+                            doc.designation || "N/A"
+                          }`,
+                        }))
+                  }
+                  loading={loadingFilterDocs}
                 />
                 <div>
                   <label className="text-sm text-black dark:text-white">
@@ -1467,17 +1509,18 @@ const AppointmentListIPD = () => {
                       value={filters.date}
                       onChange={onFilterChange}
                       className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
-                      onClick={(e) => e.target.showPicker()}  // 🔥 opens the date picker on any click
+                      onClick={(e) => e.target.showPicker()}
                     />
-
                     <Calendar
                       className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
-                      onClick={() => document.getElementById("dateInput").showPicker()}  // 🔥 icon also opens picker
+                      onClick={() =>
+                        document.getElementById("dateInput").showPicker()
+                      }
                     />
                   </div>
                 </div>
-
               </div>
+
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={clearFilters}
@@ -1497,19 +1540,17 @@ const AppointmentListIPD = () => {
         </div>
       )}
 
-      {/* EDIT POPUP – FIXED */}
       {showEdit && selAppt && (
         <EditPatientPopup
-          patientId={selAppt.id} // Django normal ID
+          patientId={selAppt.id}
           onClose={() => {
             setShowEdit(false);
             setSelAppt(null);
           }}
-          onUpdate={refreshData} // Refresh list
+          onUpdate={refreshData}
         />
       )}
 
-      {/* DELETE POPUP */}
       {showDel && selAppt && (
         <DeletePatient
           appointment={selAppt}

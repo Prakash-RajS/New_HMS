@@ -100,10 +100,18 @@ class Appointment(models.Model):
     patient_id = models.CharField(max_length=20, unique=True, editable=False)  # auto-generated
     department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name="appointments")
     staff = models.ForeignKey("Staff", on_delete=models.CASCADE, related_name="appointments")
-    room_no = models.CharField(max_length=20)
+    room_no = models.CharField(
+    max_length=20,
+    null=True,
+    blank=True,
+    default="No bed assigned"
+)
+
     phone_no = models.CharField(max_length=15)
     appointment_type = models.CharField(max_length=20, choices=APPOINTMENT_TYPES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
+    appointment_time = models.TimeField(null=True,blank=True)
+    appointment_date = models.DateField(null=True,blank=True)  
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

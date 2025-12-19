@@ -41,12 +41,14 @@ const BedList = () => {
 
   const [roomsData, setRoomsData] = useState([]);
   const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : window.location.hostname === "3.133.64.23"
+      ? "http://3.133.64.23:8000"
+      : "http://localhost:8000";
   // Fetch bed groups on mount
+  // First, let's update the fetchBedGroups function in your useEffect:
+
   useEffect(() => {
     const fetchBedGroups = async () => {
       try {
@@ -74,21 +76,41 @@ const BedList = () => {
         }
 
         const data = await response.json();
-        // Transform backend data to frontend format (add bedRange from actual beds)
+
+        // Better transformation with error handling
         const transformedData = data.map((group) => {
-          const numbers = group.beds.map((b) => b.bed_number).sort((a, b) => a - b);
-          const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${group.capacity}`;
+          let bedRange = "1-1";
+
+          // Check if beds array exists and has data
+          if (
+            group.beds &&
+            Array.isArray(group.beds) &&
+            group.beds.length > 0
+          ) {
+            const bedNumbers = group.beds
+              .map((b) => parseInt(b.bed_number))
+              .filter((num) => !isNaN(num))
+              .sort((a, b) => a - b);
+
+            if (bedNumbers.length > 0) {
+              bedRange = `${bedNumbers[0]}-${
+                bedNumbers[bedNumbers.length - 1]
+              }`;
+            }
+          }
+
           return {
             id: group.id,
             bedGroup: group.bedGroup,
             capacity: group.capacity,
-            occupied: group.occupied,
-            unoccupied: group.unoccupied,
+            occupied: group.occupied || 0,
+            unoccupied: group.unoccupied || 0,
             status: group.status,
             bedRange,
-            beds: group.beds, // Keep for edit prefill
+            beds: group.beds || [], // Ensure beds is always an array
           };
         });
+
         setRoomsData(transformedData);
         successToast("Bed groups loaded successfully!");
       } catch (err) {
@@ -216,12 +238,15 @@ const BedList = () => {
   };
 
   const handleUpdateBedGroup = (updatedData) => {
-    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } = updatedData;
+    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } =
+      updatedData;
     // Find index by ID (since list may change)
     const index = roomsData.findIndex((room) => room.id === id);
     if (index !== -1) {
       const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
-      const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${capacity}`;
+      const bedRange = numbers.length
+        ? `${numbers[0]} - ${numbers[numbers.length - 1]}`
+        : `1 - ${capacity}`;
       setRoomsData((prev) => {
         const newData = [...prev];
         newData[index] = {
@@ -240,9 +265,12 @@ const BedList = () => {
   };
 
   const handleAddBedGroup = (newGroup) => {
-    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } = newGroup;
+    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } =
+      newGroup;
     const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
-    const bedRange = numbers.length ? `${numbers[0]} - ${numbers[numbers.length - 1]}` : `1 - ${capacity}`;
+    const bedRange = numbers.length
+      ? `${numbers[0]} - ${numbers[numbers.length - 1]}`
+      : `1 - ${capacity}`;
     const newEntry = {
       id,
       bedGroup,
@@ -311,120 +339,118 @@ const BedList = () => {
           </h3>
 
           <div className="grid grid-cols-2 gap-6">
-  {/* --- Bed Group Dropdown --- */}
-  <div>
-    <label className="text-sm text-black dark:text-white">
-      Bed Group
-    </label>
-    <Listbox value={bedGroup} onChange={setBedGroup}>
-      <div className="relative mt-1 w-[228px]">
-        <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
-          {bedGroup || "Select bed group"}
-          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-          </span>
-        </Listbox.Button>
+            {/* --- Bed Group Dropdown --- */}
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Bed Group
+              </label>
+              <Listbox value={bedGroup} onChange={setBedGroup}>
+                <div className="relative mt-1 w-[228px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                    {bedGroup || "Select bed group"}
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
 
-        <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
-        >
-          {bedGroups.map((bg, idx) => (
-            <Listbox.Option
-              key={idx}
-              value={bg}
-              className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                } ${
-                  selected
-                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                    : ""
-                }`
-              }
-            >
-              {bg}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </div>
-    </Listbox>
-  </div>
+                  <Listbox.Options
+                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}
+                  >
+                    {bedGroups.map((bg, idx) => (
+                      <Listbox.Option
+                        key={idx}
+                        value={bg}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                            active
+                              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                              : "text-black dark:text-white"
+                          } ${
+                            selected
+                              ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                              : ""
+                          }`
+                        }
+                      >
+                        {bg}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
 
-  {/* --- Status Dropdown --- */}
-  <div>
-    <label className="text-sm text-black dark:text-white">
-      Status
-    </label>
-    <Listbox value={status} onChange={setStatus}>
-      <div className="relative mt-1 w-[228px]">
-        <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
-          {status || "Select status"}
-          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-            <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
-          </span>
-        </Listbox.Button>
+            {/* --- Status Dropdown --- */}
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Status
+              </label>
+              <Listbox value={status} onChange={setStatus}>
+                <div className="relative mt-1 w-[228px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                    {status || "Select status"}
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
 
-        <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
-        >
-          {statuses.map((s, idx) => (
-            <Listbox.Option
-              key={idx}
-              value={s}
-              className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                  active
-                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                } ${
-                  selected
-                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                    : ""
-                }`
-              }
-            >
-              {s}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </div>
-    </Listbox>
-  </div>
-</div>
-
+                  <Listbox.Options
+                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+                    style={{
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}
+                  >
+                    {statuses.map((s, idx) => (
+                      <Listbox.Option
+                        key={idx}
+                        value={s}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                            active
+                              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                              : "text-black dark:text-white"
+                          } ${
+                            selected
+                              ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                              : ""
+                          }`
+                        }
+                      >
+                        {s}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
+          </div>
 
           <div className="flex justify-center gap-[18px] mt-8">
-  <button
-    onClick={handleClear}
-    className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+            <button
+              onClick={handleClear}
+              className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
              px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px]
              shadow opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-  >
-    Clear
-  </button>
-  <button
-    onClick={handleApply}
-    className="w-[104px] h-[33px] border-b-[2px] border-[#0EFF7B] rounded-[8px] text-white dark:text-black font-medium text-[14px]
+            >
+              Clear
+            </button>
+            <button
+              onClick={handleApply}
+              className="w-[104px] h-[33px] border-b-[2px] border-[#0EFF7B] rounded-[8px] text-white dark:text-black font-medium text-[14px]
              hover:bg-[#0cd968] transition"
-    style={{
-      background:
-        "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-    }}
-  >
-    Filter
-  </button>
-</div>
-
+              style={{
+                background:
+                  "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+              }}
+            >
+              Filter
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -512,26 +538,25 @@ const BedList = () => {
                   <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-green-400 ml-2" />
                 </Listbox.Button>
                 <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-                  {[
-                    "All",
-                    ...new Set(roomsData.map((r) => r.bedGroup)),
-                  ].map((option, idx) => (
-                    <Listbox.Option
-                      key={idx}
-                      value={option}
-                      className={({ active, selected }) =>
-                        `cursor-pointer select-none py-2 px-4 text-sm rounded-lg ${
-                          selected
-                            ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22] text-[#08994A] dark:text-[#0EFF7B]"
-                            : active
-                            ? "bg-[#0EFF7B1A] dark:bg-[#1A1A1A] text-[#08994A] dark:text-white"
-                            : "text-black dark:text-gray-300"
-                        }`
-                      }
-                    >
-                      {option}
-                    </Listbox.Option>
-                  ))}
+                  {["All", ...new Set(roomsData.map((r) => r.bedGroup))].map(
+                    (option, idx) => (
+                      <Listbox.Option
+                        key={idx}
+                        value={option}
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-4 text-sm rounded-lg ${
+                            selected
+                              ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B22] text-[#08994A] dark:text-[#0EFF7B]"
+                              : active
+                              ? "bg-[#0EFF7B1A] dark:bg-[#1A1A1A] text-[#08994A] dark:text-white"
+                              : "text-black dark:text-gray-300"
+                          }`
+                        }
+                      >
+                        {option}
+                      </Listbox.Option>
+                    )
+                  )}
                 </Listbox.Options>
               </div>
               <button
@@ -758,8 +783,15 @@ const BedList = () => {
             data={{
               id: roomsData[editingRoomIndex].id,
               bedGroupName: roomsData[editingRoomIndex].bedGroup,
-              bedFrom: roomsData[editingRoomIndex].beds.map(b => b.bed_number).sort((a, b) => a - b)[0].toString(),
-              bedTo: roomsData[editingRoomIndex].beds.map(b => b.bed_number).sort((a, b) => a - b).slice(-1)[0].toString(),
+              bedFrom: roomsData[editingRoomIndex].beds
+                .map((b) => b.bed_number)
+                .sort((a, b) => a - b)[0]
+                .toString(),
+              bedTo: roomsData[editingRoomIndex].beds
+                .map((b) => b.bed_number)
+                .sort((a, b) => a - b)
+                .slice(-1)[0]
+                .toString(),
             }}
           />
         )}
