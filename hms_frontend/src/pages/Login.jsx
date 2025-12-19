@@ -477,6 +477,7 @@
 // export default LoginPage;
 
 // Login.jsx
+// Login.jsx
 import React, { useState, useEffect } from "react";
 import {
   Microscope,
@@ -513,6 +514,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLightMode, setIsLightMode] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -532,6 +534,38 @@ const LoginPage = () => {
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
+
+  // 🔹 Load remembered username on mount
+  useEffect(() => {
+    const rememberedUsername = localStorage.getItem("rememberedUsername");
+    if (rememberedUsername) {
+      setUsername(rememberedUsername);
+      setRememberMe(true);
+    }
+  }, []);
+
+  // 🔹 Check for existing auth token on mount (no auto-login, just redirect if valid)
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("userData");
+    
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        successToast(`Welcome back, ${parsedUser.username}!`);
+        navigate("/dashboard");
+      } catch (err) {
+        // Clear invalid data
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("role");
+        localStorage.removeItem("permissions");
+        localStorage.removeItem("allowedModules");
+        window.dispatchEvent(new Event("storage"));
+      }
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -572,8 +606,7 @@ const LoginPage = () => {
 
       console.log("🔑 Login Response:", res.data);
 
-      // Store authentication data
-      // Store authentication data
+      // Store authentication data in localStorage (always, regardless of checkbox)
       localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("userData", JSON.stringify(res.data.user));
       localStorage.setItem("user_id", res.data.user.id);
@@ -591,6 +624,13 @@ const LoginPage = () => {
         .map((p) => p.module);
 
       localStorage.setItem("allowedModules", JSON.stringify(enabledModules));
+
+      // 🔹 Handle "Remember Me" - only username, conditional
+      if (rememberMe) {
+        localStorage.setItem("rememberedUsername", username);
+      } else {
+        localStorage.removeItem("rememberedUsername");
+      }
 
       successToast(`Welcome back, ${username}!`);
       navigate("/dashboard");
@@ -860,6 +900,8 @@ const LoginPage = () => {
                   <input
                     type="checkbox"
                     id="remember"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="accent-[#0EFF7B] mr-2"
                     aria-label="Remember me"
                   />

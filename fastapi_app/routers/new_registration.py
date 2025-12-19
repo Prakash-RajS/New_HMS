@@ -693,11 +693,18 @@ async def register_patient(
 @router.get("/", response_model=dict)
 async def list_patients(
     search: Optional[str] = Query(None),
+    type: Optional[str] = Query(None, description="Filter by patient type: In-patient or Out-patient"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=200)
 ):
     try:
         query = Patient.objects.all().order_by("-created_at")
+        
+        # Add type filter if provided
+        if type:
+            # Try to match the patient_type field
+            query = query.filter(patient_type__iexact=type)
+        
         if search:
             query = query.filter(
                 Q(full_name__icontains=search) |
@@ -713,11 +720,12 @@ async def list_patients(
                     "patient_unique_id",
                     "full_name",
                     "date_of_registration",
-                    "department__name",      # ← NOW INCLUDED
-                    "staff__full_name",      # ← NOW INCLUDED
+                    "department__name",
+                    "staff__full_name",
                     "room_number",
                     "appointment_type",
                     "casualty_status",
+                    "patient_type",  # ← ADD THIS FIELD
                     "photo",
                     "created_at",
                 )
@@ -732,6 +740,12 @@ async def list_patients(
                 f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
+            # If patient_type is None, set a default based on appointment_type
+            if not p.get("patient_type"):
+                if p.get("appointment_type") == "OPD":
+                    p["patient_type"] = "Out-patient"
+                else:
+                    p["patient_type"] = "In-patient"
 
         return {
             "patients": patients,
@@ -773,11 +787,12 @@ async def list_opd(
                     "patient_unique_id",
                     "full_name",
                     "date_of_registration",
-                    "department__name",      # ← NOW INCLUDED
-                    "staff__full_name",      # ← NOW INCLUDED
+                    "department__name",
+                    "staff__full_name",
                     "room_number",
                     "appointment_type",
                     "casualty_status",
+                    "patient_type",  # ← ADD THIS FIELD
                     "photo"
                 )
             )
@@ -790,6 +805,12 @@ async def list_opd(
                 f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
+            # If patient_type is None, set a default
+            if not p.get("patient_type"):
+                if p.get("appointment_type") == "OPD":
+                    p["patient_type"] = "Out-patient"
+                else:
+                    p["patient_type"] = "In-patient"
         
         return {
             "patients": patients,
@@ -802,7 +823,6 @@ async def list_opd(
     except Exception as e:
         logging.exception("list_opd error: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch OPD patients: {str(e)}")
-
 
 # ---------- 5. GET One Patient (BY ID OR PATxxxx) ----------
 @router.get("/{patient_id}")
@@ -913,7 +933,10 @@ async def edit_patient(
                 normalized_status = cleaned.title()
                 patient.casualty_status = normalized_status
                 if normalized_status in ["Completed", "Discharged"]:
-                    patient.consultation_type = "Out-patient"
+                    patient.patient_type = "Out-patient"
+                else:
+                    patient.patient_type = "in-patient"
+        
 
         if date_of_registration:
             parsed = parse_date(date_of_registration)

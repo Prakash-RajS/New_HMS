@@ -270,7 +270,7 @@ const EditPatientPopup = ({
                 <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2" />
               )}
             </Listbox.Button>
-            <Listbox.Options className="absolute z-[100] mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-auto">
+            <Listbox.Options className="absolute z-[100] mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-[150px] overflow-auto">
               {options.length === 0 && !loading ? (
                 <div className="py-2 px-3 text-sm text-gray-500">
                   No options

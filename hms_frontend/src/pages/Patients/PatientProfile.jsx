@@ -13,13 +13,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import EditPatientPopup from "./EditPatient"; // <-- correct import
+import EditPatientPopup from "./EditPatient";
 
 const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : "http://localhost:8000";
-//const API_BASE = "http://localhost:8000";
 
 const ProfileSection = () => {
   /* ==================== STATE ==================== */
@@ -31,7 +30,6 @@ const ProfileSection = () => {
   const [total, setTotal] = useState(0);
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [showFilterPopup, setShowFilterPopup] = useState(false);
   const [filters, setFilters] = useState({
     patientName: "",
     patientId: "",
@@ -46,21 +44,30 @@ const ProfileSection = () => {
   const api = {
     getPatients: async ({ page = 1, search = "", type = "All" }) => {
       const limit = itemsPerPage;
-      const endpoint = type === "Out-patients" ? "/patients/opd" : "/patients/";
       const params = new URLSearchParams();
+      
       if (search) params.append("search", search);
       params.append("page", page);
       params.append("limit", limit);
-
+      
+      // Add type parameter for backend filtering
+      if (type === "In-patients") {
+        params.append("type", "In-patient");
+      } else if (type === "Out-patients") {
+        params.append("type", "Out-patient");
+      }
+      
+      const endpoint = "/patients/";
       const { data } = await axios.get(`${API_BASE}${endpoint}?${params}`);
+      
       return {
         patients: (data.patients || []).map((p) => ({
-          pk: p.pid || p.id, // Django primary key
-          id: p.patient_unique_id || p.pid, // PAT001
+          pk: p.id,
+          id: p.patient_unique_id,
           name: p.full_name,
           room: p.room_number || "—",
           status: p.casualty_status,
-          type: p.type || (type === "Out-patients" ? "Out-patients" : "In-patients"), // FIXED: Correct type assignment
+          type: p.patient_type || "Unknown", // Use patient_type from backend
           photo_url: p.photo_url,
           phone_number: p.phone_number || "",
           appointment_type: p.appointment_type || "",
@@ -84,7 +91,14 @@ const ProfileSection = () => {
         search: searchTerm,
         type: activeMainTab,
       });
-      setPatients(res.patients);
+      
+      // Filter out completed patients from In-patients tab (client-side)
+      let filteredPatients = res.patients;
+      if (activeMainTab === "In-patients") {
+        filteredPatients = filteredPatients.filter(p => p.status !== "Completed");
+      }
+      
+      setPatients(filteredPatients);
       setTotal(res.total);
     } catch (e) {
       console.error("Fetch failed:", e);
@@ -115,81 +129,53 @@ const ProfileSection = () => {
     });
   }, [patients, filters]);
 
-  // FIXED: Use server-side total for pagination
+  // Status options based on active tab
+  const getStatusOptions = () => {
+    if (activeMainTab === "In-patients") {
+      return ["All", "Normal", "Severe", "Critical"]; // Remove "Completed"
+    } else if (activeMainTab === "Out-patients") {
+      return []; // No status filters for Out-patients
+    }
+    return ["All", "Normal", "Severe", "Critical", "Completed", "Cancelled"];
+  };
+
+  const statusOptions = getStatusOptions();
+
+  // Calculate counts based on filtered patients
+  const totalCount = filteredPatients.length;
+  const inCount = useMemo(() => {
+    if (activeMainTab === "In-patients") {
+      return filteredPatients.length; // All are In-patients in this tab
+    }
+    return filteredPatients.filter(p => 
+      p.type === "In-patient" || p.type === "In-patients"
+    ).length;
+  }, [filteredPatients, activeMainTab]);
+
+  const outCount = useMemo(() => {
+    if (activeMainTab === "Out-patients") {
+      return filteredPatients.length; // All are Out-patients in this tab
+    }
+    return filteredPatients.filter(p => 
+      p.type === "Out-patient" || p.type === "Out-patients"
+    ).length;
+  }, [filteredPatients, activeMainTab]);
+
   const totalPages = Math.ceil(total / itemsPerPage);
-  const displayed = filteredPatients; // Use filtered patients from current page
-
-  // FIXED: Count calculations - these will only count patients on current page
-  // For accurate counts, you'd need separate API endpoints or fetch all data
-  const totalCount = total; // Use server-side total
-  const inCount = filteredPatients.filter(
-    (p) => p.type === "In-patients"
-  ).length;
-  const outCount = filteredPatients.filter(
-    (p) => p.type === "Out-patients"
-  ).length;
-
-  const statusOptions = [
-    "All",
-    "Normal",
-    "Severe",
-    "Critical",
-    "Completed",
-    "Cancelled",
-  ];
-
-  /* ==================== DROPDOWN ==================== */
-  const Dropdown = ({ label, value, onChange, options }) => (
-    <div>
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
-        {label}
-      </label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            {value || "Select"}
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
-          </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-            {options.map((opt) => (
-              <Listbox.Option
-                key={opt}
-                value={opt}
-                className={({ active }) =>
-                  `cursor-pointer py-2 px-2 text-sm ${
-                    active
-                      ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                      : "text-black dark:text-white"
-                  }`
-                }
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {opt}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
+  const displayed = filteredPatients;
 
   /* ==================== RENDER ==================== */
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        ></div>{/* Gradient Border */}
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
+      
       <div
         style={{
           position: "absolute",
@@ -259,6 +245,7 @@ const ProfileSection = () => {
               onClick={() => {
                 setActiveMainTab(tab);
                 setCurrentPage(1);
+                setFilters(prev => ({ ...prev, status: "" }));
               }}
               className={`min-w-[104px] h-[31px] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition
                 ${
@@ -286,39 +273,35 @@ const ProfileSection = () => {
               className="bg-transparent px-2 text-xs outline-none font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-full"
             />
           </div>
-          {/* <button
-            onClick={() => setShowFilterPopup(true)}
-            className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition"
-          >
-            <Filter size={18} className="text-green-600 dark:text-green-400" />
-          </button> */}
         </div>
       </div>
 
-      {/* Status Buttons */}
-      <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
-        <div className="flex gap-3 min-w-full">
-          {statusOptions.map((st) => (
-            <button
-              key={st}
-              onClick={() =>
-                setFilters((prev) => ({
-                  ...prev,
-                  status: st === "All" ? "" : st,
-                }))
-              }
-              className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-                ${
-                  filters.status === st || (st === "All" && !filters.status)
-                    ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
-                    : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
-                }`}
-            >
-              {st}
-            </button>
-          ))}
+      {/* Status Buttons - Only show if there are options */}
+      {statusOptions.length > 0 && (
+        <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
+          <div className="flex gap-3 min-w-full">
+            {statusOptions.map((st) => (
+              <button
+                key={st}
+                onClick={() =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    status: st === "All" ? "" : st,
+                  }))
+                }
+                className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                  ${
+                    filters.status === st || (st === "All" && !filters.status)
+                      ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
+                      : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
+                  }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Patient Grid */}
       {loading ? (
@@ -334,8 +317,9 @@ const ProfileSection = () => {
               key={p.pk}
               className="bg-white dark:bg-[#0D0D0D] rounded-lg p-[18px] pr-[12px] pl-[12px] border border-[#0EFF7B] dark:border-gray-800 shadow-[0px_0px_4px_0px_#D2D2D240] relative text-center"
             >
+              {/* Display patient type from backend */}
               <div className="absolute top-2 left-2 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
-                {p.type}
+                {p.type || "Unknown"}
               </div>
 
               <div className="w-16 h-16 mx-auto mb-2 mt-8 rounded-full overflow-hidden">
@@ -359,7 +343,7 @@ const ProfileSection = () => {
               {/* ---------- EDIT BUTTON ---------- */}
               <button
                 onClick={() => {
-                  setSelectedPatient(p); // store the whole patient object
+                  setSelectedPatient(p);
                   setShowEditPopup(true);
                 }}
                 className="absolute top-2 right-2 flex items-center gap-1 text-[#08994A] dark:text-[#4D58FF] text-[12px] hover:text-green-800 dark:hover:text-blue-300"
@@ -390,11 +374,7 @@ const ProfileSection = () => {
             {currentPage}
           </span>{" "}
           of {totalPages} ({(currentPage - 1) * itemsPerPage + 1} to{" "}
-          {Math.min(
-            currentPage * itemsPerPage,
-            total
-          )}{" "}
-          from {total} Patients) {/* FIXED: Use total instead of filteredPatients.length */}
+          {Math.min(currentPage * itemsPerPage, total)} of {total} Patients)
         </div>
         <div className="flex items-center gap-x-2">
           <button
@@ -406,10 +386,7 @@ const ProfileSection = () => {
                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronLeft
-              size={12}
-              className="text-[#08994A] dark:text-white"
-            />
+            <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
           </button>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -420,97 +397,20 @@ const ProfileSection = () => {
                 : "bg-[#0EFF7B] dark:bg-[#0EFF7B] text-black dark:text-black opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
             }`}
           >
-            <ChevronRight
-              size={12}
-              className="text-[#08994A] dark:text-white"
-            />
+            <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
           </button>
         </div>
       </div>
 
-      {/* ---------- FILTER POPUP ---------- */}
-      {/* {showFilterPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-[#000000] rounded-[20px] p-6 w-[505px] relative border border-[#0EFF7B]">
-            <button
-              onClick={() => setShowFilterPopup(false)}
-              className="absolute top-4 right-4 w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center"
-            >
-              <X size={16} className="text-black dark:text-white" />
-            </button>
-            <h3 className="text-[16px] font-medium mb-4">Filter Appointment</h3>
-            <div className="grid grid-cols-2 gap-6">
-              <input
-                placeholder="enter patient name"
-                value={filters.patientName}
-                onChange={(e) =>
-                  setFilters({ ...filters, patientName: e.target.value })
-                }
-                className="w-[228px] h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              />
-              <input
-                placeholder="enter patient ID"
-                value={filters.patientId}
-                onChange={(e) =>
-                  setFilters({ ...filters, patientId: e.target.value })
-                }
-                className="w-[228px] h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              />
-              <input
-                placeholder="enter room number"
-                value={filters.room}
-                onChange={(e) =>
-                  setFilters({ ...filters, room: e.target.value })
-                }
-                className="w-[228px] h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              />
-              <Dropdown
-                label="Status"
-                value={filters.status}
-                onChange={(val) => setFilters({ ...filters, status: val })}
-                options={statusOptions.filter((s) => s !== "All")}
-              />
-            </div>
-            <div className="flex justify-center gap-2 mt-8">
-              <button
-                onClick={() => {
-                  setFilters({
-                    patientName: "",
-                    patientId: "",
-                    room: "",
-                    status: "",
-                  });
-                  setShowFilterPopup(false);
-                }}
-                className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-white"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => setShowFilterPopup(false)}
-                className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                Filter
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* ---------- EDIT POPUP ---------- */}
       {showEditPopup && selectedPatient && (
         <EditPatientPopup
-          patientId={selectedPatient.pk} // Django PK (1,2,3…)
+          patientId={selectedPatient.pk}
           onClose={() => {
             setShowEditPopup(false);
             setSelectedPatient(null);
           }}
-          onUpdate={refreshData} // Refresh list
+          onUpdate={refreshData}
         />
       )}
     </div>

@@ -610,6 +610,7 @@ const handleClearFilters = () => {
                   }
                   onChange={handleSelectAll}
                   
+                  
                   className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
               </th>
@@ -637,6 +638,7 @@ const handleClearFilters = () => {
                       className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       checked={selectedAppointments.includes(appt.id)}
                     onChange={() => handleCheckboxChange(appt.id)}
+                    
                       
                     />
                   </td>
@@ -880,22 +882,43 @@ const handleClearFilters = () => {
                   </label>
 
                   {/* Full clickable area */}
-                  <div
-                    className="relative mt-1 cursor-pointer"
-                    onClick={() =>
-                      document.getElementById("filterDateInput").showPicker()
-                    }
-                  >
-                    <input
-                      
-                      id="filterDateInput"
-                      name="date"
-                      value={filtersData.date}
-                      onChange={handleFilterChange}
-                      className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
-                    />
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
-                  </div>
+                  <div className="relative mt-1">
+  <input
+    type="text"
+    readOnly
+    value={filtersData.date}
+    placeholder="Select date"
+    className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px]
+               border border-[#0EFF7B] dark:border-[#3A3A3A]
+               bg-white dark:bg-transparent text-black
+               dark:text-[#0EFF7B] outline-none cursor-pointer"
+    onClick={() => {
+      document.getElementById("hiddenDateInput")?.showPicker?.();
+    }}
+  />
+
+  <Calendar
+    className="absolute right-3 top-1/2 -translate-y-1/2
+               text-[#0EFF7B] w-4 h-4 cursor-pointer"
+    onClick={() => {
+      document.getElementById("hiddenDateInput")?.showPicker?.();
+    }}
+  />
+
+  {/* Hidden native date input */}
+  <input
+    type="date"
+    id="hiddenDateInput"
+    value={filtersData.date}
+    onChange={handleFilterChange}
+    style={{
+      position: "absolute",
+      opacity: 0,
+      pointerEvents: "none",
+    }}
+  />
+</div>
+
                 </div>
               </div>
               {/* Buttons */}

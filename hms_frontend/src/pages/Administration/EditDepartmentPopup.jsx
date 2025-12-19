@@ -30,6 +30,13 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     }
   }, [department]);
 
+  // Handle department name change - prevent numbers and invalid characters
+  const handleNameChange = (e) => {
+    // Allow only letters, spaces, hyphens, and apostrophes
+    const value = e.target.value.replace(/[^a-zA-Z\s\-']/, '');
+    setFormData({ ...formData, name: value });
+  };
+
   const handleUpdate = async () => {
     if (!formData.name.trim()) {
       setError("Department name is required.");
@@ -181,7 +188,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
             </label>
             <input
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={handleNameChange}
               placeholder="e.g. Cardiology"
               className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
                          dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] 

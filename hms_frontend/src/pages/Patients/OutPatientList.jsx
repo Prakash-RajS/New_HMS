@@ -801,7 +801,6 @@ const AppointmentListOPD = () => {
     patientId: "",
     department: "",
     doctor: "",
-    status: "",
     date: "",
   });
 
@@ -825,7 +824,6 @@ const AppointmentListOPD = () => {
       if (filterParams.patientId) url.searchParams.set("patient_id", filterParams.patientId);
       if (filterParams.department) url.searchParams.set("department", filterParams.department);
       if (filterParams.doctor) url.searchParams.set("doctor", filterParams.doctor);
-      if (filterParams.status) url.searchParams.set("status", filterParams.status);
       if (filterParams.date) {
         const dateObj = new Date(filterParams.date);
         const formattedDate = dateObj.toISOString().split('T')[0];
@@ -900,7 +898,6 @@ const AppointmentListOPD = () => {
       patientId: "",
       department: "",
       doctor: "",
-      status: "",
       date: "",
     });
     setActiveFilter("All");
@@ -912,7 +909,6 @@ const AppointmentListOPD = () => {
       patientId: "",
       department: "",
       doctor: "",
-      status: "",
       date: "",
     });
   };
@@ -1105,28 +1101,8 @@ const AppointmentListOPD = () => {
         </div>
       </div>
 
-      {/* Status Filters */}
-      <div className="w-full overflow-x-auto h-[50px] flex items-center mb-8 px-2 relative z-10">
-        <div className="flex gap-3 w-full">
-          {statusFilters.map((f) => (
-            <button
-              key={f}
-              onClick={() => {
-                setActiveFilter(f);
-                setPage(1);
-                fetchOPD(1, search);
-              }}
-              className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-                ${activeFilter === f
-                  ? "bg-[#08994A] text-white shadow-sm"
-                  : "text-gray-800 hover:text-green-600 dark:text-white"
-                }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ADDED SPACE HERE */}
+      <div className="mb-6"></div>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1277,7 +1253,7 @@ const AppointmentListOPD = () => {
         </div>
       </div>
 
-      {/* FILTER POPUP */}
+      {/* FILTER POPUP - REMOVED STATUS FILTER */}
       {showFilter && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
@@ -1346,12 +1322,6 @@ const AppointmentListOPD = () => {
                   options={["Orthopedics", "Cardiology", "Neurology"]}
                 />
                 <Dropdown
-                  label="Status"
-                  value={filters.status}
-                  onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["Completed", "Discharged"]}
-                />
-                <Dropdown
                   label="Doctor"
                   value={filters.doctor}
                   onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
@@ -1377,6 +1347,7 @@ const AppointmentListOPD = () => {
                     <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
                   </div>
                 </div>
+                {/* Removed Status filter dropdown */}
               </div>
 
               <div className="flex justify-center gap-2 mt-8">

@@ -72,6 +72,52 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [bedGroups, setBedGroups] = useState([]);
+  const [availableBeds, setAvailableBeds] = useState([]);
+  const [selectedBedGroupId, setSelectedBedGroupId] = useState(null);
+
+  // Fetch available beds for a specific bed group
+  const fetchAvailableBeds = async (groupId) => {
+    if (!groupId) {
+      setAvailableBeds([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/bedgroups/${groupId}/beds`);
+      if (res.ok) {
+        const groupData = await res.json();
+        const beds = groupData.beds
+          .filter(bed => !bed.is_occupied)
+          .map(bed => bed.bed_number.toString());
+        setAvailableBeds(beds);
+
+        // Set default bed number if available and none selected
+        if (beds.length > 0 && !formData.bed_number) {
+          setFormData(prev => ({ ...prev, bed_number: beds[0] }));
+        }
+      } else {
+        console.error("Failed to fetch beds");
+        setAvailableBeds([]);
+      }
+    } catch (err) {
+      console.error("Error fetching available beds:", err);
+      setAvailableBeds([]);
+    }
+  };
+
+  // Handle bed group change
+  const handleBedGroupChange = (groupName) => {
+    setFormData(prev => ({ ...prev, bed_group_name: groupName }));
+    const selectedGroup = bedGroups.find(g => g.name === groupName);
+    if (selectedGroup) {
+      setSelectedBedGroupId(selectedGroup.id);
+      fetchAvailableBeds(selectedGroup.id);
+    } else {
+      setSelectedBedGroupId(null);
+      setAvailableBeds([]);
+      setFormData(prev => ({ ...prev, bed_number: "" }));
+    }
+  };
 
   // Fetch available bed groups and patient data
   useEffect(() => {
@@ -79,11 +125,22 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
       try {
         setLoading(true);
         
-        // Fetch bed groups
+        // Fetch bed groups with IDs
         const bedGroupsRes = await fetch(`${API_BASE}/bedgroups/all`);
         if (bedGroupsRes.ok) {
           const groups = await bedGroupsRes.json();
-          setBedGroups(groups.map(group => group.bedGroup));
+          const groupOptions = groups.map(group => ({ id: group.id, name: group.bedGroup }));
+          setBedGroups(groupOptions);
+
+          // If editing a room, preselect bed group and fetch its beds
+          if (room && room.bedGroup) {
+            const selectedGroup = groupOptions.find(g => g.name === room.bedGroup);
+            if (selectedGroup) {
+              setFormData(prev => ({ ...prev, bed_group_name: selectedGroup.name }));
+              setSelectedBedGroupId(selectedGroup.id);
+              await fetchAvailableBeds(selectedGroup.id);
+            }
+          }
         }
 
         // If room has patient data, fetch patient details
@@ -111,45 +168,38 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
                 }
               }
 
-              setFormData({
+              setFormData(prev => ({
+                ...prev,
                 full_name: patient.full_name || room.patient,
                 patient_unique_id: patient.patient_unique_id || room.patientId,
-                bed_group_name: room.bedGroup,
-                bed_number: room.roomNo,
                 admission_date: admissionDate,
-              });
+              }));
               
               setSelectedAdmitDate(dateObj);
             } else {
               // Fallback to room data if patient API fails
-              setFormData({
+              setFormData(prev => ({
+                ...prev,
                 full_name: room.patient,
                 patient_unique_id: room.patientId,
-                bed_group_name: room.bedGroup,
-                bed_number: room.roomNo,
-                admission_date: "",
-              });
+              }));
             }
           } catch (patientError) {
             console.warn("Failed to fetch patient details:", patientError);
             // Fallback to room data
-            setFormData({
+            setFormData(prev => ({
+              ...prev,
               full_name: room.patient,
               patient_unique_id: room.patientId,
-              bed_group_name: room.bedGroup,
-              bed_number: room.roomNo,
-              admission_date: "",
-            });
+            }));
           }
         } else {
           // No patient data, just prefill bed info
-          setFormData({
+          setFormData(prev => ({
+            ...prev,
             full_name: "",
             patient_unique_id: "",
-            bed_group_name: room.bedGroup,
-            bed_number: room.roomNo,
-            admission_date: "",
-          });
+          }));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -168,7 +218,7 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
     if (!formData.full_name.trim()) newErrors.full_name = "Patient name is required";
     if (!formData.patient_unique_id.trim()) newErrors.patient_unique_id = "Patient ID is required";
     if (!formData.bed_group_name) newErrors.bed_group_name = "Bed group is required";
-    if (!formData.bed_number.trim()) newErrors.bed_number = "Bed number is required";
+    if (!formData.bed_number) newErrors.bed_number = "Bed number is required";
     if (!formData.admission_date) newErrors.admission_date = "Admit date is required";
 
     setErrors(newErrors);
@@ -207,11 +257,13 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
     if (!validateForm()) return;
 
     try {
-      // First discharge from current bed
-      await fetch(
-        `${API_BASE}/bedgroups/${room.groupId}/beds/${room.bedId}/vacate`,
-        { method: "POST" }
-      );
+      // First discharge from current bed (if occupied)
+      if (room && room.status === "Not Available") {
+        await fetch(
+          `${API_BASE}/bedgroups/${room.groupId}/beds/${room.roomNo}/vacate`,
+          { method: "POST" }
+        );
+      }
 
       // Then admit to new bed with updated data
       const formDataToSend = new FormData();
@@ -294,13 +346,15 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
           <div>
             <label className="text-sm">Patient Name</label>
             <input
-              value={formData.full_name}
-              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              placeholder="Enter patient name"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-            />
+  value={formData.full_name}
+  readOnly
+  className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px]
+             border border-gray-300 dark:border-[#3A3A3A]
+             bg-gray-100 dark:bg-[#1E1E1E]
+             text-black dark:text-[#0EFF7B]
+             cursor-not-allowed outline-none"
+/>
+
             {errors.full_name && <p className="text-red-500 text-xs mt-1">{errors.full_name}</p>}
           </div>
 
@@ -308,13 +362,15 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
           <div>
             <label className="text-sm">Patient ID</label>
             <input
-              value={formData.patient_unique_id}
-              onChange={(e) => setFormData({ ...formData, patient_unique_id: e.target.value })}
-              placeholder="Enter patient ID"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-            />
+  value={formData.patient_unique_id}
+  readOnly
+  className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px]
+             border border-gray-300 dark:border-[#3A3A3A]
+             bg-gray-100 dark:bg-[#1E1E1E]
+             text-black dark:text-[#0EFF7B]
+             cursor-not-allowed outline-none"
+/>
+
             {errors.patient_unique_id && <p className="text-red-500 text-xs mt-1">{errors.patient_unique_id}</p>}
           </div>
 
@@ -322,23 +378,24 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
           <Dropdown
             label="Bed Group"
             value={formData.bed_group_name}
-            onChange={(v) => setFormData({ ...formData, bed_group_name: v })}
-            options={bedGroups}
+            onChange={handleBedGroupChange}
+            options={bedGroups.map(g => g.name)}
             error={errors.bed_group_name}
           />
 
-          {/* Bed Number */}
+          {/* Bed Number - Now Dynamic Dropdown */}
           <div>
             <label className="text-sm">Bed Number</label>
-            <input
+            <Dropdown
+              label=""
               value={formData.bed_number}
-              onChange={(e) => setFormData({ ...formData, bed_number: e.target.value })}
-              placeholder="Enter bed number"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                         bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400 outline-none
-                         focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+              onChange={(v) => setFormData({ ...formData, bed_number: v })}
+              options={availableBeds}
+              error={errors.bed_number}
             />
-            {errors.bed_number && <p className="text-red-500 text-xs mt-1">{errors.bed_number}</p>}
+            {availableBeds.length === 0 && formData.bed_group_name && (
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">No available beds</p>
+            )}
           </div>
 
           {/* Admit Date - FIXED */}

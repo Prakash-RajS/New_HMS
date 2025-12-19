@@ -10,6 +10,7 @@ import {
   Edit,
   Trash2,
   LogOut,
+  X,
   UserMinus,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";

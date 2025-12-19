@@ -334,6 +334,7 @@ class Staff(models.Model):
 
 
 # HMS_backend/models.py
+# HMS_backend/models.py
 from django.db import models
 from django.core.exceptions import ValidationError
 from datetime import date
@@ -378,6 +379,9 @@ class Patient(models.Model):
     casualty_status = models.CharField(max_length=10, blank=True, null=True)
     reason_for_visit = models.TextField(blank=True, null=True)
 
+    # === PATIENT TYPE ===
+    patient_type = models.CharField(max_length=20, default="in-patient", choices=[("in-patient", "In-Patient"), ("out-patient", "Out-Patient")])
+
     # === MEDIA ===
     photo = models.ImageField(upload_to="patient_photos/", blank=True, null=True)
 
@@ -397,6 +401,17 @@ class Patient(models.Model):
                 self.patient_unique_id = f"PAT{num + 1}"
             else:
                 self.patient_unique_id = "PAT1000"
+        
+        # Update patient_type based on casualty_status
+        if self.casualty_status:
+            status_lower = self.casualty_status.lower()
+            
+            # If status is completed, set as out-patient
+            if status_lower == "completed":
+                self.patient_type = "out-patient"
+            # If status is NOT completed, set as in-patient
+            else:
+                self.patient_type = "in-patient"
         
         # Call the original save method
         super().save(*args, **kwargs)

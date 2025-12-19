@@ -14,6 +14,24 @@ const BED_API =
     ? "http://18.119.210.2:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
 
+// ── Get tomorrow's date for default (MOVE THIS UP) ────────────────────────────────
+const getTomorrowDate = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// ── Also create a function to get default time ───────────────────────────────────
+const getDefaultTime = () => {
+  const now = new Date();
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  return `${hour}:${minute}`;
+};
+
 export default function AddAppointmentPopup({ onClose, onSuccess }) {
   // Add validation state
   const [validationErrors, setValidationErrors] = useState({}); // Format validation
@@ -25,12 +43,12 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     patient_name: "",
     department_id: "",
     staff_id: "",
-    room_no: "",
+    room_no: "", // This should be the bed selection (e.g., "WardA-101")
     phone_no: "",
     appointment_type: "",
-    status: "",
-    appointment_date: "", // Separate date field
-    appointment_time: "", // Separate time field
+    status: "new", // Set default status
+    appointment_date: getTomorrowDate(), // ✅ Now this works!
+    appointment_time: getDefaultTime(), // Use current time as default
   });
 
   // ── Dropdown data ───────────────────────────────────────────────────
@@ -50,7 +68,25 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   };
 
   const validatePhoneFormat = (value) => {
-    if (value.trim() && !/^\d{10}$/.test(value)) return "Phone number must be exactly 10 digits";
+    if (value.trim() && !/^\d{10}$/.test(value))
+      return "Phone number must be exactly 10 digits";
+ 
+    // Additional validation for invalid patterns
+    const invalidPatterns = [
+      /^0{10}$/, // All zeros
+      /^1{10}$/, // All ones
+      /^\d{5}0{5}$/, // Patterns like 1234500000
+    ];
+ 
+    if (invalidPatterns.some((pattern) => pattern.test(value))) {
+      return "Please enter a valid mobile number";
+    }
+ 
+    // Validate for sequential numbers
+    if (/^(\d)\1{9}$/.test(value)) {
+      return "Please enter a valid mobile number";
+    }
+ 
     return "";
   };
 
@@ -242,8 +278,8 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             group.beds
               .filter((bed) => !bed.is_occupied)
               .map((bed) => ({
-                id: bed.id.toString(),
-                name: `${group.bedGroup} - ${bed.bed_number}`,
+                id: `${group.bedGroup}-${bed.bed_number}`, // 👈 STORE STRING
+                name: `${group.bedGroup}-${bed.bed_number}`,
               }))
           );
           setAvailableBeds(beds);
@@ -285,19 +321,8 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     return () => (mounted = false);
   }, [formData.department_id]);
 
-  // ── Get tomorrow's date for default ────────────────────────────────
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const year = tomorrow.getFullYear();
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const day = String(tomorrow.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   // ── Save handler with validation ───────────────────────────────────
   const handleSave = async () => {
-    // Validate all fields
     if (!validateForm()) {
       errorToast("Please fix all validation errors before saving");
       return;
@@ -305,64 +330,84 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
 
     setSaving(true);
     try {
-      // Format time to HH:MM:SS
-      const formatTime = (timeStr) => {
-        if (!timeStr) return "";
-        const [hours, minutes] = timeStr.split(":");
-        return `${hours}:${minutes}:00`;
-      };
+      // Duplicate check
+      const duplicateCheck = await fetch(`${API}/check_duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_name: formData.patient_name.trim(),
+          phone_no: formData.phone_no,
+          appointment_date: formData.appointment_date,
+        }),
+      });
 
+      if (duplicateCheck.ok) {
+        const duplicateResult = await duplicateCheck.json();
+        if (duplicateResult.exists) {
+          errorToast("An appointment already exists for this patient with the same phone number and date");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // ✅ CORRECTED PAYLOAD - Match backend expectations
       const payload = {
         patient_name: formData.patient_name.trim(),
         department_id: Number(formData.department_id),
         staff_id: Number(formData.staff_id),
-        room_no: formData.room_no || null,
-        phone_no: formData.phone_no || null,
+        room_no: formData.room_no, // ← Use room_no not bed_id
+        phone_no: formData.phone_no,
         appointment_type: formData.appointment_type,
-        status: formData.status,
         appointment_date: formData.appointment_date,
-        appointment_time: formatTime(formData.appointment_time),
+        appointment_time: formData.appointment_time,
+        status: formData.status, // ← Include status field
       };
-      
+
       console.log("Sending payload:", payload);
-      
+
       const res = await fetch(`${API}/create_appointment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      
-      // First check if response is ok
-      if (!res.ok) {
-        // Try to get error message
-        let errorText;
-        try {
-          errorText = await res.text();
-          console.error("Error response:", errorText);
-          
-          let errorMessage = "Failed to create appointment";
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.detail || errorJson.message || JSON.stringify(errorJson);
-          } catch {
-            errorMessage = errorText || "Unknown server error";
+
+      // Check for validation errors
+      if (res.status === 422) {
+        const errorData = await res.json();
+        console.error("Validation errors:", errorData);
+        
+        // Display validation errors from backend
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Handle Pydantic validation errors
+            const errors = {};
+            errorData.detail.forEach(error => {
+              const field = error.loc?.[1] || 'general';
+              errors[field] = error.msg;
+            });
+            setValidationErrors(errors);
+            errorToast("Please fix the validation errors");
+          } else {
+            errorToast(errorData.detail);
           }
-          
-          throw new Error(`Server error (${res.status}): ${errorMessage}`);
-        } catch (e) {
-          throw new Error(`Server error (${res.status}): ${e.message}`);
+        } else {
+          errorToast("Validation failed. Please check your inputs.");
         }
+        setSaving(false);
+        return;
       }
-      
-      // If response is ok, parse it
-      const data = await res.json();
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to create appointment");
+      }
+
       successToast("Appointment added successfully!");
       onSuccess?.();
       onClose?.();
     } catch (e) {
-      console.error("Save error details:", e);
-      const message = e.message || "Something went wrong. Please try again.";
-      errorToast(message);
+      errorToast(e.message || "Something went wrong. Please try again.");
+      console.error("Save error:", e);
     } finally {
       setSaving(false);
     }

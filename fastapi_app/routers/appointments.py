@@ -336,3 +336,28 @@ async def get_my_calendar_appointments(
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch appointments: {str(e)}")
+    
+@router.post("/check_duplicate")
+async def check_duplicate_appointment(payload: dict):
+    patient_name = payload.get("patient_name", "").strip()
+    phone_no = payload.get("phone_no", "").strip()
+    appointment_date = payload.get("appointment_date")
+ 
+    if not all([patient_name, phone_no, appointment_date]):
+        raise HTTPException(status_code=400, detail="Missing fields")
+ 
+    try:
+        appointment_date = datetime.strptime(appointment_date, "%Y-%m-%d").date()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+ 
+    @sync_to_async
+    def check_duplicate():
+        return Appointment.objects.filter(
+            patient_name__iexact=patient_name,
+            phone_no=phone_no,
+            appointment_date=appointment_date
+        ).exists()
+ 
+    exists = await check_duplicate()
+    return {"exists": exists}

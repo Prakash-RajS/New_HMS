@@ -678,7 +678,7 @@ const DateSelector = ({ selectedDate, setSelectedDate }) => (
 );
 
 const EmergencyCases = ({ emergencyCases, selectedDate, setSelectedDate }) => (
-  <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform">
+  <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible ">
     <div
       className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
       style={{
@@ -748,7 +748,7 @@ const Consultation = ({
     1;
 
   return (
-    <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform">
+    <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible ">
       <div
         className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
         style={{
@@ -863,7 +863,7 @@ const NotificationsPanel = ({
   formatTime,
   getNotificationColor,
 }) => (
-  <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible hover:scale-105 transition-transform flex-shrink-0">
+  <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible  flex-shrink-0">
     <div
       className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
       style={{
