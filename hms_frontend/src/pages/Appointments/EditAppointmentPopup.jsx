@@ -19,22 +19,22 @@ export default function EditAppointmentPopup({
   appointment,
   onUpdate,
 }) {
-  // Parse appointment_time if it's in datetime format
-  const parseTimeFromAppointment = (appt) => {
+  const parseTimeFromAppointment = (appt) => {    
     let appointmentDate = appt.appointment_date || "";
     let appointmentTime = appt.appointment_time || "";
     
-    // If appointment_datetime exists, parse date and time from it
-    if (appt.appointment_datetime) {
-      const dt = new Date(appt.appointment_datetime);
-      appointmentDate = dt.toISOString().split('T')[0];
-      const hours = dt.getHours().toString().padStart(2, '0');
-      const minutes = dt.getMinutes().toString().padStart(2, '0');
-      appointmentTime = `${hours}:${minutes}`;
-    } else if (appt.appointment_time && appt.appointment_time.includes(':')) {
-      // If time is already in HH:MM:SS format, convert to HH:MM
-      const timeParts = appt.appointment_time.split(':');
-      appointmentTime = `${timeParts[0]}:${timeParts[1]}`;
+    if (appt.appointment_time) {
+      try {
+        const timeStr = appt.appointment_time;
+        const timeParts = timeStr.split(':');
+        if (timeParts.length >= 2) {
+          const hours = timeParts[0].padStart(2, '0');
+          const minutes = timeParts[1].padStart(2, '0');
+          appointmentTime = `${hours}:${minutes}`;
+        }
+      } catch (err) {
+        appointmentTime = "";
+      }
     }
     
     return { appointmentDate, appointmentTime };
@@ -42,7 +42,6 @@ export default function EditAppointmentPopup({
 
   const { appointmentDate, appointmentTime } = parseTimeFromAppointment(appointment);
 
-  // Normalize incoming appointment to match backend keys
   const initialData = {
     id: appointment.id,
     patient_name: appointment.patient_name || "",
@@ -67,10 +66,7 @@ export default function EditAppointmentPopup({
   const [loadingDoc, setLoadingDoc] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
-  const dateRef = React.useRef(null);
-  const styleRef = React.useRef(null);
 
   // Validation functions
   const validatePatientNameFormat = (value) => {
@@ -102,7 +98,6 @@ export default function EditAppointmentPopup({
   const handleInputChange = (field, value) => {
     let processedValue = value;
     
-    // Capitalize first letter of each word for patient name
     if (field === "patient_name") {
       processedValue = value
         .toLowerCase()
@@ -113,7 +108,6 @@ export default function EditAppointmentPopup({
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     
-    // Clear validation errors when user starts typing
     if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
@@ -122,7 +116,6 @@ export default function EditAppointmentPopup({
       });
     }
     
-    // Perform real-time format validation
     let formatError = "";
     
     switch (field) {
@@ -132,26 +125,31 @@ export default function EditAppointmentPopup({
       case "phone_no":
         formatError = validatePhoneFormat(processedValue);
         break;
+      case "appointment_date":
+      case "appointment_time":
+        formatError = validateAppointmentDateTime();
+        if (formatError) {
+          setValidationErrors(prev => ({
+            ...prev,
+            appointment_date_time: formatError
+          }));
+        } else {
+          setValidationErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors.appointment_date_time;
+            return newErrors;
+          });
+        }
+        break;
       default:
         break;
     }
     
-    if (formatError) {
+    if (formatError && field !== "appointment_date" && field !== "appointment_time") {
       setValidationErrors(prev => ({
         ...prev,
         [field]: formatError
       }));
-    }
-    
-    // Clear datetime validation when either date or time changes
-    if (field === "appointment_date" || field === "appointment_time") {
-      if (validationErrors.appointment_date_time) {
-        setValidationErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.appointment_date_time;
-          return newErrors;
-        });
-      }
     }
   };
 
@@ -264,28 +262,7 @@ export default function EditAppointmentPopup({
     }
   }, [formData.status]);
 
-  // Add CSS to hide default date picker icon
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      input[type="date"]::-webkit-calendar-picker-indicator {
-        display: none;
-        -webkit-appearance: none;
-      }
-      input[type="date"] {
-        -moz-appearance: textfield;
-      }
-    `;
-    document.head.appendChild(style);
-    styleRef.current = style;
-    return () => {
-      if (styleRef.current) {
-        document.head.removeChild(styleRef.current);
-      }
-    };
-  }, []);
-
-  // Reusable Dropdown
+  // Reusable Dropdown with error display
   const Dropdown = ({
     label,
     value,
@@ -295,6 +272,7 @@ export default function EditAppointmentPopup({
     loading,
     isObject = false,
     required = false,
+    error,
   }) => (
     <div>
       <label
@@ -328,6 +306,9 @@ export default function EditAppointmentPopup({
               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
+          {error && (
+            <div className="text-red-500 text-xs mt-1">{error}</div>
+          )}
           <Listbox.Options
             className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
                         shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
@@ -365,9 +346,6 @@ export default function EditAppointmentPopup({
 
   // Handle Update
   const handleUpdate = async () => {
-    setError(null);
-    
-    // Validate required fields
     const requiredErrors = {};
     if (!formData.patient_name.trim()) requiredErrors.patient_name = "Patient name is required";
     if (!formData.department_id) requiredErrors.department_id = "Department is required";
@@ -380,26 +358,32 @@ export default function EditAppointmentPopup({
     if (!formData.appointment_time) requiredErrors.appointment_time = "Appointment time is required";
     
     if (Object.keys(requiredErrors).length > 0) {
-      setError("Please fill all required fields");
+      setValidationErrors(prev => ({ ...prev, ...requiredErrors }));
+      errorToast("Please fill all required fields");
       return;
     }
     
-    // Validate format
     const formatErrors = {
       patient_name: validatePatientNameFormat(formData.patient_name),
       phone_no: validatePhoneFormat(formData.phone_no),
       appointment_date_time: validateAppointmentDateTime()
     };
     
-    if (Object.values(formatErrors).some(error => error !== "")) {
-      setValidationErrors(formatErrors);
-      setError("Please fix validation errors");
+    const hasFormatErrors = Object.values(formatErrors).some(error => error !== "");
+    
+    if (hasFormatErrors) {
+      const newErrors = {};
+      if (formatErrors.patient_name) newErrors.patient_name = formatErrors.patient_name;
+      if (formatErrors.phone_no) newErrors.phone_no = formatErrors.phone_no;
+      if (formatErrors.appointment_date_time) newErrors.appointment_date_time = formatErrors.appointment_date_time;
+      
+      setValidationErrors(prev => ({ ...prev, ...newErrors }));
+      errorToast("Please fix validation errors");
       return;
     }
     
     setSaving(true);
     try {
-      // Format time to HH:MM:SS
       const formatTime = (timeStr) => {
         if (!timeStr) return "";
         const [hours, minutes] = timeStr.split(":");
@@ -439,7 +423,6 @@ export default function EditAppointmentPopup({
       onClose?.();
     } catch (e) {
       errorToast(e.message || "Something went wrong");
-      setError(e.message);
     } finally {
       setSaving(false);
     }
@@ -461,7 +444,6 @@ export default function EditAppointmentPopup({
           className="w-[804px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
-          {/* Inner gradient border */}
           <div
             style={{
               position: "absolute",
@@ -478,7 +460,6 @@ export default function EditAppointmentPopup({
               zIndex: 0,
             }}
           />
-          {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
               Edit Appointment
@@ -491,22 +472,8 @@ export default function EditAppointmentPopup({
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
-          
-          {/* Error */}
-          {error && <div className="text-red-500 text-sm mb-3">{error}</div>}
-          
-          {/* Validation Errors */}
-          {Object.values(validationErrors).map((errorMsg, index) => (
-            errorMsg && (
-              <div key={index} className="text-red-500 text-sm mb-1">
-                {errorMsg}
-              </div>
-            )
-          ))}
 
-          {/* Form Grid */}
           <div className="grid grid-cols-3 gap-6">
-            {/* Patient Name */}
             <div>
               <label className="text-sm text-black dark:text-white">
                 Patient Name <span className="text-red-700">*</span>
@@ -519,9 +486,11 @@ export default function EditAppointmentPopup({
                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
+              {validationErrors.patient_name && (
+                <div className="text-red-500 text-xs mt-1">{validationErrors.patient_name}</div>
+              )}
             </div>
             
-            {/* Patient ID */}
             <div>
               <label className="text-sm text-black dark:text-white">
                 Patient ID
@@ -534,32 +503,36 @@ export default function EditAppointmentPopup({
               />
             </div>
             
-            {/* Department */}
             <Dropdown
               label="Department"
               value={formData.department_id}
-              onChange={(v) =>
-                setFormData({ ...formData, department_id: v, staff_id: "" })
-              }
+              onChange={(v) => {
+                setFormData({ ...formData, department_id: v, staff_id: "" });
+                if (validationErrors.department_id) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.department_id;
+                    return newErrors;
+                  });
+                }
+              }}
               options={departments}
               placeholder={loadingDept ? "Loading…" : "Select Department"}
               loading={loadingDept}
               isObject={true}
               required={true}
+              error={validationErrors.department_id}
             />
             
-            {/* Appointment Date */}
             <div>
               <label className="text-sm text-black dark:text-white">
                 Appointment Date <span className="text-red-700">*</span>
               </label>
               <div 
                 className="relative cursor-pointer"
-                onClick={() => dateRef.current?.showPicker()}
               >
                 <input
                   type="date"
-                  ref={dateRef}
                   value={formData.appointment_date}
                   onChange={(e) => handleInputChange("appointment_date", e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
@@ -572,9 +545,13 @@ export default function EditAppointmentPopup({
                   className="absolute right-3 top-3 text-[#0EFF7B]"
                 />
               </div>
+              {(validationErrors.appointment_date || validationErrors.appointment_date_time) && (
+                <div className="text-red-500 text-xs mt-1">
+                  {validationErrors.appointment_date || validationErrors.appointment_date_time}
+                </div>
+              )}
             </div>
             
-            {/* Appointment Time */}
             <div>
               <label className="text-sm text-black dark:text-white">
                 Appointment Time <span className="text-red-700">*</span>
@@ -587,43 +564,74 @@ export default function EditAppointmentPopup({
                            dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
                            dark:text-[#0EFF7B] outline-none"
               />
+              {(validationErrors.appointment_time || validationErrors.appointment_date_time) && (
+                <div className="text-red-500 text-xs mt-1">
+                  {validationErrors.appointment_time || validationErrors.appointment_date_time}
+                </div>
+              )}
             </div>
             
-            {/* Room / Bed No */}
             <Dropdown
               label="Room / Bed No"
               value={formData.room_no}
-              onChange={(v) => setFormData({ ...formData, room_no: v })}
+              onChange={(v) => {
+                setFormData({ ...formData, room_no: v });
+                if (validationErrors.room_no) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.room_no;
+                    return newErrors;
+                  });
+                }
+              }}
               options={bedOptions}
               placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
               loading={loadingBeds}
               isObject={true}
               required={true}
+              error={validationErrors.room_no}
             />
             
-            {/* Doctor */}
             <Dropdown
               label="Doctor"
               value={formData.staff_id}
-              onChange={(v) => setFormData({ ...formData, staff_id: v })}
+              onChange={(v) => {
+                setFormData({ ...formData, staff_id: v });
+                if (validationErrors.staff_id) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.staff_id;
+                    return newErrors;
+                  });
+                }
+              }}
               options={doctors}
               placeholder={loadingDoc ? "Loading…" : "Select Doctor"}
               loading={loadingDoc}
               isObject={true}
               required={true}
+              error={validationErrors.staff_id}
             />
             
-            {/* Status */}
             <Dropdown
               label="Status"
               value={formData.status}
-              onChange={(v) => setFormData({ ...formData, status: v })}
+              onChange={(v) => {
+                setFormData({ ...formData, status: v });
+                if (validationErrors.status) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.status;
+                    return newErrors;
+                  });
+                }
+              }}
               options={["new", "normal", "severe", "completed", "cancelled", "active", "inactive", "emergency"]}
               placeholder="Select Status"
               required={true}
+              error={validationErrors.status}
             />
             
-            {/* Phone */}
             <div>
               <label className="text-sm text-black dark:text-white">
                 Phone Number <span className="text-red-700">*</span>
@@ -638,20 +646,31 @@ export default function EditAppointmentPopup({
                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
+              {validationErrors.phone_no && (
+                <div className="text-red-500 text-xs mt-1">{validationErrors.phone_no}</div>
+              )}
             </div>
             
-            {/* Appointment Type */}
             <Dropdown
               label="Appointment Type"
               value={formData.appointment_type}
-              onChange={(v) => setFormData({ ...formData, appointment_type: v })}
+              onChange={(v) => {
+                setFormData({ ...formData, appointment_type: v });
+                if (validationErrors.appointment_type) {
+                  setValidationErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.appointment_type;
+                    return newErrors;
+                  });
+                }
+              }}
               options={["checkup", "followup", "emergency"]}
               placeholder="Select Type"
               required={true}
+              error={validationErrors.appointment_type}
             />
           </div>
           
-          {/* Buttons */}
           <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
@@ -663,7 +682,7 @@ export default function EditAppointmentPopup({
             </button>
             <button
               onClick={handleUpdate}
-              disabled={saving || Object.values(validationErrors).some(error => error !== "")}
+              disabled={saving}
               className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                           bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                           shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]

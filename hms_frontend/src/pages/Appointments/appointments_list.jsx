@@ -16,16 +16,12 @@ import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
 
-
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
-
-
-//const API = "http://127.0.0.1:8000/appointments";
 
 const AppointmentList = () => {
   // === State ===
@@ -78,7 +74,7 @@ const AppointmentList = () => {
   // === Date utilities ===
   const getTodayDate = () => {
     const today = new Date();
-    return today.toISOString().split("T")[0]; // YYYY-MM-DD
+    return today.toISOString().split("T")[0];
   };
 
   const isToday = (dateString) => {
@@ -106,27 +102,48 @@ const AppointmentList = () => {
     try {
       const res = await fetch(`${API}/list_appointments`);
       if (!res.ok) {
-        console.error("Failed to fetch appointments:", res.status);
         return;
       }
       const data = await res.json();
-      const mapped = data.map((item) => ({
-        id: item.id,
-        patient: item.patient_name,
-        date: item.created_at ? item.created_at.slice(0, 10) : "",
-        appointment_date:
-          item.appointment_date || item.created_at?.slice(0, 10) || "",
-        patientId: item.patient_id,
-        department: item.department,
-        doctor: item.doctor,
-        room: item.room_no,
-        type: item.appointment_type,
-        status: item.status,
-        raw: item,
-      }));
+      
+      const mapped = data.map((item) => {
+        const appointmentDate = item.appointment_date || "";
+        let appointmentTime = "";
+        
+        if (item.appointment_time) {
+          try {
+            const timeStr = item.appointment_time;
+            const timeParts = timeStr.split(':');
+            if (timeParts.length >= 2) {
+              const hours = parseInt(timeParts[0]);
+              const minutes = parseInt(timeParts[1]);
+              const period = hours >= 12 ? 'PM' : 'AM';
+              const displayHours = hours % 12 || 12;
+              appointmentTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+            }
+          } catch (err) {
+            appointmentTime = "N/A";
+          }
+        }
+        
+        return {
+          id: item.id,
+          patient: item.patient_name,
+          date: appointmentDate,
+          appointmentDate: appointmentDate,
+          appointmentTime: appointmentTime,
+          patientId: item.patient_id,
+          department: item.department,
+          doctor: item.doctor,
+          room: item.room_no,
+          type: item.appointment_type,
+          status: item.status,
+          raw: item,
+        };
+      });
+      
       setAppointments(mapped);
     } catch (err) {
-      console.error("Error loading appointments:", err);
     }
   };
 
@@ -138,7 +155,6 @@ const AppointmentList = () => {
         setDepartments(data);
       }
     } catch (err) {
-      console.error("Error loading departments:", err);
     }
   };
 
@@ -154,7 +170,6 @@ const AppointmentList = () => {
         setDoctors(data);
       }
     } catch (err) {
-      console.error("Error loading doctors:", err);
     }
   };
 
@@ -163,7 +178,6 @@ const AppointmentList = () => {
     fetchDepartments();
   }, []);
 
-  // When department filter changes, fetch doctors for that department
   useEffect(() => {
     if (filtersData.department) {
       const dept = departments.find((d) => d.name === filtersData.department);
@@ -175,7 +189,6 @@ const AppointmentList = () => {
     }
   }, [filtersData.department, departments]);
 
-  // Refresh when popups close
   useEffect(() => {
     if (!showAddPopup && !showEditPopup && !showDeletePopup) {
       fetchAppointments();
@@ -191,7 +204,6 @@ const AppointmentList = () => {
         body: JSON.stringify(form),
       });
     } catch (err) {
-      console.error("Create appointment failed:", err);
       throw err;
     }
   };
@@ -204,7 +216,6 @@ const AppointmentList = () => {
         body: JSON.stringify(form),
       });
     } catch (err) {
-      console.error("Update appointment failed:", err);
       throw err;
     }
   };
@@ -215,7 +226,6 @@ const AppointmentList = () => {
       if (!res.ok) throw new Error("Delete failed");
       await fetchAppointments();
     } catch (err) {
-      console.error("Error deleting:", err);
       throw err;
     }
   };
@@ -240,22 +250,19 @@ const AppointmentList = () => {
     return counts;
   }, [appointments]);
 
-  // === Filtering Logic - UPDATED WITH DATE FILTERS ===
+  // === Filtering Logic ===
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appt) => {
-      // Date-based filtering (main tabs)
-      if (activeMainTab === "Today" && !isToday(appt.appointment_date)) {
+      if (activeMainTab === "Today" && !isToday(appt.appointmentDate)) {
         return false;
       }
-      if (activeMainTab === "Upcoming" && !isUpcoming(appt.appointment_date)) {
+      if (activeMainTab === "Upcoming" && !isUpcoming(appt.appointmentDate)) {
         return false;
       }
-      if (activeMainTab === "Past" && !isPast(appt.appointment_date)) {
+      if (activeMainTab === "Past" && !isPast(appt.appointmentDate)) {
         return false;
       }
-      // "All" tab shows everything, no date filter needed
 
-      // Search term filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         if (
@@ -266,12 +273,10 @@ const AppointmentList = () => {
         }
       }
 
-      // Status filter (activeFilter button)
       if (activeFilter !== "All" && appt.status !== activeFilter) {
         return false;
       }
 
-      // Advanced filters from popup
       if (
         filtersData.patientName &&
         !appt.patient
@@ -328,23 +333,20 @@ const AppointmentList = () => {
         selectedAppointments.includes(appt.id)
       )
     ) {
-      // All are selected → deselect all
       setSelectedAppointments([]);
     } else {
-      // Select all on current page
       setSelectedAppointments(currentAppointments.map((appt) => appt.id));
     }
   };
- 
-const handleCheckboxChange = (id) => {
+
+  const handleCheckboxChange = (id) => {
     setSelectedAppointments(
       (prev) =>
         prev.includes(id)
-          ? prev.filter((sid) => sid !== id) // remove if already selected
-          : [...prev, id] // add if not selected
+          ? prev.filter((sid) => sid !== id)
+          : [...prev, id]
     );
   };
- 
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -356,7 +358,8 @@ const handleCheckboxChange = (id) => {
     setShowFilterPopup(false);
     setCurrentPage(1);
   };
-const handleClearFilters = () => {
+
+  const handleClearFilters = () => {
     setFiltersData({
       patientName: "",
       patientId: "",
@@ -366,8 +369,8 @@ const handleClearFilters = () => {
       date: "",
     });
     setCurrentPage(1);
+    setShowFilterPopup(false);
   };
-  
 
   // === Dropdown component ===
   const Dropdown = ({
@@ -597,7 +600,7 @@ const handleClearFilters = () => {
       {/* Table */}
       <div className="overflow-x-auto relative z-10">
         <table className="w-full text-left text-sm">
-          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] h-12  font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input
@@ -609,8 +612,6 @@ const handleClearFilters = () => {
                     )
                   }
                   onChange={handleSelectAll}
-                  
-                  
                   className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
               </th>
@@ -637,9 +638,7 @@ const handleClearFilters = () => {
                       type="checkbox"
                       className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       checked={selectedAppointments.includes(appt.id)}
-                    onChange={() => handleCheckboxChange(appt.id)}
-                    
-                      
+                      onChange={() => handleCheckboxChange(appt.id)}
                     />
                   </td>
 
@@ -648,7 +647,11 @@ const handleClearFilters = () => {
                       {appt.patient}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">
-                      {appt.appointment_date}
+                      {appt.date}
+                      <br />
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                        {appt.appointmentTime}
+                      </span>
                     </div>
                   </td>
 
@@ -673,8 +676,6 @@ const handleClearFilters = () => {
 
                   <td className="text-center">
                     <div className="flex justify-center gap-4 relative overflow-visible">
-
-                      {/* EDIT ICON + TOOLTIP */}
                       <div className="relative group">
                         <Edit2
                           size={16}
@@ -690,10 +691,8 @@ const handleClearFilters = () => {
                               phone_no: backend.phone_no,
                               appointment_type: backend.appointment_type,
                               status: backend.status,
-                              appointment_date:
-                                backend.appointment_date ||
-                                backend.created_at?.slice(0, 10) ||
-                                "",
+                              appointment_date: backend.appointment_date || "",
+                              appointment_time: backend.appointment_time || "",
                               department_name: backend.department || "",
                               staff_name: backend.doctor || "",
                             };
@@ -702,19 +701,11 @@ const handleClearFilters = () => {
                           }}
                           className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
                         />
-
-                        {/* Tooltip */}
-                        <span
-                          className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100 transition-all duration-150 z-50"
-                        >
+                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                           Edit
                         </span>
                       </div>
 
-                      {/* DELETE ICON + TOOLTIP */}
                       <div className="relative group">
                         <Trash2
                           size={16}
@@ -724,21 +715,12 @@ const handleClearFilters = () => {
                           }}
                           className="cursor-pointer text-red-500 hover:scale-110"
                         />
-
-                        {/* Tooltip */}
-                        <span
-                          className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100 transition-all duration-150 z-50"
-                        >
+                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                           Delete
                         </span>
                       </div>
-
                     </div>
                   </td>
-
                 </tr>
               ))
             ) : (
@@ -829,9 +811,7 @@ const handleClearFilters = () => {
               </div>
 
               {/* Filter Form Grid */}
-              {/* Filter Form Grid */}
               <div className="grid grid-cols-2 gap-6">
-                {/* Department Dropdown */}
                 <Dropdown
                   label="Department"
                   value={filtersData.department}
@@ -846,7 +826,6 @@ const handleClearFilters = () => {
                   placeholder="Select Department"
                 />
 
-                {/* Status Dropdown */}
                 <Dropdown
                   label="Status"
                   value={filtersData.status}
@@ -864,7 +843,6 @@ const handleClearFilters = () => {
                   placeholder="Select Status"
                 />
 
-                {/* Doctor Dropdown */}
                 <Dropdown
                   label="Doctor"
                   value={filtersData.doctor}
@@ -875,52 +853,29 @@ const handleClearFilters = () => {
                   placeholder="Select Doctor"
                 />
 
-                {/* Date */}
                 <div>
                   <label className="text-sm text-black dark:text-white">
                     Date
                   </label>
-
-                  {/* Full clickable area */}
-                  <div className="relative mt-1">
-  <input
-    type="text"
-    readOnly
-    value={filtersData.date}
-    placeholder="Select date"
-    className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px]
-               border border-[#0EFF7B] dark:border-[#3A3A3A]
-               bg-white dark:bg-transparent text-black
-               dark:text-[#0EFF7B] outline-none cursor-pointer"
-    onClick={() => {
-      document.getElementById("hiddenDateInput")?.showPicker?.();
-    }}
-  />
-
-  <Calendar
-    className="absolute right-3 top-1/2 -translate-y-1/2
-               text-[#0EFF7B] w-4 h-4 cursor-pointer"
-    onClick={() => {
-      document.getElementById("hiddenDateInput")?.showPicker?.();
-    }}
-  />
-
-  {/* Hidden native date input */}
-  <input
-    type="date"
-    id="hiddenDateInput"
-    value={filtersData.date}
-    onChange={handleFilterChange}
-    style={{
-      position: "absolute",
-      opacity: 0,
-      pointerEvents: "none",
-    }}
-  />
-</div>
-
+                  <div
+                    className="relative mt-1 cursor-pointer"
+                    onClick={() =>
+                      document.getElementById("filterDateInput").showPicker()
+                    }
+                  >
+                    <input
+                      type="date"
+                      id="filterDateInput"
+                      name="date"
+                      value={filtersData.date}
+                      onChange={handleFilterChange}
+                      className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
+                    />
+                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
+                  </div>
                 </div>
               </div>
+              
               {/* Buttons */}
               <div className="flex justify-center gap-2 mt-8">
                 <button
