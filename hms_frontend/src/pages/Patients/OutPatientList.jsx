@@ -774,10 +774,7 @@ import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 
-const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -814,7 +811,7 @@ const AppointmentListOPD = () => {
     setLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API}/patients/opd`);
+      const url = new URL(`${API_BASE}/patients/opd`);
       url.searchParams.set("page", p);
       url.searchParams.set("limit", perPage);
       if (s) url.searchParams.set("search", s);
@@ -920,7 +917,7 @@ const AppointmentListOPD = () => {
   const onDelete = async () => {
     try {
       const pid = selAppt?.patientId;
-      const r = await fetch(`${API}/patients/${pid}`, { method: "DELETE" });
+      const r = await fetch(`${API_BASE}/patients/${pid}`, { method: "DELETE" });
       if (!r.ok) throw new Error(await r.text());
       await refreshData();
       setShowDel(false);

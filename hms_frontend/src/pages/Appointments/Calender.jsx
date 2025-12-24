@@ -20,9 +20,7 @@ const DoctorCalendar = () => {
     const timeSlotsRef = useRef(null);
 
     // FastAPI endpoint
-    const API = window.location.hostname === "18.119.210.2"
-        ? "http://18.119.210.2:8000"
-        : "http://localhost:8000";
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
     // Fetch appointments for logged-in doctor/nurse
     useEffect(() => {
@@ -42,7 +40,7 @@ const DoctorCalendar = () => {
             }
             
             // Use the my-calendar endpoint (no staff_id needed)
-            const response = await axios.get(`${API}/appointments/my-calendar/`, {
+            const response = await axios.get(`${API_BASE}/appointments/my-calendar/`, {
                 headers: { 
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json'

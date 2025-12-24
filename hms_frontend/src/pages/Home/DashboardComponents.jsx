@@ -49,17 +49,12 @@ const DashboardComponents = () => {
   };
 
 
-    const backendUrl =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      const response = await fetch(`${backendUrl}/api/dashboard/stats`);
+      const response = await fetch(`${API_BASE}/api/dashboard/stats`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -100,7 +95,7 @@ const DashboardComponents = () => {
   // Fetch recent activities
   const fetchRecentActivities = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/dashboard/recent-activities`);
+      const response = await fetch(`${API_BASE}/api/dashboard/recent-activities`);
       // const response = await fetch(
       //   "http://localhost:8000/api/dashboard/recent-activities"
       // );
@@ -118,7 +113,7 @@ const DashboardComponents = () => {
   // Test connection on mount
   const testConnection = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/dashboard/test-connection`);
+      const response = await fetch(`${API_BASE}/api/dashboard/test-connection`);
       // const response = await fetch(
       //   "http://localhost:8000/api/dashboard/test-connection"
       // );

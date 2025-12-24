@@ -20,12 +20,7 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
- const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/labreports"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/labreports"
-    : "http://localhost:8000/labreports";
+ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 //const API = "http://127.0.0.1:8000/labreports";
 
@@ -131,7 +126,7 @@ const LabReport = () => {
   const fetchLabReports = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${API}/list`);
+      const res = await fetch(`${API_BASE}/labreports/list`);
       if (!res.ok) {
         console.error("Failed to fetch lab reports:", res.status);
         return;
@@ -171,7 +166,7 @@ const LabReport = () => {
         test_type: formData.testType,
       };
 
-      const res = await fetch(`${API}/create`, {
+      const res = await fetch(`${API_BASE}/labreports/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -200,7 +195,7 @@ const LabReport = () => {
         status: formData.status,
       };
 
-      const res = await fetch(`${API}/${id}`, {
+      const res = await fetch(`${API_BASE}/labreports/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -236,7 +231,7 @@ const LabReport = () => {
   };
   const handleDeleteReport = async (id) => {
     try {
-      const res = await fetch(`${API}/${id}`, {
+      const res = await fetch(`${API_BASE}/labreports/${id}`, {
         method: "DELETE",
       });
 

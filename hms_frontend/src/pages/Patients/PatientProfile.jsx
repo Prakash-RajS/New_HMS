@@ -15,10 +15,7 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 
-const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const ProfileSection = () => {
   /* ==================== STATE ==================== */

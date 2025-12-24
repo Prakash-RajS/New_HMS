@@ -24,12 +24,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${date.getFullYear()}`;
   };
 
-    const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
   // Populate form data when bloodData changes
   useEffect(() => {
     console.log("🟡 EditBloodTypePopup received bloodData:", bloodData);

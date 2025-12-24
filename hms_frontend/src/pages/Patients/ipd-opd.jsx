@@ -784,12 +784,7 @@ import EditPatientPopup from "./EditPatient.jsx";
 import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -852,7 +847,7 @@ const AppointmentListIPD = () => {
     setDataLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API}/patients`);
+      const url = new URL(`${API_BASE}/patients`);
       url.searchParams.set("limit", 100);
       
       console.log("Fetching patients from:", url.toString());
@@ -1080,7 +1075,7 @@ const AppointmentListIPD = () => {
 
   // Load departments for filter
   useEffect(() => {
-    fetch(`${API}/patients/departments`)
+    fetch(`${API_BASE}/patients/departments`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setFilterDepartments(data.departments || []))
       .catch(() => setFilterDepartments([]))
@@ -1095,7 +1090,7 @@ const AppointmentListIPD = () => {
       return;
     }
     setLoadingFilterDocs(true);
-    fetch(`${API}/patients/staff?department_id=${filters.department}`)
+    fetch(`${API_BASE}/patients/staff?department_id=${filters.department}`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
       .then((data) => setFilterDoctors(data.staff || []))
       .catch(() => setFilterDoctors([]))
@@ -1161,7 +1156,7 @@ const AppointmentListIPD = () => {
 
     try {
       const pid = selAppt.patientId;
-      const r = await fetch(`${API}/patients/${pid}`, {
+      const r = await fetch(`${API_BASE}/patients/${pid}`, {
         method: "DELETE",
       });
 

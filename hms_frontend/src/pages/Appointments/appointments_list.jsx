@@ -16,12 +16,7 @@ import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
 
-const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/appointments"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/appointments"
-    : "http://localhost:8000/appointments";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const AppointmentList = () => {
   // === State ===
@@ -100,7 +95,7 @@ const AppointmentList = () => {
   // === Fetch data ===
   const fetchAppointments = async () => {
     try {
-      const res = await fetch(`${API}/list_appointments`);
+      const res = await fetch(`${API_BASE}/appointments/list_appointments`);
       if (!res.ok) {
         return;
       }
@@ -149,7 +144,7 @@ const AppointmentList = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API}/departments`);
+      const res = await fetch(`${API_BASE}/appointments/departments`);
       if (res.ok) {
         const data = await res.json();
         setDepartments(data);
@@ -164,7 +159,7 @@ const AppointmentList = () => {
       return;
     }
     try {
-      const res = await fetch(`${API}/staff?department_id=${deptId}`);
+      const res = await fetch(`${API_BASE}/appointments/staff?department_id=${deptId}`);
       if (res.ok) {
         const data = await res.json();
         setDoctors(data);
@@ -198,7 +193,7 @@ const AppointmentList = () => {
   // === API handlers ===
   const handleAddAppointment = async (form) => {
     try {
-      await fetch(`${API}/create_appointment`, {
+      await fetch(`${API_BASE}/appointments/create_appointment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -210,7 +205,7 @@ const AppointmentList = () => {
 
   const handleEditAppointment = async (id, form) => {
     try {
-      await fetch(`${API}/${id}`, {
+      await fetch(`${API_BASE}/appointments/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -222,7 +217,7 @@ const AppointmentList = () => {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`${API}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/appointments/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Delete failed");
       await fetchAppointments();
     } catch (err) {

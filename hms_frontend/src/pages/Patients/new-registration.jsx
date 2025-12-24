@@ -6,19 +6,9 @@ import { useNavigate } from "react-router-dom";
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-const BED_API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/bedgroups"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/bedgroups"
-    : "http://localhost:8000/bedgroups";
+
 
 const formatToYMD = (dateStr) => {
   if (!dateStr) return "";
@@ -723,7 +713,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   useEffect(() => {
     let mounted = true;
     setLoadingBeds(true);
-    fetch(`${BED_API}/all`)
+    fetch(`${API_BASE}/bedgroups/all`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load beds");
         return r.json();

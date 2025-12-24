@@ -24,12 +24,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [rangeAvailable, setRangeAvailable] = useState(true);
 
-  const API =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : window.location.hostname === "3.133.64.23"
-      ? "http://3.133.64.23:8000"
-      : "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateBedGroupNameFormat = (value) => {
@@ -105,7 +100,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
 
     setCheckingDuplicates(true);
     try {
-      const response = await fetch(`${API}/bedgroups/check-range`, {
+      const response = await fetch(`${API_BASE}/bedgroups/check-range`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -266,7 +261,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch(`${API}/bedgroups/add-with-range`, {
+      const response = await fetch(`${API_BASE}/bedgroups/add-with-range`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

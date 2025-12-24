@@ -40,12 +40,7 @@ const BedList = () => {
   const itemsPerPage = 9;
 
   const [roomsData, setRoomsData] = useState([]);
-  const API =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : window.location.hostname === "3.133.64.23"
-      ? "http://3.133.64.23:8000"
-      : "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
   // Fetch bed groups on mount
   // First, let's update the fetchBedGroups function in your useEffect:
 
@@ -54,7 +49,7 @@ const BedList = () => {
       try {
         setLoading(true);
         setError("");
-        const response = await fetch(`${API}/bedgroups/all`, {
+        const response = await fetch(`${API_BASE}/bedgroups/all`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -185,7 +180,7 @@ const BedList = () => {
     if (roomToDelete !== null) {
       const roomId = roomsData[roomToDelete].id;
       try {
-        const response = await fetch(`${API}/bedgroups/${roomId}/`, {
+        const response = await fetch(`${API_BASE}/bedgroups/${roomId}/`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",

@@ -4,19 +4,7 @@ import { X,Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
-const API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/appointments"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/appointments"
-    : "http://localhost:8000/appointments";
-
-const BED_API =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/bedgroups"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000/bedgroups"
-    : "http://localhost:8000/bedgroups";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // ── Get tomorrow's date for default (MOVE THIS UP) ────────────────────────────────
 const getTomorrowDate = () => {
@@ -249,7 +237,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   useEffect(() => {
     let mounted = true;
     setLoadingDept(true);
-    fetch(`${API}/departments`)
+    fetch(`${API_BASE}/appointments/departments`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load departments");
         return r.json();
@@ -271,7 +259,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   useEffect(() => {
     let mounted = true;
     setLoadingBeds(true);
-    fetch(`${BED_API}/all`)
+    fetch(`${API_BASE}/bedgroups/all`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load beds");
         return r.json();
@@ -307,7 +295,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     }
     let mounted = true;
     setLoadingDoc(true);
-    fetch(`${API}/staff?department_id=${formData.department_id}`)
+    fetch(`${API_BASE}/appointments/staff?department_id=${formData.department_id}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load doctors");
         return r.json();
@@ -335,7 +323,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     setSaving(true);
     try {
       // Duplicate check
-      const duplicateCheck = await fetch(`${API}/check_duplicate`, {
+      const duplicateCheck = await fetch(`${API_BASE}/appointments/check_duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -369,7 +357,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
 
       console.log("Sending payload:", payload);
 
-      const res = await fetch(`${API}/create_appointment`, {
+      const res = await fetch(`${API_BASE}/appointments/create_appointment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

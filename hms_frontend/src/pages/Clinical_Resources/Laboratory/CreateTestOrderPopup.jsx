@@ -18,18 +18,13 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [patientsLoading, setPatientsLoading] = useState(false);
 
-   const backendUrl =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   // Fetch departments from API
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await fetch(`${backendUrl}/patients/departments`);
+      const response = await fetch(`${API_BASE}/patients/departments`);
       if (!response.ok) throw new Error("Failed to fetch departments");
 
       const data = await response.json();
@@ -64,7 +59,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
       try {
         // Fetch patients
         const patientsResponse = await fetch(
-          `${backendUrl}/medicine_allocation/edit`
+          `${API_BASE}/medicine_allocation/edit`
         );
         if (!patientsResponse.ok) throw new Error("Failed to fetch patients");
         const patientsData = await patientsResponse.json();

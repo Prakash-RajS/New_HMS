@@ -518,12 +518,8 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const backendUrl =
-  window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
     
     // 🔹 Auto-detect system theme
   useEffect(() => {
@@ -594,7 +590,7 @@ const LoginPage = () => {
       console.log("🔄 Attempting login...");
 
       const res = await axios.post(
-  `${backendUrl}/auth/login`,
+  `${API_BASE}/auth/login`,
   formData,
   {
     timeout: 10000,

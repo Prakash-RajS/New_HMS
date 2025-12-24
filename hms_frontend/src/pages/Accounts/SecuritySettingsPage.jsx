@@ -18,14 +18,9 @@ const SecuritySettingsPage = () => {
   const [permissions, setPermissions] = useState({});
   const [initialized, setInitialized] = useState(false);
 
-  const backendUrl =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : window.location.hostname === "3.133.64.23"
-      ? "http://3.133.64.23:8000"
-      : "http://localhost:8000";
+ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-  const api = axios.create({ baseURL: backendUrl });
+  const api = axios.create({ baseURL: API_BASE });
 
   api.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");

@@ -275,12 +275,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
+        "http://localhost:5173",      # Vite dev
         "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://18.119.210.2",
-        "http://3.133.64.23"
+        "https://hms.stacklycloud.com"  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],

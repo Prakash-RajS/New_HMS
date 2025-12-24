@@ -73,14 +73,11 @@ const Profile = () => {
 
   // Get JWT Token
   const getToken = () => localStorage.getItem("token") || "";
-  const backendUrl =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : "http://localhost:8000";
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   // Axios with auth - UPDATED BASE URL
   const api = axios.create({
-    baseURL: backendUrl,
+    baseURL: API_BASE,
     headers: { "Content-Type": "application/json" },
   });
 
@@ -166,7 +163,7 @@ const Profile = () => {
         : "Not provided";
 
       const imageUrl = data.profile_picture
-        ? `${backendUrl}/${data.profile_picture}`
+        ? `${API_BASE}/${data.profile_picture}`
         : ProfileImage;
 
       setProfileImage(imageUrl);
