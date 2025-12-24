@@ -917,52 +917,57 @@ import {
   ChevronRight,
   ArrowLeft,
   ChevronDown,
+  Menu,
+  X,
+  HeartPulse,
+  Scale,
+  Ruler,
+  Thermometer,
 } from "lucide-react";
-import BP from "../../assets/BP.png";
-import HR from "../../assets/HR.png";
-import GL from "../../assets/GL.png";
-import CL from "../../assets/CL.png";
 import { Listbox } from "@headlessui/react";
-
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
-
-//const API_BASE = "http://localhost:8000";
-
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
   const navigate = useNavigate();
-
   const [activeTab, setActiveTab] = useState("Diagnosis");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [testReports, setTestReports] = useState([]);
-  const [invoices, setInvoices] = useState([]); // Dynamic invoices
+  const [invoices, setInvoices] = useState([]);
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
-
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPrescriptionPage, setCurrentPrescriptionPage] = useState(1);
   const [currentTestPage, setCurrentTestPage] = useState(1);
-  const itemsPerPage = 10;
-
+  const itemsPerPage = 5;
   // Filters
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
-
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
-
+  // Responsive state
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
+  const isSmallDesktop = windowWidth >= 1024 && windowWidth < 1320;
+  const isLargeDesktop = windowWidth >= 1320;
+  // Update window width on resize
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -978,7 +983,6 @@ export default function ViewPatientProfile() {
     };
     fetchDepartments();
   }, []);
-
   // Fetch Patient
   useEffect(() => {
     const fetchPatient = async () => {
@@ -993,11 +997,9 @@ export default function ViewPatientProfile() {
     };
     fetchPatient();
   }, [patient_id]);
-
   // Fetch All Data including Invoices
   useEffect(() => {
     if (!patient) return;
-
     const fetchTabData = async () => {
       setDataLoading(true);
       try {
@@ -1013,36 +1015,47 @@ export default function ViewPatientProfile() {
             `${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`
           ),
         ]);
-
         setDiagnoses(diagRes.data || []);
         setPrescriptions(presRes.data || []);
         setTestReports(testRes.data || []);
         setInvoices(invRes.data || []);
-
         // Auto-select latest invoice
         if (invRes.data.length > 0) {
           setSelectedInvoiceIndex(0);
         }
+        // Reset pagination to first page on data load
+        setCurrentPage(1);
+        setCurrentPrescriptionPage(1);
+        setCurrentTestPage(1);
       } catch (err) {
         console.error("Failed to load tab data", err);
       } finally {
         setDataLoading(false);
       }
     };
-
     fetchTabData();
   }, [patient, patient_id]);
-
+  // Reset test page on filter change
+  useEffect(() => {
+    setCurrentTestPage(1);
+  }, [selectedMonth, selectedDepartment, selectedStatus]);
   if (loading)
-    return <div className="text-center py-20">Loading patient...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#0EFF7B] mb-4"></div>
+      </div>
+    );
+   
   if (!patient)
-    return <div className="text-center py-20">Patient not found</div>;
-
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Patient not found
+      </div>
+    );
   // Pagination Helpers
   const paginate = (items, page) =>
     items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
-
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
   const filteredTests = testReports.filter(
@@ -1052,17 +1065,42 @@ export default function ViewPatientProfile() {
       (selectedStatus === "All" || t.status === selectedStatus)
   );
   const currentTests = paginate(filteredTests, currentTestPage);
-
   const currentInvoice =
     invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
-
+  // Dynamic Vitals Data
+  const vitalsData = [
+    {
+      icon: HeartPulse,
+      label: "Blood Pressure",
+      value: patient.blood_pressure || "—",
+      unit: "mmHg",
+    },
+    {
+      icon: Scale,
+      label: "Weight",
+      value: patient.weight_in_kg ? patient.weight_in_kg.toString() : "—",
+      unit: "kg",
+    },
+    {
+      icon: Ruler,
+      label: "Height",
+      value: patient.height_in_cm ? patient.height_in_cm.toString() : "—",
+      unit: "cm",
+    },
+    {
+      icon: Thermometer,
+      label: "Temperature",
+      value: patient.body_temperature ? patient.body_temperature.toString() : "—",
+      unit: "°C",
+    },
+  ];
   // Reusable Listbox Component
   const FilterListbox = ({ value, onChange, options, label }) => (
     <Listbox value={value} onChange={onChange}>
-      <div className="relative w-[164px]">
-        <Listbox.Button className="w-full h-[40px] rounded-[8px] bg-[#025126] text-white text-[16px] flex items-center justify-between px-4 border border-[#0EFF7B]">
-          {value || `All ${label}s`}
-          <ChevronDown className="h-5 w-5 text-[#0EFF7B]" />
+      <div className="relative w-full sm:w-[164px]">
+        <Listbox.Button className="w-full h-[40px] rounded-[8px] bg-[#025126] text-white text-[14px] sm:text-[16px] flex items-center justify-between px-4 border border-[#0EFF7B]">
+          <span className="truncate">{value || `All ${label}s`}</span>
+          <ChevronDown className="h-5 w-5 text-[#0EFF7B] flex-shrink-0" />
         </Listbox.Button>
         <Listbox.Options className="absolute mt-1 w-full rounded-md bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] max-h-60 overflow-auto">
           {options.map((opt) => (
@@ -1084,69 +1122,129 @@ export default function ViewPatientProfile() {
       </div>
     </Listbox>
   );
-
+  // Responsive Table Component
+  const ResponsiveTable = ({ children, headers, mobileData }) => {
+    if (isMobile) {
+      return (
+        <div className="space-y-4">
+          {mobileData.map((row, idx) => (
+            <div key={idx} className="bg-white dark:bg-[#0F0F0F] rounded-lg p-4 border border-[#0EFF7B]/20 shadow">
+              {row.map((cell, cellIdx) => (
+                <div key={cellIdx} className="flex justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                  <span className="font-medium text-gray-600 dark:text-gray-400">{headers[cellIdx]}:</span>
+                  <span className="text-right max-w-[60%] truncate">{cell}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+    }
+   
+    return (
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="min-w-full inline-block align-middle">
+          <table className="min-w-full">
+            {children}
+          </table>
+        </div>
+      </div>
+    );
+  };
+  // Mobile Navigation
+  const MobileTabs = () => (
+    <div className="md:hidden">
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="w-full flex items-center justify-between bg-[#025126] text-white p-4 rounded-lg mb-4"
+      >
+        <span>{activeTab}</span>
+        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+     
+      {mobileMenuOpen && (
+        <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
+          {[
+            { name: "Diagnosis", icon: ClipboardList },
+            { name: "Prescription", icon: FileText },
+            { name: "Invoice", icon: Receipt },
+            { name: "Test Reports", icon: TestTube2 },
+          ].map(({ name, icon: Icon }) => (
+            <button
+              key={name}
+              onClick={() => {
+                setActiveTab(name);
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
+                activeTab === name
+                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              <Icon size={20} />
+              <span>{name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      {/* Gradient Background */}
       <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        ></div>{/* Gradient Border */}
-      <div
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "10px",
-          padding: "2px",
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      />
+     
+      {/* Gradient Border - FIXED for responsiveness */}
+      <div
+        className="absolute inset-0 rounded-[10px] pointer-events-none"
+        style={{
           background:
             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
           WebkitMask:
             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
           WebkitMaskComposite: "xor",
           maskComposite: "exclude",
-          pointerEvents: "none",
+          padding: "2px",
           zIndex: 0,
         }}
       />
-
       {/* Back Button */}
-      <button
-        onClick={() =>
-          window.history.state?.idx > 0 ? navigate(-1) : navigate("/patients")
-        }
-        className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
-        style={{
-          background:
-            "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-        }}
-      >
-        <ArrowLeft size={18} /> Back
-      </button>
-
-      {/* Profile Card */}
-      <div className="relative mb-8 w-[1057px] bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col md:flex-row items-center md:items-start text-black dark:text-white rounded-[20px] p-6 md:p-[45px] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden">
-        <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 0%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        />
-
-        {/* Avatar */}
-        <div className="w-[146px] h-[187px] flex-shrink-0 flex flex-col gap-[4px] items-center pr-2 md:mr-[65px] ml-3">
-          <div className="w-[94px] h-[94px] rounded-full overflow-hidden bg-gray-200">
+       <button
+  onClick={() => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else {
+      navigate("/patients");
+    }
+  }}
+  className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
+  style={{
+    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
+>
+  <ArrowLeft size={18} />
+  Back
+</button>
+      {/* Profile Card - FIXED WIDTH ISSUE */}
+      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
+        {/* Avatar Section */}
+        <div className="w-full lg:w-auto flex flex-col items-center mb-2 lg:mb-0 lg:mr-8">
+          <div className="w-[80px] h-[80px] sm:w-[94px] sm:h-[94px] rounded-full overflow-hidden bg-gray-200 border-2 border-[#0EFF7B]">
             <img
               src={patient.photo_url || "/default-avatar.png"}
               alt={patient.full_name}
               className="w-full h-full object-cover"
             />
           </div>
-          <span className="text-[#08994A] dark:text-[#0EFF7B] text-[18px] font-medium">
+          <span className="text-[#08994A] dark:text-[#0EFF7B] text-[18px] font-medium mt-2">
             {patient.full_name}
           </span>
           <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">
@@ -1156,11 +1254,12 @@ export default function ViewPatientProfile() {
             {patient.email_address || "—"}
           </span>
         </div>
-
-        <div className="w-[1px] h-[187px] bg-gray-300 dark:bg-[#A0A0A0] mr-6" />
-
-        {/* Info Grid */}
-        <div className="w-[761px] h-[200px] md:ml-12 ml-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[24px] mt-6 md:mt-0">
+        {/* Vertical Separator - Only on large screens */}
+        {isLargeDesktop && (
+          <div className="hidden lg:block w-[1px] h-[240px] bg-gray-300 dark:bg-[#A0A0A0] mr-8" />
+        )}
+        {/* Info Grid - Responsive */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 lg:mt-0">
           {[
             { label: "Gender", value: patient.gender },
             { label: "Age", value: patient.age },
@@ -1173,80 +1272,58 @@ export default function ViewPatientProfile() {
             { label: "Visiting Doctor", value: patient.staff__full_name },
             { label: "Consultation type", value: patient.consultation_type },
           ].map((item, i) => (
-            <div key={i}>
-              <p className="text-[16px] text-[#0EFF7B] font-semibold">
+            <div key={i} className="p-2 sm:p-3">
+              <p className="text-[14px] sm:text-[16px] text-[#0EFF7B] font-semibold mb-1">
                 {item.label}
               </p>
-              <p className="text-[14px] text-black dark:text-white">
+              <p className="text-[12px] sm:text-[14px] text-black dark:text-white truncate">
                 {item.value || "—"}
               </p>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Vitals */}
-      <div className="mb-8">
+      {/* Vitals Section */}
+      <div className="mb-6 sm:mb-8 relative z-10">
         <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
           Patient Current Vitals
         </h1>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            {
-              icon: BP,
-              label: "Blood Pressure",
-              value: "120/89",
-              unit: "mmHg",
-            },
-            { icon: HR, label: "Heart Rate", value: "120", unit: "BPM" },
-            { icon: GL, label: "Glucose", value: "97", unit: "mg/dl" },
-            { icon: CL, label: "Cholesterol", value: "85", unit: "mg/dl" },
-          ].map((vital, i) => (
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {vitalsData.map((vital, i) => (
             <div
               key={i}
-              className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+              className="w-full h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
               style={{
                 backgroundColor: "rgba(14, 255, 123, 0.02)",
-                fontFamily: "Helvetica, sans-serif",
               }}
             >
-              <img
-                src={vital.icon}
-                alt={vital.label}
-                className="w-[45px] h-[45px] object-contain"
+              <vital.icon
+                className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]"
               />
-              <div className="flex flex-col justify-center items-end space-y-1.5">
-                <span className="text-[18px] text-white font-medium">
+              <div className="flex flex-col justify-center items-end space-y-1">
+                <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-medium">
                   {vital.label}
                 </span>
-                <span className="text-[22px] text-[#0EFF7B] font-bold leading-none relative">
+                <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
                   {vital.value}
-                  <span className="text-[18px] text-white font-normal ml-1 relative -top-1">
-                    {vital.unit}
-                  </span>
+                  {vital.value !== "—" && (
+                    <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-normal ml-1">
+                      {vital.unit}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      {/* Tabs */}
-      <div className="mt-[10px] mb-4 bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
-        <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        />
-
-        <div className="w-full overflow-x-auto h-[50px] flex items-center justify-center mb-8 px-2 relative z-10">
-          <div
-            className="flex justify-between gap-[91px] min-w-[640px] mx-auto"
-            style={{ maxWidth: "1440px" }}
-          >
+      {/* Main Tabs Container - FIXED WIDTH ISSUE */}
+      <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
+        {/* Mobile Navigation */}
+        <MobileTabs />
+        {/* Desktop Tabs */}
+        <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
+          <div className="flex justify-start sm:justify-center min-w-max">
             {[
               { name: "Diagnosis", icon: ClipboardList },
               { name: "Prescription", icon: FileText },
@@ -1256,7 +1333,7 @@ export default function ViewPatientProfile() {
               <button
                 key={name}
                 onClick={() => setActiveTab(name)}
-                className={`relative min-w-[180px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 text-sm font-medium transition-all ${
+                className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
                   activeTab === name
                     ? "bg-[#0EFF7B14] text-[#0EFF7B]"
                     : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
@@ -1268,29 +1345,23 @@ export default function ViewPatientProfile() {
                     "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
                 }}
               >
-                <Icon
-                  size={18}
-                  className={
-                    activeTab === name ? "text-[#0EFF7B]" : "text-[#0EFF7B]"
-                  }
-                />
-                {name}
+                <Icon size={18} className="text-[#0EFF7B]" />
+                <span className="hidden sm:inline">{name}</span>
+                <span className="sm:hidden">{name.substring(0, 3)}</span>
               </button>
             ))}
           </div>
         </div>
-
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             Loading records...
           </div>
         )}
-
         {/* === DIAGNOSIS TAB === */}
         {activeTab === "Diagnosis" && !dataLoading && (
-          <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
-            <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px] mb-4">
-              Patient’s diagnosis information.
+          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
+              Patient's diagnosis information.
             </p>
             {diagnoses.length === 0 ? (
               <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
@@ -1298,27 +1369,45 @@ export default function ViewPatientProfile() {
               </p>
             ) : (
               <>
-                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                <ResponsiveTable
+                  headers={["Report Type", "Date", "Department", "Status"]}
+                  mobileData={currentDiagnoses.map(d => [
+                    d.reportType,
+                    d.date,
+                    d.department,
+                    <span
+                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                        d.status === "Completed"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                          : d.status === "Pending"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                      }`}
+                    >
+                      {d.status}
+                    </span>
+                  ])}
+                >
                   <thead>
-                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3">Report Type</th>
-                      <th className="py-3">Date</th>
-                      <th className="py-3">Department</th>
-                      <th className="py-3">Status</th>
+                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3 px-2 sm:px-4">Report Type</th>
+                      <th className="py-3 px-2 sm:px-4">Date</th>
+                      <th className="py-3 px-2 sm:px-4">Department</th>
+                      <th className="py-3 px-2 sm:px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="text-[16px] text-black dark:text-white">
+                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentDiagnoses.map((d, i) => (
                       <tr
                         key={i}
                         className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        <td className="py-4">{d.reportType}</td>
-                        <td className="py-4">{d.date}</td>
-                        <td className="py-4">{d.department}</td>
-                        <td className="py-4">
+                        <td className="py-3 px-2 sm:px-4">{d.reportType}</td>
+                        <td className="py-3 px-2 sm:px-4">{d.date}</td>
+                        <td className="py-3 px-2 sm:px-4">{d.department}</td>
+                        <td className="py-3 px-2 sm:px-4">
                           <span
-                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                               d.status === "Completed"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                 : d.status === "Pending"
@@ -1332,27 +1421,27 @@ export default function ViewPatientProfile() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
                   <div className="text-sm text-black dark:text-white">
                     Page {currentPage} of {totalPages(diagnoses)}
                   </div>
                   <div className="flex items-center gap-x-2">
                     <button
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                       disabled={currentPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronLeft size={12} />
                     </button>
                     <button
                       onClick={() =>
-                        setCurrentPage((p) =>
-                          Math.min(totalPages(diagnoses), p + 1)
+                        setCurrentPage(
+                          Math.min(totalPages(diagnoses), currentPage + 1)
                         )
                       }
                       disabled={currentPage === totalPages(diagnoses)}
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronRight size={12} />
                     </button>
@@ -1362,12 +1451,11 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-
         {/* === PRESCRIPTION TAB === */}
         {activeTab === "Prescription" && !dataLoading && (
-          <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
-            <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px] mb-4">
-              Patient’s prescription details.
+          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
+              Patient's prescription details.
             </p>
             {prescriptions.length === 0 ? (
               <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
@@ -1375,29 +1463,48 @@ export default function ViewPatientProfile() {
               </p>
             ) : (
               <>
-                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                <ResponsiveTable
+                  headers={["Date", "Prescription", "Dosage", "Timing", "Status"]}
+                  mobileData={currentPrescriptions.map(p => [
+                    p.date,
+                    p.prescription,
+                    p.dosage,
+                    p.timing,
+                    <span
+                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                        p.status === "Completed"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                          : p.status === "Pending"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                      }`}
+                    >
+                      {p.status}
+                    </span>
+                  ])}
+                >
                   <thead>
-                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3">Date</th>
-                      <th className="py-3">Prescription</th>
-                      <th className="py-3">Dosage</th>
-                      <th className="py-3">Timing</th>
-                      <th className="py-3">Status</th>
+                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3 px-2 sm:px-4">Date</th>
+                      <th className="py-3 px-2 sm:px-4">Prescription</th>
+                      <th className="py-3 px-2 sm:px-4">Dosage</th>
+                      <th className="py-3 px-2 sm:px-4">Timing</th>
+                      <th className="py-3 px-2 sm:px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="text-[16px] text-black dark:text-white">
+                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentPrescriptions.map((p, i) => (
                       <tr
                         key={i}
                         className="border-b border-gray-200 dark:border-gray-700"
                       >
-                        <td className="py-4">{p.date}</td>
-                        <td className="py-4">{p.prescription}</td>
-                        <td className="py-4">{p.dosage}</td>
-                        <td className="py-4">{p.timing}</td>
-                        <td className="py-4">
+                        <td className="py-3 px-2 sm:px-4">{p.date}</td>
+                        <td className="py-3 px-2 sm:px-4">{p.prescription}</td>
+                        <td className="py-3 px-2 sm:px-4">{p.dosage}</td>
+                        <td className="py-3 px-2 sm:px-4">{p.timing}</td>
+                        <td className="py-3 px-2 sm:px-4">
                           <span
-                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                               p.status === "Completed"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                 : p.status === "Pending"
@@ -1411,32 +1518,27 @@ export default function ViewPatientProfile() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
                   <div className="text-sm text-black dark:text-white">
-                    Page {currentPrescriptionPage} of{" "}
-                    {totalPages(prescriptions)}
+                    Page {currentPrescriptionPage} of {totalPages(prescriptions)}
                   </div>
                   <div className="flex items-center gap-x-2">
                     <button
-                      onClick={() =>
-                        setCurrentPrescriptionPage((p) => Math.max(1, p - 1))
-                      }
+                      onClick={() => setCurrentPrescriptionPage(Math.max(1, currentPrescriptionPage - 1))}
                       disabled={currentPrescriptionPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronLeft size={12} />
                     </button>
                     <button
                       onClick={() =>
-                        setCurrentPrescriptionPage((p) =>
-                          Math.min(totalPages(prescriptions), p + 1)
+                        setCurrentPrescriptionPage(
+                          Math.min(totalPages(prescriptions), currentPrescriptionPage + 1)
                         )
                       }
-                      disabled={
-                        currentPrescriptionPage === totalPages(prescriptions)
-                      }
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      disabled={currentPrescriptionPage === totalPages(prescriptions)}
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronRight size={12} />
                     </button>
@@ -1446,53 +1548,26 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-
-        {/* === INVOICE TAB - DYNAMIC & ITEMIZED === */}
-        {/* === INVOICE TAB - DYNAMIC & ITEMIZED === */}
+        {/* === INVOICE TAB === */}
         {activeTab === "Invoice" && !dataLoading && (
-          <div className="overflow-x-auto rounded-xl p-6 mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
+          <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
             {invoices.length === 0 ? (
-              <p className="text-center py-20 text-gray-600 dark:text-gray-400 italic text-lg font-medium">
+              <p className="text-center py-12 lg:py-20 text-gray-600 dark:text-gray-400 italic text-base lg:text-lg font-medium">
                 No invoices found
               </p>
             ) : (
               <>
-                {/* Invoice Selector - Same as before */}
-                {/* INVOICE SELECTOR - Beautiful Listbox Style (Right Aligned) */}
-                <div className="flex justify-end mb-8">
-                  <div className="relative min-w-[300px] w-[380px] lg:w-[420px]">
+                {/* Invoice Selector */}
+                <div className="flex justify-center lg:justify-end mb-4 lg:mb-8">
+                  <div className="relative w-full lg:min-w-[300px] lg:w-[380px] xl:w-[420px]">
                     <Listbox
                       value={selectedInvoiceIndex}
                       onChange={(value) => setSelectedInvoiceIndex(value)}
                     >
                       <Listbox.Button
-                        className="
-          w-full
-          h-[48px]
-          rounded-xl
-          border-2
-          border-[#0EFF7B]
-          bg-[#025126]
-          text-white
-          shadow-[0_0_8px_#0EFF7B40]
-          outline-none
-          focus:border-[#0EFF7B]
-          focus:shadow-[0_0_12px_#0EFF7B60]
-          transition-all
-          duration-300
-          px-6
-          pr-12
-          font-medium
-          text-sm
-          text-left
-          relative
-          hover:shadow-[0_0_16px_#0EFF7B50]
-          flex
-          items-center
-          justify-between
-        "
+                        className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between"
                       >
-                        <span className="truncate">
+                        <span className="truncate text-xs lg:text-sm">
                           {invoices.length > 0
                             ? `${invoices[
                                 selectedInvoiceIndex
@@ -1503,265 +1578,141 @@ export default function ViewPatientProfile() {
                               }`
                             : "Select Invoice"}
                         </span>
-
-                        {/* Custom Arrow */}
-                        <svg
-                          className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-[#0EFF7B] pointer-events-none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
+                        <ChevronDown className="absolute right-4 w-5 h-5 text-[#0EFF7B]" />
                       </Listbox.Button>
-
-                      <Listbox.Options
-                        className="
-          absolute
-          z-50
-          mt-2
-          w-full
-          bg-white dark:bg-black
-          border-2 border-[#0EFF7B]
-          rounded-xl
-          shadow-2xl
-          shadow-[#0EFF7B]/30
-          max-h-80
-          overflow-auto
-          text-sm
-          font-medium
-          py-2
-          top-[100%]
-          left-0
-          ring-0
-        "
-                      >
-                        {invoices.length === 0 ? (
-                          <div className="px-6 py-4 text-center text-gray-500 italic">
-                            No invoices found
-                          </div>
-                        ) : (
-                          invoices.map((inv, idx) => (
-                            <Listbox.Option
-                              key={idx}
-                              value={idx}
-                              className={({ active }) =>
-                                `
-                cursor-pointer
-                select-none
-                px-6
-                py-3
-                transition-all
-                duration-200
-                flex
-                items-center
-                justify-between
-                ${
-                  active
-                    ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
-                    : "text-gray-800 dark:text-gray-200"
-                }
-              `
-                              }
-                            >
-                              {({ selected }) => (
-                                <>
-                                  <span
-                                    className={
-                                      selected ? "font-bold" : "font-medium"
-                                    }
-                                  >
-                                    {inv.type.toUpperCase()} •{" "}
-                                    {inv.invoice_number} • {inv.display_date}
-                                  </span>
-                                  {selected && (
-                                    <svg
-                                      className="w-5 h-5 text-[#0EFF7B]"
-                                      fill="currentColor"
-                                      viewBox="0 0 20 20"
-                                    >
-                                      <path
-                                        fillRule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clipRule="evenodd"
-                                      />
-                                    </svg>
-                                  )}
-                                </>
-                              )}
-                            </Listbox.Option>
-                          ))
-                        )}
+                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-white dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
+                        {invoices.map((inv, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            value={idx}
+                            className={({ active }) =>
+                              `cursor-pointer select-none px-4 lg:px-6 py-3 transition-all duration-200 flex items-center justify-between ${
+                                active
+                                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
+                                  : "text-gray-800 dark:text-gray-200"
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <>
+                                <span className={`truncate ${selected ? "font-bold" : "font-medium"} text-xs lg:text-sm`}>
+                                  {inv.type.toUpperCase()} • {inv.invoice_number} • {inv.display_date}
+                                </span>
+                                {selected && (
+                                  <div className="w-5 h-5 bg-[#0EFF7B] rounded-full flex items-center justify-center flex-shrink-0">
+                                    <div className="w-2 h-2 bg-black rounded-full" />
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </Listbox.Option>
+                        ))}
                       </Listbox.Options>
                     </Listbox>
                   </div>
                 </div>
-
                 {currentInvoice && (
                   <>
-                    {/* Modern Header */}
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-10 gap-6">
-                      <div>
-                        <h2 className="text-4xl font-bold text-[#0EFF7B] tracking-tight">
+                    {/* Invoice Header */}
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-10 gap-4 lg:gap-6">
+                      <div className="w-full lg:w-auto">
+                        <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold text-[#0EFF7B] tracking-tight">
                           Invoice #{currentInvoice.invoice_number}
                         </h2>
-                        <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-                          Issued: {currentInvoice.display_date} •{" "}
-                          {currentInvoice.type.toUpperCase()} Invoice
+                        <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
+                          Issued: {currentInvoice.display_date} • {currentInvoice.type.toUpperCase()} Invoice
                         </p>
                       </div>
-                      <div className="bg-[#0EFF7B] text-black px-10 py-5 rounded-2xl font-bold text-2xl shadow-xl">
-                        Grand Total: $
-                        {currentInvoice.grand_total ||
-                          currentInvoice.net_amount ||
-                          "0.00"}
+                      <div className="bg-[#0EFF7B] text-black px-4 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-bold text-lg lg:text-xl xl:text-2xl shadow-xl w-full lg:w-auto text-center">
+                        Total: ${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}
                       </div>
                     </div>
-
-                    {/* Patient, Age/Gender, Doctor Info - Beautiful 3-column layout */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-2xl p-8 border border-[#0EFF7B]/20 shadow-xl">
-                      {/* Patient Info */}
-                      <div className="border-l-4 border-[#0EFF7B] pl-6">
-                        <h3 className="text-xl font-bold text-[#0EFF7B] mb-4 tracking-wide">
-                          PATIENT INFORMATION
-                        </h3>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {/* Patient Info Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
+                      <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
+                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">PATIENT</h3>
+                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
                           {currentInvoice.patient_name || patient.full_name}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
                           ID: {currentInvoice.patient_id}
                         </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-3 leading-relaxed">
-                          {currentInvoice.patient?.address ||
-                            patient.address ||
-                            "—"}
+                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
+                          {currentInvoice.patient?.address || patient.address || "—"}
                         </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          {currentInvoice.patient?.phone ||
-                            patient.phone_number ||
-                            "—"}
+                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">
+                          {currentInvoice.patient?.phone || patient.phone_number || "—"}
                         </p>
                       </div>
-
-                      {/* Age, Gender, Admission */}
-                      <div className="text-center space-y-6">
+                      <div className="text-center space-y-3 lg:space-y-6">
                         <div>
-                          <p className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                          <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
                             Age / Gender
                           </p>
-                          <p className="text-2xl font-bold text-[#0EFF7B] mt-2">
+                          <p className="text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B] mt-1 lg:mt-2">
                             {patient.age} yrs / {patient.gender}
                           </p>
                         </div>
                         {currentInvoice.admission_date && (
                           <div>
-                            <p className="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                              Admission Date
+                            <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                              Admission
                             </p>
-                            <p className="text-xl font-semibold text-gray-900 dark:text-white mt-2">
+                            <p className="text-sm lg:text-base xl:text-xl font-semibold text-gray-900 dark:text-white mt-1 lg:mt-2">
                               {currentInvoice.admission_date}
                             </p>
                           </div>
                         )}
                       </div>
-
-                      {/* Doctor Info */}
-                      <div className="border-l-4 border-[#0EFF7B] pl-6">
-                        <h3 className="text-xl font-bold text-[#0EFF7B] mb-4 tracking-wide">
-                          DOCTOR INFORMATION
-                        </h3>
-                        <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {currentInvoice.doctor ||
-                            currentInvoice.doctor_name ||
-                            "—"}
+                      <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
+                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">DOCTOR</h3>
+                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
+                          {currentInvoice.doctor || currentInvoice.doctor_name || "—"}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
                           {patient.department?.name || "General Medicine"}
                         </p>
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-3">
+                        <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
                           Stacklycare Hospital
                         </p>
                       </div>
                     </div>
-
-                    {/* Items Table - Clean & Modern */}
-                    <div className="overflow-x-auto rounded-2xl border border-[#0EFF7B]/20 shadow-xl bg-white dark:bg-[#0F0F0F]">
+                    {/* Items Table */}
+                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-white dark:bg-[#0F0F0F] mb-4 lg:mb-6">
                       <table className="min-w-full">
                         <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
                           <tr>
-                            <th className="py-5 px-6 text-left font-semibold">
-                              S/N
-                            </th>
-                            <th className="py-5 px-6 text-left font-semibold">
-                              Service / Item
-                            </th>
-                            <th className="py-5 px-6 text-center font-semibold">
-                              Qty
-                            </th>
-                            <th className="py-5 px-6 text-right font-semibold">
-                              Unit Price
-                            </th>
-                            <th className="py-5 px-6 text-right font-semibold">
-                              Discount
-                            </th>
-                            <th className="py-5 px-6 text-right font-semibold">
-                              Tax
-                            </th>
-                            <th className="py-5 px-6 text-right font-semibold">
-                              Line Total
-                            </th>
+                            <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">S/N</th>
+                            <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">Item</th>
+                            <th className="py-3 px-2 lg:px-4 text-center font-semibold text-xs lg:text-sm">Qty</th>
+                            <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Price</th>
+                            <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Total</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                          {currentInvoice.items &&
-                          currentInvoice.items.length > 0 ? (
+                          {currentInvoice.items && currentInvoice.items.length > 0 ? (
                             currentInvoice.items.map((item, index) => (
-                              <tr
-                                key={index}
-                                className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors duration-200"
-                              >
-                                <td className="py-5 px-6 text-gray-700 dark:text-gray-300">
-                                  {item.sn || item.sl_no || index + 1}
+                              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A]">
+                                <td className="py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-700 dark:text-gray-300">
+                                  {index + 1}
                                 </td>
-                                <td className="py-5 px-6 font-medium text-gray-900 dark:text-white">
-                                  {item.item ||
-                                    item.drug_name ||
-                                    item.description ||
-                                    "Service Charge"}
+                                <td className="py-3 px-2 lg:px-4 font-medium text-xs lg:text-sm text-gray-900 dark:text-white">
+                                  {item.item || item.drug_name || item.description || "Service Charge"}
                                 </td>
-                                <td className="py-5 px-6 text-center text-gray-800 dark:text-gray-200">
+                                <td className="py-3 px-2 lg:px-4 text-center text-xs lg:text-sm text-gray-800 dark:text-gray-200">
                                   {item.qty || item.quantity || 1}
                                 </td>
-                                <td className="py-5 px-6 text-right text-gray-800 dark:text-gray-200">
+                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm text-gray-800 dark:text-gray-200">
                                   ${item.price || item.unit_price || "0.00"}
                                 </td>
-                                <td className="py-5 px-6 text-right text-gray-600 dark:text-gray-400">
-                                  {item.discount || item.discount_pct
-                                    ? `${item.discount || item.discount_pct}%`
-                                    : "—"}
-                                </td>
-                                <td className="py-5 px-6 text-right text-gray-600 dark:text-gray-400">
-                                  {item.tax || item.tax_pct
-                                    ? `${item.tax || item.tax_pct}%`
-                                    : "—"}
-                                </td>
-                                <td className="py-5 px-6 text-right font-bold text-[#0EFF7B]">
+                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm font-bold text-[#0EFF7B]">
                                   ${item.total || item.line_total || "0.00"}
                                 </td>
                               </tr>
                             ))
                           ) : (
                             <tr>
-                              <td
-                                colSpan="7"
-                                className="text-center py-16 text-gray-500"
-                              >
+                              <td colSpan="5" className="text-center py-8 text-gray-500">
                                 No item details available
                               </td>
                             </tr>
@@ -1769,97 +1720,47 @@ export default function ViewPatientProfile() {
                         </tbody>
                       </table>
                     </div>
-
-                    {/* Totals Summary - Elegant Box */}
-                    <div className="mt-10 flex justify-end">
-                      <div className="w-full max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-2xl p-8 border-2 border-[#0EFF7B]/30 shadow-2xl">
-                        <div className="space-y-4">
-                          <div className="flex justify-between text-lg">
+                    {/* Totals Summary */}
+                    <div className="flex justify-center lg:justify-end">
+                      <div className="w-full lg:max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-xl lg:rounded-2xl p-4 lg:p-8 border-2 border-[#0EFF7B]/30 shadow">
+                        <div className="space-y-2 lg:space-y-4">
+                          <div className="flex justify-between text-sm lg:text-base">
                             <span className="font-medium">Subtotal</span>
-                            <span className="font-semibold">
-                              $
-                              {currentInvoice.subtotal ||
-                                currentInvoice.amount ||
-                                "0.00"}
-                            </span>
+                            <span className="font-semibold">${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
                           </div>
-
-                          {currentInvoice.type === "pharmacy" && (
-                            <>
-                              {currentInvoice.cgst_amount > 0 && (
-                                <div className="flex justify-between text-sm">
-                                  <span>
-                                    CGST ({currentInvoice.cgst_percent || 9}%)
-                                  </span>
-                                  <span>
-                                    ${currentInvoice.cgst_amount || "0.00"}
-                                  </span>
-                                </div>
-                              )}
-                              {currentInvoice.sgst_amount > 0 && (
-                                <div className="flex justify-between text-sm">
-                                  <span>
-                                    SGST ({currentInvoice.sgst_percent || 9}%)
-                                  </span>
-                                  <span>
-                                    ${currentInvoice.sgst_amount || "0.00"}
-                                  </span>
-                                </div>
-                              )}
-                              {currentInvoice.discount_amount > 0 && (
-                                <div className="flex justify-between text-sm text-red-600 font-medium">
-                                  <span>Discount</span>
-                                  <span>
-                                    -${currentInvoice.discount_amount || "0.00"}
-                                  </span>
-                                </div>
-                              )}
-                            </>
+                         
+                          {currentInvoice.tax_amount > 0 && (
+                            <div className="flex justify-between text-xs lg:text-sm">
+                              <span>Tax ({currentInvoice.tax_percent || 18}%)</span>
+                              <span>${currentInvoice.tax_amount || "0.00"}</span>
+                            </div>
                           )}
-
-                          {currentInvoice.type === "hospital" &&
-                            currentInvoice.tax_amount > 0 && (
-                              <div className="flex justify-between text-sm">
-                                <span>
-                                  Tax ({currentInvoice.tax_percent || 18}%)
-                                </span>
-                                <span>
-                                  ${currentInvoice.tax_amount || "0.00"}
-                                </span>
-                              </div>
-                            )}
-
-                          <div className="border-t-2 border-[#0EFF7B]/50 pt-6 mt-6">
-                            <div className="flex justify-between text-2xl font-bold text-[#0EFF7B]">
+                         
+                          {currentInvoice.discount_amount > 0 && (
+                            <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium">
+                              <span>Discount</span>
+                              <span>-${currentInvoice.discount_amount || "0.00"}</span>
+                            </div>
+                          )}
+                          <div className="border-t-2 border-[#0EFF7B]/50 pt-3 lg:pt-6 mt-3 lg:mt-6">
+                            <div className="flex justify-between text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B]">
                               <span>Grand Total</span>
-                              <span>
-                                $
-                                {currentInvoice.grand_total ||
-                                  currentInvoice.net_amount ||
-                                  "0.00"}
-                              </span>
+                              <span>${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}</span>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-
                     {/* Payment Status */}
-                    <div className="mt-10 text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                    <div className="mt-4 lg:mt-10 text-center text-xs lg:text-sm text-gray-600 dark:text-gray-400 space-y-1 lg:space-y-2">
                       <p>
-                        Payment Method:{" "}
-                        <strong className="text-gray-900 dark:text-white">
-                          {currentInvoice.payment_method ||
-                            currentInvoice.payment_mode ||
-                            "Cash"}
+                        Payment Method: <strong className="text-gray-900 dark:text-white">
+                          {currentInvoice.payment_method || currentInvoice.payment_mode || "Cash"}
                         </strong>
                       </p>
                       <p>
-                        Status:{" "}
-                        <strong className="text-green-600 text-lg font-bold">
-                          {currentInvoice.status ||
-                            currentInvoice.payment_status ||
-                            "Paid"}
+                        Status: <strong className="text-green-600 text-sm lg:text-base xl:text-lg font-bold">
+                          {currentInvoice.status || currentInvoice.payment_status || "Paid"}
                         </strong>
                       </p>
                     </div>
@@ -1871,29 +1772,19 @@ export default function ViewPatientProfile() {
         )}
         {/* === TEST REPORTS TAB === */}
         {activeTab === "Test Reports" && !dataLoading && (
-          <div className="overflow-x-auto rounded-xl p-4 mb-4 bg-transparent">
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-6">
-              <p className="text-gray-600 dark:text-[#A0A0A0] text-[16px]">
+          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+              <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
                 Patients test report information.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 mt-2 sm:mt-0">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
                 <FilterListbox
                   value={selectedMonth}
                   onChange={setSelectedMonth}
                   options={[
                     "All",
-                    "January",
-                    "February",
-                    "March",
-                    "April",
-                    "May",
-                    "June",
-                    "July",
-                    "August",
-                    "September",
-                    "October",
-                    "November",
-                    "December",
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December",
                   ]}
                   label="Month"
                 />
@@ -1911,31 +1802,47 @@ export default function ViewPatientProfile() {
                 />
               </div>
             </div>
-
             {filteredTests.length === 0 ? (
               <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
                 No test reports found
               </p>
             ) : (
               <>
-                <table className="min-w-full border-separate border-spacing-x-1 bg-transparent">
+                <ResponsiveTable
+                  headers={["Source", "Date & Time", "Month", "Test Type", "Department", "Status"]}
+                  mobileData={currentTests.map(t => [
+                    t.source,
+                    t.dateTime,
+                    t.month,
+                    t.testType,
+                    t.department,
+                    <span
+                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                        t.status === "Completed"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                          : t.status === "Pending"
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                      }`}
+                    >
+                      {t.status}
+                    </span>
+                  ])}
+                >
                   <thead>
-                    <tr className="text-left text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3">Source</th>
-                      <th className="py-3">Date & Time</th>
-                      <th className="py-3">Month</th>
-                      <th className="py-3">Test Type</th>
-                      <th className="py-3">Department</th>
-                      <th className="py-3">Status</th>
+                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3 px-2 sm:px-4">Source</th>
+                      <th className="py-3 px-2 sm:px-4">Date & Time</th>
+                      <th className="py-3 px-2 sm:px-4">Month</th>
+                      <th className="py-3 px-2 sm:px-4">Test Type</th>
+                      <th className="py-3 px-2 sm:px-4">Department</th>
+                      <th className="py-3 px-2 sm:px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="text-[16px] text-black dark:text-white">
+                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentTests.map((t, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="py-4">
+                      <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
+                        <td className="py-3 px-2 sm:px-4">
                           <span
                             className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
                               t.source === "Medicine Allocation"
@@ -1946,13 +1853,13 @@ export default function ViewPatientProfile() {
                             {t.source}
                           </span>
                         </td>
-                        <td className="py-4">{t.dateTime}</td>
-                        <td className="py-4">{t.month}</td>
-                        <td className="py-4">{t.testType}</td>
-                        <td className="py-4">{t.department}</td>
-                        <td className="py-4">
+                        <td className="py-3 px-2 sm:px-4">{t.dateTime}</td>
+                        <td className="py-3 px-2 sm:px-4">{t.month}</td>
+                        <td className="py-3 px-2 sm:px-4">{t.testType}</td>
+                        <td className="py-3 px-2 sm:px-4">{t.department}</td>
+                        <td className="py-3 px-2 sm:px-4">
                           <span
-                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${
+                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                               t.status === "Completed"
                                 ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
                                 : t.status === "Pending"
@@ -1966,30 +1873,27 @@ export default function ViewPatientProfile() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-
+                </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
                   <div className="text-sm text-black dark:text-white">
                     Page {currentTestPage} of {totalPages(filteredTests)}
                   </div>
                   <div className="flex items-center gap-x-2">
                     <button
-                      onClick={() =>
-                        setCurrentTestPage((p) => Math.max(1, p - 1))
-                      }
+                      onClick={() => setCurrentTestPage(Math.max(1, currentTestPage - 1))}
                       disabled={currentTestPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronLeft size={12} />
                     </button>
                     <button
                       onClick={() =>
-                        setCurrentTestPage((p) =>
-                          Math.min(totalPages(filteredTests), p + 1)
+                        setCurrentTestPage(
+                          Math.min(totalPages(filteredTests), currentTestPage + 1)
                         )
                       }
                       disabled={currentTestPage === totalPages(filteredTests)}
-                      className="p-1 rounded-full border border-[#0EFF7B]"
+                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
                     >
                       <ChevronRight size={12} />
                     </button>

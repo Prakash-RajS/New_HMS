@@ -26,6 +26,7 @@ const Profile = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [originalImage, setOriginalImage] = useState(ProfileImage);
   const [currentTime, setCurrentTime] = useState("");
+  const [fileError, setFileError] = useState("");
   
   // State for form submission validation errors
   const [fieldErrors, setFieldErrors] = useState({
@@ -72,12 +73,10 @@ const Profile = () => {
 
   // Get JWT Token
   const getToken = () => localStorage.getItem("token") || "";
-    const backendUrl =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+  const backendUrl =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : "http://localhost:8000";
 
   // Axios with auth - UPDATED BASE URL
   const api = axios.create({
@@ -100,6 +99,44 @@ const Profile = () => {
       return Promise.reject(error);
     }
   );
+
+  // Validate image file function
+  const validateImageFile = (file) => {
+    // Check file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setFileError('Only JPG, JPEG and PNG images are allowed');
+      return false;
+    }
+    
+    // Check file size (5MB max)
+    const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSizeInBytes) {
+      setFileError('Image size should be less than 5MB');
+      return false;
+    }
+    
+    setFileError(''); // Clear error if validation passes
+    return true;
+  };
+
+  // Handle file change
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFileError(''); // Clear previous errors
+    
+    if (!file) return;
+    
+    // Validate the file
+    if (!validateImageFile(file)) {
+      // Reset the file input
+      e.target.value = '';
+      setSelectedFile(null);
+      return;
+    }
+    
+    setSelectedFile(file);
+  };
 
   // Fetch current staff profile via /me/
   const fetchProfile = async () => {
@@ -135,10 +172,14 @@ const Profile = () => {
       setProfileImage(imageUrl);
       setOriginalImage(imageUrl);
 
+      // Format phone number with + for display
+      const phoneNumber = data.phone || "";
+      const formattedPhone = phoneNumber ? `+${phoneNumber}` : "";
+
       const newProfileData = {
         name: data.full_name || "",
         email: data.email || "",
-        phone: data.phone || "",
+        phone: formattedPhone,
         role: data.designation || "",
         department: data.department || "",
         joinedDate,
@@ -229,14 +270,55 @@ const Profile = () => {
   };
 
   const validatePhoneFormat = (value) => {
-    // Remove all non-digit characters for validation
-    const digitsOnly = value.replace(/\D/g, '');
+    // Check if empty
+    if (!value.trim()) return "";
     
-    if (digitsOnly && !/^91/.test(digitsOnly)) return "Phone number must start with 91";
+    // Check if starts with +
+    if (!value.startsWith('+')) {
+      return "Phone number should start with + followed by country code";
+    }
     
-    if (digitsOnly && digitsOnly.length !== 12) return "Phone number must be exactly 12 digits";
+    // Remove + for validation
+    const digitsOnly = value.substring(1).replace(/\D/g, '');
     
-    if (digitsOnly && !/^91\d{10}$/.test(digitsOnly)) return "Please enter a valid phone number in format: 91 XXXXXXXXXX";
+    // Check if there are digits after +
+    if (digitsOnly.length === 0) {
+      return "Please enter country code and phone number after +";
+    }
+    
+    // Check country code (1-3 digits)
+    if (!/^[1-9]\d{0,2}/.test(digitsOnly)) {
+      return "Invalid country code. Country code should be 1-3 digits starting with 1-9";
+    }
+    
+    // Extract country code (1-3 digits)
+    const countryCodeMatch = digitsOnly.match(/^([1-9]\d{0,2})/);
+    if (!countryCodeMatch) {
+      return "Invalid country code format";
+    }
+    
+    const countryCode = countryCodeMatch[1];
+    const phoneNumber = digitsOnly.substring(countryCode.length);
+    
+    // Check phone number length after country code
+    if (phoneNumber.length < 4) {
+      return `Phone number too short. Need at least 4 digits after country code ${countryCode}`;
+    }
+    
+    if (phoneNumber.length > 12) {
+      return `Phone number too long. Maximum 12 digits after country code`;
+    }
+    
+    // Total length validation (with country code)
+    const totalDigits = digitsOnly.length;
+    if (totalDigits < 7) {
+      return "Phone number too short. Minimum 7 digits total (including country code)";
+    }
+    
+    if (totalDigits > 15) {
+      return "Phone number too long. Maximum 15 digits total (including country code)";
+    }
+    
     return "";
   };
 
@@ -357,23 +439,26 @@ const Profile = () => {
     }));
   };
 
-  // Format phone number as user types (91 XXXXXXXXXX)
+  // Format phone number as user types
   const handlePhoneChange = (value) => {
-    // Remove all non-digit characters
-    let digits = value.replace(/\D/g, '');
+    // Remove all non-digit and non-plus characters
+    let cleaned = value.replace(/[^\d+]/g, '');
     
-    // Limit to 12 digits (91 + 10 digits)
-    digits = digits.substring(0, 12);
-    
-    // Format as 91 XXXXXXXXXX
-    let formatted = digits;
-    if (digits.length > 2) {
-      formatted = `91 ${digits.substring(2)}`;
-    } else if (digits.length > 0) {
-      formatted = digits;
+    // Ensure it starts with + and only one plus at the beginning
+    if (cleaned.includes('+')) {
+      const parts = cleaned.split('+');
+      cleaned = '+' + parts.filter(p => p).join('');
+    } else if (cleaned) {
+      // If user types digits without +, prepend +
+      cleaned = '+' + cleaned;
     }
     
-    handleInputChange("phone", formatted);
+    // Ensure only one + at the beginning
+    if (cleaned.startsWith('++')) {
+      cleaned = '+' + cleaned.substring(2);
+    }
+    
+    handleInputChange("phone", cleaned);
   };
 
   // Validate all fields before submission
@@ -413,6 +498,7 @@ const Profile = () => {
       setProfileData({...originalProfileData});
       setSelectedFile(null);
       setProfileImage(originalImage);
+      setFileError(''); // Clear file error
       // Clear all field errors
       setFieldErrors({
         name: "",
@@ -445,7 +531,7 @@ const Profile = () => {
     if (profileData.name) formData.append("full_name", profileData.name);
     if (profileData.email) formData.append("email", profileData.email);
     if (profileData.phone) {
-      // Remove formatting for backend storage
+      // Remove + and any non-digit characters for backend storage
       const cleanPhone = profileData.phone.replace(/\D/g, '');
       formData.append("phone", cleanPhone);
     }
@@ -582,120 +668,128 @@ const Profile = () => {
         </div>
 
         {/* Profile Card */}
-        <div className="relative w-[770px] h-[344px] rounded-[8px] mx-auto mt-10">
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "20px",
-              padding: "2px",
-              background:
-                "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-              WebkitMask:
-                "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          ></div>
-          <div
-            className="absolute -top-32 -left-32 w-[730px] h-[300px] pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle, rgba(14,255,123,0.25) 0%, transparent 80%)",
-              filter: "blur(150px)",
-              zIndex: 0,
-              border: "1px solid rgba(14, 255, 123, 0.1)",
-            }}
-          />
+<div className="relative w-[770px] min-h-[344px] rounded-[8px] mx-auto mt-10">
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      borderRadius: "20px",
+      padding: "2px",
+      background:
+        "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+      WebkitMask:
+        "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+      WebkitMaskComposite: "xor",
+      maskComposite: "exclude",
+      pointerEvents: "none",
+      zIndex: 0,
+    }}
+  ></div>
+  <div
+    className="absolute -top-32 -left-32 w-[730px] h-[300px] pointer-events-none"
+    style={{
+      background:
+        "radial-gradient(circle, rgba(14,255,123,0.25) 0%, transparent 80%)",
+      filter: "blur(150px)",
+      zIndex: 0,
+      border: "1px solid rgba(14, 255, 123, 0.1)",
+    }}
+  />
 
-          <div className="relative z-10 flex justify-between items-start h-full px-6 py-4">
-            {/* Left */}
-            <div className="flex flex-col mt-4 items-center w-1/2">
-              <div className="flex flex-col items-center space-y-4">
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover object-center border-2 border-[#0EFF7B] shadow-[0px_0px_40px_5px_#0EFF7B80]"
-                />
-                {isEditing && (
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setSelectedFile(e.target.files[0])}
-                    className="mt-2 text-sm file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gradient-to-r file:from-[#025126] file:to-[#0D7F41] file:text-white"
-                  />
-                )}
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold">
-                    {profileData.name || "User"}
-                  </h3>
-                  <div className="flex flex-col space-y-1 mt-2 items-center">
-                    <span className="text-green-500 text-sm">
-                      {profileData.role || "Staff"}
-                    </span>
-                    <span className="text-green-500 text-sm flex items-center">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                      Online
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex space-x-3 mt-6">
-                <button
-                  onClick={handleEditToggle}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm"
-                >
-                  {isEditing ? "Cancel" : "Edit Profile"}
-                </button>
-                <button
-                  onClick={handleChangePassword}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm"
-                >
-                  Change password
-                </button>
-              </div>
-            </div>
-
-            {/* Right */}
-            <div className="flex flex-col mt-5 space-y-8 w-1/2">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <FaEnvelope className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
-                  <p className="text-sm">{profileData.email}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <FaPhone className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
-                  <p className="text-sm">{profileData.phone}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <FaCalendarAlt className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
-                  <p className="text-sm">{profileData.joinedDate}</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <FaMapMarkerAlt className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
-                  <p className="text-sm">{profileData.location}</p>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm">Profile completion</span>
-                  <span className="text-green-500 text-sm font-semibold">
-                    {profileCompletion}%
-                  </span>
-                </div>
-                <div className="bg-gray-300 dark:bg-gray-700 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full"
-                    style={{ width: `${profileCompletion}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
+  <div className="relative z-10 flex justify-between items-start h-full px-6 py-4">
+    {/* Left */}
+    <div className="flex flex-col mt-4 items-center w-1/2">
+      <div className="flex flex-col items-center space-y-4">
+        <img
+          src={profileImage}
+          alt="Profile"
+          className="w-24 h-24 rounded-full object-cover object-center border-2 border-[#0EFF7B] shadow-[0px_0px_40px_5px_#0EFF7B80]"
+        />
+        {isEditing && (
+          <div className="flex flex-col items-center">
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png"
+              onChange={handleFileChange}
+              className="mt-2 text-sm file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gradient-to-r file:from-[#025126] file:to-[#0D7F41] file:text-white"
+            />
+            {fileError && (
+              <p className="text-red-500 text-xs mt-1">{fileError}</p>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Supported formats: JPG, JPEG, PNG (Max 5MB)
+            </p>
+          </div>
+        )}
+        <div className="text-center">
+          <h3 className="text-xl font-semibold">
+            {profileData.name || "User"}
+          </h3>
+          <div className="flex flex-col space-y-1 mt-2 items-center">
+            <span className="text-green-500 text-sm">
+              {profileData.role || "Staff"}
+            </span>
+            <span className="text-green-500 text-sm flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              Online
+            </span>
           </div>
         </div>
+      </div>
+      {/* Buttons - they will cause container to expand if needed */}
+      <div className="flex flex-wrap justify-center gap-2 mt-6">
+        <button
+          onClick={handleEditToggle}
+          className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap"
+        >
+          {isEditing ? "Cancel" : "Edit Profile"}
+        </button>
+        <button
+          onClick={handleChangePassword}
+          className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap"
+        >
+          Change password
+        </button>
+      </div>
+    </div>
 
+    {/* Right */}
+    <div className="flex flex-col mt-5 space-y-8 w-1/2">
+      <div className="space-y-4">
+        <div className="flex items-center space-x-3">
+          <FaEnvelope className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
+          <p className="text-sm">{profileData.email}</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <FaPhone className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
+          <p className="text-sm">{profileData.phone}</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <FaCalendarAlt className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
+          <p className="text-sm">{profileData.joinedDate}</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <FaMapMarkerAlt className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
+          <p className="text-sm">{profileData.location}</p>
+        </div>
+      </div>
+      <div>
+        <div className="flex justify-between mb-2">
+          <span className="text-sm">Profile completion</span>
+          <span className="text-green-500 text-sm font-semibold">
+            {profileCompletion}%
+          </span>
+        </div>
+        <div className="bg-gray-300 dark:bg-gray-700 rounded-full h-3">
+          <div
+            className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full"
+            style={{ width: `${profileCompletion}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
         {/* Personal Info */}
         <div className="mt-10">
           <h2 className="text-lg font-medium mb-4">Personal Information</h2>
@@ -806,6 +900,7 @@ const Profile = () => {
                         ? "bg-white dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B]"
                         : "bg-white dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
                     }`}
+                    placeholder={field === "phone" && isEditing ? "+country code phone number" : ""}
                   />
                 </div>
                 

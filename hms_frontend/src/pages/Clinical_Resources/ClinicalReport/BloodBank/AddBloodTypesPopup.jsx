@@ -248,7 +248,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       );
       console.log("Payload:", payload);
 
-      const response = await fetch(`${API_BASE}/blood-groups/add`, {
+      const response = await fetch(`${API_BASE}/api/blood-groups/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -126,7 +126,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   };
 
   const roles = ["Doctor", "Nurse", "Staff"];
-  const statuses = ["Active", "Inactive"];
+  const statuses = ["Available", "Unavailable", "On Leave"];
 
   const Dropdown = ({ label, value, onChange, options }) => (
     <div>
@@ -139,7 +139,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg z-[9999] border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto">
+          <Listbox.Options className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg  border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-50">
             {options.map((opt, i) => (
               <Listbox.Option
                 key={i}
@@ -261,7 +261,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           <Dropdown label="Status" value={formData.status} onChange={v => setFormData({ ...formData, status: v })} options={statuses} />
         </div>
 
-        <div className="flex justify-center gap-4 mt-8 relative z-10">
+        <div className="flex justify-center gap-4 mt-8 relative ">
           <button onClick={onClose} disabled={loading} className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] bg-white dark:bg-transparent text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] disabled:opacity-50">
             Cancel
           </button>

@@ -321,6 +321,7 @@ os.makedirs(HOSPITALBILLING_DIR, exist_ok=True)
 
 # Mount the static files directory so invoices can be served/downloaded
 app.mount("/invoices_generator", StaticFiles(directory=HOSPITALBILLING_DIR), name="invoices_generator")
+app.mount("/Fastapi_app/Staff_documents", StaticFiles(directory="Fastapi_app/Staff_documents"), name="staff_docs")
 # ==================== HEALTH CHECK ====================
 @app.get("/")
 async def root():

@@ -864,13 +864,18 @@ const AppointmentList = () => {
                     }
                   >
                     <input
-                      type="date"
-                      id="filterDateInput"
-                      name="date"
-                      value={filtersData.date}
-                      onChange={handleFilterChange}
-                      className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
-                    />
+  type="date"
+  id="filterDateInput"
+  name="date"
+  value={filtersData.date}
+  onChange={handleFilterChange}
+  className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B]
+             bg-white text-black outline-none cursor-pointer
+             [appearance:textfield]
+             [&::-webkit-calendar-picker-indicator]:opacity-0
+             [&::-webkit-calendar-picker-indicator]:hidden"
+/>
+
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
                   </div>
                 </div>

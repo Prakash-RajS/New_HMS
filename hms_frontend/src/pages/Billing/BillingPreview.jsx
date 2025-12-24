@@ -15,7 +15,7 @@ import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
 // API Base URL configuration
- const APIBASE =
+const APIBASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
@@ -54,7 +54,7 @@ const BillingPreview = () => {
   const [fullPatient, setFullPatient] = useState(null);
   const [isInsurance, setIsInsurance] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [generatingBill, setGeneratingBill] = useState(false); // New state for bill generation loading
+  const [generatingBill, setGeneratingBill] = useState(false);
   const [billingItems, setBillingItems] = useState([
     {
       sNo: "01",
@@ -99,6 +99,8 @@ const BillingPreview = () => {
       amount: "10000",
     },
   ]);
+  const [unitPriceErrors, setUnitPriceErrors] = useState({});
+  const [quantityErrors, setQuantityErrors] = useState({});
   const [insurances, setInsurances] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const emptyModal = {
@@ -131,7 +133,7 @@ const BillingPreview = () => {
     "Insurance",
     "Credit",
   ];
-  const paymentStatuses = ["Paid", "Pending", "Overdue", "Refunded"];
+  const paymentStatuses = ["Paid", "Pending", "Overdue", "Refunded", "Unpaid"];
 
   useEffect(() => {
     fetchPatients();
@@ -422,6 +424,7 @@ const BillingPreview = () => {
   };
 
   const handleAddService = () => {
+    const newIndex = billingItems.length;
     setBillingItems((prev) => [
       ...prev,
       {
@@ -432,21 +435,71 @@ const BillingPreview = () => {
         amount: "0.00",
       },
     ]);
+    // Clear any existing errors for the new item
+    setUnitPriceErrors((prev) => ({ ...prev, [newIndex]: "" }));
+    setQuantityErrors((prev) => ({ ...prev, [newIndex]: "" }));
   };
 
   const handleBillingChange = (index, field, value) => {
     setBillingItems((prev) => {
       const newItems = [...prev];
       newItems[index] = { ...newItems[index], [field]: value };
-      const qty = parseFloat(newItems[index].quantity) || 0;
-      const price = parseFloat(newItems[index].unitPrice) || 0;
-      newItems[index].amount = (qty * price).toFixed(2);
+      
+      // Validate unit price if it's being changed
+      if (field === "unitPrice") {
+        const unitPrice = parseFloat(value);
+        if (unitPrice < 0) {
+          setUnitPriceErrors((prevErrors) => ({
+            ...prevErrors,
+            [index]: "Unit price cannot be negative",
+          }));
+        } else {
+          setUnitPriceErrors((prevErrors) => ({
+            ...prevErrors,
+            [index]: "",
+          }));
+        }
+      }
+      
+      // Validate quantity if it's being changed
+      if (field === "quantity") {
+        const quantity = parseFloat(value);
+        if (quantity < 0) {
+          setQuantityErrors((prevErrors) => ({
+            ...prevErrors,
+            [index]: "Quantity cannot be negative",
+          }));
+        } else {
+          setQuantityErrors((prevErrors) => ({
+            ...prevErrors,
+            [index]: "",
+          }));
+        }
+      }
+      
+      // Recalculate amount if quantity or unitPrice changes
+      if (field === "quantity" || field === "unitPrice") {
+        const qty = parseFloat(newItems[index].quantity) || 0;
+        const price = parseFloat(newItems[index].unitPrice) || 0;
+        newItems[index].amount = (qty * price).toFixed(2);
+      }
       return newItems;
     });
   };
 
   const handleDeleteBilling = (index) => {
     setBillingItems((prev) => prev.filter((_, i) => i !== index));
+    // Remove the errors for the deleted item
+    setUnitPriceErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[index];
+      return newErrors;
+    });
+    setQuantityErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[index];
+      return newErrors;
+    });
   };
 
   const handleEditInsurance = (index) => {
@@ -522,6 +575,15 @@ const BillingPreview = () => {
   const formattedGrand = parseFloat(grand).toLocaleString();
 
   const handleGenerateBill = async () => {
+    // Check if there are any validation errors
+    const hasUnitPriceErrors = Object.values(unitPriceErrors).some(error => error);
+    const hasQuantityErrors = Object.values(quantityErrors).some(error => error);
+    
+    if (hasUnitPriceErrors || hasQuantityErrors) {
+      errorToast("Please fix validation errors before generating the bill");
+      return;
+    }
+
     if (!patientInfo.patientID) {
       errorToast("Please select a patient first");
       return;
@@ -537,7 +599,7 @@ const BillingPreview = () => {
     }
 
     try {
-      setGeneratingBill(true); // Start loading
+      setGeneratingBill(true);
 
       const token = localStorage.getItem("token");
       const today = new Date().toISOString().split("T")[0];
@@ -683,7 +745,7 @@ const BillingPreview = () => {
         errorToast("Failed to generate invoice PDF");
       }
     } finally {
-      setGeneratingBill(false); // Stop loading
+      setGeneratingBill(false);
     }
   };
 
@@ -1428,32 +1490,46 @@ const BillingPreview = () => {
                     />
                   </td>
                   <td className="p-2">
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) =>
-                        handleBillingChange(index, "quantity", e.target.value)
-                      }
-                      className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{
-                        border: "2px solid #0EFF7B1A",
-                        boxShadow: "0px 0px 2px 0px #0EFF7B",
-                      }}
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          handleBillingChange(index, "quantity", e.target.value)
+                        }
+                        className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
+                        style={{
+                          border: "2px solid #0EFF7B1A",
+                          boxShadow: "0px 0px 2px 0px #0EFF7B",
+                        }}
+                      />
+                      {quantityErrors[index] && (
+                        <div className="text-red-500 dark:text-red-500 text-xs mt-1 ml-1">
+                          {quantityErrors[index]}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-2">
-                    <input
-                      type="number"
-                      value={item.unitPrice}
-                      onChange={(e) =>
-                        handleBillingChange(index, "unitPrice", e.target.value)
-                      }
-                      className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                      style={{
-                        border: "2px solid #0EFF7B1A",
-                        boxShadow: "0px 0px 2px 0px #0EFF7B",
-                      }}
-                    />
+                    <div>
+                      <input
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(e) =>
+                          handleBillingChange(index, "unitPrice", e.target.value)
+                        }
+                        className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
+                        style={{
+                          border: "2px solid #0EFF7B1A",
+                          boxShadow: "0px 0px 2px 0px #0EFF7B",
+                        }}
+                      />
+                      {unitPriceErrors[index] && (
+                        <div className="text-red-500 dark:text-red-500 text-xs mt-1 ml-1">
+                          {unitPriceErrors[index]}
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="p-2">
                     <input
@@ -1538,7 +1614,9 @@ const BillingPreview = () => {
                   background:
                     "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
                 }}
-                disabled={generatingBill}
+                disabled={generatingBill || 
+                  Object.values(unitPriceErrors).some(error => error) || 
+                  Object.values(quantityErrors).some(error => error)}
                 onClick={handleGenerateBill}
               >
                 {generatingBill ? (

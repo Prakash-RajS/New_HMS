@@ -167,20 +167,53 @@ const EditPatientPopup = ({
   };
 
   // Phone validation (exactly 10 digits)
-  const handlePhoneChange = (value) => {
-    const digitsOnly = value.replace(/\D/g, "");
-    if (digitsOnly.length <= 10) {
-      setFormData((prev) => ({ ...prev, phone_number: digitsOnly }));
-      if (digitsOnly.length === 10) {
-        setPhoneError("");
-      } else if (digitsOnly.length > 0) {
-        setPhoneError("Phone number must be exactly 10 digits");
-      } else {
-        setPhoneError("");
-      }
-    }
-  };
+  const isValidPhoneNumber = (phone) => {
+  // Must be exactly 10 digits
+  if (!/^\d{10}$/.test(phone)) return false;
+  
+  // Check for invalid patterns
+  const invalidPatterns = [
+    /^0+$/,                         // All zeros
+    /^1+$/,                         // All ones
+    /^2+$/,                         // All twos (and so on...)
+    /^3+$/,
+    /^4+$/,
+    /^5+$/,
+    /^6+$/,
+    /^7+$/,
+    /^8+$/,
+    /^9+$/,
+    /^(\d)\1{9}$/,                  // All same digit
+    /^1234567890$/,                 // Sequential ascending
+    /^0987654321$/,                 // Sequential descending
+    /^(\d{2})\1{4}$/,               // Repeated pairs (e.g., 1212121212)
+    /^(\d{3})\1{2}\d{1}$/,          // Repeated triplets
+    /^(\d{5})\1$/,                  // Repeated 5-digit pattern
+  ];
+  
+  // Check if phone matches any invalid pattern
+  return !invalidPatterns.some(pattern => pattern.test(phone));
+};
 
+// Update the handlePhoneChange function:
+const handlePhoneChange = (value) => {
+  const digitsOnly = value.replace(/\D/g, "");
+  if (digitsOnly.length <= 10) {
+    setFormData((prev) => ({ ...prev, phone_number: digitsOnly }));
+    
+    if (digitsOnly.length === 10) {
+      if (isValidPhoneNumber(digitsOnly)) {
+        setPhoneError("");
+      } else {
+        setPhoneError("Please enter a valid phone number");
+      }
+    } else if (digitsOnly.length > 0) {
+      setPhoneError("Phone number must be exactly 10 digits");
+    } else {
+      setPhoneError("");
+    }
+  }
+};
   // Department change → clear doctor
   const handleDeptChange = (deptId) => {
     setFormData((prev) => ({
@@ -194,10 +227,16 @@ const EditPatientPopup = ({
   const handleUpdate = async () => {
     // Final phone validation
     if (formData.phone_number.length !== 10) {
-      setPhoneError("Phone number must be exactly 10 digits");
-      errorToast("Please enter a valid 10-digit phone number");
-      return;
-    }
+    setPhoneError("Phone number must be exactly 10 digits");
+    errorToast("Please enter a valid 10-digit phone number");
+    return;
+  }
+  
+  if (!isValidPhoneNumber(formData.phone_number)) {
+    setPhoneError("Please enter a valid phone number");
+    errorToast("Please enter a valid phone number (e.g., 9876543210)");
+    return;
+  }
 
     if (!formData?.patient_unique_id) {
       errorToast("Patient ID is missing!");

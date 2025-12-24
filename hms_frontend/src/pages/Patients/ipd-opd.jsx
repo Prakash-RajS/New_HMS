@@ -908,107 +908,130 @@ const AppointmentListIPD = () => {
 
   // ---------- CLIENT-SIDE FILTERING FUNCTION ----------
   const applyClientSideFilter = (allPatients, patientType) => {
-    if (!allPatients || allPatients.length === 0) {
-      setAppointments([]);
-      setTotal(0);
-      setPages(1);
-      return;
-    }
+  if (!allPatients || allPatients.length === 0) {
+    setAppointments([]);
+    setTotal(0);
+    setPages(1);
+    return;
+  }
+  
+  let filteredData = [...allPatients];
+  
+  // Apply patient type filter based on activeTab
+  if (patientType === "In-Patients") {
+    filteredData = filteredData.filter(patient => 
+      patient.patient_type === "in-patient" && patient.status !== "Completed"
+    );
+  } else if (patientType === "Out-Patients") {
+    filteredData = filteredData.filter(patient => 
+      patient.patient_type === "out-patient"
+    );
+  }
+  
+  // Apply status filter
+  if (activeFilter && activeFilter !== "All") {
+    filteredData = filteredData.filter(patient => {
+      return patient.status === activeFilter;
+    });
+  }
+  
+  // Apply search filter
+  if (search) {
+    const searchLower = search.toLowerCase();
+    filteredData = filteredData.filter(patient => 
+      patient.patient.toLowerCase().includes(searchLower) || 
+      (patient.patientId && patient.patientId.toLowerCase().includes(searchLower))
+    );
+  }
+  
+  // Apply other filters from filter popup
+  if (filters.patientName) {
+    const nameLower = filters.patientName.toLowerCase();
+    filteredData = filteredData.filter(patient => 
+      patient.patient.toLowerCase().includes(nameLower)
+    );
+  }
+  
+  if (filters.patientId) {
+    filteredData = filteredData.filter(patient => 
+      patient.patientId && patient.patientId.includes(filters.patientId)
+    );
+  }
+  
+  // FIXED: Department filter - find department name from ID
+  if (filters.department && filters.department !== "") {
+    // Try to get department name from filterDepartments
+    let deptNameToMatch = filters.department;
     
-    let filteredData = [...allPatients];
-    
-    // Apply patient type filter based on activeTab
-    if (patientType === "In-Patients") {
-      filteredData = filteredData.filter(patient => 
-        patient.patient_type === "in-patient" && patient.status !== "Completed"
+    // If filterDepartments is populated, try to find the department
+    if (filterDepartments.length > 0) {
+      const foundDept = filterDepartments.find(dept => 
+        dept.id === filters.department || 
+        dept.department_id === filters.department
       );
-      console.log("Filtering for In-Patients (excluding Completed):", filteredData.length);
-    } else if (patientType === "Out-Patients") {
-      filteredData = filteredData.filter(patient => 
-        patient.patient_type === "out-patient"
-      );
-      console.log("Filtering for Out-Patients:", filteredData.length);
-    }
-    
-    // Apply status filter (removed "Completed")
-    if (activeFilter && activeFilter !== "All") {
-      filteredData = filteredData.filter(patient => {
-        const matches = patient.status === activeFilter;
-        console.log(`Patient ${patient.patient} status: ${patient.status}, filter: ${activeFilter}, matches: ${matches}`);
-        return matches;
-      });
-    }
-    
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredData = filteredData.filter(patient => 
-        patient.patient.toLowerCase().includes(searchLower) || 
-        (patient.patientId && patient.patientId.toLowerCase().includes(searchLower))
-      );
-    }
-    
-    // Apply other filters from filter popup
-    if (filters.patientName) {
-      const nameLower = filters.patientName.toLowerCase();
-      filteredData = filteredData.filter(patient => 
-        patient.patient.toLowerCase().includes(nameLower)
-      );
-    }
-    if (filters.patientId) {
-      filteredData = filteredData.filter(patient => 
-        patient.patientId && patient.patientId.includes(filters.patientId)
-      );
-    }
-    if (filters.department && filters.department !== "") {
-      filteredData = filteredData.filter(patient => 
-        patient.department === filters.department
-      );
-    }
-    if (filters.doctor && filters.doctor !== "") {
-      filteredData = filteredData.filter(patient => 
-        patient.doctor === filters.doctor
-      );
-    }
-    if (filters.status && filters.status !== "") {
-      filteredData = filteredData.filter(patient => 
-        patient.status === filters.status
-      );
-    }
-    if (filters.date) {
-      try {
-        const filterDate = new Date(filters.date).toLocaleDateString("en-GB");
-        filteredData = filteredData.filter(patient => 
-          patient.date === filterDate
-        );
-      } catch (e) {
-        console.error("Date filter error:", e);
+      
+      if (foundDept) {
+        // Use the department name for comparison
+        deptNameToMatch = foundDept.name || foundDept.department_name || filters.department;
       }
     }
     
-    // Calculate pagination
-    const totalFiltered = filteredData.length;
-    const totalPages = Math.ceil(totalFiltered / perPage);
-    const currentPage = Math.min(page, totalPages || 1);
-    const startIndex = (currentPage - 1) * perPage;
-    const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
-    
-    console.log("Filtered data:", {
-      patientType: patientType,
-      total: totalFiltered,
-      pages: totalPages,
-      currentPage: currentPage,
-      showing: paginatedData.length,
-      activeFilter: activeFilter
-    });
-    
-    setAppointments(paginatedData);
-    setTotal(totalFiltered);
-    setPages(totalPages || 1);
-    if (currentPage !== page) {
-      setPage(currentPage);
+    console.log("Filtering by department:", deptNameToMatch);
+    filteredData = filteredData.filter(patient => 
+      patient.department === deptNameToMatch
+    );
+  }
+  
+  // FIXED: Doctor filter - handle potential ID vs name mismatch
+  if (filters.doctor && filters.doctor !== "") {
+    filteredData = filteredData.filter(patient => 
+      patient.doctor === filters.doctor || 
+      patient.doctor.includes(filters.doctor)
+    );
+  }
+  
+  if (filters.status && filters.status !== "") {
+    filteredData = filteredData.filter(patient => 
+      patient.status === filters.status
+    );
+  }
+  
+  if (filters.date) {
+    try {
+      const filterDate = new Date(filters.date).toLocaleDateString("en-GB");
+      filteredData = filteredData.filter(patient => 
+        patient.date === filterDate
+      );
+    } catch (e) {
+      console.error("Date filter error:", e);
     }
-  };
+  }
+  
+  // Calculate pagination
+  const totalFiltered = filteredData.length;
+  const totalPages = Math.ceil(totalFiltered / perPage);
+  const currentPage = Math.min(page, totalPages || 1);
+  const startIndex = (currentPage - 1) * perPage;
+  const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
+  
+  console.log("Filter results:", {
+    departmentFilter: filters.department,
+    filteredCount: totalFiltered,
+    showing: paginatedData.length,
+    samplePatients: paginatedData.slice(0, 3).map(p => ({
+      name: p.patient,
+      department: p.department,
+      status: p.status
+    }))
+  });
+  
+  setAppointments(paginatedData);
+  setTotal(totalFiltered);
+  setPages(totalPages || 1);
+  if (currentPage !== page) {
+    setPage(currentPage);
+  }
+};
 
   // Initial load - fetch ALL data
   useEffect(() => {
@@ -1107,7 +1130,7 @@ const AppointmentListIPD = () => {
       date: "",
     });
     setActiveFilter("All");
-    setShowFilter(false);
+    //SetShowFilter(false);
     setPage(1);
     if (allAppointments.length > 0) {
       applyClientSideFilter(allAppointments, activeTab);
@@ -1636,12 +1659,7 @@ const AppointmentListIPD = () => {
                   }
                   loading={loadingFilterDepts}
                 />
-                <Dropdown
-                  label="Status"
-                  value={filters.status}
-                  onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["New", "Normal", "Severe", "Cancelled"]} // Removed "Completed"
-                />
+                
                 <Dropdown
                   label="Doctor"
                   value={filters.doctor}
@@ -1656,22 +1674,35 @@ const AppointmentListIPD = () => {
                   }
                   loading={loadingFilterDocs}
                 />
+                <Dropdown
+                  label="Status"
+                  value={filters.status}
+                  onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
+                  options={["New", "Normal", "Severe", "Cancelled"]} // Removed "Completed"
+                />
                 <div>
                   <label className="text-sm text-black dark:text-white">
                     Date
                   </label>
                   <div className="relative mt-1">
                     <input
-                      id="dateInput"
-                      type="date"
-                      name="date"
-                      value={filters.date}
-                      onChange={onFilterChange}
-                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
-                      onClick={(e) => e.target.showPicker()}
-                    />
+  id="dateInput"
+  type="date"
+  name="date"
+  value={filters.date}
+  onChange={onFilterChange}
+  onClick={(e) => e.target.showPicker()}
+  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
+             border border-[#0EFF7B] dark:border-[#3A3A3A]
+             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+             outline-none cursor-pointer
+             appearance-none
+             [&::-webkit-calendar-picker-indicator]:opacity-0
+             [&::-webkit-calendar-picker-indicator]:hidden"
+/>
+
                     <Calendar
-                      className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
                       onClick={() =>
                         document.getElementById("dateInput").showPicker()
                       }

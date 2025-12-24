@@ -268,7 +268,7 @@
 //   );
 // }
 
-import { useState, useContext, useEffect } from "react";
+import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
 import {
@@ -281,14 +281,9 @@ import {
   Pill,
   Boxes,
   ClipboardList,
-  FileText,
   DollarSign,
-  ReceiptText,
-  CreditCard,
   Microscope,
   BarChart3,
-  Activity,
-  Droplet,
   HeartPulse,
   Calendar,
   Ambulance,
@@ -298,7 +293,7 @@ import {
 } from "lucide-react";
 import { usePermissions } from "./PermissionContext";
 
-// Define all menu items with their permission mappings
+// === MENU ITEMS WITH EXACT PERMISSION KEYS FROM YOUR MODEL ===
 const menuItems = [
   {
     name: "Dashboard",
@@ -313,11 +308,11 @@ const menuItems = [
     permission: "appointments",
   },
 
+  // Patients
   {
     name: "Patients",
     path: "/patients",
     icon: Users,
-    permission: "patients_view",
     dropdown: [
       {
         name: "New Registration",
@@ -342,11 +337,11 @@ const menuItems = [
     ],
   },
 
+  // Administration
   {
     name: "Administration",
     path: "/Administration",
     icon: Building2,
-    permission: "departments",
     dropdown: [
       {
         name: "Departments",
@@ -371,14 +366,20 @@ const menuItems = [
         icon: UserCog,
         permission: "staff_management",
       },
+      {
+        name: "Bed Management",
+        path: "/Administration/BedManagement",
+        icon: Bed,
+        permission: "bed_management",
+      },
     ],
   },
 
+  // Pharmacy
   {
     name: "Pharmacy",
     path: "/Pharmacy",
     icon: Pill,
-    permission: "pharmacy_inventory",
     dropdown: [
       {
         name: "Stock & Inventory",
@@ -395,11 +396,11 @@ const menuItems = [
     ],
   },
 
+  // Doctors / Nurse
   {
     name: "Doctors / Nurse",
     path: "/Doctors-Nurse",
     icon: ShieldCheck,
-    permission: "doctors_manage",
     dropdown: [
       {
         name: "Add Doctor / Nurse",
@@ -418,25 +419,25 @@ const menuItems = [
         permission: "doctors_manage",
       },
       {
-        name: "MedicineAllocation",
+        name: "Medicine Allocation",
         path: "/Doctors-Nurse/MedicineAllocation",
         icon: Pill,
         permission: "medicine_allocation",
       },
       {
-              name: "Appointment Calendar", // ADDED TO DOCTORS/NURSE DROPDOWN
-              path: "/appointments/calendar",
-              icon: Calendar,
-              permission: "doctors_manage", // Same permission as other doctor items
-            },
+        name: "Appointment Calendar",
+        path: "/appointments/calendar",
+        icon: Calendar,
+        permission: "appointments", // or "doctors_manage" if you prefer
+      },
     ],
   },
 
+  // Clinical Resources
   {
     name: "Clinical Resources",
     path: "/ClinicalResources",
     icon: Microscope,
-    permission: "lab_reports",
     dropdown: [
       {
         name: "Laboratory Reports",
@@ -475,30 +476,39 @@ const menuItems = [
   },
 ];
 
+// Recursive MenuItem - unchanged design, only logic fixed
 const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const hasDropdown = item.dropdown && item.dropdown.length > 0;
-  const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
 
-  // Check if user has permission for this menu item
-  const userHasPermission = hasPermission(item.permission);
+  // Filter visible children
+  const visibleChildren = hasDropdown
+    ? item.dropdown.filter((child) =>
+        child.permission ? hasPermission(child.permission) : true
+      )
+    : [];
 
-  // If user doesn't have permission, don't render the menu item
-  if (!userHasPermission) {
+  // Hide parent if no children visible
+  if (hasDropdown && visibleChildren.length === 0) {
+    return null;
+  }
+
+  // Hide standalone item if no permission
+  if (!hasDropdown && item.permission && !hasPermission(item.permission)) {
     return null;
   }
 
   const isParentActive = item.paths
-    ? item.paths.includes(location.pathname)
-    : location.pathname.startsWith(item.path + "/");
+    ? item.paths.some((p) => location.pathname.startsWith(p))
+    : location.pathname.startsWith(item.path);
 
   const isExactActive = item.paths
     ? item.paths.includes(location.pathname)
     : location.pathname === item.path;
 
   const Icon = item.icon;
-
+  const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
   const iconSizeClass = level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
 
@@ -549,11 +559,11 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
             className="overflow-hidden transition-all duration-500 ease-in-out"
             style={{ maxHeight: isOpen ? "500px" : "0px" }}
           >
-            <ul className="mt-2 gap-[10px] flex flex-col gap-0.5 font-[Helvetica]">
-              {item.dropdown.map((subItem, subIdx) => (
+            <ul className="mt-2 flex flex-col gap-0.5 font-[Helvetica]">
+              {visibleChildren.map((child, idx) => (
                 <MenuItem
-                  key={subIdx}
-                  item={subItem}
+                  key={idx}
+                  item={child}
                   level={level + 1}
                   isCollapsed={isCollapsed}
                   hasPermission={hasPermission}
@@ -565,37 +575,20 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
       ) : (
         <NavLink
           to={item.path}
-          className={() => {
-            const active = item.paths
-              ? item.paths.includes(location.pathname)
-              : location.pathname === item.path;
-            return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 cursor-pointer transition-all duration-200 rounded-[8px]
-              ${
-                level === 0
-                  ? active
-                    ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                    : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
-                  : active
-                  ? "bg-[#0EFF7B1A] text-[#08994A] dark:text-white"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
-              }`;
-          }}
+          className={`w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
+            ${
+              isExactActive
+                ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+                : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+            }`}
         >
-          {() => (
-            <>
-              <Icon
-                className={`${iconSizeClass} ${
-                  isExactActive || isParentActive
-                    ? "text-[#08994A]"
-                    : "text-[#08994A] dark:text-emerald-500"
-                }`}
-              />
-              {!isCollapsed && (
-                <span className={`${textSizeClass} font-[Helvetica]`}>
-                  {item.name}
-                </span>
-              )}
-            </>
+          <Icon
+            className={`${iconSizeClass} text-[#08994A] dark:text-emerald-500`}
+          />
+          {!isCollapsed && (
+            <span className={`${textSizeClass} font-[Helvetica]`}>
+              {item.name}
+            </span>
           )}
         </NavLink>
       )}
@@ -606,23 +599,14 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const { hasPermission, currentUser, loading } = usePermissions();
 
-  // Add debug logging to see what's happening
-  console.log("🔄 Sidebar Debug Info:");
-  console.log("Current User:", currentUser);
-  console.log("Loading:", loading);
-  console.log("Is Superuser:", currentUser?.is_superuser);
-  console.log("User Role:", currentUser?.role);
-
-  // If still loading, show loading state
   if (loading) {
     return (
       <div
-        className={`mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300`}
+        className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
         style={{
           width: isCollapsed ? "80px" : "220px",
           height: "calc(100vh - 110px)",
           minHeight: "590px",
-          maxHeight: "1860px",
         }}
       >
         <div className="flex-1 p-3 flex items-center justify-center">
@@ -632,35 +616,25 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     );
   }
 
-  // Filter menu items based on permissions
+  // Filter top-level items: show if standalone has permission OR any child has permission
   const filteredMenuItems = menuItems.filter((item) => {
-    // Check if user has permission for this main menu item
-    if (!hasPermission(item.permission)) return false;
-
-    // For dropdown items, check if any child item is accessible
-    if (item.dropdown) {
-      const accessibleChildren = item.dropdown.filter((child) =>
-        hasPermission(child.permission)
-      );
-      return accessibleChildren.length > 0;
+    if (!item.dropdown) {
+      return !item.permission || hasPermission(item.permission);
     }
-
-    return true;
+    return item.dropdown.some(
+      (child) => !child.permission || hasPermission(child.permission)
+    );
   });
-
-  console.log("📋 Filtered Menu Items Count:", filteredMenuItems.length);
 
   return (
     <div
-      className={`mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300`}
+      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
         minHeight: "590px",
-        maxHeight: "1860px",
       }}
     >
-      {/* Border gradient layer */}
       <div
         className="absolute inset-0 rounded-[8px] p-[1.5px] pointer-events-none"
         style={{
@@ -674,7 +648,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         }}
       ></div>
 
-      {/* Dark overlay for dark mode */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -684,7 +657,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         }}
       ></div>
 
-      {/* Header */}
       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4 relative z-10">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -716,7 +688,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         )}
       </div>
 
-      {/* Menu Items */}
       <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10">
         <ul className="flex flex-col gap-1.5">
           {filteredMenuItems.map((item, idx) => (
@@ -729,7 +700,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
           ))}
         </ul>
 
-        {/* Show message if no menu items are accessible */}
         {filteredMenuItems.length === 0 && (
           <div className="text-center p-4 text-gray-500 dark:text-gray-400">
             No accessible menu items

@@ -537,6 +537,7 @@
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
 
+#Fastapi_app/routers/new_registration.py
 import os
 import logging
 from datetime import datetime
@@ -588,14 +589,33 @@ async def get_departments():
 
 
 # ---------- 2. GET Staff ----------
+# @router.get("/staff")
+# async def get_staff(department_id: int = Query(...)):
+#     if department_id <= 0:
+#         raise HTTPException(400, "department_id required")
+#     await run_in_threadpool(Department.objects.get, id=department_id, status="active")
+#     staff = await run_in_threadpool(
+#         lambda: list(
+#             Staff.objects.filter(department_id=department_id, status="active")
+#             .values("id", "full_name", "designation")
+#             .order_by("full_name")
+#         )
+#     )
+#     return {"staff": staff}
 @router.get("/staff")
 async def get_staff(department_id: int = Query(...)):
     if department_id <= 0:
         raise HTTPException(400, "department_id required")
+    
     await run_in_threadpool(Department.objects.get, id=department_id, status="active")
+    
     staff = await run_in_threadpool(
         lambda: list(
-            Staff.objects.filter(department_id=department_id, status="active")
+            Staff.objects.filter(
+                department_id=department_id,
+                status="active",
+                designation__iexact="Doctor"   # ← ONLY DOCTORS
+            )
             .values("id", "full_name", "designation")
             .order_by("full_name")
         )

@@ -141,10 +141,11 @@ from django.db import models
 from django.utils import timezone
 
 class Staff(models.Model):
-    # 🔹 Basic Information
+    # Basic Information
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     full_name = models.CharField(max_length=255)
     date_of_birth = models.DateField(null=True, blank=True)
+    blood_group = models.CharField(max_length=5, blank=True, null=True)
     gender = models.CharField(max_length=20, null=True, blank=True)
     age = models.IntegerField(null=True, blank=True)
     marital_status = models.CharField(max_length=50, null=True, blank=True)

@@ -118,7 +118,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
         last_donation_date: formatDateForAPI(formData.last_donation_date),
       };
       console.log("🟡 Sending update data:", updateData);
-      const response = await fetch(`${API_BASE}/donors/${donor.id}`, {
+      const response = await fetch(`${API_BASE}/api/donors/${donor.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),

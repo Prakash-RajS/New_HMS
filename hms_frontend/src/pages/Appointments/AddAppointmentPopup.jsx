@@ -1,17 +1,21 @@
 // src/components/AddAppointmentPopup.jsx
 import React, { useState, useEffect } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X,Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
 
 const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
 
 // ── Get tomorrow's date for default (MOVE THIS UP) ────────────────────────────────
@@ -816,26 +820,55 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             </div>
             {/* Appointment Date */}
             <div>
-              <label className="text-sm text-black dark:text-white">
-                Appointment Date <span className="text-red-700">*</span>
-              </label>
-              <input
-                type="date"
-                value={formData.appointment_date}
-                onChange={(e) => handleInputChange("appointment_date", e.target.value)}
-                onFocus={() => setFocusedField("appointment_date")}
-                onBlur={() => setFocusedField(null)}
-                min={new Date().toISOString().split('T')[0]}
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
-                           outline-none text-black dark:text-[#0EFF7B]
-                           ${focusedField === "appointment_date" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-              />
-              {fieldErrors.appointment_date && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.appointment_date}</span>
-                </div>
-              )}
-            </div>
+  <label className="text-sm text-black dark:text-white">
+    Appointment Date <span className="text-red-700">*</span>
+  </label>
+
+  <div className="relative mt-1">
+    <input
+      type="date"
+      id="appointment_date"
+      value={formData.appointment_date}
+      onChange={(e) =>
+        handleInputChange("appointment_date", e.target.value)
+      }
+      onFocus={() => setFocusedField("appointment_date")}
+      onBlur={() => setFocusedField(null)}
+      min={new Date().toISOString().split("T")[0]} // ✅ upcoming dates only
+      className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
+                  bg-white dark:bg-transparent outline-none
+                  text-black dark:text-[#0EFF7B] cursor-pointer
+                  appearance-none
+                  [&::-webkit-calendar-picker-indicator]:opacity-0
+                  [&::-webkit-calendar-picker-indicator]:hidden
+                  ${
+                    focusedField === "appointment_date"
+                      ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  }`}
+    />
+
+    {/* Custom calendar icon */}
+    <Calendar
+      size={18}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer"
+      onClick={() =>
+        document.getElementById("appointment_date")?.showPicker()
+      }
+    />
+  </div>
+
+  {fieldErrors.appointment_date && (
+    <div className="mt-1">
+      <span className="text-red-700 dark:text-red-500 text-xs">
+        {fieldErrors.appointment_date}
+      </span>
+    </div>
+  )}
+</div>
+
+
+
             {/* Appointment Time */}
             <div>
               <label className="text-sm text-black dark:text-white">

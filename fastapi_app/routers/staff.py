@@ -28,6 +28,7 @@ class StaffResponse(BaseModel):
     phone: str
     gender: Optional[str] = None
     age: Optional[int] = None
+    blood_group: Optional[str] = None
     department: str
     designation: str
     specialization: Optional[str] = None
@@ -93,6 +94,7 @@ async def add_staff(
     date_of_birth: Optional[str] = Form(None),
     gender: Optional[str] = Form(None),
     age: Optional[int] = Form(None),
+    blood_group: Optional[str] = Form(None),
     marital_status: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     phone: str = Form(...),
@@ -198,6 +200,7 @@ async def add_staff(
             'date_of_birth': dob,
             'gender': gender,
             'age': age,
+            'blood_group': blood_group,
             'marital_status': marital_status,
             'address': address,
             'national_id': national_id,
@@ -304,6 +307,7 @@ async def add_staff(
             phone=final_staff.phone,
             gender=final_staff.gender,
             age=final_staff.age,
+            blood_group=final_staff.blood_group,
             department=final_staff.department.name if final_staff.department else "N/A",
             designation=final_staff.designation,
             specialization=final_staff.specialization,
@@ -352,6 +356,7 @@ async def get_all_staff():
                         'phone': safe_getattr(s, 'phone', ''),
                         'gender': safe_getattr(s, 'gender'),
                         'age': safe_getattr(s, 'age'),
+                        'blood_group': safe_getattr(s, 'blood_group'),
                         'department': s.department.name if s.department else "N/A",
                         'designation': safe_getattr(s, 'designation', ''),
                         'specialization': safe_getattr(s, 'specialization'),
@@ -392,6 +397,7 @@ async def update_staff(
     date_of_birth: Optional[str] = Form(None),
     gender: Optional[str] = Form(None),
     age: Optional[int] = Form(None),
+    blood_group: Optional[str] = Form(None),
     marital_status: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     phone: Optional[str] = Form(None),
@@ -434,6 +440,7 @@ async def update_staff(
                         staff.date_of_birth = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
                 if gender: staff.gender = gender
                 if age: staff.age = age
+                if blood_group: staff.blood_group = blood_group
                 if marital_status: staff.marital_status = marital_status
                 if address: staff.address = address
                 if phone: staff.phone = phone
@@ -524,6 +531,9 @@ async def update_staff(
             full_name=staff.full_name,
             email=staff.email,
             phone=staff.phone,
+            gender=staff.gender,
+            age=staff.age,
+            blood_group=staff.blood_group,
             department=staff.department.name if staff.department else "",
             designation=staff.designation,
             specialization=staff.specialization,
@@ -574,6 +584,7 @@ async def get_staff_by_id(staff_id: int):
             phone=staff.phone,
             gender=staff.gender,
             age=staff.age,
+            blood_group=staff.blood_group,
             shift_timing=staff.shift_timing,
             department=staff.department.name if staff.department else "",
             designation=staff.designation,

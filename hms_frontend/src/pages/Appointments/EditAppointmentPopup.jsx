@@ -7,11 +7,15 @@ import { successToast, errorToast } from "../../components/Toast.jsx";
 const API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/appointments"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000/appointments"
     : "http://localhost:8000/appointments";
 
 const BED_API =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000/bedgroups"
+    : window.location.hostname === "3.133.64.23"
+    ? "http://3.133.64.23:8000/bedgroups"
     : "http://localhost:8000/bedgroups";
 
 export default function EditAppointmentPopup({
@@ -532,14 +536,21 @@ export default function EditAppointmentPopup({
                 className="relative cursor-pointer"
               >
                 <input
-                  type="date"
-                  value={formData.appointment_date}
-                  onChange={(e) => handleInputChange("appointment_date", e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-[#0EFF7B] 
-                             dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
-                             dark:text-[#0EFF7B] outline-none cursor-pointer w-full"
-                />
+  type="date"
+  value={formData.appointment_date}
+  onChange={(e) =>
+    handleInputChange("appointment_date", e.target.value)
+  }
+  min={new Date().toISOString().split("T")[0]}
+  className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
+             border border-[#0EFF7B] dark:border-[#3A3A3A]
+             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+             outline-none cursor-pointer
+             appearance-none
+             [&::-webkit-calendar-picker-indicator]:opacity-0
+             [&::-webkit-calendar-picker-indicator]:hidden"
+/>
+
                 <Calendar
                   size={18}
                   className="absolute right-3 top-3 text-[#0EFF7B]"

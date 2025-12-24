@@ -17,7 +17,7 @@ import {
   Edit2,
 } from "lucide-react";
 
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
@@ -91,6 +91,71 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   );
 };
 
+const CloseConfirmPopup = ({ onConfirm, onCancel }) => (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="rounded-[20px] p-[1px] backdrop-blur-md">
+      <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-5 relative">
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
+        <div className="relative z-10">
+          <div className="flex justify-between items-center mb-4">
+            <h2
+              className="text-black dark:text-white font-medium text-[16px] leading-[19px]"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Unsaved Changes
+            </h2>
+            <button
+              onClick={onCancel}
+              className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+            >
+              <X size={16} className="text-[#08994A] dark:text-white" />
+            </button>
+          </div>
+          <p
+            className="text-sm text-black dark:text-white mb-6"
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            You have unsaved changes. Are you sure you want to close?
+          </p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={onCancel}
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-black dark:bg-transparent dark:text-white"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Continue Editing
+            </button>
+            <button
+              onClick={onConfirm}
+              className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center
+   bg-gradient-to-r from-[#FF4D4D] to-[#B30000]
+   text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition shadow-[0_2px_12px_0px_#00000040]"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              Discard Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const StockInventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -144,7 +209,12 @@ const StockInventory = () => {
   const [formErrors, setFormErrors] = useState({});
   const [inventoryData, setInventoryData] = useState([]);
   const [openDropdownId, setOpenDropdownId] = useState(null);
+  const [isEditFormChanged, setIsEditFormChanged] = useState(false);
+  const [initialEditForm, setInitialEditForm] = useState(null);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [popupToClose, setPopupToClose] = useState(null);
   const dropdownRefs = useRef({});
+  
   const categories = [
     "Local Anesthesia",
     "Antiseptics",
@@ -154,7 +224,33 @@ const StockInventory = () => {
     "Steroid",
     "Antifungal",
   ];
+  
   const itemsPerPage = 9;
+
+  // Field length constraints
+  const FIELD_LIMITS = {
+    product_name: 100,
+    dosage: 50,
+    batch_number: 50,
+    vendor: 100,
+    vendor_id: 50,
+    item_code: 50,
+    rack_no: 20,
+    shelf_no: 20,
+  };
+
+  // Validation helper functions
+  const validateDosageFormat = (dosage) => {
+    if (!dosage || dosage.trim() === "") return false;
+    const dosageRegex = /^(\d+(\.\d+)?\s*(mg|g|ml|L|IU|µg|mcg|%)?(\/\d+(\.\d+)?\s*(mg|g|ml|L)?)?)$/i;
+    return dosageRegex.test(dosage.trim());
+  };
+
+  const validateBatchDuplicate = (batchNumber, currentId = null) => {
+    return inventoryData.some(item => 
+      item.batch === batchNumber && item.id !== currentId
+    );
+  };
 
   // === API Functions ===
   const fetchStocks = async () => {
@@ -303,37 +399,63 @@ const StockInventory = () => {
     // Required fields with custom messages
     if (!newStock.product_name.trim())
       errors.product_name = "Product name is required";
-    if (!newStock.dosage.trim()) errors.dosage = "Dosage is required";
+    
+    // Dosage validation with format check (TC_014)
+    if (!newStock.dosage.trim()) {
+      errors.dosage = "Dosage is required";
+    } else if (!validateDosageFormat(newStock.dosage)) {
+      errors.dosage = "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
+    }
+    
     if (!newStock.category) errors.category = "Category is required";
-    if (!newStock.batch_number.trim())
+    
+    // Batch number validation with duplicate check (TC_018)
+    if (!newStock.batch_number.trim()) {
       errors.batch_number = "Batch number is required";
+    } else if (validateBatchDuplicate(newStock.batch_number)) {
+      errors.batch_number = "Batch number already exists";
+    }
+    
     if (!newStock.vendor.trim()) errors.vendor = "Vendor is required";
     if (!newStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
-    if (!newStock.quantity) errors.quantity = "Quantity is required";
-    if (!newStock.item_code.trim()) errors.item_code = "Item code is required";
-    if (!newStock.rack_no.trim()) errors.rack_no = "Rack No is required";
-    if (!newStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
-    if (!newStock.unit_price) errors.unit_price = "Unit price is required";
-    if (!newStock.status) errors.status = "Status is required";
-
-    // Validate quantity is a valid positive number
-    if (newStock.quantity) {
+    
+    // Quantity validation for zero (TC_022)
+    if (!newStock.quantity) {
+      errors.quantity = "Quantity is required";
+    } else {
       const qty = parseInt(newStock.quantity);
       if (isNaN(qty)) {
         errors.quantity = "Quantity must be a valid number";
-      } else if (qty < 0) {
-        errors.quantity = "Quantity must be non-negative";
+      } else if (qty <= 0) {
+        errors.quantity = "Quantity must be greater than 0";
       }
     }
-
-    // Validate unit price is a valid positive number
-    if (newStock.unit_price) {
+    
+    if (!newStock.item_code.trim()) errors.item_code = "Item code is required";
+    if (!newStock.rack_no.trim()) errors.rack_no = "Rack No is required";
+    if (!newStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
+    
+    // Unit price validation for zero (TC_031)
+    if (!newStock.unit_price) {
+      errors.unit_price = "Unit price is required";
+    } else {
       const price = parseFloat(newStock.unit_price);
       if (isNaN(price)) {
         errors.unit_price = "Unit price must be a valid number";
-      } else if (price < 0) {
-        errors.unit_price = "Unit price must be non-negative";
+      } else if (price <= 0) {
+        errors.unit_price = "Unit price must be greater than 0";
       }
+    }
+    
+    if (!newStock.status) errors.status = "Status is required";
+    
+    // Status-quantity validation (TC_034)
+    const qty = parseInt(newStock.quantity) || 0;
+    if (qty > 0 && newStock.status === "OUT OF STOCK") {
+      errors.status = "Cannot set OUT OF STOCK status when quantity is greater than 0";
+    }
+    if (qty === 0 && newStock.status !== "OUT OF STOCK") {
+      errors.status = "Status must be OUT OF STOCK when quantity is 0";
     }
 
     setFormErrors(errors);
@@ -344,21 +466,29 @@ const StockInventory = () => {
   const validateEditForm = () => {
     const errors = {};
 
-    // Required fields for edit (add_quantity is optional)
+    // Required fields for edit
     if (!editStock.product_name.trim())
       errors.product_name = "Product name is required";
-    if (!editStock.dosage.trim()) errors.dosage = "Dosage is required";
+    
+    // Dosage validation (TC_014)
+    if (!editStock.dosage.trim()) {
+      errors.dosage = "Dosage is required";
+    } else if (!validateDosageFormat(editStock.dosage)) {
+      errors.dosage = "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
+    }
+    
     if (!editStock.category) errors.category = "Category is required";
-    if (!editStock.batch_number.trim())
+    
+    // Batch number validation with duplicate check (TC_018)
+    if (!editStock.batch_number.trim()) {
       errors.batch_number = "Batch number is required";
+    } else if (validateBatchDuplicate(editStock.batch_number, editStockId)) {
+      errors.batch_number = "Batch number already exists";
+    }
+    
     if (!editStock.vendor.trim()) errors.vendor = "Vendor is required";
     if (!editStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
-    if (!editStock.item_code.trim()) errors.item_code = "Item code is required";
-    if (!editStock.rack_no.trim()) errors.rack_no = "Rack No is required";
-    if (!editStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
-    if (!editStock.unit_price) errors.unit_price = "Unit price is required";
-    if (!editStock.status) errors.status = "Status is required";
-
+    
     // Validate add_quantity if provided
     if (editStock.add_quantity) {
       const addQty = parseInt(editStock.add_quantity);
@@ -369,18 +499,116 @@ const StockInventory = () => {
       }
     }
 
-    // Validate unit price is a valid positive number
-    if (editStock.unit_price) {
+    if (!editStock.item_code.trim()) errors.item_code = "Item code is required";
+    if (!editStock.rack_no.trim()) errors.rack_no = "Rack No is required";
+    if (!editStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
+    
+    // Unit price validation (TC_031)
+    if (!editStock.unit_price) {
+      errors.unit_price = "Unit price is required";
+    } else {
       const price = parseFloat(editStock.unit_price);
       if (isNaN(price)) {
         errors.unit_price = "Unit price must be a valid number";
-      } else if (price < 0) {
-        errors.unit_price = "Unit price must be non-negative";
+      } else if (price <= 0) {
+        errors.unit_price = "Unit price must be greater than 0";
       }
+    }
+    
+    if (!editStock.status) errors.status = "Status is required";
+    
+    // Status validation based on calculated quantity (TC_034)
+    const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
+    const addQty = parseInt(editStock.add_quantity) || 0;
+    const totalQty = currentQty + addQty;
+    
+    if (totalQty > 0 && editStock.status === "OUT OF STOCK") {
+      errors.status = "Cannot set OUT OF STOCK status when total quantity is greater than 0";
+    }
+    if (totalQty === 0 && editStock.status !== "OUT OF STOCK") {
+      errors.status = "Status must be OUT OF STOCK when total quantity is 0";
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Popup handling functions
+  const handleClosePopup = (popupType) => {
+    if ((popupType === 'add' && Object.keys(newStock).some(key => 
+        newStock[key] !== "" && key !== 'status' && newStock[key] !== "IN STOCK")) ||
+        (popupType === 'edit' && isEditFormChanged)) {
+      setPopupToClose(popupType);
+      setShowCloseConfirm(true);
+    } else {
+      closePopup(popupType);
+    }
+  };
+
+  const closePopup = (popupType) => {
+    if (popupType === 'add') {
+      setShowAddStockPopup(false);
+      setNewStock({
+        product_name: "",
+        dosage: "",
+        category: "",
+        batch_number: "",
+        vendor: "",
+        vendor_id: "",
+        quantity: "",
+        item_code: "",
+        rack_no: "",
+        shelf_no: "",
+        unit_price: "",
+        status: "IN STOCK",
+      });
+      setFormErrors({});
+    } else if (popupType === 'edit') {
+      setShowEditStockPopup(false);
+      setEditStock({
+        product_name: "",
+        dosage: "",
+        category: "",
+        batch_number: "",
+        vendor: "",
+        vendor_id: "",
+        add_quantity: "",
+        item_code: "",
+        rack_no: "",
+        shelf_no: "",
+        unit_price: "",
+        status: "IN STOCK",
+      });
+      setEditStockId(null);
+      setInitialEditForm(null);
+      setIsEditFormChanged(false);
+      setFormErrors({});
+    }
+    setShowCloseConfirm(false);
+    setPopupToClose(null);
+  };
+
+  // Edit form change handler
+  const handleEditFormChange = (field, value) => {
+    setEditStock(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Check if form has changed (TC_094)
+      if (initialEditForm) {
+        const hasChanged = Object.keys(newData).some(key => {
+          if (key === 'add_quantity') return false;
+          return newData[key] !== initialEditForm[key];
+        });
+        setIsEditFormChanged(hasChanged);
+      }
+      
+      return newData;
+    });
+    
+    // Clear error for this field
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: "" }));
+    }
   };
 
   const filteredData = inventoryData.filter((item) => {
@@ -489,7 +717,7 @@ const StockInventory = () => {
         status: mapStatusToBackend(newStock.status),
       };
       await addStock(stockData);
-      await fetchStocks(); // Refresh the list
+      await fetchStocks();
       setShowAddStockPopup(false);
       setNewStock({
         product_name: "",
@@ -537,7 +765,7 @@ const StockInventory = () => {
       };
 
       await updateStock(editStockId, stockData);
-      await fetchStocks(); // Refresh the list
+      await fetchStocks();
       setShowEditStockPopup(false);
       setEditStock({
         product_name: "",
@@ -554,6 +782,8 @@ const StockInventory = () => {
         status: "IN STOCK",
       });
       setEditStockId(null);
+      setInitialEditForm(null);
+      setIsEditFormChanged(false);
       setFormErrors({});
     } catch (err) {
       console.error("Error updating stock:", err);
@@ -565,7 +795,7 @@ const StockInventory = () => {
     const currentStockItem = inventoryData.find(
       (stock) => stock.id === item.id
     );
-    setEditStock({
+    const initialData = {
       product_name: item.name,
       dosage: item.dosage || "",
       category: item.category,
@@ -578,7 +808,11 @@ const StockInventory = () => {
       rack_no: item.rack_no || "",
       shelf_no: item.shelf_no || "",
       unit_price: item.unit_price?.toString() || "0",
-    });
+    };
+    
+    setEditStock(initialData);
+    setInitialEditForm(initialData);
+    setIsEditFormChanged(false);
     setEditStockId(item.id);
     setShowEditStockPopup(true);
     setFormErrors({});
@@ -628,6 +862,10 @@ const StockInventory = () => {
     "Nov",
     "Dec",
   ];
+
+  // Get unique categories from data for filtering (TC_089)
+  const uniqueCategories = [...new Set(inventoryData.map(item => item.category))];
+  const allCategories = ["All", ...uniqueCategories];
 
   const Dropdown = ({
     label,
@@ -1174,7 +1412,7 @@ const StockInventory = () => {
               <div className="absolute top-full mt-2 left-0 w-[180px] bg-white dark:bg-[#000000] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-10">
                 <div className="max-h-36 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <ul className="text-black dark:text-white text-sm">
-                    {["All", ...categories].map((cat) => (
+                    {allCategories.map((cat) => (
                       <li
                         key={cat}
                         onClick={() => {
@@ -1557,10 +1795,7 @@ const StockInventory = () => {
                   Add New Stock
                 </h2>
                 <button
-                  onClick={() => {
-                    setShowAddStockPopup(false);
-                    setFormErrors({});
-                  }}
+                  onClick={() => handleClosePopup('add')}
                   className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
                   <X size={18} className="text-black dark:text-white" />
@@ -1579,18 +1814,26 @@ const StockInventory = () => {
                       placeholder="Enter product name"
                       value={newStock.product_name}
                       onChange={(e) => {
-                        setNewStock({
-                          ...newStock,
-                          product_name: e.target.value,
-                        });
-                        if (formErrors.product_name)
-                          setFormErrors({ ...formErrors, product_name: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.product_name) {
+                          setNewStock({
+                            ...newStock,
+                            product_name: e.target.value,
+                          });
+                          if (formErrors.product_name)
+                            setFormErrors({ ...formErrors, product_name: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.product_name}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.product_name}
+                      </p>
+                    )}
+                    {newStock.product_name.length === FIELD_LIMITS.product_name && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.product_name} characters reached
                       </p>
                     )}
                   </div>
@@ -1605,15 +1848,23 @@ const StockInventory = () => {
                       placeholder="e.g. 500mg, 10ml"
                       value={newStock.dosage}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, dosage: e.target.value });
-                        if (formErrors.dosage)
-                          setFormErrors({ ...formErrors, dosage: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.dosage) {
+                          setNewStock({ ...newStock, dosage: e.target.value });
+                          if (formErrors.dosage)
+                            setFormErrors({ ...formErrors, dosage: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.dosage}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.dosage}
+                      </p>
+                    )}
+                    {newStock.dosage.length === FIELD_LIMITS.dosage && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.dosage} characters reached
                       </p>
                     )}
                   </div>
@@ -1644,18 +1895,26 @@ const StockInventory = () => {
                       placeholder="Enter Batch Number"
                       value={newStock.batch_number}
                       onChange={(e) => {
-                        setNewStock({
-                          ...newStock,
-                          batch_number: e.target.value,
-                        });
-                        if (formErrors.batch_number)
-                          setFormErrors({ ...formErrors, batch_number: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.batch_number) {
+                          setNewStock({
+                            ...newStock,
+                            batch_number: e.target.value,
+                          });
+                          if (formErrors.batch_number)
+                            setFormErrors({ ...formErrors, batch_number: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.batch_number}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.batch_number}
+                      </p>
+                    )}
+                    {newStock.batch_number.length === FIELD_LIMITS.batch_number && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.batch_number} characters reached
                       </p>
                     )}
                   </div>
@@ -1670,15 +1929,23 @@ const StockInventory = () => {
                       placeholder="Enter Vendor"
                       value={newStock.vendor}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, vendor: e.target.value });
-                        if (formErrors.vendor)
-                          setFormErrors({ ...formErrors, vendor: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.vendor) {
+                          setNewStock({ ...newStock, vendor: e.target.value });
+                          if (formErrors.vendor)
+                            setFormErrors({ ...formErrors, vendor: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.vendor}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.vendor}
+                      </p>
+                    )}
+                    {newStock.vendor.length === FIELD_LIMITS.vendor && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.vendor} characters reached
                       </p>
                     )}
                   </div>
@@ -1693,15 +1960,23 @@ const StockInventory = () => {
                       placeholder="Enter Vendor ID"
                       value={newStock.vendor_id}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, vendor_id: e.target.value });
-                        if (formErrors.vendor_id)
-                          setFormErrors({ ...formErrors, vendor_id: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.vendor_id) {
+                          setNewStock({ ...newStock, vendor_id: e.target.value });
+                          if (formErrors.vendor_id)
+                            setFormErrors({ ...formErrors, vendor_id: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.vendor_id}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.vendor_id}
+                      </p>
+                    )}
+                    {newStock.vendor_id.length === FIELD_LIMITS.vendor_id && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.vendor_id} characters reached
                       </p>
                     )}
                   </div>
@@ -1740,15 +2015,23 @@ const StockInventory = () => {
                       placeholder="Enter Item Code"
                       value={newStock.item_code}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, item_code: e.target.value });
-                        if (formErrors.item_code)
-                          setFormErrors({ ...formErrors, item_code: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.item_code) {
+                          setNewStock({ ...newStock, item_code: e.target.value });
+                          if (formErrors.item_code)
+                            setFormErrors({ ...formErrors, item_code: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.item_code}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.item_code}
+                      </p>
+                    )}
+                    {newStock.item_code.length === FIELD_LIMITS.item_code && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.item_code} characters reached
                       </p>
                     )}
                   </div>
@@ -1763,15 +2046,23 @@ const StockInventory = () => {
                       placeholder="Enter Rack No"
                       value={newStock.rack_no}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, rack_no: e.target.value });
-                        if (formErrors.rack_no)
-                          setFormErrors({ ...formErrors, rack_no: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.rack_no) {
+                          setNewStock({ ...newStock, rack_no: e.target.value });
+                          if (formErrors.rack_no)
+                            setFormErrors({ ...formErrors, rack_no: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.rack_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.rack_no}
+                      </p>
+                    )}
+                    {newStock.rack_no.length === FIELD_LIMITS.rack_no && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.rack_no} characters reached
                       </p>
                     )}
                   </div>
@@ -1786,15 +2077,23 @@ const StockInventory = () => {
                       placeholder="Enter Shelf Number"
                       value={newStock.shelf_no}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, shelf_no: e.target.value });
-                        if (formErrors.shelf_no)
-                          setFormErrors({ ...formErrors, shelf_no: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
+                          setNewStock({ ...newStock, shelf_no: e.target.value });
+                          if (formErrors.shelf_no)
+                            setFormErrors({ ...formErrors, shelf_no: "" });
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.shelf_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.shelf_no}
+                      </p>
+                    )}
+                    {newStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.shelf_no} characters reached
                       </p>
                     )}
                   </div>
@@ -1847,10 +2146,7 @@ const StockInventory = () => {
                 <div className="flex justify-center gap-6 mt-8">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowAddStockPopup(false);
-                      setFormErrors({});
-                    }}
+                    onClick={() => handleClosePopup('add')}
                     className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >
                     Cancel
@@ -1881,25 +2177,7 @@ const StockInventory = () => {
                   Edit Stock
                 </h2>
                 <button
-                  onClick={() => {
-                    setShowEditStockPopup(false);
-                    setEditStock({
-                      product_name: "",
-                      dosage: "",
-                      category: "",
-                      batch_number: "",
-                      vendor: "",
-                      vendor_id: "",
-                      add_quantity: "",
-                      item_code: "",
-                      rack_no: "",
-                      shelf_no: "",
-                      unit_price: "",
-                      status: "IN STOCK",
-                    });
-                    setEditStockId(null);
-                    setFormErrors({});
-                  }}
+                  onClick={() => handleClosePopup('edit')}
                   className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
                   <X size={18} className="text-black dark:text-white" />
@@ -1918,18 +2196,21 @@ const StockInventory = () => {
                       placeholder="Enter product name"
                       value={editStock.product_name}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          product_name: e.target.value,
-                        });
-                        if (formErrors.product_name)
-                          setFormErrors({ ...formErrors, product_name: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.product_name) {
+                          handleEditFormChange('product_name', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.product_name}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.product_name}
+                      </p>
+                    )}
+                    {editStock.product_name.length === FIELD_LIMITS.product_name && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.product_name} characters reached
                       </p>
                     )}
                   </div>
@@ -1944,15 +2225,21 @@ const StockInventory = () => {
                       placeholder="e.g. 500mg, 10ml"
                       value={editStock.dosage}
                       onChange={(e) => {
-                        setEditStock({ ...editStock, dosage: e.target.value });
-                        if (formErrors.dosage)
-                          setFormErrors({ ...formErrors, dosage: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.dosage) {
+                          handleEditFormChange('dosage', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.dosage}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.dosage}
+                      </p>
+                    )}
+                    {editStock.dosage.length === FIELD_LIMITS.dosage && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.dosage} characters reached
                       </p>
                     )}
                   </div>
@@ -1963,9 +2250,7 @@ const StockInventory = () => {
                       label="Category"
                       value={editStock.category}
                       onChange={(val) => {
-                        setEditStock({ ...editStock, category: val });
-                        if (formErrors.category)
-                          setFormErrors({ ...formErrors, category: "" });
+                        handleEditFormChange('category', val);
                       }}
                       options={categories}
                       error={formErrors.category}
@@ -1983,18 +2268,21 @@ const StockInventory = () => {
                       placeholder="Enter Batch Number"
                       value={editStock.batch_number}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          batch_number: e.target.value,
-                        });
-                        if (formErrors.batch_number)
-                          setFormErrors({ ...formErrors, batch_number: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.batch_number) {
+                          handleEditFormChange('batch_number', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.batch_number}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.batch_number}
+                      </p>
+                    )}
+                    {editStock.batch_number.length === FIELD_LIMITS.batch_number && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.batch_number} characters reached
                       </p>
                     )}
                   </div>
@@ -2009,15 +2297,21 @@ const StockInventory = () => {
                       placeholder="Enter Vendor"
                       value={editStock.vendor}
                       onChange={(e) => {
-                        setEditStock({ ...editStock, vendor: e.target.value });
-                        if (formErrors.vendor)
-                          setFormErrors({ ...formErrors, vendor: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.vendor) {
+                          handleEditFormChange('vendor', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.vendor}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.vendor}
+                      </p>
+                    )}
+                    {editStock.vendor.length === FIELD_LIMITS.vendor && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.vendor} characters reached
                       </p>
                     )}
                   </div>
@@ -2032,18 +2326,21 @@ const StockInventory = () => {
                       placeholder="Enter Vendor ID"
                       value={editStock.vendor_id}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          vendor_id: e.target.value,
-                        });
-                        if (formErrors.vendor_id)
-                          setFormErrors({ ...formErrors, vendor_id: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.vendor_id) {
+                          handleEditFormChange('vendor_id', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.vendor_id}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.vendor_id}
+                      </p>
+                    )}
+                    {editStock.vendor_id.length === FIELD_LIMITS.vendor_id && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.vendor_id} characters reached
                       </p>
                     )}
                   </div>
@@ -2061,12 +2358,7 @@ const StockInventory = () => {
                       placeholder="Enter quantity to add"
                       value={editStock.add_quantity}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          add_quantity: e.target.value,
-                        });
-                        if (formErrors.add_quantity)
-                          setFormErrors({ ...formErrors, add_quantity: "" });
+                        handleEditFormChange('add_quantity', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
@@ -2102,18 +2394,21 @@ const StockInventory = () => {
                       placeholder="Enter Item Code"
                       value={editStock.item_code}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          item_code: e.target.value,
-                        });
-                        if (formErrors.item_code)
-                          setFormErrors({ ...formErrors, item_code: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.item_code) {
+                          handleEditFormChange('item_code', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.item_code}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.item_code}
+                      </p>
+                    )}
+                    {editStock.item_code.length === FIELD_LIMITS.item_code && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.item_code} characters reached
                       </p>
                     )}
                   </div>
@@ -2128,15 +2423,21 @@ const StockInventory = () => {
                       placeholder="Enter Rack No"
                       value={editStock.rack_no}
                       onChange={(e) => {
-                        setEditStock({ ...editStock, rack_no: e.target.value });
-                        if (formErrors.rack_no)
-                          setFormErrors({ ...formErrors, rack_no: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.rack_no) {
+                          handleEditFormChange('rack_no', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.rack_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.rack_no}
+                      </p>
+                    )}
+                    {editStock.rack_no.length === FIELD_LIMITS.rack_no && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.rack_no} characters reached
                       </p>
                     )}
                   </div>
@@ -2151,18 +2452,21 @@ const StockInventory = () => {
                       placeholder="Enter Shelf Number"
                       value={editStock.shelf_no}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          shelf_no: e.target.value,
-                        });
-                        if (formErrors.shelf_no)
-                          setFormErrors({ ...formErrors, shelf_no: "" });
+                        if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
+                          handleEditFormChange('shelf_no', e.target.value);
+                        }
                       }}
+                      maxLength={FIELD_LIMITS.shelf_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {formErrors.shelf_no}
+                      </p>
+                    )}
+                    {editStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
+                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+                        Maximum {FIELD_LIMITS.shelf_no} characters reached
                       </p>
                     )}
                   </div>
@@ -2177,12 +2481,7 @@ const StockInventory = () => {
                       placeholder="Enter Unit Price"
                       value={editStock.unit_price}
                       onChange={(e) => {
-                        setEditStock({
-                          ...editStock,
-                          unit_price: e.target.value,
-                        });
-                        if (formErrors.unit_price)
-                          setFormErrors({ ...formErrors, unit_price: "" });
+                        handleEditFormChange('unit_price', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
@@ -2201,9 +2500,7 @@ const StockInventory = () => {
                       label="Status"
                       value={editStock.status}
                       onChange={(val) => {
-                        setEditStock({ ...editStock, status: val });
-                        if (formErrors.status)
-                          setFormErrors({ ...formErrors, status: "" });
+                        handleEditFormChange('status', val);
                       }}
                       options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
                       error={formErrors.status}
@@ -2215,32 +2512,15 @@ const StockInventory = () => {
                 <div className="flex justify-center gap-6 mt-8">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowEditStockPopup(false);
-                      setEditStock({
-                        product_name: "",
-                        dosage: "",
-                        category: "",
-                        batch_number: "",
-                        vendor: "",
-                        vendor_id: "",
-                        add_quantity: "",
-                        item_code: "",
-                        rack_no: "",
-                        shelf_no: "",
-                        unit_price: "",
-                        status: "IN STOCK",
-                      });
-                      setEditStockId(null);
-                      setFormErrors({});
-                    }}
+                    onClick={() => handleClosePopup('edit')}
                     className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="w-[160px] h-[40px] rounded-[10px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[15px] hover:scale-105 transition shadow-lg"
+                    disabled={!isEditFormChanged}
+                    className={`w-[160px] h-[40px] rounded-[10px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[15px] transition shadow-lg ${!isEditFormChanged ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
                   >
                     Update Stock
                   </button>
@@ -2267,6 +2547,17 @@ const StockInventory = () => {
           onConfirm={handleDeleteSelected}
           onCancel={() => setShowDeletePopup(false)}
           itemsToDelete={selectedRows}
+        />
+      )}
+
+      {/* Close Confirmation Popup (TC_095) */}
+      {showCloseConfirm && (
+        <CloseConfirmPopup
+          onConfirm={() => closePopup(popupToClose)}
+          onCancel={() => {
+            setShowCloseConfirm(false);
+            setPopupToClose(null);
+          }}
         />
       )}
     </div>

@@ -23,18 +23,6 @@ class UserOut(BaseModel):
         from_attributes = True
 
 
-# --- Endpoint to get dropdown options dynamically ---
-@router.get("/filters")
-def get_user_filters():
-    # Get only staff members that don't have users linked to them for creation
-    staff_without_users = Staff.objects.exclude(user__isnull=False)
-    names = list({s.full_name for s in Staff.objects.all()})
-    roles = list({s.designation for s in Staff.objects.all()})
-    departments = list({d.name for d in Department.objects.all()})
-    staff_ids = list({s.employee_id for s in staff_without_users})
-    return {"names": names, "roles": roles, "departments": departments, "staffOptions": staff_ids}
-
-
 # --- Endpoint to fetch users based on dropdown filters and search ---
 @router.get("/", response_model=List[UserOut])
 def get_users(
@@ -63,11 +51,23 @@ def get_users(
         # Apply search
         if search:
             search_lower = search.lower()
-            if (search_lower not in staff.full_name.lower() and 
-                search_lower not in user.username.lower() and 
-                search_lower not in user.role.lower() and 
-                (staff.department and search_lower not in staff.department.name.lower()) and
-                search_lower not in staff.employee_id.lower()):
+            
+            # Convert date to string for search
+            date_str = staff.date_of_joining.strftime("%m/%d/%Y") if staff.date_of_joining else ""
+            
+            # Check all searchable fields
+            search_fields = [
+                staff.full_name.lower(),
+                user.username.lower(),
+                user.role.lower(),
+                staff.department.name.lower() if staff.department else "",
+                staff.employee_id.lower(),
+                staff.email.lower() if staff.email else "",
+                date_str.lower()
+            ]
+            
+            # Check if search term is in any field
+            if not any(search_lower in field for field in search_fields if field):
                 continue
 
         result.append(
@@ -82,7 +82,6 @@ def get_users(
             )
         )
     return result
-
 
 # --- Create User API ---
 @router.post("/create_user")

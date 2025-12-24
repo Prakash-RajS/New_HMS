@@ -95,7 +95,7 @@ class NotificationService:
                 "phone_number": patient.phone_number,
                 "department": patient.department.name if patient.department else "N/A",
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/patients"
+                "redirect_to": "/patients/profile"
             }
         )
 
@@ -109,7 +109,7 @@ class NotificationService:
                 "patient_id": patient.patient_unique_id,
                 "patient_name": patient.full_name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/patients"
+                "redirect_to": "/patients/profile"
             }
         )
 
@@ -123,7 +123,7 @@ class NotificationService:
                 "patient_id": patient_data['patient_unique_id'],
                 "patient_name": patient_data['full_name'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/patients"
+                "redirect_to": "/patients/profile"
             }
         )
 
@@ -138,7 +138,7 @@ class NotificationService:
                 "patient_name": patient.full_name,
                 "room_no": room_no,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/patients"
+                "redirect_to": "/patients/profile"
             }
         )
 
@@ -152,7 +152,7 @@ class NotificationService:
                 "patient_id": patient.patient_unique_id,
                 "patient_name": patient.full_name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/patients"
+                "redirect_to": "/patients/profile"
             }
         )
 
@@ -170,7 +170,7 @@ class NotificationService:
                 "department": lab_report.department,
                 "status": lab_report.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/lab-reports"
+                "redirect_to": "/ClinicalResources/Laboratory/LaboratoryReports"
             }
         )
 
@@ -186,7 +186,7 @@ class NotificationService:
                 "test_type": lab_report.test_type,
                 "status": lab_report.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/lab-reports"
+                "redirect_to": "/ClinicalResources/Laboratory/LaboratoryReports"
             }
         )
 
@@ -200,7 +200,7 @@ class NotificationService:
                 "order_id": lab_report_data['order_id'],
                 "patient_name": lab_report_data['patient_name'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/lab-reports"
+                "redirect_to": "/ClinicalResources/Laboratory/LaboratoryReports"
             }
         )
 
@@ -215,7 +215,7 @@ class NotificationService:
                 "patient_name": lab_report.patient.full_name,
                 "test_type": lab_report.test_type,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/lab-reports"
+                "redirect_to": "/ClinicalResources/Laboratory/LaboratoryReports"
             }
         )
 
@@ -232,7 +232,7 @@ class NotificationService:
                 "designation": staff.designation,
                 "department": staff.department.name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/staff-management"
+                "redirect_to": "/Administration/StaffManagement"
             }
         )
 
@@ -247,7 +247,7 @@ class NotificationService:
                 "staff_name": staff.full_name,
                 "designation": staff.designation,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/staff-management"
+                "redirect_to": "/Administration/StaffManagement"
             }
         )
 
@@ -261,7 +261,7 @@ class NotificationService:
                 "staff_id": staff_data['employee_id'],
                 "staff_name": staff_data['full_name'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/staff-management"
+                "redirect_to": "/Administration/StaffManagement"
             }
         )
 
@@ -370,7 +370,7 @@ class NotificationService:
                 "dosage": allocation.dosage,
                 "staff_name": allocation.staff.full_name if allocation.staff else "N/A",
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/medicine-allocation"
+                "redirect_to": "/Doctors-Nurse/MedicineAllocation"
             }
         )
 
@@ -385,7 +385,7 @@ class NotificationService:
                 "patient_name": allocation.patient.full_name,
                 "medicine_name": allocation.medicine_name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/medicine-allocation"
+                "redirect_to": "/Doctors-Nurse/MedicineAllocation"
             }
         )
 
@@ -400,7 +400,7 @@ class NotificationService:
                 "patient_name": allocation_data['patient_name'],
                 "medicine_name": allocation_data['medicine_name'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/medicine-allocation"
+                "redirect_to": "/Doctors-Nurse/MedicineAllocation"
             }
         )
 
@@ -417,7 +417,7 @@ class NotificationService:
                 "batch_number": stock.batch_number,
                 "vendor": stock.vendor,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/pharmacy"
+                "redirect_to": "/Pharmacy/Stock-Inventory"
             }
         )
 
@@ -438,7 +438,7 @@ class NotificationService:
                 "previous_quantity": previous_quantity,
                 "batch_number": stock.batch_number,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/pharmacy"
+                "redirect_to": "/Pharmacy/Stock-Inventory"
             }
         )
 
@@ -453,7 +453,7 @@ class NotificationService:
                 "batch_number": stock_data.get('batch_number', ''),
                 "vendor": stock_data.get('vendor', ''),
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/pharmacy"
+                "redirect_to": "/Pharmacy/Stock-Inventory"
             }
         )
 
@@ -469,7 +469,7 @@ class NotificationService:
                 "current_stock": stock.quantity,
                 "batch_number": stock.batch_number,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/pharmacy"
+                "redirect_to": "/Pharmacy/Stock-Inventory"
             }
         )
 
@@ -484,7 +484,7 @@ class NotificationService:
                 "product_name": stock.product_name,
                 "batch_number": stock.batch_number,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/pharmacy"
+                "redirect_to": "/Pharmacy/Stock-Inventory"
             }
         )
 
@@ -501,7 +501,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "status": invoice.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -517,7 +517,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "payment_method": invoice.payment_method,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -533,7 +533,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "reason": reason,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -548,7 +548,7 @@ class NotificationService:
                 "patient_name": invoice.patient_name,
                 "amount": str(invoice.amount),
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -563,7 +563,7 @@ class NotificationService:
                 "department_id": department.id,
                 "department_name": department.name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 
@@ -577,7 +577,7 @@ class NotificationService:
                 "department_id": department.id,
                 "department_name": department.name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 
@@ -673,7 +673,7 @@ class NotificationService:
                 "status": department.status,
                 "description": department.description or "",
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 
@@ -688,7 +688,7 @@ class NotificationService:
                 "department_name": department.name,
                 "status": department.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 
@@ -702,7 +702,7 @@ class NotificationService:
                 "department_id": department_data.get('id'),
                 "department_name": department_data.get('name'),
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 
@@ -718,7 +718,7 @@ class NotificationService:
                 "old_status": old_status,
                 "new_status": new_status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/departments"
+                "redirect_to": "/Administration/Departments"
             }
         )
 # ========== ROOM/BED MANAGEMENT NOTIFICATIONS ==========
@@ -752,7 +752,7 @@ class NotificationService:
                 "unoccupied": bed_group.unoccupied,
                 "status": bed_group.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -766,7 +766,7 @@ class NotificationService:
                 "bed_group_id": bed_group_data['id'],
                 "bed_group_name": bed_group_data['bedGroup'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -782,7 +782,7 @@ class NotificationService:
                 "bed_group": bed.bed_group.bedGroup,
                 "is_occupied": bed.is_occupied,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -799,7 +799,7 @@ class NotificationService:
                 "is_occupied": bed.is_occupied,
                 "patient_name": bed.patient.full_name if bed.patient else "None",
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -814,7 +814,7 @@ class NotificationService:
                 "bed_number": bed_data['bed_number'],
                 "bed_group": bed_data['bed_group'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -831,7 +831,7 @@ class NotificationService:
                 "patient_id": patient.patient_unique_id,
                 "patient_name": patient.full_name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/roommanagement"
             }
         )
 
@@ -847,7 +847,7 @@ class NotificationService:
                 "bed_group": bed.bed_group.bedGroup,
                 "patient_name": patient_name,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/roommanagement"
             }
         )
 
@@ -865,7 +865,7 @@ class NotificationService:
                 "total_capacity": bed_group.capacity,
                 "available_beds": bed_group.unoccupied,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -882,7 +882,7 @@ class NotificationService:
                 "new_capacity": new_capacity,
                 "difference": new_capacity - old_capacity,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/BedList"
             }
         )
 
@@ -900,7 +900,7 @@ class NotificationService:
                     "available_units": blood_group['available_units'],
                     "status": blood_group['status'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -916,7 +916,7 @@ class NotificationService:
                     "available_units": blood_group['available_units'],
                     "status": blood_group['status'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -930,7 +930,7 @@ class NotificationService:
                     "blood_group_id": blood_group_data['id'],
                     "blood_type": blood_group_data['blood_type'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -947,7 +947,7 @@ class NotificationService:
                     "new_units": new_units,
                     "status": blood_group['status'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -963,7 +963,7 @@ class NotificationService:
                     "available_units": blood_group['available_units'],
                     "status": blood_group['status'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -978,7 +978,7 @@ class NotificationService:
                     "blood_type": blood_group['blood_type'],
                     "status": blood_group['status'],
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/blood-bank"
+                    "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
                 }
             )
 
@@ -994,7 +994,7 @@ class NotificationService:
                 "units_received": units_received,
                 "new_total_units": blood_group['available_units'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/blood-bank"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1011,7 +1011,7 @@ class NotificationService:
                 "patient_name": patient_name,
                 "remaining_units": blood_group['available_units'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/blood-bank"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1027,7 +1027,7 @@ class NotificationService:
                 "units_received": units_received,
                 "new_total_units": blood_group.available_units,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/blood-bank"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1044,7 +1044,7 @@ class NotificationService:
                 "patient_name": patient_name,
                 "remaining_units": blood_group.available_units,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/blood-bank"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1062,7 +1062,7 @@ class NotificationService:
                 "phone": donor.phone,
                 "status": donor.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1078,7 +1078,7 @@ class NotificationService:
                 "blood_type": donor.blood_type,
                 "status": donor.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1093,7 +1093,7 @@ class NotificationService:
                 "donor_name": donor_data['donor_name'],
                 "blood_type": donor_data['blood_type'],
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1110,7 +1110,7 @@ class NotificationService:
                 "old_status": old_status,
                 "new_status": new_status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1127,7 +1127,7 @@ class NotificationService:
                 "units_donated": units_donated,
                 "last_donation_date": donor.last_donation_date.isoformat() if donor.last_donation_date else None,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1143,7 +1143,7 @@ class NotificationService:
                 "blood_type": donor.blood_type,
                 "phone": donor.phone,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/donors"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 
@@ -1163,7 +1163,7 @@ class NotificationService:
                 "patient_name": patient_name,
                 "urgent": True,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/blood-bank"
+                "redirect_to": "/ClinicalResources/ClinicalReports/BloodBank"
             }
         )
 # ========== BED GROUP SPECIFIC NOTIFICATIONS ==========
@@ -1181,7 +1181,7 @@ class NotificationService:
                 "occupied": bed_group.occupied,
                 "unoccupied": bed_group.unoccupied,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/roommanagement"
             }
         )
 
@@ -1197,7 +1197,7 @@ class NotificationService:
                 "capacity": bed_group.capacity,
                 "occupied": bed_group.occupied,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/roommanagement"
             }
         )
 
@@ -1212,7 +1212,7 @@ class NotificationService:
                 "bed_group_name": bed_group.bedGroup,
                 "available_beds": bed_group.unoccupied,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/bed-management"
+                "redirect_to": "/Administration/roommanagement"
             }
         )
 
@@ -1236,7 +1236,7 @@ class NotificationService:
             event_type="invoice_created",
             message=f"New invoice: {invoice_data.get('patient_name')} - ₹{invoice_data.get('amount', 0)}",
             notification_type="success",
-            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing"}
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
         )
 
     @staticmethod
@@ -1245,7 +1245,7 @@ class NotificationService:
             event_type="invoice_deleted",
             message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
             notification_type="warning",
-            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing"}
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
         )
 
     @staticmethod
@@ -1293,7 +1293,7 @@ class NotificationService:
                 "count": count,
                 "is_bulk": bulk,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -1316,7 +1316,7 @@ class NotificationService:
                 "error_message": error_message,
                 "invoice_id": invoice_id,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/billing"
+                "redirect_to": "/Billing"
             }
         )
 
@@ -1452,7 +1452,7 @@ class NotificationService:
                     "batch_number": stock_data.get("batch_number", ""),
                     "vendor": stock_data.get("vendor", ""),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/stock"
+                    "redirect_to": "/Pharmacy/Stock-Inventory"
                 }
             )
             print("✅ Stock low alert notification broadcasted successfully")
@@ -1476,7 +1476,7 @@ class NotificationService:
                     "batch_number": stock_data.get("batch_number", ""),
                     "vendor": stock_data.get("vendor", ""),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/stock"
+                    "redirect_to": "/Pharmacy/Stock-Inventory"
                 }
             )
             print("✅ Stock out alert notification broadcasted successfully")
@@ -1499,7 +1499,7 @@ class NotificationService:
                     "bill_type": bill_type,
                     "reference_id": reference_id,
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/Billing"
                 }
             )
             print("✅ Billing error notification broadcasted successfully")
@@ -1664,4 +1664,3 @@ router = APIRouter(prefix="/notifications", tags=["Notifications"])
 async def test_notification():
     await NotificationService.send_test_notification()
     return {"message": "Test notification sent"}
-

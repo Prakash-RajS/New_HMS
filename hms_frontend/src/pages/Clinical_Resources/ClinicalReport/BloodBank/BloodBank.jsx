@@ -37,12 +37,13 @@ const BloodBank = () => {
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
   const [sendingEmails, setSendingEmails] = useState({}); // Track email sending per donor
   const [checkingEligibility, setCheckingEligibility] = useState(false);
-    const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : window.location.hostname === "3.133.64.23"
-    ? "http://3.133.64.23:8000"
-    : "http://localhost:8000";
+
+  const API_BASE =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000/"
+      : window.location.hostname === "3.133.64.23"
+      ? "http://3.133.64.23:8000"
+      : "http://localhost:8000";
 
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
@@ -75,7 +76,7 @@ const BloodBank = () => {
   /* ---------- Pagination ---------- */
   const [bloodPage, setBloodPage] = useState(1);
   const [donorPage, setDonorPage] = useState(1);
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   /* ---------- API Functions ---------- */
   const fetchBloodGroups = async () => {
@@ -292,13 +293,10 @@ const BloodBank = () => {
       errorToast(`No email address found for ${donor.name}`);
       return;
     }
-
     try {
       // Set loading state for this specific donor
       setSendingEmails((prev) => ({ ...prev, [donor.id]: true }));
-
       console.log(`🟡 Sending urgent blood request to: ${donor.email}`);
-
       const response = await fetch(
         `${API_BASE}/api/donors/send-urgent-request`,
         {
@@ -314,9 +312,7 @@ const BloodBank = () => {
           }),
         }
       );
-
       const result = await response.json();
-
       if (response.ok) {
         successToast(
           `Urgent blood request sent to ${donor.name} at ${donor.email}`
@@ -339,9 +335,7 @@ const BloodBank = () => {
       const response = await fetch(`${API_BASE}/api/donors/check-eligibility`, {
         method: "POST",
       });
-
       const result = await response.json();
-
       if (response.ok) {
         successToast(result.message);
         // Refresh donors list
@@ -363,6 +357,15 @@ const BloodBank = () => {
     fetchDonors();
   }, []);
 
+  /* ---------- Reset pagination on filter/search change ---------- */
+  useEffect(() => {
+    setBloodPage(1);
+  }, [bloodStatusFilter, bloodSearch]);
+
+  useEffect(() => {
+    setDonorPage(1);
+  }, [donorFilters, donorSearch]);
+
   /* ---------- Filtering Logic ---------- */
   const filteredBloodTypes = allBloodTypes.filter((b) => {
     if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter)
@@ -378,18 +381,35 @@ const BloodBank = () => {
   });
 
   const filteredDonors = allDonors.filter((d) => {
+    // Blood type filter
     if (donorFilters.bloodType !== "All" && d.blood !== donorFilters.bloodType)
       return false;
-    if (donorFilters.gender !== "All" && d.gender !== donorFilters.gender)
+  
+    // Gender filter - case-insensitive
+    if (donorFilters.gender !== "All" && 
+        d.gender.toLowerCase() !== donorFilters.gender.toLowerCase())
       return false;
-    if (
-      donorSearch &&
-      !d.name.toLowerCase().includes(donorSearch.toLowerCase()) &&
-      !d.blood.toLowerCase().includes(donorSearch.toLowerCase()) &&
-      !d.phone.includes(donorSearch) &&
-      !d.gender.toLowerCase().includes(donorSearch.toLowerCase())
-    )
-      return false;
+  
+    // Enhanced search filter
+    if (donorSearch) {
+      const searchTerm = donorSearch.toLowerCase().trim();
+      
+      // Create a comprehensive search string
+      const searchFields = [
+        d.name,
+        d.blood,
+        d.phone,
+        d.gender,
+        d.lastDonation,
+        d.email || ''
+      ].join(' ').toLowerCase();
+      
+      // Check if search term exists in any field
+      if (!searchFields.includes(searchTerm)) {
+        return false;
+      }
+    }
+    
     return true;
   });
 
@@ -397,12 +417,10 @@ const BloodBank = () => {
     (bloodPage - 1) * rowsPerPage,
     bloodPage * rowsPerPage
   );
-
   const donors = filteredDonors.slice(
     (donorPage - 1) * rowsPerPage,
     donorPage * rowsPerPage
   );
-
   const totalBloodPages = Math.ceil(filteredBloodTypes.length / rowsPerPage);
   const totalDonorPages = Math.ceil(filteredDonors.length / rowsPerPage);
 
@@ -506,7 +524,6 @@ const BloodBank = () => {
                   </Listbox.Options>
                 </Listbox>
               </div>
-
               {selectedBloodTypes.length > 0 && (
                 <button
                   onClick={() => setShowDeleteBloodPopup(true)}
@@ -517,7 +534,6 @@ const BloodBank = () => {
                 </button>
               )}
             </div>
-
             {/* Right side: Search, Check Eligibility, and Filter buttons */}
             <div className="flex gap-2 items-center flex-wrap">
               {showBloodSearch && (
@@ -532,7 +548,6 @@ const BloodBank = () => {
                   />
                 </div>
               )}
-
               {/* Search Toggle Button */}
               <button
                 className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -543,7 +558,6 @@ const BloodBank = () => {
                   Search
                 </span>
               </button>
-
               {/* Filter Button */}
               <button
                 className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -814,7 +828,7 @@ const BloodBank = () => {
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
                 <input
                   type="text"
-                  placeholder="Search donors..."
+                  placeholder="Search by name, blood type, phone, gender, or date..."
                   value={donorSearch}
                   onChange={(e) => setDonorSearch(e.target.value)}
                   className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm focus:outline-none"
@@ -911,7 +925,6 @@ const BloodBank = () => {
               ) : donors.length > 0 ? (
                 donors.map((d) => {
                   const isSendingEmail = sendingEmails[d.id];
-
                   return (
                     <tr
                       key={d.id}

@@ -1,11 +1,7 @@
-// EditUserPopup.jsx
 import React, { useState, useCallback } from "react";
 import { X, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
-/** PasswordInput moved outside the parent to avoid re-creation on every render.
- *  It's a plain component (no memo) and expects stable handlers from parent.
- */
 function PasswordInput({
   label,
   value,
@@ -27,7 +23,9 @@ function PasswordInput({
           onChange={onChange}
           placeholder={placeholder}
           className={`w-full h-[30px] px-3 pr-10 rounded-[8px] border ${
-            error ? "border-red-500 dark:border-red-500" : "border-gray-300 dark:border-[#3A3A3A]"
+            error
+              ? "border-red-500 dark:border-red-500"
+              : "border-gray-300 dark:border-[#3A3A3A]"
           } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none placeholder-gray-400 dark:placeholder-gray-500`}
         />
         <button
@@ -55,7 +53,15 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const roleOptions = ["Select Role", "Doctor", "Staff", "Receptionist", "Admin"];
+  // ← Added "Nurse" here
+  const roleOptions = [
+    "Select Role",
+    "Doctor",
+    "Staff",
+    "Receptionist",
+    "Nurse",
+    "Admin",
+  ];
 
   const validateForm = useCallback(() => {
     const newErrors = {};
@@ -94,29 +100,27 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
     });
   }, [validateForm, onSave, user, editedUser]);
 
-  // Generic field updater for role and other fields
   const handleInputChange = useCallback((field, value) => {
-    setEditedUser(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: "" }));
+    setEditedUser((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
   }, []);
 
-  // Stable handlers for username and password fields
   const handleUsernameChange = useCallback((e) => {
     const value = e.target.value;
-    setEditedUser(prev => ({ ...prev, username: value }));
-    setErrors(prev => ({ ...prev, username: "" }));
+    setEditedUser((prev) => ({ ...prev, username: value }));
+    setErrors((prev) => ({ ...prev, username: "" }));
   }, []);
 
   const handleNewPasswordChange = useCallback((e) => {
     const value = e.target.value;
-    setEditedUser(prev => ({ ...prev, newPassword: value }));
-    setErrors(prev => ({ ...prev, newPassword: "" }));
+    setEditedUser((prev) => ({ ...prev, newPassword: value }));
+    setErrors((prev) => ({ ...prev, newPassword: "" }));
   }, []);
 
   const handleConfirmPasswordChange = useCallback((e) => {
     const value = e.target.value;
-    setEditedUser(prev => ({ ...prev, confirmPassword: value }));
-    setErrors(prev => ({ ...prev, confirmPassword: "" }));
+    setEditedUser((prev) => ({ ...prev, confirmPassword: value }));
+    setErrors((prev) => ({ ...prev, confirmPassword: "" }));
   }, []);
 
   const Dropdown = ({ label, value, onChange, options, error }) => (
@@ -128,7 +132,9 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
         <div className="relative mt-1 w-full">
           <Listbox.Button
             className={`w-full h-[30px] px-3 pr-8 rounded-[8px] border ${
-              error ? "border-red-500 dark:border-red-500" : "border-gray-300 dark:border-[#3A3A3A]"
+              error
+                ? "border-red-500 dark:border-red-500"
+                : "border-gray-300 dark:border-[#3A3A3A]"
             } bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
           >
             {value}
@@ -164,7 +170,9 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
         <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative">
           <div className="flex justify-between items-center pb-2 mb-3">
-            <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">Edit User</h2>
+            <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+              Edit User
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -180,7 +188,9 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
             <div className="space-y-4">
               {/* Name (Read-only) */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Name</label>
+                <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+                  Name
+                </label>
                 <div className="w-full h-[30px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 text-[14px] leading-[30px]">
                   {user.name}
                 </div>
@@ -196,11 +206,15 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
                   value={editedUser.username}
                   onChange={handleUsernameChange}
                   className={`w-full h-[30px] px-3 rounded-[8px] border ${
-                    errors.username ? "border-red-500 dark:border-red-500" : "border-gray-300 dark:border-[#3A3A3A]"
+                    errors.username
+                      ? "border-red-500 dark:border-red-500"
+                      : "border-gray-300 dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none`}
                   placeholder="Enter username"
                 />
-                {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
+                {errors.username && (
+                  <p className="text-red-500 text-xs mt-1">{errors.username}</p>
+                )}
               </div>
             </div>
 
@@ -208,24 +222,26 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
             <div className="space-y-4">
               {/* Staff ID (Read-only) */}
               <div>
-                <label className="block text-sm font-medium mb-2 text-black dark:text-white">Staff ID</label>
+                <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+                  Staff ID
+                </label>
                 <div className="w-full h-[30px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 text-[14px] leading-[30px]">
                   {user.id}
                 </div>
               </div>
 
-              {/* Role Dropdown */}
+              {/* Role Dropdown - Now includes Nurse */}
               <Dropdown
                 label="Role"
                 value={editedUser.role}
-                onChange={(val) => handleInputChange('role', val)}
+                onChange={(val) => handleInputChange("role", val)}
                 options={roleOptions}
                 error={errors.role}
               />
             </div>
           </div>
 
-          {/* Password Section - Full width below the grid */}
+          {/* Password Section */}
           <div className="mb-4">
             <h3 className="text-sm font-medium mb-3 text-black dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
               Change Password (Optional)
@@ -236,7 +252,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
                 value={editedUser.newPassword}
                 onChange={handleNewPasswordChange}
                 showPassword={showNewPassword}
-                onToggleVisibility={() => setShowNewPassword(prev => !prev)}
+                onToggleVisibility={() => setShowNewPassword((prev) => !prev)}
                 error={errors.newPassword}
                 placeholder="Enter new password"
               />
@@ -245,19 +261,24 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
                 value={editedUser.confirmPassword}
                 onChange={handleConfirmPasswordChange}
                 showPassword={showConfirmPassword}
-                onToggleVisibility={() => setShowConfirmPassword(prev => !prev)}
+                onToggleVisibility={() =>
+                  setShowConfirmPassword((prev) => !prev)
+                }
                 error={errors.confirmPassword}
                 placeholder="Confirm new password"
               />
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Leave password fields empty if you don't want to change the password
+              Leave password fields empty if you don't want to change the
+              password
             </p>
           </div>
 
-          {/* Department (Read-only) - Full width */}
+          {/* Department (Read-only) */}
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2 text-black dark:text-white">Department</label>
+            <label className="block text-sm font-medium mb-2 text-black dark:text-white">
+              Department
+            </label>
             <div className="w-full h-[30px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1A1A1A] text-gray-600 dark:text-gray-400 text-[14px] leading-[30px]">
               {user.department}
             </div>

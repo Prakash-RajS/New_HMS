@@ -9,6 +9,8 @@ import {
   ChevronRight,
   X,
   ChevronDown,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditUserPopup from "./EditUserPopup.jsx";
@@ -17,7 +19,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../components/Toast";
 
-  const API_BASE =
+const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
@@ -133,6 +135,7 @@ const UserSettings = () => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortOrder, setSortOrder] = useState("asc");
   const [showAddUserPopup, setShowAddUserPopup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Add User Form State
   const [newUser, setNewUser] = useState({
@@ -174,6 +177,11 @@ const UserSettings = () => {
     department: "Select Department",
   });
 
+  // Separate state for filter options that don't change when filters are applied
+  const [userFilterOptions, setUserFilterOptions] = useState(["Select Name"]);
+  const [roleFilterOptions, setRoleFilterOptions] = useState(["Select Role"]);
+  const [departmentFilterOptions, setDepartmentFilterOptions] = useState(["Select Department"]);
+
   // User permissions
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [availableRoles, setAvailableRoles] = useState([
@@ -181,6 +189,7 @@ const UserSettings = () => {
     "Doctor",
     "Staff",
     "Receptionist",
+    "Nurse"
   ]);
   const [canManageUsers, setCanManageUsers] = useState(false);
 
@@ -230,6 +239,12 @@ const UserSettings = () => {
     fetchUsers();
   }, []);
 
+  // ADD THIS - Re-fetch users when filters change - RESET PAGE TO 1
+  useEffect(() => {
+    setUserPage(1); // Reset to first page when filters/search change
+    fetchUsers();
+  }, [filters, userSearch]);
+
   // Re-fetch users when filters change
   useEffect(() => {
     fetchUsers();
@@ -248,30 +263,36 @@ const UserSettings = () => {
         "Doctor",
         "Staff",
         "Receptionist",
+        "Nurse",
         "Admin",
       ]);
     } else {
-      setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist"]);
+      setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist","Nurse"]);
     }
   };
 
   const fetchFilterOptions = async () => {
     try {
       const token = getAuthToken();
-      const [filterRes, staffRes] = await Promise.all([
-        fetch(`${API_BASE}/users/filters`, {
+      
+      // Fetch all data in parallel
+      const [staffRes, usersRes] = await Promise.all([
+        fetch(`${API_BASE}/staff/all/`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_BASE}/staff/all/`, {
+        fetch(`${API_BASE}/users/`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
 
-      const filters = await filterRes.json();
       const staffList = await staffRes.json();
+      const usersData = await usersRes.json();
 
-      setStaffOptions(["Select Staff ID", ...filters.staffOptions]);
+      // Set staff options for Add User popup
+      const staffIds = staffList.map(staff => staff.employee_id);
+      setStaffOptions(["Select Staff ID", ...staffIds]);
 
+      // Create staff map for staff information
       const map = {};
       staffList.forEach((s) => {
         map[s.employee_id] = {
@@ -288,6 +309,22 @@ const UserSettings = () => {
         };
       });
       setStaffMap(map);
+
+      // Set filter options from ALL users (not filtered)
+      if (usersData && usersData.length > 0) {
+        // Get unique user names
+        const allUserNames = [...new Set(usersData.map((u) => u.name).filter(Boolean))];
+        setUserFilterOptions(["Select Name", ...allUserNames]);
+
+        // Get unique roles - Use availableRoles as base, then add any other roles found in data
+        const allRolesFromData = [...new Set(usersData.map((u) => u.role).filter(Boolean))];
+        const combinedRoles = [...new Set([...availableRoles, ...allRolesFromData])];
+        setRoleFilterOptions(combinedRoles);
+
+        // Get unique departments
+        const allDepartments = [...new Set(usersData.map((u) => u.department).filter(Boolean))];
+        setDepartmentFilterOptions(["Select Department", ...allDepartments]);
+      }
     } catch (err) {
       console.error("Failed to load filters:", err);
     }
@@ -298,13 +335,19 @@ const UserSettings = () => {
     try {
       const token = getAuthToken();
       const params = new URLSearchParams();
+      
+      // Only append if not the default "Select..." value
       if (filters.user !== "Select Name") params.append("name", filters.user);
       if (filters.role !== "Select Role") params.append("role", filters.role);
-      if (filters.department !== "Select Department")
+      if (filters.department !== "Select Department") 
         params.append("department", filters.department);
       if (userSearch) params.append("search", userSearch);
 
-      const res = await fetch(`${API_BASE}/users/?${params.toString()}`, {
+      const url = `${API_BASE}/users/`;
+      const queryString = params.toString();
+      const fullUrl = queryString ? `${url}?${queryString}` : url;
+
+      const res = await fetch(fullUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -327,22 +370,7 @@ const UserSettings = () => {
     }
   };
 
-  // Update form when Staff ID is selected
-  useEffect(() => {
-    if (
-      newUser.staffId &&
-      newUser.staffId !== "Select Staff ID" &&
-      staffMap[newUser.staffId]
-    ) {
-      const { department, joinedOn, full_name } = staffMap[newUser.staffId];
-      setNewUser((prev) => ({
-        ...prev,
-        department,
-        joinedOn,
-        username: full_name.toLowerCase().replace(/\s+/g, ".") || "",
-      }));
-    }
-  }, [newUser.staffId, staffMap]);
+  // REMOVED: Auto-fill effect when Staff ID is selected
 
   // Filter & Sort Users
   const filteredUsers = allUsers.filter((u) => {
@@ -370,19 +398,6 @@ const UserSettings = () => {
     userPage * rowsPerPage
   );
   const totalUserPages = Math.ceil(filteredUsers.length / rowsPerPage);
-
-  // Dynamic unique roles from current user list
-  const uniqueRoles = Array.from(
-    new Set(allUsers.map((u) => u.role).filter(Boolean))
-  );
-  const roleFilterOptions = ["Select Role", ...uniqueRoles];
-
-  const userOptions = ["Select Name", ...new Set(allUsers.map((u) => u.name))];
-  const departmentOptions = [
-    "Select Department",
-    "All Departments",
-    ...new Set(allUsers.map((u) => u.department)),
-  ];
 
   // Checkbox Selection
   const handleUserCheckboxChange = (user) => {
@@ -484,6 +499,24 @@ const UserSettings = () => {
     setPasswordMeetsRequirements(meetsRequirements);
   };
 
+  // Function to reset the add user form
+  const resetAddUserForm = () => {
+    setNewUser({
+      username: "",
+      password: "",
+      role: "Select Role",
+      staffId: "Select Staff ID",
+    });
+    setValidationErrors({
+      username: "",
+      password: "",
+      role: "",
+      staffId: "",
+    });
+    setPasswordMeetsRequirements(false);
+    setShowPassword(false);
+  };
+
   // Add User
   const handleAddUser = async () => {
     if (!canManageUsers) {
@@ -536,19 +569,7 @@ const UserSettings = () => {
       }
 
       setShowAddUserPopup(false);
-      setNewUser({
-        username: "",
-        password: "",
-        role: "Select Role",
-        staffId: "Select Staff ID",
-      });
-      setValidationErrors({
-        username: "",
-        password: "",
-        role: "",
-        staffId: "",
-      });
-      setPasswordMeetsRequirements(false);
+      resetAddUserForm();
       await fetchUsers();
       successToast("User created successfully!");
     } catch (err) {
@@ -615,7 +636,10 @@ const UserSettings = () => {
           </h2>
           {canManageUsers ? (
             <button
-              onClick={() => setShowAddUserPopup(true)}
+              onClick={() => {
+                resetAddUserForm();
+                setShowAddUserPopup(true);
+              }}
               className="w-[160px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out gap-2"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
@@ -636,13 +660,13 @@ const UserSettings = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap p-6 gap-6">
+      <div className="flex flex-wrap p-6 gap-6 items-end">
         <Dropdown
           label="Select User"
           placeholder="Select Name"
           value={filters.user}
           onChange={(val) => setFilters({ ...filters, user: val })}
-          options={userOptions}
+          options={userFilterOptions}
         />
         <Dropdown
           label="Select Role"
@@ -656,7 +680,7 @@ const UserSettings = () => {
           placeholder="Select Department"
           value={filters.department}
           onChange={(val) => setFilters({ ...filters, department: val })}
-          options={departmentOptions}
+          options={departmentFilterOptions}
         />
       </div>
 
@@ -1005,13 +1029,7 @@ const UserSettings = () => {
                 <button
                   onClick={() => {
                     setShowAddUserPopup(false);
-                    setValidationErrors({
-                      username: "",
-                      password: "",
-                      role: "",
-                      staffId: "",
-                    });
-                    setPasswordMeetsRequirements(false);
+                    resetAddUserForm();
                   }}
                   className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
@@ -1030,32 +1048,45 @@ const UserSettings = () => {
                   autoCapitalize={true}
                 />
                 <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Password <span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={newUser.password}
-                    onChange={handlePasswordChange}
-                    placeholder="Enter password"
-                    className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                  />
-                  {validationErrors.password && (
-                    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
-                      {validationErrors.password}
-                    </p>
-                  )}
-                  {/* Only show success message when password meets ALL requirements */}
-                  {passwordMeetsRequirements && !validationErrors.password && (
-                    <p className="mt-1 text-xs text-green-500 dark:text-green-400">
-                      ✓ Password meets requirements
-                    </p>
-                  )}
-                  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Must contain: 8+ chars, uppercase, number, special char
-                  </div>
-                </div>
+  <label className="text-sm text-black dark:text-white">
+    Password <span className="text-red-500 ml-1">*</span>
+  </label>
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      name="password"
+      value={newUser.password}
+      onChange={handlePasswordChange}
+      placeholder="Enter password"
+      className="w-[228px] h-[30px] mt-[2px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+    >
+      {showPassword ? (
+        <EyeOff size={16} />
+      ) : (
+        <Eye size={16} />
+      )}
+    </button>
+  </div>
+  {validationErrors.password && (
+    <p className="mt-1 text-xs text-red-500 dark:text-red-500">
+      {validationErrors.password}
+    </p>
+  )}
+  {/* Only show success message when password meets ALL requirements */}
+  {passwordMeetsRequirements && !validationErrors.password && (
+    <p className="mt-1 text-xs text-green-500 dark:text-green-400">
+      ✓ Password meets requirements
+    </p>
+  )}
+  <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+    Must contain: 8+ chars, uppercase, number, special char
+  </div>
+</div>
                 <div>
                   <label className="text-sm text-black dark:text-white">
                     Role <span className="text-red-500 ml-1">*</span>
@@ -1153,12 +1184,13 @@ const UserSettings = () => {
                   )}
                 </div>
               </div>
+              {/* Show staff information only (not autofill) */}
               {newUser.staffId &&
                 newUser.staffId !== "Select Staff ID" &&
                 staffMap[newUser.staffId] && (
                   <div className="mt-4 p-3 bg-gray-50 dark:bg-[#1A1A1A] rounded-md">
                     <h4 className="text-sm font-medium text-black dark:text-white mb-2">
-                      Staff Information:
+                      Selected Staff Information:
                     </h4>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
@@ -1185,6 +1217,14 @@ const UserSettings = () => {
                           {staffMap[newUser.staffId]?.joinedOn}
                         </span>
                       </div>
+                      <div>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          Email:
+                        </span>
+                        <span className="ml-2 text-black dark:text-white">
+                          {staffMap[newUser.staffId]?.email}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1192,13 +1232,7 @@ const UserSettings = () => {
                 <button
                   onClick={() => {
                     setShowAddUserPopup(false);
-                    setValidationErrors({
-                      username: "",
-                      password: "",
-                      role: "",
-                      staffId: "",
-                    });
-                    setPasswordMeetsRequirements(false);
+                    resetAddUserForm();
                   }}
                   className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                 >

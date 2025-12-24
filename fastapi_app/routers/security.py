@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Form
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import os
 import django
 import jwt
-from jwt import ExpiredSignatureError, InvalidTokenError  # ✅ correct imports
+from jwt import ExpiredSignatureError, InvalidTokenError
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "HMS_backend.settings")
 django.setup()
@@ -19,7 +19,6 @@ ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-
 # ------------------ Schemas ------------------
 class StaffSchema(BaseModel):
     full_name: str
@@ -28,17 +27,26 @@ class StaffSchema(BaseModel):
     department: str
     email: str
 
-
 class PermissionSchema(BaseModel):
     module: str
     enabled: bool
 
+class UserProfileResponse(BaseModel):
+    username: str
+    full_name: str
+    designation: str
+    role: str
+    profile_picture: Optional[str] = None
+    enabled_modules: List[str] = []
+    permissions: List[PermissionSchema] = []
+    staff_id: Optional[str] = None
+    department: Optional[str] = None
+    email: Optional[str] = None
 
 # ------------------ Helpers ------------------
 def get_permissions_by_role(role: str):
     perms = Permission.objects.filter(role=role)
     return [{"module": p.module, "enabled": p.enabled} for p in perms]
-
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     if not token:
@@ -46,13 +54,17 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
-        username = payload.get("sub")  # ✅ matches auth.py
+        username = payload.get("sub")
+        
         if not username:
             raise HTTPException(status_code=401, detail="Invalid token: username missing")
 
         user = User.objects.get(username=username)
-        role = payload.get("role", "staff")
+        role = payload.get("role", "staff").lower()
+
+        # Get enabled permissions for this role
+        enabled_permissions = Permission.objects.filter(role=role, enabled=True)
+        enabled_modules = [perm.module for perm in enabled_permissions]
 
         staff_data = None
         if hasattr(user, "staff") and user.staff:
@@ -61,7 +73,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
                 full_name=s.full_name,
                 designation=s.designation,
                 staff_id=s.employee_id,
-                department=s.department.name,
+                department=s.department.name if s.department else "N/A",
                 email=s.email,
             )
 
@@ -69,7 +81,9 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             "username": username,
             "role": role,
             "permissions": get_permissions_by_role(role),
+            "enabled_modules": enabled_modules,
             "staff_details": staff_data,
+            "profile_picture": user.profile_picture if hasattr(user, 'profile_picture') else None,
         }
 
     except ExpiredSignatureError:
@@ -79,9 +93,45 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except User.DoesNotExist:
         raise HTTPException(status_code=401, detail="User not found")
 
-
 # ------------------ Router ------------------
 router = APIRouter(prefix="/security", tags=["Security"])
+
+# ---------- Get Current User Profile ----------
+@router.get("/profile", response_model=UserProfileResponse)
+def get_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get current user's profile with permissions"""
+    try:
+        user = User.objects.get(username=current_user["username"])
+        
+        # Build response
+        response_data = {
+            "username": user.username,
+            "role": current_user["role"],
+            "enabled_modules": current_user["enabled_modules"],
+            "permissions": current_user["permissions"],
+            "profile_picture": current_user.get("profile_picture"),
+        }
+        
+        # Add staff details if available
+        if current_user.get("staff_details"):
+            staff = current_user["staff_details"]
+            response_data.update({
+                "full_name": staff.full_name,
+                "designation": staff.designation,
+                "staff_id": staff.staff_id,
+                "department": staff.department,
+                "email": staff.email,
+            })
+        else:
+            response_data.update({
+                "full_name": user.username,
+                "designation": current_user["role"],
+            })
+        
+        return response_data
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching profile: {str(e)}")
 
 # ---------- Create User ----------
 @router.post("/create_user")
@@ -112,7 +162,7 @@ def create_user(
     user = User.objects.create(
         username=username,
         password=make_password(password),
-        role=staff.designation,
+        role=staff.designation.lower(),
         staff=staff,
     )
 
@@ -120,7 +170,7 @@ def create_user(
 
     # Assign default permissions
     for module, _ in getattr(Permission, "MODULE_CHOICES", []):
-        Permission.objects.get_or_create(role=staff.designation, module=module)
+        Permission.objects.get_or_create(role=staff.designation.lower(), module=module)
 
     return {
         "message": "User created successfully",
@@ -128,7 +178,6 @@ def create_user(
         "role": user.role,
         "staff_id": staff.employee_id,
     }
-
 
 # ---------- Get Permissions ----------
 @router.get("/permissions/{role}", response_model=List[PermissionSchema])
@@ -140,7 +189,6 @@ def read_permissions(role: str, current_user: dict = Depends(get_current_user)):
             raise HTTPException(status_code=403, detail="Not authorized")
 
     return get_permissions_by_role(role)
-
 
 # ---------- Toggle Permission ----------
 @router.post("/permissions/toggle")
@@ -167,7 +215,7 @@ def toggle_permission(
         perm, created = Permission.objects.get_or_create(
             role=role,
             module=module,
-            defaults={"enabled": False}  # Default to disabled when creating new
+            defaults={"enabled": False}
         )
         
         # Toggle the enabled status

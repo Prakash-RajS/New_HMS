@@ -493,17 +493,18 @@ import {
   Star,
   ChevronDown,
   Loader2,
+  Eye,
+  Download,
+  FileText,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
-
   const API_BASE =
   window.location.hostname === "18.119.210.2"
     ? "http://18.119.210.2:8000"
     : window.location.hostname === "3.133.64.23"
     ? "http://3.133.64.23:8000"
     : "http://localhost:8000";
-
 const DoctorProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -512,7 +513,8 @@ const DoctorProfile = () => {
   const [profileData, setProfileData] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
-
+  const [certificates, setCertificates] = useState([]);
+    const [certificatesLoading, setCertificatesLoading] = useState(false);
   // Form state for editing
   const [formData, setFormData] = useState({
     name: "",
@@ -538,6 +540,53 @@ const DoctorProfile = () => {
     aboutPhysician: "",
     shiftTiming: "",
   });
+  // Parse certificates from comma-separated string
+  const parseCertificates = (certificatesString) => {
+    if (!certificatesString || certificatesString.trim() === '') {
+      return [];
+    }
+    
+    const certificatePaths = certificatesString.split(',').map(path => path.trim());
+    
+    return certificatePaths.map((path, index) => {
+      const fileName = getFileNameFromPath(path);
+      
+      return {
+        id: index + 1,
+        name: fileName,
+        originalPath: path,
+        cleanPath: path  // Keep the original path from backend
+      };
+    });
+  };
+   const handleViewCertificate = (certificate) => {
+    // Use the original path from backend directly
+    const filePath = certificate.originalPath;
+    
+    // Construct the URL - Directly use the path from backend
+    // Example: "Fastapi_app/Staff_documents/5_9976531952.pdf" becomes "http://localhost:8000/Fastapi_app/Staff_documents/5_9976531952.pdf"
+    const fileUrl = `${API_BASE}/${filePath}`;
+    
+    console.log("Viewing certificate URL:", fileUrl);
+    window.open(fileUrl, "_blank");
+  };
+
+  // Handle download certificate
+  const handleDownloadCertificate = (certificate) => {
+    // Use the original path from backend directly
+    const filePath = certificate.originalPath;
+    
+    // Construct the URL - Directly use the path from backend
+    const fileUrl = `${API_BASE}/${filePath}`;
+    
+    console.log("Downloading certificate URL:", fileUrl);
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = certificate.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Custom Dropdown Component
   const Dropdown = ({
@@ -555,7 +604,6 @@ const DoctorProfile = () => {
       (opt) => String(opt.id) === String(value)
     );
     const displayValue = selectedOption?.name || placeholder;
-
     return (
       <div>
         <label className="text-sm text-black dark:text-white block mb-1">
@@ -618,6 +666,10 @@ const DoctorProfile = () => {
       </div>
     );
   };
+  const getFileNameFromPath = (path) => {
+    if (!path) return '';
+    return path.split('/').pop();
+  };
 
   // Fetch departments from API
   const fetchDepartments = async () => {
@@ -625,9 +677,7 @@ const DoctorProfile = () => {
     try {
       const response = await fetch(`${API_BASE}/patients/departments`);
       if (!response.ok) throw new Error("Failed to fetch departments");
-
       const data = await response.json();
-
       // Format departments to ensure consistent structure
       const formattedDepartments = Array.isArray(data.departments)
         ? data.departments.map((dept) => ({
@@ -639,7 +689,6 @@ const DoctorProfile = () => {
               "Unnamed Department",
           }))
         : [];
-
       console.log("Fetched departments:", formattedDepartments);
       setDepartments(formattedDepartments);
     } catch (error) {
@@ -650,91 +699,96 @@ const DoctorProfile = () => {
       setDepartmentsLoading(false);
     }
   };
-
   useEffect(() => {
-    // Fetch departments when component mounts
-    fetchDepartments();
-
-    const fetchProfileData = async () => {
-      try {
-        setLoading(true);
-        const profileId = location.state?.profile?.id;
-
-        if (!profileId) {
-          errorToast("No profile ID provided");
+      // Fetch departments when component mounts
+      fetchDepartments();
+  
+      const fetchProfileData = async () => {
+        try {
+          setLoading(true);
+          const profileId = location.state?.profile?.id;
+  
+          if (!profileId) {
+            errorToast("No profile ID provided");
+            navigate(-1);
+            return;
+          }
+  
+          const response = await fetch(`${API_BASE}/staff/${profileId}/`);
+          if (!response.ok) throw new Error("Failed to fetch profile data");
+  
+          const data = await response.json();
+          console.log("Profile data:", data);
+          setProfileData(data);
+  
+          // Parse certificates from the comma-separated string
+          if (data.certificates) {
+            const parsedCertificates = parseCertificates(data.certificates);
+            console.log("Parsed certificates:", parsedCertificates);
+            setCertificates(parsedCertificates);
+          } else {
+            setCertificates([]);
+          }
+  
+          // Find department name from departments list if available
+          const departmentName = data.department || "";
+  
+          // Sync formData with fresh profile data including new fields
+          setFormData({
+            name: data.full_name || "",
+            gender: data.gender || "",
+            age: data.age ? String(data.age) : "",
+            bloodGroup: "A+", // Static field
+            contact: data.phone || "",
+            email: data.email || "",
+            education: data.education || data.specialization || "",
+            quote:
+              data.about_physician ||
+              "Dedicated to providing compassionate, patient-centered care.",
+            experience: data.experience || "10+ years",
+            department_id: data.department_id || "", // Store department ID separately
+            department: departmentName, // Store department name for display
+            licenseNumber: data.license_number || data.national_id || "",
+            specialization: data.specialization || "",
+            boardCertifications:
+              data.board_certifications || "American Board of Orthopedic Surgery",
+            professionalMemberships:
+              data.professional_memberships ||
+              "American Medical Association (AMA)",
+            languagesSpoken: data.languages_spoken || "English",
+            awards:
+              data.awards_recognitions || "Top Doctor awards, hospital honors",
+            status: data.status || "active",
+            profilePictureFile: null,
+            profilePicturePreview: null,
+            aboutPhysician: data.about_physician || "",
+            shiftTiming: data.shift_timing || "",
+          });
+        } catch (error) {
+          console.error("Error fetching profile:", error);
+          errorToast("Failed to load profile data");
           navigate(-1);
-          return;
+        } finally {
+          setLoading(false);
         }
-
-        const response = await fetch(`${API_BASE}/staff/${profileId}/`);
-        if (!response.ok) throw new Error("Failed to fetch profile data");
-
-        const data = await response.json();
-        setProfileData(data);
-
-        // Find department name from departments list if available
-        const departmentName = data.department || "";
-
-        // Sync formData with fresh profile data including new fields
-        setFormData({
-          name: data.full_name || "",
-          gender: data.gender || "",
-          age: data.age ? String(data.age) : "",
-          bloodGroup: "A+", // Static field
-          contact: data.phone || "",
-          email: data.email || "",
-          education: data.education || data.specialization || "",
-          quote:
-            data.about_physician ||
-            "Dedicated to providing compassionate, patient-centered care.",
-          experience: data.experience || "10+ years",
-          department_id: data.department_id || "", // Store department ID separately
-          department: departmentName, // Store department name for display
-          licenseNumber: data.license_number || data.national_id || "",
-          specialization: data.specialization || "",
-          boardCertifications:
-            data.board_certifications || "American Board of Orthopedic Surgery",
-          professionalMemberships:
-            data.professional_memberships ||
-            "American Medical Association (AMA)",
-          languagesSpoken: data.languages_spoken || "English",
-          awards:
-            data.awards_recognitions || "Top Doctor awards, hospital honors",
-          status: data.status || "active",
-          profilePictureFile: null,
-          profilePicturePreview: null,
-          aboutPhysician: data.about_physician || "",
-          shiftTiming: data.shift_timing || "",
-        });
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        errorToast("Failed to load profile data");
-        navigate(-1);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfileData();
-  }, [location, navigate]);
-
+      };
+  
+      fetchProfileData();
+    }, [location, navigate]);
   const handleEditClick = () => {
     setShowEditModal(true);
   };
-
   const getProfilePictureUrl = (profilePicturePath) => {
     if (!profilePicturePath) return null;
     if (profilePicturePath.startsWith("http")) return profilePicturePath;
     const filename = profilePicturePath.split("/").pop();
     return filename ? `${API_BASE}/static/staffs_pictures/${filename}` : null;
   };
-
   const handleCloseModal = () => {
     setShowEditModal(false);
     if (profileData) {
       // Find department name from departments list
       const departmentName = profileData.department || "";
-
       setFormData((prev) => ({
         ...prev,
         name: profileData.full_name || "",
@@ -745,7 +799,7 @@ const DoctorProfile = () => {
         specialization: profileData.specialization || "",
         licenseNumber:
           profileData.license_number || profileData.national_id || "",
-        status: profileData.status || "active",
+        status: profileData.status?.toLowerCase() || "active",
         education: profileData.education || "",
         aboutPhysician: profileData.about_physician || "",
         experience: profileData.experience || "",
@@ -761,12 +815,10 @@ const DoctorProfile = () => {
       }));
     }
   };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   // Handle department change
   const handleDepartmentChange = (deptId) => {
     // Find department name from the selected ID
@@ -779,22 +831,18 @@ const DoctorProfile = () => {
       department: selectedDept?.name || "",
     }));
   };
-
   const refreshPatientCount = async () => {
     try {
       if (!profileData?.id) return;
-
       const response = await fetch(
         `${API_BASE}/staff/${profileData.id}/update-statistics/`,
         {
           method: "POST",
         }
       );
-
       if (response.ok) {
         const result = await response.json();
         console.log("Statistics updated:", result);
-
         // Refresh the profile data
         const profileResponse = await fetch(
           `${API_BASE}/staff/${profileData.id}/`
@@ -812,7 +860,6 @@ const DoctorProfile = () => {
       errorToast("Failed to update patient count");
     }
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -820,7 +867,6 @@ const DoctorProfile = () => {
         errorToast("No profile ID available for update");
         return;
       }
-
       const updateData = new FormData();
       // Basic fields
       updateData.append("full_name", formData.name);
@@ -831,12 +877,10 @@ const DoctorProfile = () => {
       updateData.append("specialization", formData.specialization);
       updateData.append("national_id", formData.licenseNumber);
       updateData.append("status", formData.status);
-
       // Department field - send ID to backend
       if (formData.department_id) {
         updateData.append("department_id", formData.department_id);
       }
-
       // New dynamic fields
       updateData.append("education", formData.education);
       updateData.append("about_physician", formData.aboutPhysician);
@@ -850,11 +894,9 @@ const DoctorProfile = () => {
       updateData.append("languages_spoken", formData.languagesSpoken);
       updateData.append("awards_recognitions", formData.awards);
       updateData.append("shift_timing", formData.shiftTiming);
-
       if (formData.profilePictureFile) {
         updateData.append("profile_picture", formData.profilePictureFile);
       }
-
       const response = await fetch(
         `${API_BASE}/staff/update/${profileData.id}/`,
         {
@@ -862,17 +904,13 @@ const DoctorProfile = () => {
           body: updateData,
         }
       );
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to update profile: ${response.status}`);
       }
-
       const updatedData = await response.json();
-
       // Update the source of truth
       setProfileData(updatedData);
-
       // Update formData with new values
       setFormData((prev) => ({
         ...prev,
@@ -884,7 +922,7 @@ const DoctorProfile = () => {
         specialization: updatedData.specialization || "",
         licenseNumber:
           updatedData.license_number || updatedData.national_id || "",
-        status: updatedData.status || "active",
+        status: updatedData.status?.toLowerCase() || "active",
         education: updatedData.education || "",
         aboutPhysician: updatedData.about_physician || "",
         experience: updatedData.experience || "",
@@ -898,7 +936,6 @@ const DoctorProfile = () => {
         profilePictureFile: null,
         profilePicturePreview: null,
       }));
-
       successToast("Profile updated successfully");
       setShowEditModal(false);
     } catch (error) {
@@ -906,7 +943,6 @@ const DoctorProfile = () => {
       errorToast(error.message || "Failed to update profile");
     }
   };
-
   if (loading) {
     return (
       <div className="min-h-screen mt-[80px] flex items-center justify-center bg-white dark:bg-black">
@@ -914,7 +950,6 @@ const DoctorProfile = () => {
       </div>
     );
   }
-
   if (!profileData) {
     return (
       <div className="min-h-screen mt-[80px] flex items-center justify-center bg-white dark:bg-black">
@@ -930,14 +965,14 @@ const DoctorProfile = () => {
       </div>
     );
   }
-
+  // Normalize status for display
+  const normalizedStatus = profileData.status?.toLowerCase() || "active";
   // Static options for other dropdowns
   const statusOptions = [
     { id: "active", name: "Available" },
     { id: "unavailable", name: "Unavailable" },
     { id: "on_leave", name: "On Leave" },
   ];
-
   const bloodGroupOptions = [
     { id: "A+", name: "A+" },
     { id: "A-", name: "A-" },
@@ -948,13 +983,11 @@ const DoctorProfile = () => {
     { id: "O+", name: "O+" },
     { id: "O-", name: "O-" },
   ];
-
   const genderOptions = [
     { id: "Male", name: "Male" },
     { id: "Female", name: "Female" },
     { id: "Other", name: "Other" },
   ];
-
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
@@ -965,7 +998,6 @@ const DoctorProfile = () => {
           zIndex: 0,
         }}
       ></div>
-
       <div
         style={{
           position: "absolute",
@@ -982,7 +1014,6 @@ const DoctorProfile = () => {
           zIndex: 0,
         }}
       ></div>
-
       <div className="mb-6">
         <button
           className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 rounded-[8px] hover:bg-[#0EFF7B1A] border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base"
@@ -995,7 +1026,6 @@ const DoctorProfile = () => {
           <ArrowLeft size={18} /> Back
         </button>
       </div>
-
       <div className="text-black dark:text-white font-medium text-[20px] mb-4">
         {profileData.designation === "doctor"
           ? "Doctor"
@@ -1004,7 +1034,6 @@ const DoctorProfile = () => {
           : "Staff"}{" "}
         Profile
       </div>
-
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left Section */}
         <div className="bg-white dark:bg-[#1E1E1E] p-6 rounded-xl border border-[#0EFF7B] dark:border-[#3C3C3C]">
@@ -1034,7 +1063,6 @@ const DoctorProfile = () => {
               <Edit size={18} />
             </button>
           </div>
-
           <div className="flex items-start gap-7">
             <div className="min-w-[192px] h-[264px] rounded-lg bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
               {profileData.profile_picture ? (
@@ -1055,34 +1083,32 @@ const DoctorProfile = () => {
                 <span className="hidden text-gray-400">No Image</span>
               )}
             </div>
-
             <div className="mt-[100px]">
               {/* Status Badge */}
               <span
                 className={`w-[108px] h-[35px] flex items-center justify-center gap-2 rounded-[30px] border text-[12px] px-[10px] ${
-                  profileData.status === "active"
+                  normalizedStatus === "active" || normalizedStatus === "available"
                     ? "border-[#0EFF7B] bg-[#0EFF7B1A] text-[#08994A] dark:border-[#0EFF7B] dark:bg-[#0EFF7B1A] dark:text-[#0EFF7B]"
-                    : profileData.status === "unavailable"
+                    : normalizedStatus === "unavailable"
                     ? "border-[#FF6B6B] bg-[#FF6B6B1A] text-[#DC2626] dark:border-[#FF6B6B] dark:bg-[#FF6B6B1A] dark:text-[#FF6B6B]"
                     : "border-[#FBBF24] bg-[#FBBF241A] text-[#D97706] dark:border-[#FBBF24] dark:bg-[#FBBF241A] dark:text-[#FBBF24]"
                 }`}
               >
                 <span
                   className={`w-[8px] h-[8px] rounded-full ${
-                    profileData.status === "active"
+                    normalizedStatus === "active" || normalizedStatus === "available"
                       ? "bg-[#08994A] dark:bg-[#0EFF7B]"
-                      : profileData.status === "unavailable"
+                      : normalizedStatus === "unavailable"
                       ? "bg-[#DC2626] dark:bg-[#FF6B6B]"
                       : "bg-[#D97706] dark:bg-[#FBBF24]"
                   }`}
                 ></span>
-                {profileData.status === "active"
+                {normalizedStatus === "active" || normalizedStatus === "available"
                   ? "Available"
-                  : profileData.status === "unavailable"
+                  : normalizedStatus === "unavailable"
                   ? "Unavailable"
                   : "On Leave"}
               </span>
-
               {/* Name & Specialization */}
               <h2 className="text-[26px] font-bold mt-2 text-black dark:text-white">
                 {profileData.full_name}
@@ -1090,7 +1116,6 @@ const DoctorProfile = () => {
               <p className="text-gray-600 dark:text-gray-400">
                 {profileData.specialization || profileData.designation}
               </p>
-
               <div className="flex gap-3 mt-3">
                 <button className="text-[#08994A] dark:text-[#0EFF7B] w-[45px] h-[45px] p-3 rounded-[50px] bg-[#F5F6F5] dark:bg-neutral-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]">
                   <Phone size={18} />
@@ -1101,7 +1126,6 @@ const DoctorProfile = () => {
               </div>
             </div>
           </div>
-
           {/* Basic Info - Updated with dynamic fields */}
           <div className="mt-6 text-sm space-y-2">
             <p>
@@ -1153,13 +1177,11 @@ const DoctorProfile = () => {
               </span>
             </p>
           </div>
-
           <div className="mt-6">
             <h3 className="font-semibold mb-2 text-black dark:text-white">
               About the Physician
             </h3>
           </div>
-
           {/* Professional Information - Updated with dynamic fields */}
           <div className="mt-6 text-sm space-y-2">
             <p>
@@ -1226,7 +1248,6 @@ const DoctorProfile = () => {
             </p>
           </div>
         </div>
-
         {/* Right Section */}
         <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
           {/* Stats - Updated with dynamic total_patients_treated */}
@@ -1285,7 +1306,6 @@ const DoctorProfile = () => {
               </p>
             </div>
           </div>
-
           {/* Patient Visits */}
           <div>
             <h3 className="font-semibold mb-3 text-black dark:text-white">
@@ -1348,7 +1368,6 @@ const DoctorProfile = () => {
               </div>
             </div>
           </div>
-
           {/* Availability */}
           <div>
             <h3 className="font-semibold mb-2 text-black dark:text-white">
@@ -1360,9 +1379,74 @@ const DoctorProfile = () => {
               </span>
             </div>
           </div>
+           <div>
+                    <h3 className="font-semibold mb-3 text-black dark:text-white">
+                      Certificates & Documents
+                    </h3>
+                    <div className="bg-[#0EFF7B1A] dark:bg-[#000000] rounded-[12px] p-4">
+                      {certificates.length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                          <p className="text-black dark:text-white">
+                            No certificates or documents found
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-[#0EFF7B66] dark:border-[#0EFF7B66]">
+                                <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
+                                  Document Name
+                                </th>
+                                <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
+                                  Actions
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {certificates.map((cert) => (
+                                <tr
+                                  key={cert.id}
+                                  className="border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                >
+                                  <td className="py-3 px-3">
+                                    <div className="flex items-center">
+                                      <FileText className="h-5 w-5 text-[#08994A] dark:text-[#0EFF7B] mr-2" />
+                                      <span className="text-sm text-black dark:text-white truncate max-w-[250px]">
+                                        {cert.name}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => handleViewCertificate(cert)}
+                                        className="w-8 h-8 rounded-[6px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-white dark:bg-transparent flex items-center justify-center text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                        title="View Certificate"
+                                      >
+                                        <Eye size={16} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDownloadCertificate(cert)}
+                                        className="w-8 h-8 rounded-[6px] border border-[#08994A] dark:border-[#0EFF7B] bg-[#08994A] dark:bg-[#0EFF7B33] flex items-center justify-center text-white dark:text-white hover:bg-[#0D7F41] dark:hover:bg-[#0EFF7B66]"
+                                        title="Download Certificate"
+                                      >
+                                        <Download size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
         </div>
+       
       </div>
-
       {/* Edit Modal - Updated with all fields */}
       {showEditModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -1383,7 +1467,6 @@ const DoctorProfile = () => {
                 zIndex: 0,
               }}
             ></div>
-
             {/* Header */}
             <div className="flex justify-between items-center pb-3 mb-4">
               <h3 className="text-lg font-semibold text-black dark:text-white">
@@ -1396,7 +1479,6 @@ const DoctorProfile = () => {
                 <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
             </div>
-
             {/* Form with Scrollable Content */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
               {/* Profile Picture Section */}
@@ -1431,10 +1513,21 @@ const DoctorProfile = () => {
                   <input
                     type="file"
                     id="profile-picture"
-                    accept="image/*"
+                    accept="image/jpeg,image/png"
                     onChange={(e) => {
                       const file = e.target.files[0];
                       if (file) {
+                        const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+                        if (file.size > MAX_SIZE) {
+                          errorToast("File size must be less than 5MB.");
+                          e.target.value = "";
+                          return;
+                        }
+                        if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                          errorToast("Only JPG, JPEG, PNG images are allowed.");
+                          e.target.value = "";
+                          return;
+                        }
                         const reader = new FileReader();
                         reader.onload = (event) => {
                           setFormData((prev) => ({
@@ -1479,13 +1572,12 @@ const DoctorProfile = () => {
                   </p>
                   <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                     <li>• Recommended size: 500x500 pixels</li>
-                    <li>• Format: JPG, PNG, or WebP</li>
+                    <li>• Format: JPG, JPEG, PNG</li>
                     <li>• Max file size: 5MB</li>
                     <li>• Clear, professional headshot recommended</li>
                   </ul>
                 </div>
               </div>
-
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1499,7 +1591,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 {/* Gender Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1514,7 +1605,6 @@ const DoctorProfile = () => {
                     placeholder="Select Gender"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Age
@@ -1527,7 +1617,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 {/* Blood Group Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1542,7 +1631,6 @@ const DoctorProfile = () => {
                     placeholder="Select Blood Group"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Contact
@@ -1555,7 +1643,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Email
@@ -1568,7 +1655,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Education
@@ -1581,7 +1667,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Experience
@@ -1594,7 +1679,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 {/* Department Dropdown - Dynamic */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1613,7 +1697,6 @@ const DoctorProfile = () => {
                     loading={departmentsLoading}
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     License Number
@@ -1626,7 +1709,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Specialization
@@ -1639,7 +1721,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Board Certifications
@@ -1652,7 +1733,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Professional Memberships
@@ -1665,7 +1745,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Languages Spoken
@@ -1678,7 +1757,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Awards & Recognitions
@@ -1691,7 +1769,6 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     Shift Timing
@@ -1705,7 +1782,6 @@ const DoctorProfile = () => {
                     placeholder="e.g., 09:00 AM - 05:00 PM"
                   />
                 </div>
-
                 <div className="col-span-3">
                   <label className="text-sm text-black dark:text-white mb-1 block">
                     About Physician
@@ -1718,7 +1794,6 @@ const DoctorProfile = () => {
                     placeholder="Dedicated to providing compassionate, patient-centered care."
                   />
                 </div>
-
                 {/* Status Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1734,7 +1809,6 @@ const DoctorProfile = () => {
                 </div>
               </div>
             </div>
-
             {/* Buttons */}
             <div className="flex justify-center gap-6 mt-4">
               <button
@@ -1757,7 +1831,6 @@ const DoctorProfile = () => {
           </div>
         </div>
       )}
-
       <style>
         {`
           .no-scrollbar::-webkit-scrollbar {
@@ -1772,5 +1845,4 @@ const DoctorProfile = () => {
     </div>
   );
 };
-
 export default DoctorProfile;
