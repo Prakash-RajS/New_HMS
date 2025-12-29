@@ -194,7 +194,7 @@ const BillingPreview = () => {
       let patientsData = [];
 
       try {
-        const res = await axios.get(`${APIBASE}/patients/`, {
+        const res = await axios.get(`${API_BASE}/patients/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -223,7 +223,7 @@ const BillingPreview = () => {
         for (const patientId of testPatientIds) {
           try {
             const patientRes = await axios.get(
-              `${APIBASE}/patients/${patientId}`,
+              `${API_BASE}/patients/${patientId}`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               }
@@ -263,7 +263,7 @@ const BillingPreview = () => {
   const fetchStaffInfo = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${APIBASE}/api/profile/me/`, {
+      const res = await axios.get(`${API_BASE}/api/profile/me/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setStaffInfo({
@@ -279,7 +279,7 @@ const BillingPreview = () => {
   const fetchPatientDetails = async (uniqueId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${APIBASE}/patients/${uniqueId}`, {
+      const res = await axios.get(`${API_BASE}/patients/${uniqueId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -305,7 +305,7 @@ const BillingPreview = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${APIBASE}/patients/${uniqueId}/insurances`,
+        `${API_BASE}/patients/${uniqueId}/insurances`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -347,7 +347,7 @@ const BillingPreview = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `${APIBASE}/patients/${uniqueId}/billing-items`,
+        `${API_BASE}/patients/${uniqueId}/billing-items`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -507,7 +507,7 @@ const BillingPreview = () => {
     const insId = insurances[index].id;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`${APIBASE}/insurances/${insId}`, {
+      await axios.delete(`${API_BASE}/insurances/${insId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchInsurances(patientInfo.patientID);
@@ -532,7 +532,7 @@ const BillingPreview = () => {
       let res;
       if (editingIndex !== null) {
         const insId = insurances[editingIndex].id;
-        res = await axios.put(`${APIBASE}/insurances/${insId}`, formData, {
+        res = await axios.put(`${API_BASE}/insurances/${insId}`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -541,7 +541,7 @@ const BillingPreview = () => {
         successToast("Insurance updated successfully");
       } else {
         formData.append("patient_id", patientInfo.patientID);
-        res = await axios.post(`${APIBASE}/insurances/`, formData, {
+        res = await axios.post(`${API_BASE}/insurances/`, formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -695,7 +695,7 @@ const BillingPreview = () => {
       );
 
       const res = await axios.post(
-        `${APIBASE}/hospital-invoices/generate`,
+        `${API_BASE}/hospital-invoices/generate`,
         invoiceData,
         {
           headers: {

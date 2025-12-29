@@ -23,7 +23,7 @@ import { successToast, errorToast } from "../../components/Toast.jsx";
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 // API Base URL configuration
-//const APIBASE = "http://localhost:8000";
+//const API_BASE = "http://localhost:8000";
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -136,7 +136,7 @@ const BillingManagement = () => {
 
   const downloadExcel = async () => {
     try {
-      const response = await fetch(`${APIBASE}/billing/export/excel`);
+      const response = await fetch(`${API_BASE}/billing/export/excel`);
       if (!response.ok) throw new Error("Failed to download Excel");
       
       const blob = await response.blob();
@@ -158,7 +158,7 @@ const BillingManagement = () => {
 
   const downloadCSV = async () => {
     try {
-      const response = await fetch(`${APIBASE}/billing/export/csv`);
+      const response = await fetch(`${API_BASE}/billing/export/csv`);
       if (!response.ok) throw new Error("Failed to download CSV");
       
       const blob = await response.blob();
@@ -185,7 +185,7 @@ const BillingManagement = () => {
 
   const downloadHospitalExcel = async () => {
     try {
-      const response = await fetch(`${APIBASE}/hospital-billing/export/excel`);
+      const response = await fetch(`${API_BASE}/hospital-billing/export/excel`);
       if (!response.ok) throw new Error("Failed to download Excel");
       
       const blob = await response.blob();
@@ -207,7 +207,7 @@ const BillingManagement = () => {
 
   const downloadHospitalCSV = async () => {
     try {
-      const response = await fetch(`${APIBASE}/hospital-billing/export/csv`);
+      const response = await fetch(`${API_BASE}/hospital-billing/export/csv`);
       if (!response.ok) throw new Error("Failed to download CSV");
       
       const blob = await response.blob();
@@ -231,7 +231,7 @@ const BillingManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.get(`${APIBASE}/billing/`, { 
+      const res = await axios.get(`${API_BASE}/billing/`, { 
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -281,7 +281,7 @@ const BillingManagement = () => {
       setInsuranceClaims(mappedData.filter((d) => d.paymentMethod === "Insurance").length);
     } catch (err) {
       console.error("Error fetching invoices:", err.response?.data || err.message);
-      setError(`Failed to fetch invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${APIBASE} and proxy is configured.`);
+      setError(`Failed to fetch invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${API_BASE} and proxy is configured.`);
       setInvoiceData([]);
     } finally {
       setLoading(false);
@@ -292,7 +292,7 @@ const BillingManagement = () => {
     try {
       setHospitalLoading(true);
       setHospitalError(null);
-      const res = await axios.get(`${APIBASE}/hospital-billing/`, { 
+      const res = await axios.get(`${API_BASE}/hospital-billing/`, { 
         headers: { 
           'Accept': 'application/json',
           'Content-Type': 'application/json'
@@ -334,7 +334,7 @@ const BillingManagement = () => {
       setHospitalInvoiceData(mappedData);
     } catch (err) {
       console.error("Error fetching hospital invoices:", err.response?.data || err.message);
-      setHospitalError(`Failed to fetch hospital invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${APIBASE} and proxy is configured.`);
+      setHospitalError(`Failed to fetch hospital invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${API_BASE} and proxy is configured.`);
       setHospitalInvoiceData([]);
     } finally {
       setHospitalLoading(false);
@@ -485,11 +485,11 @@ const BillingManagement = () => {
   };
 
   const handleViewInvoice = (invoiceId) => {
-    window.open(`${APIBASE}/invoices/${invoiceId}.pdf`, "_blank");
+    window.open(`${API_BASE}/invoices/${invoiceId}.pdf`, "_blank");
   };
 
   const handleHospitalViewInvoice = (invoiceId) => {
-    window.open(`${APIBASE}/hospital-billing/pdf/${invoiceId}`, "_blank");
+    window.open(`${API_BASE}/hospital-billing/pdf/${invoiceId}`, "_blank");
   };
 
   const handlePDFDownload = async () => {
@@ -499,7 +499,7 @@ const BillingManagement = () => {
   }
   try {
     console.log("Downloading PDFs for IDs:", selectedRows);  // Log IDs
-    const res = await axios.post(`${APIBASE}/billing/download-selected`, 
+    const res = await axios.post(`${API_BASE}/billing/download-selected`, 
       { ids: selectedRows }, 
       { 
         responseType: "blob",
@@ -529,7 +529,7 @@ const BillingManagement = () => {
     }
     try {
       console.log("Downloading hospital PDFs for IDs:", selectedHospitalRows);
-      const res = await axios.post(`${APIBASE}/hospital-billing/download-selected`, 
+      const res = await axios.post(`${API_BASE}/hospital-billing/download-selected`, 
         { ids: selectedHospitalRows }, 
         { 
           responseType: "blob",
@@ -565,7 +565,7 @@ const BillingManagement = () => {
     const invoiceId = selectedRows[0];
     try {
       // First, try to get the PDF as blob
-      const response = await fetch(`${APIBASE}/invoices/${invoiceId}.pdf`);
+      const response = await fetch(`${API_BASE}/invoices/${invoiceId}.pdf`);
       if (!response.ok) {
         throw new Error('PDF not found');
       }
@@ -603,7 +603,7 @@ const BillingManagement = () => {
 
     const invoiceId = selectedHospitalRows[0];
     try {
-      const response = await fetch(`${APIBASE}/hospital-billing/pdf/${invoiceId}`);
+      const response = await fetch(`${API_BASE}/hospital-billing/pdf/${invoiceId}`);
       if (!response.ok) {
         throw new Error('PDF not found');
       }
@@ -652,7 +652,7 @@ const BillingManagement = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedRows) {
-        await axios.delete(`${APIBASE}/billing/${id}`, {
+        await axios.delete(`${API_BASE}/billing/${id}`, {
           headers: { "Accept": "application/json" }
         });
       }
@@ -670,7 +670,7 @@ const BillingManagement = () => {
   const confirmHospitalDelete = async () => {
     try {
       for (const id of selectedHospitalRows) {
-        await axios.delete(`${APIBASE}/hospital-billing/${id}`, {
+        await axios.delete(`${API_BASE}/hospital-billing/${id}`, {
           headers: { "Accept": "application/json" }
         });
       }

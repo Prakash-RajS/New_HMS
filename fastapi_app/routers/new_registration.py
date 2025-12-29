@@ -548,7 +548,7 @@ from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from typing import List
 from HMS_backend import models
-from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAllocation
+from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAllocation, PatientHistory
 
 from django.db.models import Q, F  # ← ADDED F
 from Fastapi_app.routers.notifications import NotificationService
@@ -589,19 +589,6 @@ async def get_departments():
 
 
 # ---------- 2. GET Staff ----------
-# @router.get("/staff")
-# async def get_staff(department_id: int = Query(...)):
-#     if department_id <= 0:
-#         raise HTTPException(400, "department_id required")
-#     await run_in_threadpool(Department.objects.get, id=department_id, status="active")
-#     staff = await run_in_threadpool(
-#         lambda: list(
-#             Staff.objects.filter(department_id=department_id, status="active")
-#             .values("id", "full_name", "designation")
-#             .order_by("full_name")
-#         )
-#     )
-#     return {"staff": staff}
 @router.get("/staff")
 async def get_staff(department_id: int = Query(...)):
     if department_id <= 0:
@@ -693,6 +680,8 @@ async def register_patient(
         casualty_status=(casualty_status or "Active").strip().title(),
         reason_for_visit=reason_for_visit,
     )
+
+    # History is automatically created in Patient.save() method when patient is registered
 
     if photo and photo.filename:
         filename = f"{patient.patient_unique_id}_{photo.filename}"
@@ -1002,9 +991,9 @@ async def delete_patient(patient_id: str = Path(...)):
         # Delete patient
         await run_in_threadpool(patient.delete)
         await NotificationService.send_patient_deleted({
-    'patient_unique_id': patient.patient_unique_id,
-    'full_name': patient.full_name
-})  
+            'patient_unique_id': patient.patient_unique_id,
+            'full_name': patient.full_name
+        })  
         # Delete photo if exists
         if photo_path and isinstance(photo_path, str) and os.path.exists(photo_path):
             try:
@@ -1014,12 +1003,78 @@ async def delete_patient(patient_id: str = Path(...)):
         
         return {"success": True, "message": "Deleted"}
         
-    
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found")
     except Exception as e:
         logging.exception("delete_patient error")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------- 8. GET Patient History ----------
+@router.get("/{patient_id}/history")
+async def get_patient_history(
+    patient_id: str = Path(...),
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100)
+):
+    """
+    Get history records for a specific patient
+    History is automatically created at:
+    1. Registration time
+    2. When patient is moved back to in-patient from out-patient
+    """
+    try:
+        # Find patient by ID or patient_unique_id
+        if patient_id.isdigit():
+            patient = await run_in_threadpool(Patient.objects.get, id=int(patient_id))
+        else:
+            patient = await run_in_threadpool(Patient.objects.get, patient_unique_id=patient_id)
+        
+        # Get history records for this patient
+        history_qs = patient.history_records.all().order_by("-created_at")
+        
+        # Get total count
+        total = await run_in_threadpool(history_qs.count)
+        
+        # Get paginated results
+        start = (page - 1) * limit
+        end = start + limit
+        
+        history = await run_in_threadpool(
+            lambda: list(
+                history_qs[start:end].values(
+                    "id",
+                    "patient_name",
+                    "doctor",
+                    "department",
+                    "status",
+                    "created_at"
+                )
+            )
+        )
+        
+        # Format dates
+        for record in history:
+            if record["created_at"]:
+                record["created_at"] = record["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+        
+        return {
+            "patient_id": patient.patient_unique_id,
+            "patient_name": patient.full_name,
+            "current_status": patient.casualty_status,
+            "current_patient_type": patient.patient_type,
+            "history": history,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "pages": (total + limit - 1) // limit
+        }
+        
+    except Patient.DoesNotExist:
+        raise HTTPException(404, "Patient not found")
+    except Exception as e:
+        logging.exception("get_patient_history error")
+        raise HTTPException(500, detail=str(e))
 
 
 @router.get("/{patient_id}/diagnoses/", response_model=List[dict])

@@ -923,9 +923,12 @@ import {
   Scale,
   Ruler,
   Thermometer,
+  History,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
   const navigate = useNavigate();
@@ -934,35 +937,44 @@ export default function ViewPatientProfile() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [testReports, setTestReports] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [history, setHistory] = useState([]); // NEW: History data
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
+  
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPrescriptionPage, setCurrentPrescriptionPage] = useState(1);
   const [currentTestPage, setCurrentTestPage] = useState(1);
+  const [currentHistoryPage, setCurrentHistoryPage] = useState(1); // NEW: History pagination
   const itemsPerPage = 5;
+  
   // Filters
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
+  
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
+  
   // Responsive state
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
   const isTablet = windowWidth >= 768 && windowWidth < 1024;
   const isSmallDesktop = windowWidth >= 1024 && windowWidth < 1320;
   const isLargeDesktop = windowWidth >= 1320;
+
   // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -978,6 +990,7 @@ export default function ViewPatientProfile() {
     };
     fetchDepartments();
   }, []);
+
   // Fetch Patient
   useEffect(() => {
     const fetchPatient = async () => {
@@ -992,48 +1005,53 @@ export default function ViewPatientProfile() {
     };
     fetchPatient();
   }, [patient_id]);
-  // Fetch All Data including Invoices
+
+  // Fetch All Data including Invoices and History
   useEffect(() => {
     if (!patient) return;
+    
     const fetchTabData = async () => {
       setDataLoading(true);
       try {
-        const [diagRes, presRes, testRes, invRes] = await Promise.all([
+        const [diagRes, presRes, testRes, invRes, histRes] = await Promise.all([
           axios.get(`${API_BASE}/medicine_allocation/${patient_id}/diagnoses/`),
-          axios.get(
-            `${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`
-          ),
-          axios.get(
-            `${API_BASE}/medicine_allocation/${patient_id}/test-reports/`
-          ),
-          axios.get(
-            `${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`
-          ),
+          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`),
+          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/test-reports/`),
+          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`),
+          axios.get(`${API_BASE}/patients/${patient_id}/history?page=1&limit=20`) // NEW: Fetch history
         ]);
+        
         setDiagnoses(diagRes.data || []);
         setPrescriptions(presRes.data || []);
         setTestReports(testRes.data || []);
         setInvoices(invRes.data || []);
+        setHistory(histRes.data?.history || []); // NEW: Set history data
+        
         // Auto-select latest invoice
         if (invRes.data.length > 0) {
           setSelectedInvoiceIndex(0);
         }
+        
         // Reset pagination to first page on data load
         setCurrentPage(1);
         setCurrentPrescriptionPage(1);
         setCurrentTestPage(1);
+        setCurrentHistoryPage(1);
       } catch (err) {
         console.error("Failed to load tab data", err);
       } finally {
         setDataLoading(false);
       }
     };
+    
     fetchTabData();
   }, [patient, patient_id]);
+
   // Reset test page on filter change
   useEffect(() => {
     setCurrentTestPage(1);
   }, [selectedMonth, selectedDepartment, selectedStatus]);
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1047,21 +1065,27 @@ export default function ViewPatientProfile() {
         Patient not found
       </div>
     );
+
   // Pagination Helpers
   const paginate = (items, page) =>
     items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  
   const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
+  
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
+  const currentHistory = paginate(history, currentHistoryPage); // NEW: Paginated history
+  
   const filteredTests = testReports.filter(
     (t) =>
       (selectedMonth === "All" || t.month === selectedMonth) &&
       (selectedDepartment === "All" || t.department === selectedDepartment) &&
       (selectedStatus === "All" || t.status === selectedStatus)
   );
+  
   const currentTests = paginate(filteredTests, currentTestPage);
-  const currentInvoice =
-    invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
+  const currentInvoice = invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
+
   // Dynamic Vitals Data
   const vitalsData = [
     {
@@ -1089,6 +1113,7 @@ export default function ViewPatientProfile() {
       unit: "°C",
     },
   ];
+
   // Reusable Listbox Component
   const FilterListbox = ({ value, onChange, options, label }) => (
     <Listbox value={value} onChange={onChange}>
@@ -1117,6 +1142,7 @@ export default function ViewPatientProfile() {
       </div>
     </Listbox>
   );
+
   // Responsive Table Component
   const ResponsiveTable = ({ children, headers, mobileData }) => {
     if (isMobile) {
@@ -1146,6 +1172,7 @@ export default function ViewPatientProfile() {
       </div>
     );
   };
+
   // Mobile Navigation
   const MobileTabs = () => (
     <div className="md:hidden">
@@ -1164,6 +1191,7 @@ export default function ViewPatientProfile() {
             { name: "Prescription", icon: FileText },
             { name: "Invoice", icon: Receipt },
             { name: "Test Reports", icon: TestTube2 },
+            { name: "History", icon: History }, // NEW: History tab
           ].map(({ name, icon: Icon }) => (
             <button
               key={name}
@@ -1185,6 +1213,7 @@ export default function ViewPatientProfile() {
       )}
     </div>
   );
+
   return (
     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
@@ -1211,23 +1240,25 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       />
+      
       {/* Back Button */}
-       <button
-  onClick={() => {
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate("/patients");
-    }
-  }}
-  className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
-  style={{
-    background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-  }}
->
-  <ArrowLeft size={18} />
-  Back
-</button>
+      <button
+        onClick={() => {
+          if (window.history.state && window.history.state.idx > 0) {
+            navigate(-1);
+          } else {
+            navigate("/patients");
+          }
+        }}
+        className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
+        style={{
+          background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+        }}
+      >
+        <ArrowLeft size={18} />
+        Back
+      </button>
+      
       {/* Profile Card - FIXED WIDTH ISSUE */}
       <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
         {/* Avatar Section */}
@@ -1249,10 +1280,12 @@ export default function ViewPatientProfile() {
             {patient.email_address || "—"}
           </span>
         </div>
+        
         {/* Vertical Separator - Only on large screens */}
         {isLargeDesktop && (
           <div className="hidden lg:block w-[1px] h-[240px] bg-gray-300 dark:bg-[#A0A0A0] mr-8" />
         )}
+        
         {/* Info Grid - Responsive */}
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 lg:mt-0">
           {[
@@ -1278,6 +1311,7 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
+      
       {/* Vitals Section */}
       <div className="mb-6 sm:mb-8 relative z-10">
         <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
@@ -1312,10 +1346,12 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
+      
       {/* Main Tabs Container - FIXED WIDTH ISSUE */}
       <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
         {/* Mobile Navigation */}
         <MobileTabs />
+        
         {/* Desktop Tabs */}
         <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
           <div className="flex justify-start sm:justify-center min-w-max">
@@ -1324,6 +1360,7 @@ export default function ViewPatientProfile() {
               { name: "Prescription", icon: FileText },
               { name: "Invoice", icon: Receipt },
               { name: "Test Reports", icon: TestTube2 },
+              { name: "History", icon: History }, // NEW: History tab
             ].map(({ name, icon: Icon }) => (
               <button
                 key={name}
@@ -1347,11 +1384,13 @@ export default function ViewPatientProfile() {
             ))}
           </div>
         </div>
+        
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             Loading records...
           </div>
         )}
+        
         {/* === DIAGNOSIS TAB === */}
         {activeTab === "Diagnosis" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -1446,6 +1485,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
+        
         {/* === PRESCRIPTION TAB === */}
         {activeTab === "Prescription" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -1543,6 +1583,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
+        
         {/* === INVOICE TAB === */}
         {activeTab === "Invoice" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
@@ -1765,6 +1806,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
+        
         {/* === TEST REPORTS TAB === */}
         {activeTab === "Test Reports" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -1898,6 +1940,110 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
+        
+       {/* === HISTORY TAB === */}
+{activeTab === "History" && !dataLoading && (
+  <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+      <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
+        Patient's history records showing registration and status changes.
+      </p>
+    </div>
+    {history.length === 0 ? (
+      <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+        No history records found
+      </p>
+    ) : (
+      <>
+        <ResponsiveTable
+          headers={["#", "Doctor", "Department", "Status", "Date & Time"]}
+          mobileData={currentHistory.map((h, idx) => [
+            (currentHistoryPage - 1) * itemsPerPage + idx + 1,
+            h.doctor,
+            h.department,
+            <span
+              className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                h.status?.toLowerCase() === "active"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                  : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                  : h.status?.toLowerCase() === "pending"
+                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                  : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              }`}
+            >
+              {h.status}
+            </span>,
+            h.created_at
+          ])}
+        >
+          <thead>
+            <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+              {/* <th className="py-3 px-2 sm:px-4">#</th> */}
+              <th className="py-3 px-2 sm:px-4">Doctor</th>
+              <th className="py-3 px-2 sm:px-4">Department</th>
+              <th className="py-3 px-2 sm:px-4">Status</th>
+              <th className="py-3 px-2 sm:px-4">Date & Time</th>
+            </tr>
+          </thead>
+          <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+            {currentHistory.map((h, i) => (
+              <tr
+                key={i}
+                className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              >
+                {/* <td className="py-3 px-2 sm:px-4">{(currentHistoryPage - 1) * itemsPerPage + i + 1}</td> */}
+                <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>
+                <td className="py-3 px-2 sm:px-4">{h.department || "—"}</td>
+                <td className="py-3 px-2 sm:px-4">
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      h.status?.toLowerCase() === "active"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                        : h.status?.toLowerCase() === "pending"
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    }`}
+                  >
+                    {h.status}
+                  </span>
+                </td>
+                <td className="py-3 px-2 sm:px-4">{h.created_at}</td>
+              </tr>
+            ))}
+          </tbody>
+        </ResponsiveTable>
+        <div className="flex items-center mt-4 gap-x-4">
+          <div className="text-sm text-black dark:text-white">
+            Page {currentHistoryPage} of {totalPages(history)}
+          </div>
+          <div className="flex items-center gap-x-2">
+            <button
+              onClick={() => setCurrentHistoryPage(Math.max(1, currentHistoryPage - 1))}
+              disabled={currentHistoryPage === 1}
+              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+            >
+              <ChevronLeft size={12} />
+            </button>
+            <button
+              onClick={() =>
+                setCurrentHistoryPage(
+                  Math.min(totalPages(history), currentHistoryPage + 1)
+                )
+              }
+              disabled={currentHistoryPage === totalPages(history)}
+              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+            >
+              <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+)}
       </div>
     </div>
   );

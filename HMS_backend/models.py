@@ -394,6 +394,17 @@ class Patient(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
+        # Store old values before saving
+        is_new = not self.pk
+        old_casualty_status = None
+        
+        if not is_new:
+            try:
+                old_patient = Patient.objects.get(pk=self.pk)
+                old_casualty_status = old_patient.casualty_status
+            except Patient.DoesNotExist:
+                pass
+        
         # Auto-generate patient_unique_id
         if not self.patient_unique_id:
             last = Patient.objects.order_by("id").last()
@@ -417,10 +428,52 @@ class Patient(models.Model):
         # Call the original save method
         super().save(*args, **kwargs)
         
+        # Create history record in these cases:
+        from .models import PatientHistory
+        
+        should_create_history = False
+        
+        # Case 1: New registration
+        if is_new and self.casualty_status:
+            should_create_history = True
+        
+        # Case 2: Patient moved back to in-patient from out-patient
+        elif (old_casualty_status and self.casualty_status and 
+              old_casualty_status.lower() == "completed" and 
+              self.casualty_status.lower() != "completed"):
+            should_create_history = True
+        
+        # Create history record if needed
+        if should_create_history and self.casualty_status:
+            PatientHistory.objects.create(
+                patient=self,
+                patient_name=self.full_name,
+                doctor=self.staff.full_name if self.staff else None,
+                department=self.department.name if self.department else None,
+                status=self.casualty_status
+            )
+        
         # Update staff statistics if staff is assigned
         if self.staff:
             self.staff.update_statistics(save=True)
             print(f"✅ Updated patient count for staff {self.staff.full_name} after patient assignment")
+
+            
+class PatientHistory(models.Model):
+    """Tracks patient status changes"""
+    patient = models.ForeignKey("Patient", on_delete=models.CASCADE, related_name="history_records")
+    patient_name = models.CharField(max_length=200)
+    doctor = models.CharField(max_length=200, blank=True, null=True)
+    department = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=50)  # From patient's casualty_status
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = "patient_history"
+        ordering = ["-created_at"]
+    
+    def __str__(self):
+        return f"{self.patient_name} - {self.status} ({self.created_at})"
     
 class BloodGroup(models.Model):
     BLOOD_TYPES = [
