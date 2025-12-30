@@ -857,6 +857,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="MM/DD/YYYY"
                   required={true}
                   error={getFieldError("date_of_birth")}
+                  maxDate={new Date()}
                 />
                 <Dropdown
                   label="Gender"

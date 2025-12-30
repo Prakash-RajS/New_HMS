@@ -40,7 +40,7 @@ pipeline {
         stage('Build Frontend') {
           agent { label 'Website' }
           environment {
-            VITE_API_BASE_URL = 'https://hms.stacklycloud.com'
+            VITE_API_BASE_URL = 'https://hms.stacklycloud.com/api'
           }
           steps {
             dir('hms_frontend') {

@@ -56,10 +56,11 @@ export const WebSocketProvider = ({ children }) => {
     //   import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
     // const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
 
-    const backendUrl =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000"
-    : "http://localhost:8000";
+
+    
+const API_BASE = import.meta.env.VITE_API_BASE_URL;    
+const backendUrl = API_BASE
+
 
 const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
 

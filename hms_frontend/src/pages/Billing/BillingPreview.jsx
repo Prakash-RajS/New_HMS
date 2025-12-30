@@ -1737,6 +1737,7 @@ const BillingPreview = () => {
                       }
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Select date"
+                      maxDate={new Date()}
                       className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />
@@ -1756,6 +1757,7 @@ const BillingPreview = () => {
                       }
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Select date"
+                      minDate={new Date()}
                       className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />

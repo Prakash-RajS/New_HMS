@@ -334,48 +334,47 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               error={errors.blood_type}
             />
             {/* Last Donation Date */}
-            <div>
-              <label className="text-sm text-black dark:text-white">
-                Last Donation Date (Optional)
-              </label>
-              <div className="relative">
-                <DatePicker
-                  selected={selectedDate}
-                  onChange={(date) => {
-                    setFormData({ ...formData, last_donation_date: date });
-                  }}
-                  dateFormat="MM/dd/yyyy"
-                  placeholderText="Select date"
-                  className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                             focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
-                  wrapperClassName="w-full"
-                  popperClassName="z-50"
-                  showYearDropdown
-                  scrollableYearDropdown
-                  yearDropdownItemNumber={15}
-                 
-                  maxDate={new Date()}
-                />
-                {/* Calendar Icon */}
-                <div className="absolute right-3 top-2.5 pointer-events-none">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className="text-gray-500 dark:text-[#0EFF7B]"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
-              </div>
-            </div>
+<div>
+  <label className="text-sm text-black dark:text-white">
+    Last Donation Date (Optional)
+  </label>
+  <div className="relative">
+    <DatePicker
+      selected={formData.last_donation_date}  // Changed from selectedDate to formData.last_donation_date
+      onChange={(date) => {
+        setFormData({ ...formData, last_donation_date: date });
+      }}
+      dateFormat="MM/dd/yyyy"
+      placeholderText="Select date"
+      maxDate={new Date()}
+      className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+      wrapperClassName="w-full"
+      popperClassName="z-50"
+      showYearDropdown
+      scrollableYearDropdown
+      yearDropdownItemNumber={15}
+    />
+    {/* Calendar Icon */}
+    <div className="absolute right-3 top-2.5 pointer-events-none">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="text-gray-500 dark:text-[#0EFF7B]"
+      >
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+    </div>
+  </div>
+</div>
           </div>
           {/* Information Note */}
           <div className="mt-4 p-3 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">

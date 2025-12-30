@@ -96,9 +96,6 @@ const DashboardComponents = () => {
   const fetchRecentActivities = async () => {
     try {
       const response = await fetch(`${API_BASE}/api/dashboard/recent-activities`);
-      // const response = await fetch(
-      //   "http://localhost:8000/api/dashboard/recent-activities"
-      // );
 
       if (response.ok) {
         const data = await response.json();

@@ -3,6 +3,8 @@ from fastapi import APIRouter, HTTPException
 from django.db.models import Count, Q, Sum
 from django.db import models
 from datetime import datetime, timedelta
+from django.utils import timezone
+from datetime import datetime, timedelta
 
 import json
 from asgiref.sync import sync_to_async
@@ -101,6 +103,21 @@ def get_patients_with_admission():
 @sync_to_async
 def get_total_invoices():
     return HospitalInvoiceHistory.objects.count()
+
+def normalize_timestamp(ts):
+    """
+    Ensures timestamp is timezone-aware datetime
+    """
+    if isinstance(ts, str):
+        return datetime.fromisoformat(ts)
+
+    if isinstance(ts, datetime):
+        if ts.tzinfo is None:
+            return timezone.make_aware(ts)
+        return ts
+
+    return timezone.now()
+
 
 @router.get("/stats")
 async def get_dashboard_stats():
@@ -275,7 +292,7 @@ async def get_recent_activities():
                 "id": f"patient_{patient['id']}",
                 "type": "info",
                 "message": f"New patient registered: {patient['full_name']}",
-                "timestamp": patient["created_at"],  # aware
+                "timestamp": patient["created_at"],
                 "read": False,
                 "category": "patient"
             })
@@ -287,34 +304,31 @@ async def get_recent_activities():
                 "id": f"appointment_{appointment['id']}",
                 "type": "info",
                 "message": f"New appointment: {appointment['patient_name']}",
-                "timestamp": appointment["created_at"],  # aware
+                "timestamp": appointment["created_at"],
                 "read": False,
                 "category": "appointment"
             })
 
-        # Emergency alert (FIXED)
+        # Emergency alert
         emergency_count = await get_emergency_appointments()
         if emergency_count > 0:
             recent_activities.append({
                 "id": "emergency_alert",
                 "type": "error",
                 "message": f"{emergency_count} emergency case(s) require attention",
-                "timestamp": timezone.now(),  # ✅ aware
+                "timestamp": timezone.now(),
                 "read": False,
                 "category": "emergency"
             })
 
-        # 🔒 Normalize ALL timestamps
+        # Normalize timestamps
         for activity in recent_activities:
             activity["timestamp"] = normalize_timestamp(activity["timestamp"])
 
-        # 🔢 Safe sort
-        recent_activities.sort(
-            key=lambda x: x["timestamp"],
-            reverse=True
-        )
+        # Sort latest first
+        recent_activities.sort(key=lambda x: x["timestamp"], reverse=True)
 
-        # 🔄 Convert to ISO for frontend
+        # Convert to ISO for frontend
         for activity in recent_activities:
             activity["timestamp"] = activity["timestamp"].isoformat()
 
@@ -323,6 +337,7 @@ async def get_recent_activities():
     except Exception as e:
         print(f"Recent activities error: {e}")
         return []
+
 
 @router.get("/debug-data")
 async def debug_data():

@@ -39,12 +39,7 @@ const Header = ({ isCollapsed }) => {
     .toUpperCase()
     .slice(0, 2);
 
-  const API_BASE_URL =
-    window.location.hostname === "18.119.210.2"
-      ? "http://18.119.210.2:8000"
-      : window.location.hostname === "3.133.64.23"
-      ? "http://3.133.64.23:8000"
-      : "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   // === SEARCH LOGIC (unchanged) ===
   const getModulePermissionKey = (item) => {
@@ -240,7 +235,7 @@ const Header = ({ isCollapsed }) => {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/profile/me/`, {
+        const response = await fetch(`${API_BASE}/api/profile/me/`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -257,7 +252,7 @@ const Header = ({ isCollapsed }) => {
         }
         const data = await response.json();
         const profilePic = data.profile_picture
-          ? `${API_BASE_URL}${data.profile_picture.startsWith("/") ? "" : "/"}${
+          ? `${API_BASE}${data.profile_picture.startsWith("/") ? "" : "/"}${
               data.profile_picture
             }`
           : null;
@@ -277,7 +272,7 @@ const Header = ({ isCollapsed }) => {
       }
     };
     fetchUserProfile();
-  }, [navigate, API_BASE_URL]);
+  }, [navigate, API_BASE]);
 
   const getNotificationColor = (type) => {
     switch (type) {

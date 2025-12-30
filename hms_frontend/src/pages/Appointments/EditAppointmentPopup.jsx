@@ -530,41 +530,38 @@ export default function EditAppointmentPopup({
               required={true}
               error={validationErrors.department_id}
             />
-            
             <div>
-              <label className="text-sm text-black dark:text-white">
-                Appointment Date <span className="text-red-700">*</span>
-              </label>
-              <div 
-                className="relative cursor-pointer"
-              >
-                <input
-  type="date"
-  value={formData.appointment_date}
-  onChange={(e) =>
-    handleInputChange("appointment_date", e.target.value)
-  }
-  min={new Date().toISOString().split("T")[0]}
-  className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
-             border border-[#0EFF7B] dark:border-[#3A3A3A]
-             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-             outline-none cursor-pointer
-             appearance-none
-             [&::-webkit-calendar-picker-indicator]:opacity-0
-             [&::-webkit-calendar-picker-indicator]:hidden"
-/>
-
-                <Calendar
-                  size={18}
-                  className="absolute right-3 top-3 text-[#0EFF7B]"
-                />
-              </div>
-              {(validationErrors.appointment_date || validationErrors.appointment_date_time) && (
-                <div className="text-red-500 text-xs mt-1">
-                  {validationErrors.appointment_date || validationErrors.appointment_date_time}
-                </div>
-              )}
-            </div>
+  <label className="text-sm text-black dark:text-white">
+    Appointment Date <span className="text-red-700">*</span>
+  </label>
+  <div className="relative cursor-pointer">
+    <input
+      type="date"
+      value={formData.appointment_date}
+      onChange={(e) => handleInputChange("appointment_date", e.target.value)}
+      min={new Date().toISOString().split("T")[0]}
+      className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
+                border border-[#0EFF7B] dark:border-[#3A3A3A]
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
+                outline-none cursor-pointer
+                [&::-webkit-calendar-picker-indicator]:absolute
+                [&::-webkit-calendar-picker-indicator]:inset-0
+                [&::-webkit-calendar-picker-indicator]:w-full
+                [&::-webkit-calendar-picker-indicator]:h-full
+                [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                [&::-webkit-calendar-picker-indicator]:opacity-0"
+    />
+    <Calendar
+      size={18}
+      className="absolute right-3 top-3 text-[#0EFF7B] pointer-events-none"
+    />
+  </div>
+  {(validationErrors.appointment_date || validationErrors.appointment_date_time) && (
+    <div className="text-red-500 text-xs mt-1">
+      {validationErrors.appointment_date || validationErrors.appointment_date_time}
+    </div>
+  )}
+</div>
             
             <div>
               <label className="text-sm text-black dark:text-white">

@@ -497,51 +497,52 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </div>
 
           {/* Admit Date */}
-          <div>
-            <label className="text-sm">
-              Admit Date <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <DatePicker
-                selected={parseDate(formData.admitDate)}
-                onChange={(date) => {
-                  const formatted = date
-                    ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-                        date.getDate()
-                      ).padStart(2, "0")}/${date.getFullYear()}`
-                    : "";
-                  setFormData({ ...formData, admitDate: formatted });
-                }}
-                dateFormat="MM/dd/yyyy"
-                placeholderText="MM/DD/YYYY"
-                className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                           bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
-                wrapperClassName="w-full"
-                popperClassName="z-50"
-                popperPlacement="bottom-start"
-                showPopperArrow={false}
-                customInput={
-                  <input
-                    style={{
-                      paddingRight: "2.5rem",
-                      fontSize: "14px",
-                      lineHeight: "16px",
-                    }}
-                  />
-                }
-              />
-              <div className="absolute right-3 top-3.5 pointer-events-none">
-                <Calendar
-                  size={18}
-                  className="text-[#08994A] dark:text-[#0EFF7B]"
-                />
-              </div>
-            </div>
-            {errors.admitDate && (
-              <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>
-            )}
-          </div>
+<div>
+  <label className="text-sm">
+    Admit Date <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <DatePicker
+      selected={parseDate(formData.admitDate)}
+      onChange={(date) => {
+        const formatted = date
+          ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+              date.getDate()
+            ).padStart(2, "0")}/${date.getFullYear()}`
+          : "";
+        setFormData({ ...formData, admitDate: formatted });
+      }}
+      dateFormat="MM/dd/yyyy"
+      placeholderText="MM/DD/YYYY"
+      minDate={new Date()} // Add this line to prevent past dates
+      className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
+                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
+      wrapperClassName="w-full"
+      popperClassName="z-50"
+      popperPlacement="bottom-start"
+      showPopperArrow={false}
+      customInput={
+        <input
+          style={{
+            paddingRight: "2.5rem",
+            fontSize: "14px",
+            lineHeight: "16px",
+          }}
+        />
+      }
+    />
+    <div className="absolute right-3 top-3.5 pointer-events-none">
+      <Calendar
+        size={18}
+        className="text-[#08994A] dark:text-[#0EFF7B]"
+      />
+    </div>
+  </div>
+  {errors.admitDate && (
+    <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>
+  )}
+</div>
         </div>
 
         {/* Buttons */}
