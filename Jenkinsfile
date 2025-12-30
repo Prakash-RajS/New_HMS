@@ -4,14 +4,13 @@ pipeline {
     environment {
         GIT_REPO = 'https://github.com/thestackly/stackly-hms.git'
         BRANCH = 'main'
- 
         DEPLOY_USER = 'ubuntu'
         DEPLOY_HOST = '3.133.64.23'
         DEPLOY_SSH = 'hms-ec2-deploy-key'
  
         REMOTE_BASE = '/home/ubuntu/stackly-hms'
         FRONTEND_DIR = "${REMOTE_BASE}/hms_frontend"
-        FASTAPI_DIR = "${REMOTE_BASE}/fastapi_app"
+        FASTAPI_DIR = "${REMOTE_BASE}/Fastapi_app"
         FRONTEND_BUILD = 'dist'
  
         DB_NAME = 'hms_project_prod_db'
@@ -25,7 +24,7 @@ pipeline {
  
     stages {
  
-        /* ========== 1️⃣ CHECKOUT CODE ========== */
+        /* ========== 1️⃣ CHECKOUT CODE  ========== */
         stage('Checkout Code') {
             agent { label 'Website' }
             steps {
@@ -39,33 +38,22 @@ pipeline {
  
         /* ========== 2️⃣  BUILD FRONTEND (Improved) ========== */
         stage('Build Frontend') {
-            agent { label 'Website' }
-            steps {
-                dir('hms_frontend') {
- 
-                    sh '''
-                        echo "Node & npm versions:"
-                        node -v || true
-                        npm -v || true
- 
-                        echo "Installing frontend dependencies..."
-                        npm ci --no-audit --no-fund || npm install
- 
-                        echo "Running lint..."
-                        npm run lint || echo "Lint failed (skipping)"
- 
-                        echo "Running tests..."
-                        npm test --if-present || echo "No tests found"
- 
-                        echo "Building production frontend..."
-                        npm run build
-                    '''
- 
-                    echo "Archiving build artifacts..."
-                    archiveArtifacts artifacts: "${FRONTEND_BUILD}/**", fingerprint: true
-                }
-            }
-        }
+          agent { label 'Website' }
+          environment {
+            VITE_API_BASE_URL = 'https://hms.stacklycloud.com'
+          }
+          steps {
+            dir('hms_frontend') {
+              sh '''
+                set -e
+                echo "Building frontend with API base: $VITE_API_BASE"
+                npm ci --no-audit --no-fund || npm install
+                npm run build -- --mode production
+              '''
+       }
+  }
+}
+
  
         /* ========== 3️⃣ DEPLOY TO EC2 ========== */
         stage('Deploy & Migrate') {
@@ -94,7 +82,6 @@ pipeline {
                         echo "📦 Installing dependencies inside venv..."
                         source .venv/bin/activate
                         pip install --upgrade pip setuptools wheel
-                        pip install gunicorn
                         pip install -r requirement.txt
  
                         echo "🚀 Applying Django migrations..."
@@ -124,14 +111,14 @@ ENDSSH
                         echo "[1/3] Deploying Frontend..."
                         cd ${FRONTEND_DIR}
                         sudo rm -rf /var/www/html/*
-                        sudo cp -r ${FRONTEND_BUILD}/* /var/www/html
-                        sudo chown -R www-data:www-data /var/www/html
+                        sudo cp -r ${FRONTEND_DIR}/${FRONTEND_BUILD}/* /var/www/html/
+                        sudo chown -R www-data:www-data /var/www/html/
  
                         echo "🔁 Restarting backend services..."
                         sudo systemctl daemon-reload
                         sudo nginx -t
                         sudo systemctl restart nginx
-                        sudo systemctl restart fastapi_hms.service || true
+                        sudo systemctl restart fastapi.service || true
  
                         echo "✅ Deployment Complete — FastAPI (8000) + NGINX (443)"
 ENDSSH

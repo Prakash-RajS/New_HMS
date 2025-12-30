@@ -366,12 +366,12 @@ const menuItems = [
         icon: UserCog,
         permission: "staff_management",
       },
-      {
-        name: "Bed Management",
-        path: "/Administration/BedManagement",
-        icon: Bed,
-        permission: "bed_management",
-      },
+      // {
+      //   name: "Bed Management",
+      //   path: "/Administration/BedManagement",
+      //   icon: Bed,
+      //   permission: "bed_management",
+      // },
     ],
   },
 
