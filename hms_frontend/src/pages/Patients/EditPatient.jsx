@@ -296,7 +296,7 @@ const handlePhoneChange = (value) => {
               className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border flex items-center justify-between text-left text-[14px] truncate ${
                 disabled || loading
                   ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-70"
-                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
               } text-black dark:text-[#0EFF7B]`}
             >
               <span>{loading ? "Loading..." : selectedLabel}</span>
@@ -304,7 +304,7 @@ const handlePhoneChange = (value) => {
                 <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2" />
               )}
             </Listbox.Button>
-            <Listbox.Options className="absolute z-[100] mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-[150px] overflow-auto">
+            <Listbox.Options className="absolute z-[100] mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-[150px] overflow-auto">
               {options.length === 0 && !loading ? (
                 <div className="py-2 px-3 text-sm text-gray-500">
                   No options
@@ -356,7 +356,7 @@ const handlePhoneChange = (value) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 p-4 font-[Helvetica]">
       <div className="w-full max-w-4xl rounded-[20px] p-[1px] backdrop-blur-md shadow-xl bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
-        <div className="rounded-[19px] bg-white dark:bg-[#000000] p-4 sm:p-6 shadow-lg">
+        <div className="rounded-[19px] bg-gray-100 dark:bg-[#000000] p-4 sm:p-6 shadow-lg">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-1">
             <h3 className="text-black dark:text-white font-medium text-[16px]">
@@ -364,7 +364,7 @@ const handlePhoneChange = (value) => {
             </h3>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-[#0EFF7B] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:scale-110 transition"
+              className="w-6 h-6 rounded-full border border-[#0EFF7B] bg-gray-100 dark:bg-[#0EFF7B1A] flex items-center justify-center hover:scale-110 transition"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -422,7 +422,7 @@ const handlePhoneChange = (value) => {
                     }))
                   }
                   placeholder="Enter name"
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                 />
               </div>
 
@@ -450,7 +450,7 @@ const handlePhoneChange = (value) => {
                     maxDate={new Date()} // Prevent future dates
                     dateFormat="MM/dd/yyyy"
                     placeholderText="MM/DD/YYYY"
-                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                     wrapperClassName="w-full"
                     popperClassName="z-[100]"
                   />
@@ -526,7 +526,7 @@ const handlePhoneChange = (value) => {
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   placeholder="Enter 10-digit phone"
                   maxLength="10"
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                 />
                 {phoneError && (
                   <p className="text-red-500 text-xs mt-1">{phoneError}</p>
@@ -548,7 +548,7 @@ const handlePhoneChange = (value) => {
           <div className="flex flex-col sm:flex-row justify-center gap-3 mt-8">
             <button
               onClick={onClose}
-              className="w-full sm:w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] bg-white dark:bg-transparent text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition"
+              className="w-full sm:w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-gray-800 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-900 transition"
             >
               Cancel
             </button>

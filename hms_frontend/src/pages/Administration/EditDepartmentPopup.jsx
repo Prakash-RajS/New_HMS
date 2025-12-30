@@ -97,7 +97,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
-                       bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+                       bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
                        text-left text-[14px] leading-[16px] disabled:opacity-50"
             disabled={loading}
           >
@@ -108,7 +108,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
           </Listbox.Button>
 
           <Listbox.Options
-            className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 
+            className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 
                        border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-40 overflow-auto"
           >
             {options.map((option) => (
@@ -136,7 +136,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
-      <div className="w-[504px] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 backdrop-blur-md relative">
+      <div className="w-[504px] rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 backdrop-blur-md relative">
         {/* Gradient Border */}
         <div
           style={{
@@ -186,7 +186,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
               onChange={handleNameChange}
               placeholder="e.g. Cardiology"
               className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
-                         dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] 
+                         dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] 
                          dark:text-[#0EFF7B] outline-none disabled:opacity-50"
               disabled={loading}
             />
@@ -212,7 +212,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
             placeholder="Brief description..."
             rows={4}
             className="w-full mt-1 px-3 py-2 rounded-[8px] border border-[#0EFF7B] 
-                       dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] 
+                       dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] 
                        dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50"
             disabled={loading}
           />

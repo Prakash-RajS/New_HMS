@@ -130,8 +130,8 @@
 
 //   return (
 //     <div
-//       className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col
-//      bg-white dark:bg-transparent overflow-hidden relative"
+//       className="mt-[80px]  mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col
+//      bg-gray-100 dark:bg-transparent overflow-hidden relative"
 //     >
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -178,7 +178,7 @@
 
 //       {/* Profile Card */}
 // <div
-//   className="relative mb-8 w-[1057px] bg-white  dark:bg-transparent border border-[#0EFF7B]  dark:border-[#0EFF7B1A] mx-auto  flex flex-col md:flex-row items-center md:items-start text-black dark:text-white  rounded-[20px] p-6 md:p-[45px] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden"
+//   className="relative mb-8 w-[1057px] bg-gray-100  dark:bg-transparent border border-[#0EFF7B]  dark:border-[#0EFF7B1A] mx-auto  flex flex-col md:flex-row items-center md:items-start text-black dark:text-white  rounded-[20px] p-6 md:p-[45px] dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden"
 
 // ><div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -327,7 +327,7 @@
 //           {" "}
 //           {/* Blood Pressure */}{" "}
 //           <div
-//             className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+//             className="w-[225px] h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
 //             style={{
 //               backgroundColor: "rgba(14, 255, 123, 0.02)",
 //               fontFamily: "Helvetica, sans-serif",
@@ -357,7 +357,7 @@
 //           </div>{" "}
 //           {/* Heart Rate */}{" "}
 //           <div
-//             className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+//             className="w-[225px] h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
 //             style={{
 //               backgroundColor: "rgba(14, 255, 123, 0.02)",
 //               fontFamily: "Helvetica, sans-serif",
@@ -387,7 +387,7 @@
 //           </div>{" "}
 //           {/* Glucose */}{" "}
 //           <div
-//             className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+//             className="w-[225px] h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
 //             style={{
 //               backgroundColor: "rgba(14, 255, 123, 0.02)",
 //               fontFamily: "Helvetica, sans-serif",
@@ -417,7 +417,7 @@
 //           </div>{" "}
 //           {/* Cholesterol */}{" "}
 //           <div
-//             className="w-[225px] h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+//             className="w-[225px] h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
 //             style={{
 //               backgroundColor: "rgba(14, 255, 123, 0.02)",
 //               fontFamily: "Helvetica, sans-serif",
@@ -449,8 +449,8 @@
 //       </div>
 //       {/* Tabs Section */}
 //       <div
-//       className="mt-[10px]  mb-4 bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B]  dark:border-[#0EFF7B1A] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col
-//      bg-white dark:bg-transparent overflow-hidden relative"
+//       className="mt-[10px]  mb-4 bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B]  dark:border-[#0EFF7B1A] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col
+//      bg-gray-100 dark:bg-transparent overflow-hidden relative"
 //     >
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -823,7 +823,7 @@
 //                         <option
 //                           key={opt}
 //                           value={opt}
-//                           className="bg-white dark:bg-black text-black dark:text-white"
+//                           className="bg-gray-100 dark:bg-black text-black dark:text-white"
 //                         >
 //                           {opt === "All" ? `All ${label}s` : opt}
 //                         </option>
@@ -1122,7 +1122,7 @@ export default function ViewPatientProfile() {
           <span className="truncate">{value || `All ${label}s`}</span>
           <ChevronDown className="h-5 w-5 text-[#0EFF7B] flex-shrink-0" />
         </Listbox.Button>
-        <Listbox.Options className="absolute mt-1 w-full rounded-md bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] max-h-60 overflow-auto">
+        <Listbox.Options className="absolute mt-1 w-full rounded-md bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] max-h-60 overflow-auto">
           {options.map((opt) => (
             <Listbox.Option
               key={opt}
@@ -1149,7 +1149,7 @@ export default function ViewPatientProfile() {
       return (
         <div className="space-y-4">
           {mobileData.map((row, idx) => (
-            <div key={idx} className="bg-white dark:bg-[#0F0F0F] rounded-lg p-4 border border-[#0EFF7B]/20 shadow">
+            <div key={idx} className="bg-gray-100 dark:bg-[#0F0F0F] rounded-lg p-4 border border-[#0EFF7B]/20 shadow">
               {row.map((cell, cellIdx) => (
                 <div key={cellIdx} className="flex justify-between py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
                   <span className="font-medium text-gray-600 dark:text-gray-400">{headers[cellIdx]}:</span>
@@ -1185,7 +1185,7 @@ export default function ViewPatientProfile() {
       </button>
      
       {mobileMenuOpen && (
-        <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
+        <div className="bg-gray-100 dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
           {[
             { name: "Diagnosis", icon: ClipboardList },
             { name: "Prescription", icon: FileText },
@@ -1215,7 +1215,7 @@ export default function ViewPatientProfile() {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -1260,7 +1260,7 @@ export default function ViewPatientProfile() {
       </button>
       
       {/* Profile Card - FIXED WIDTH ISSUE */}
-      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
+      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-gray-100 dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
         {/* Avatar Section */}
         <div className="w-full lg:w-auto flex flex-col items-center mb-2 lg:mb-0 lg:mr-8">
           <div className="w-[80px] h-[80px] sm:w-[94px] sm:h-[94px] rounded-full overflow-hidden bg-gray-200 border-2 border-[#0EFF7B]">
@@ -1313,42 +1313,42 @@ export default function ViewPatientProfile() {
       </div>
       
       {/* Vitals Section */}
-      <div className="mb-6 sm:mb-8 relative z-10">
-        <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
-          Patient Current Vitals
-        </h1>
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {vitalsData.map((vital, i) => (
-            <div
-              key={i}
-              className="w-full h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
-              style={{
-                backgroundColor: "rgba(14, 255, 123, 0.02)",
-              }}
-            >
-              <vital.icon
-                className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]"
-              />
-              <div className="flex flex-col justify-center items-end space-y-1">
-                <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-medium">
-                  {vital.label}
-                </span>
-                <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
-                  {vital.value}
-                  {vital.value !== "—" && (
-                    <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-normal ml-1">
-                      {vital.unit}
-                    </span>
-                  )}
-                </span>
-              </div>
-            </div>
-          ))}
+<div className="mb-6 sm:mb-8 relative z-10">
+  <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
+    Patient Current Vitals
+  </h1>
+  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {vitalsData.map((vital, i) => (
+      <div
+        key={i}
+        className="w-full h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+        style={{
+          backgroundColor: "rgba(14, 255, 123, 0.02)",
+        }}
+      >
+        <vital.icon
+          className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]"
+        />
+        <div className="flex flex-col justify-center items-end space-y-1">
+          <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-800 dark:text-white font-medium">
+            {vital.label}
+          </span>
+          <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
+            {vital.value}
+            {vital.value !== "—" && (
+              <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-600 dark:text-white font-normal ml-1">
+                {vital.unit}
+              </span>
+            )}
+          </span>
         </div>
       </div>
+    ))}
+  </div>
+</div>
       
       {/* Main Tabs Container - FIXED WIDTH ISSUE */}
-      <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
+      <div className="w-full bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-gray-100 dark:bg-transparent overflow-visible relative z-10">
         {/* Mobile Navigation */}
         <MobileTabs />
         
@@ -1616,7 +1616,7 @@ export default function ViewPatientProfile() {
                         </span>
                         <ChevronDown className="absolute right-4 w-5 h-5 text-[#0EFF7B]" />
                       </Listbox.Button>
-                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-white dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
+                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-gray-100 dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
                         {invoices.map((inv, idx) => (
                           <Listbox.Option
                             key={idx}
@@ -1664,7 +1664,7 @@ export default function ViewPatientProfile() {
                       </div>
                     </div>
                     {/* Patient Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-gray-100 dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
                       <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
                         <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">PATIENT</h3>
                         <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
@@ -1714,7 +1714,7 @@ export default function ViewPatientProfile() {
                       </div>
                     </div>
                     {/* Items Table */}
-                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-white dark:bg-[#0F0F0F] mb-4 lg:mb-6">
+                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-gray-100 dark:bg-[#0F0F0F] mb-4 lg:mb-6">
                       <table className="min-w-full">
                         <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
                           <tr>
@@ -1956,7 +1956,7 @@ export default function ViewPatientProfile() {
     ) : (
       <>
         <ResponsiveTable
-          headers={["#", "Doctor", "Department", "Status", "Date & Time"]}
+          headers={["Doctor", "Department", "Status", "Date & Time"]}
           mobileData={currentHistory.map((h, idx) => [
             (currentHistoryPage - 1) * itemsPerPage + idx + 1,
             h.doctor,
@@ -1990,7 +1990,7 @@ export default function ViewPatientProfile() {
             {currentHistory.map((h, i) => (
               <tr
                 key={i}
-                className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                className="border-b border-gray-200 dark:border-gray-700 "
               >
                 {/* <td className="py-3 px-2 sm:px-4">{(currentHistoryPage - 1) * itemsPerPage + i + 1}</td> */}
                 <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>

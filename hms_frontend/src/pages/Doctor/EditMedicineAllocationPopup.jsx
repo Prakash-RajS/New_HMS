@@ -128,7 +128,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
           <Listbox.Button
             className={`w-full h-[32px] px-3 pr-8 rounded-[8px] border ${
               error ? "border-red-500" : "border-gray-300 dark:border-[#3A3A3A]"
-            } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none`}
+            } bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none`}
           >
             <span className={value ? "" : "text-gray-500"}>
               {value || placeholder}
@@ -139,7 +139,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
           </Listbox.Button>
 
           <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
+            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {options.length > 0 ? (
@@ -177,7 +177,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative font-[Helvetica]">
+        <div className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative font-[Helvetica]">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-800">
             <h2 className="text-black dark:text-white font-medium text-[16px]">
@@ -185,7 +185,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
             </h2>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -239,7 +239,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
                       errors.quantity
                         ? "border-red-500"
                         : "border-gray-300 dark:border-[#3A3A3A]"
-                    } bg-white dark:bg-transparent text-black dark:text-white text-[14px] focus:outline-none focus:border-[#0EFF7B]`}
+                    } bg-gray-100 dark:bg-transparent text-black dark:text-white text-[14px] focus:outline-none focus:border-[#0EFF7B]`}
                     min="1"
                     max={maxAvailableQuantity || undefined}
                   />
@@ -283,7 +283,7 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
               <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={onClose}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] hover:bg-gray-100 dark:hover:bg-[#0EFF7B1A] transition"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] hover:bg-gray-100 dark:hover:bg-[#0EFF7B1A] transition"
                 >
                   Cancel
                 </button>

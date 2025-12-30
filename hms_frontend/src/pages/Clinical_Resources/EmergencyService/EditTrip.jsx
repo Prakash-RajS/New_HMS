@@ -52,7 +52,7 @@ const TextInput = React.memo(({
         onChange={onChange}
         required={false}
         placeholder={placeholder}
-        className="h-[36px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+        className="h-[36px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
       />
       <ErrorMessage 
         field={name} 
@@ -96,7 +96,7 @@ const DateTimeField = React.memo(({
           value={value}
           onChange={onChange}
           required={false}
-          className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
+          className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
         />
         <CalendarClock
           onClick={() => openPicker(name === "start_time" ? startTimeRef : endTimeRef)}
@@ -135,7 +135,7 @@ const Dropdown = React.memo(({
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative">
-          <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
+          <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
             <span className="truncate">
               {value
                 ? (() => {
@@ -148,7 +148,7 @@ const Dropdown = React.memo(({
             </span>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
           </Listbox.Button>
-          <Listbox.Options className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
+          <Listbox.Options className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
             {options.map((opt) => (
               <Listbox.Option
                 key={opt.id}
@@ -389,14 +389,14 @@ const EditTripModal = ({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow bg-gradient-to-r from-green-400/70 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[960px] max-h-[90vh] overflow-y-auto rounded-[19px] bg-white dark:bg-black p-8">
+        <div className="w-[960px] max-h-[90vh] overflow-y-auto rounded-[19px] bg-gray-100 dark:bg-black p-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-medium text-black dark:text-white">
               {isEdit ? "Edit Trip" : "Create New Trip"}
             </h3>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B22]"
+              className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B22]"
             >
               <X size={18} />
             </button>
@@ -490,11 +490,11 @@ const EditTripModal = ({
               <label className="text-black dark:text-white mb-1">Status</label>
               <Listbox value={form.status} onChange={(v) => setForm((p) => ({ ...p, status: v }))}>
                 <div className="relative">
-                  <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
+                  <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
                     <span>{form.status}</span>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute z-50 mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                  <Listbox.Options className="absolute z-50 mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
                     {["Standby", "En Route", "Completed", "Cancelled"].map((s) => (
                       <Listbox.Option
                         key={s}
@@ -577,7 +577,7 @@ const EditTripModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-[160px] h-[40px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-white dark:bg-transparent font-medium hover:bg-gray-50 dark:hover:bg-[#0EFF7B11]"
+                className="w-[160px] h-[40px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-gray-100 dark:bg-transparent font-medium hover:bg-gray-50 dark:hover:bg-[#0EFF7B11]"
               >
                 Cancel
               </button>

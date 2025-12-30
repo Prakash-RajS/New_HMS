@@ -217,7 +217,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
                 w-full h-[33px] px-3 pr-8 rounded-[8px] border text-left text-[14px] leading-[16px]
                 ${value ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}
                 ${isFocused ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}
-                bg-white dark:bg-transparent
+                bg-gray-100 dark:bg-transparent
                 flex items-center justify-between
               `}
               disabled={loading}
@@ -231,7 +231,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
             </Listbox.Button>
 
             <Listbox.Options
-              className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-auto"
+              className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px] max-h-60 overflow-auto"
             >
               {options.map((option, idx) => (
                 <Listbox.Option
@@ -267,7 +267,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
-      <div className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 backdrop-blur-md relative">
+      <div className="w-[504px] h-auto rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 backdrop-blur-md relative">
         {/* Gradient Border */}
         <div
           style={{
@@ -317,7 +317,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
               className={`
                 w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border 
                 ${focusedField === 'departmentName' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
-                bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+                bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
                 placeholder-gray-500 dark:placeholder-gray-500 outline-none 
                 disabled:opacity-50
               `}
@@ -362,7 +362,7 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
             className={`
               w-full mt-1 px-3 py-2 rounded-[12px] border 
               ${focusedField === 'description' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
-              bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+              bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
               placeholder-gray-500 dark:placeholder-gray-500 outline-none 
               disabled:opacity-50
             `}

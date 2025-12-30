@@ -7,7 +7,7 @@
 
 //         {/* Inner Container */}
 //         <div
-//           className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+//           className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
 //           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
 //         >{/* Gradient Border */}
 //         <div
@@ -36,7 +36,7 @@
 //             </h2>
 //             <button
 //               onClick={onClose}
-//               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+//               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
 //             >
 //               <X size={16} className="text-black dark:text-white" />
 //             </button>
@@ -60,7 +60,7 @@
 //             <button
 //               onClick={onClose}
 //               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-//               bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+//               bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
 //               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
 //             >
 //               Cancel
@@ -116,7 +116,7 @@ const DeleteLabReportPopup = ({ order, onClose, onConfirm }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       {/* Main Container */}
-      <div className="relative w-[505px] h-auto rounded-[20px] bg-white dark:bg-[#000000] text-black dark:text-white p-6">
+      <div className="relative w-[505px] h-auto rounded-[20px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6">
         {/* Gradient Border */}
         <div
           style={{
@@ -148,7 +148,7 @@ const DeleteLabReportPopup = ({ order, onClose, onConfirm }) => {
             <button
               onClick={onClose}
               disabled={isDeleting}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#FF4D4D1A] bg-white dark:bg-[#FF4D4D1A] shadow flex items-center justify-center disabled:opacity-50"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#FF4D4D1A] bg-gray-100 dark:bg-[#FF4D4D1A] shadow flex items-center justify-center disabled:opacity-50"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -196,7 +196,7 @@ const DeleteLabReportPopup = ({ order, onClose, onConfirm }) => {
               onClick={onClose}
               disabled={isDeleting}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]
+              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]
               disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-[#1A1A1A] transition"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >

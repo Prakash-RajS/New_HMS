@@ -92,14 +92,14 @@ const SupportiveDept = () => {
   };
 
   const FilterPopup = () => (
-    <div className="absolute right-0 top-8 bg-white dark:bg-[#1E1E1E] p-4 rounded-[8px] shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+    <div className="absolute right-0 top-8 bg-gray-100 dark:bg-[#1E1E1E] p-4 rounded-[8px] shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
       <h3 className="text-sm mb-2 text-black dark:text-white">Filter by Status</h3>
       <Listbox value={filterStatus} onChange={setFilterStatus}>
         <div className="relative">
           <Listbox.Button className="w-full bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] rounded px-2 py-1 mb-2 text-sm text-left">
             {filterStatus}
           </Listbox.Button>
-          <Listbox.Options className="absolute w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded shadow-lg z-50 text-sm">
+          <Listbox.Options className="absolute w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded shadow-lg z-50 text-sm">
             {["All", "Present", "Absent"].map((status, idx) => (
               <Listbox.Option
                 key={idx}
@@ -122,7 +122,7 @@ const SupportiveDept = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-transparent text-black dark:text-white relative rounded-xl p-4 w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] flex flex-col font-[Helvetica]">
+    <div className="bg-gray-100 dark:bg-transparent text-black dark:text-white relative rounded-xl p-4 w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] flex flex-col font-[Helvetica]">
      
       {/* Search and Pagination Header */}
       <div className="flex justify-between items-center mb-4 relative z-10">
@@ -176,11 +176,11 @@ const SupportiveDept = () => {
       <div className="overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-[#0EFF7B]">
+            <tr className="bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-[#0EFF7B]">
               <th className="px-4 py-3 font-medium">
                 <input
                   type="checkbox"
-                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                   checked={selectAll || selectedRows.length === displayedData.length}
                   onChange={handleSelectAll}
                 />
@@ -192,14 +192,14 @@ const SupportiveDept = () => {
               ))}
             </tr>
           </thead>
-          <tbody className="text-sm bg-white dark:bg-black">
+          <tbody className="text-sm bg-gray-100 dark:bg-black">
             {displayedData.length > 0 ? (
               displayedData.map((row) => (
                 <tr key={`${row.id}-${row.date}`} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                   <td className="px-4 py-3 h-[52px]">
                     <input
                       type="checkbox"
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                       checked={selectedRows.includes(row.id)}
                       onChange={() => handleRowSelect(row.id)}
                     />
@@ -219,7 +219,7 @@ const SupportiveDept = () => {
                 </tr>
               ))
             ) : (
-              <tr className="h-[52px] bg-white dark:bg-black">
+              <tr className="h-[52px] bg-gray-100 dark:bg-black">
                 <td colSpan="9" className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
                   No staff found
                 </td>

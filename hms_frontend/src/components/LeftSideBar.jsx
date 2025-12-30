@@ -205,7 +205,7 @@
 // export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 //   return (
 //     <div
-//       className={`mt-[20px] ml-[15px] mb-4 rounded-[8px]  bg-white dark:bg-[#0D0D0D]  flex flex-col fixed left-0 top-0 transition-all duration-300`}
+//       className={`mt-[20px] ml-[15px] mb-4 rounded-[8px]  bg-gray-100 dark:bg-[#0D0D0D]  flex flex-col fixed left-0 top-0 transition-all duration-300`}
 //       style={{
 //         width: isCollapsed ? "80px" : "220px",
 //         height: "calc(100vh - 110px)",
@@ -602,7 +602,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   if (loading) {
     return (
       <div
-        className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+        className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
         style={{
           width: isCollapsed ? "80px" : "220px",
           height: "calc(100vh - 110px)",
@@ -628,7 +628,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   return (
     <div
-      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-white dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",

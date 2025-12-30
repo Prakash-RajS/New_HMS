@@ -118,7 +118,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className={`w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-            bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
             focus:outline-none ${
               disabled ? "opacity-50 cursor-not-allowed" : ""
             }`}
@@ -130,7 +130,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
           </Listbox.Button>
           {!disabled && (
             <Listbox.Options
-              className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black
+              className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black
               shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
               style={{
                 scrollbarWidth: "none",
@@ -175,7 +175,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
         dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
       >
         <div
-          className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+          className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {/* Header */}
@@ -188,7 +188,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
             </h2>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -221,7 +221,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
                 }
                 placeholder="Enter units"
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
               {errors.units && (
                 <p className="text-red-500 text-xs mt-1">{errors.units}</p>
@@ -263,7 +263,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
                   dateFormat="MM/dd/yyyy"
                   placeholderText="MM/DD/YYYY"
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                              focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
@@ -298,7 +298,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
             <button
               onClick={onClose}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
             >
               Cancel
             </button>

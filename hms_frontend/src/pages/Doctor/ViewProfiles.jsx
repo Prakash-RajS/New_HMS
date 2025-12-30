@@ -45,9 +45,9 @@
 //   };
 
 //   return (
-//     // <div className="min-h-screen mt-[60px] bg-white dark:bg-black text-black dark:text-white p-6">
+//     // <div className="min-h-screen mt-[60px] bg-gray-100 dark:bg-black text-black dark:text-white p-6">
 //       <div
-//       className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+//       className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative"
 //     >
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -90,7 +90,7 @@
 
 //       <div className="grid md:grid-cols-2 gap-6">
 //         {/* Left Section */}
-// <div className=" bg-white dark:bg-[#1E1E1E] p-6 rounded-xl border border-[#0EFF7B] dark:border-[#3C3C3C]">
+// <div className=" bg-gray-100 dark:bg-[#1E1E1E] p-6 rounded-xl border border-[#0EFF7B] dark:border-[#3C3C3C]">
 //   {/* Edit Button - inside top right */}
 //    <div className="flex justify-end mb-4">
 //     <button
@@ -105,7 +105,7 @@
 //           <div className="flex items-start gap-7">
 //             <div className="min-w-[192px] h-[264px] rounded-lg bg-gray-200 dark:bg-neutral-800"></div>
 //             <div className="mt-[100px]">
-//               <span className="w-[108px] h-[35px] flex items-center justify-center gap-2 rounded-[30px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] text-[12px] px-[10px]">
+//               <span className="w-[108px] h-[35px] flex items-center justify-center gap-2 rounded-[30px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-gray-100 dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] text-[12px] px-[10px]">
 //                 <span className="w-[8px] h-[8px] rounded-full bg-[#08994A] dark:bg-[#0EFF7B]"></span>
 //                 Available
 //               </span>
@@ -156,7 +156,7 @@
 //         </div>
 
 //         {/* Right Section */}
-//         <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+//         <div className="bg-gray-100 dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
 //           {/* Stats */}
 //           <div className="grid grid-cols-3 gap-4">
 //   {/* Total Patients */}
@@ -250,7 +250,7 @@
 //       {/* Edit Modal */}
 //       {showEditModal && (
 //         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-//           <div className="w-[800px] h-[500px] rounded-[20px]  bg-white dark:bg-black text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative flex flex-col">
+//           <div className="w-[800px] h-[500px] rounded-[20px]  bg-gray-100 dark:bg-black text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative flex flex-col">
 //             <div
 //     style={{
 //       position: "absolute",
@@ -272,7 +272,7 @@
 //               <h3 className="text-lg font-semibold text-black dark:text-white">Edit Profile</h3>
 //               <button
 //                 onClick={handleCloseModal}
-//                 className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+//                 className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
 //               >
 //                 <X size={16} className="text-[#08994A] dark:text-white" />
 //               </button>
@@ -447,7 +447,7 @@
 //             <div className="flex justify-center gap-6 mt-4">
 //               <button
 //                 onClick={handleCloseModal}
-//                 className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+//                 className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
 //               >
 //                 Cancel
 //               </button>
@@ -616,7 +616,7 @@ const DoctorProfile = () => {
               } h-[42px] px-3 pr-8 rounded-[8px] border flex items-center ${
                 disabled || loading
                   ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50"
-                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                  : "border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
               } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] truncate`}
             >
               {loading ? (
@@ -632,7 +632,7 @@ const DoctorProfile = () => {
               </span>
             </Listbox.Button>
             {!loading && !disabled && (
-              <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-white dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+              <Listbox.Options className="absolute z-[100] mt-1 w-full min-w-[160px] rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
                 {options.length === 0 ? (
                   <div className="py-2 px-3 text-sm text-gray-500">
                     No options available
@@ -940,14 +940,14 @@ const DoctorProfile = () => {
   };
   if (loading) {
     return (
-      <div className="min-h-screen mt-[80px] flex items-center justify-center bg-white dark:bg-black">
+      <div className="min-h-screen mt-[80px] flex items-center justify-center bg-gray-100 dark:bg-black">
         <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
   if (!profileData) {
     return (
-      <div className="min-h-screen mt-[80px] flex items-center justify-center bg-white dark:bg-black">
+      <div className="min-h-screen mt-[80px] flex items-center justify-center bg-gray-100 dark:bg-black">
         <div className="text-center">
           <p className="text-black dark:text-white mb-4">Profile not found</p>
           <button
@@ -984,7 +984,7 @@ const DoctorProfile = () => {
     { id: "Other", name: "Other" },
   ];
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -1031,7 +1031,7 @@ const DoctorProfile = () => {
       </div>
       <div className="grid md:grid-cols-2 gap-6">
         {/* Left Section */}
-        <div className="bg-white dark:bg-[#1E1E1E] p-6 rounded-xl border border-[#0EFF7B] dark:border-[#3C3C3C]">
+        <div className="bg-gray-100 dark:bg-[#1E1E1E] p-6 rounded-xl border border-[#0EFF7B] dark:border-[#3C3C3C]">
           <div className="flex justify-end mb-4 gap-2">
             <button
               className="text-[#08994A] dark:text-[#0EFF7B] w-[45px] h-[45px] p-3 rounded-full bg-[#F5F6F5] dark:bg-neutral-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] flex items-center justify-center"
@@ -1244,7 +1244,7 @@ const DoctorProfile = () => {
           </div>
         </div>
         {/* Right Section */}
-        <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+        <div className="bg-gray-100 dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
           {/* Stats - Updated with dynamic total_patients_treated */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
@@ -1403,7 +1403,7 @@ const DoctorProfile = () => {
                               {certificates.map((cert) => (
                                 <tr
                                   key={cert.id}
-                                  className="border-b border-[#0EFF7B33] dark:border-[#0EFF7B33] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                  className="border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]"
                                 >
                                   <td className="py-3 px-3">
                                     <div className="flex items-center">
@@ -1417,7 +1417,7 @@ const DoctorProfile = () => {
                                     <div className="flex gap-2">
                                       <button
                                         onClick={() => handleViewCertificate(cert)}
-                                        className="w-8 h-8 rounded-[6px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-white dark:bg-transparent flex items-center justify-center text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                        className="w-8 h-8 rounded-[6px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-gray-100 dark:bg-transparent flex items-center justify-center text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                                         title="View Certificate"
                                       >
                                         <Eye size={16} />
@@ -1445,7 +1445,7 @@ const DoctorProfile = () => {
       {/* Edit Modal - Updated with all fields */}
       {showEditModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[900px] h-[600px] rounded-[20px] bg-white dark:bg-black text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative flex flex-col">
+          <div className="w-[900px] h-[600px] rounded-[20px] bg-gray-100 dark:bg-black text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative flex flex-col">
             <div
               style={{
                 position: "absolute",
@@ -1469,7 +1469,7 @@ const DoctorProfile = () => {
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
@@ -1538,7 +1538,7 @@ const DoctorProfile = () => {
                   />
                   <label
                     htmlFor="profile-picture"
-                    className="w-[120px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[12px] leading-[16px] cursor-pointer hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                    className="w-[120px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[12px] leading-[16px] cursor-pointer hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                   >
                     Change Photo
                   </label>
@@ -1808,7 +1808,7 @@ const DoctorProfile = () => {
             <div className="flex justify-center gap-6 mt-4">
               <button
                 onClick={handleCloseModal}
-                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 Cancel
               </button>

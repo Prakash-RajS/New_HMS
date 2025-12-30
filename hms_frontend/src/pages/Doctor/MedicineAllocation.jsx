@@ -521,7 +521,7 @@
 //             <Listbox.Button
 //               className={`
 //                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-//                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+//                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
 //                 text-black dark:text-white text-left text-sm leading-none
 //                 shadow-[0_0_2.09px_#0EFF7B] outline-none
 //                 transition-all duration-300 font-[Helvetica]
@@ -542,7 +542,7 @@
 //               </span>
 //             </Listbox.Button>
 
-//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //               {patientNames.length > 0 ? (
 //                 patientNames.map((name) => (
 //                   <Listbox.Option
@@ -594,7 +594,7 @@
 //             <Listbox.Button
 //               className={`
 //                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-//                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+//                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
 //                 text-black dark:text-white text-left text-sm leading-none
 //                 shadow-[0_0_2.09px_#0EFF7B] outline-none
 //                 transition-all duration-300 font-[Helvetica]
@@ -615,7 +615,7 @@
 //               </span>
 //             </Listbox.Button>
 
-//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //               {patientIDs.length > 0 ? (
 //                 patientIDs.map((id) => (
 //                   <Listbox.Option
@@ -667,7 +667,7 @@
 //             <Listbox.Button
 //               className={`
 //                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-//                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+//                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
 //                 text-black dark:text-white text-left text-sm leading-none
 //                 shadow-[0_0_2.09px_#0EFF7B] outline-none
 //                 transition-all duration-300 font-[Helvetica]
@@ -688,7 +688,7 @@
 //               </span>
 //             </Listbox.Button>
 
-//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //               {departmentNames.length > 0 ? (
 //                 departmentNames.map((dept) => (
 //                   <Listbox.Option
@@ -744,7 +744,7 @@
 //             <Listbox.Button
 //               className={`
 //                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-//                 border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+//                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
 //                 text-black dark:text-white text-left text-sm leading-none
 //                 shadow-[0_0_2.09px_#0EFF7B] outline-none
 //                 transition-all duration-300 font-[Helvetica]
@@ -765,7 +765,7 @@
 //               </span>
 //             </Listbox.Button>
 
-//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //               {options.length > 0 ? (
 //                 options.map((option) => (
 //                   <Listbox.Option
@@ -804,7 +804,7 @@
 //   );
 
 //   return (
-//     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
+//     <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
 //       {/* Gradient Background and Border */}
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -862,7 +862,7 @@
 //             "
 //           />
 //           {searchQuery && filteredPatients.length > 0 && (
-//             <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//             <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //               {filteredPatients.map((patient) => (
 //                 <div
 //                   key={patient.id}
@@ -890,7 +890,7 @@
 //       </div>
 
 //       {/* View Patient Profile Information */}
-//       <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
+//       <div className="mb-8 p-4 sm:p-5 bg-gray-100 dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
 //         {/* Your existing patient profile content */}
 //         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
 //           <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
@@ -969,7 +969,7 @@
 //                 <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
 //                   {item.label}
 //                 </span>
-//                 <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
+//                 <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-gray-100 dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
 //                   {item.value}
 //                 </div>
 //               </div>
@@ -996,7 +996,7 @@
 //     </svg>
 //     <span className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     View more
 //               </span>
@@ -1042,7 +1042,7 @@
 //       </div>
 
 //       {/* Medicine Allocation Form */}
-//       <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+//       <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
 //         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
 //           Medicine Allocation
 //         </h2>
@@ -1074,7 +1074,7 @@
 //                         +
 //                         <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Add
 //               </span>
@@ -1089,7 +1089,7 @@
 //                         ×
 //                         <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Close
 //               </span>
@@ -1170,7 +1170,7 @@
 //                           <Listbox.Button
 //                             className={`
 //                               relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-//                               border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+//                               border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
 //                               text-black dark:text-white text-left text-sm leading-none
 //                               shadow-[0_0_2.09px_#0EFF7B] outline-none
 //                               transition-all duration-300 font-[Helvetica]
@@ -1191,7 +1191,7 @@
 //                             </span>
 //                           </Listbox.Button>
 
-//                           <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+//                           <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
 //                             {["Blood Test", "Urine Test", "X-Ray", "MRI"].map(
 //                               (option) => (
 //                                 <Listbox.Option
@@ -1235,7 +1235,7 @@
 //                     +
 //                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Add
 //               </span>
@@ -1250,7 +1250,7 @@
 //                     ×
 //                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Close
 //               </span>
@@ -1282,7 +1282,7 @@
 
 //       {/* Medicine Allocation History with Actions */}
 //       {/* Medicine Allocation History with Actions */}
-// <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+// <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
 //   <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
 //     Medicine allocation history
 //   </h2>
@@ -1305,7 +1305,7 @@
 //         {medicineHistory.map((item, index) => (
 //           <tr
 //             key={item.id || index}
-//             className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-white dark:bg-black"
+//             className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-gray-100 dark:bg-black"
 //           >
 //             <td className="py-1.5 px-2 sm:px-3">{item.patient_name}</td>
 //             <td className="py-1.5 px-2 sm:px-3">{item.patient_id}</td>
@@ -1336,7 +1336,7 @@
 //                   <Edit size={16} />
 //                   <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Edit
 //               </span>
@@ -1348,7 +1348,7 @@
 //                 >
 //                   <Trash2 size={16} /><span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
 //                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
 //                     transition-all duration-150">
 //                     Delete
 //               </span>
@@ -1898,7 +1898,7 @@ export default function ViewPatientProfile() {
             <Listbox.Button
               className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
                 transition-all duration-300 font-[Helvetica]
@@ -1917,7 +1917,7 @@ export default function ViewPatientProfile() {
                 />
               </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {patientNames.length > 0 ? (
                 patientNames.map((name) => (
                   <Listbox.Option
@@ -1961,7 +1961,7 @@ export default function ViewPatientProfile() {
             <Listbox.Button
               className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
                 transition-all duration-300 font-[Helvetica]
@@ -1980,7 +1980,7 @@ export default function ViewPatientProfile() {
                 />
               </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {patientIDs.length > 0 ? (
                 patientIDs.map((id) => (
                   <Listbox.Option
@@ -2024,7 +2024,7 @@ export default function ViewPatientProfile() {
             <Listbox.Button
               className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
                 transition-all duration-300 font-[Helvetica]
@@ -2043,7 +2043,7 @@ export default function ViewPatientProfile() {
                 />
               </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {departmentNames.length > 0 ? (
                 departmentNames.map((dept) => (
                   <Listbox.Option
@@ -2087,7 +2087,7 @@ export default function ViewPatientProfile() {
         placeholder={placeholder}
         className={`
           w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
-          border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+          border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
           text-black dark:text-white text-sm leading-none
           shadow-[0_0_2.09px_#0EFF7B] outline-none
           transition-all duration-300 font-[Helvetica]
@@ -2116,7 +2116,7 @@ export default function ViewPatientProfile() {
             <Listbox.Button
               className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
                 transition-all duration-300 font-[Helvetica]
@@ -2135,7 +2135,7 @@ export default function ViewPatientProfile() {
                 />
               </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {options.length > 0 ? (
                 options.map((option) => (
                   <Listbox.Option
@@ -2176,7 +2176,7 @@ export default function ViewPatientProfile() {
             <Listbox.Button
               className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
                 shadow-[0_0_2.09px_#0EFF7B] outline-none
                 transition-all duration-300 font-[Helvetica]
@@ -2195,7 +2195,7 @@ export default function ViewPatientProfile() {
                 />
               </span>
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {frequencyOptions.map((option) => (
                 <Listbox.Option
                   key={option}
@@ -2227,7 +2227,7 @@ export default function ViewPatientProfile() {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
       {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -2284,7 +2284,7 @@ export default function ViewPatientProfile() {
             "
           />
           {searchQuery && filteredPatients.length > 0 && (
-            <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+            <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
               {filteredPatients.map((patient) => (
                 <div
                   key={patient.id}
@@ -2312,7 +2312,7 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Patient Profile Section */}
-      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
+      <div className="mb-8 p-4 sm:p-5 bg-gray-100 dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
           <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
             {fullPatient?.photo_url ? (
@@ -2385,7 +2385,7 @@ export default function ViewPatientProfile() {
                 <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
                   {item.label}
                 </span>
-                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
+                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-gray-100 dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
                   {item.value}
                 </div>
               </div>
@@ -2411,7 +2411,7 @@ export default function ViewPatientProfile() {
                 </svg>
                 <span className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                   View more
                 </span>
@@ -2455,7 +2455,7 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Medicine Allocation Form */}
-      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine Allocation
         </h2>
@@ -2486,7 +2486,7 @@ export default function ViewPatientProfile() {
                         +
                         <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                           Add
                         </span>
@@ -2501,7 +2501,7 @@ export default function ViewPatientProfile() {
                         ×
                         <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                           Close
                         </span>
@@ -2587,7 +2587,7 @@ export default function ViewPatientProfile() {
                           <Listbox.Button
                             className={`
                               relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                              border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black
+                              border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                               text-black dark:text-white text-left text-sm leading-none
                               shadow-[0_0_2.09px_#0EFF7B] outline-none
                               transition-all duration-300 font-[Helvetica]
@@ -2606,7 +2606,7 @@ export default function ViewPatientProfile() {
                               />
                             </span>
                           </Listbox.Button>
-                          <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                          <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
                             {["Blood Test", "Urine Test", "X-Ray", "MRI"].map(
                               (option) => (
                                 <Listbox.Option
@@ -2640,7 +2640,7 @@ export default function ViewPatientProfile() {
                     +
                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                       Add
                     </span>
@@ -2655,7 +2655,7 @@ export default function ViewPatientProfile() {
                     ×
                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                       Close
                     </span>
@@ -2686,7 +2686,7 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Medicine Allocation History */}
-      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
+      <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine allocation history
         </h2>
@@ -2710,7 +2710,7 @@ export default function ViewPatientProfile() {
               {medicineHistory.map((item, index) => (
                 <tr
                   key={item.id || index}
-                  className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-white dark:bg-black"
+                  className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-gray-100 dark:bg-black"
                 >
                   <td className="py-1.5 px-2 sm:px-3">{item.patient_name}</td>
                   <td className="py-1.5 px-2 sm:px-3">{item.patient_id}</td>
@@ -2746,7 +2746,7 @@ export default function ViewPatientProfile() {
                         <Edit size={16} />
                         <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
                           px-3 py-1 text-xs rounded-md shadow-md
-                          bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                           transition-all duration-150">
                           Edit
                         </span>
@@ -2758,7 +2758,7 @@ export default function ViewPatientProfile() {
                         <Trash2 size={16} />
                         <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
                           px-3 py-1 text-xs rounded-md shadow-md
-                          bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                           transition-all duration-150">
                           Delete
                         </span>

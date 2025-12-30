@@ -238,7 +238,7 @@ const RoomManagement = () => {
 
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
-        <div className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
+        <div className="w-[504px] h-auto rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md">
           <div
             style={{
               position: "absolute",
@@ -271,13 +271,13 @@ const RoomManagement = () => {
               <label className="text-sm">Bed Group</label>
               <Listbox value={bedGroup} onChange={setBedGroup}>
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
                     {bedGroup || "Select bedgroup"}
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                       <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar">
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar">
                     {bedGroups.map((bg) => (
                       <Listbox.Option
                         key={bg}
@@ -305,13 +305,13 @@ const RoomManagement = () => {
               <label className="text-sm">Status</label>
               <Listbox value={status} onChange={setStatus}>
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
                     {status || "Select status"}
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                       <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                     {statuses.map((s) => (
                       <Listbox.Option
                         key={s}
@@ -372,8 +372,8 @@ const RoomManagement = () => {
   }
 
   return (
-    <div className="mt-[60px] h-100% mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    <div className="mt-[60px] h-100% mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -426,7 +426,7 @@ const RoomManagement = () => {
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 checked={
                   currentRooms.length > 0 &&
                   selectedRooms.length === currentRooms.length
@@ -434,11 +434,11 @@ const RoomManagement = () => {
                 onChange={handleSelectAll}
               />
               <div className="relative">
-                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
+                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
                   {filterValue}
                   <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-green-400 ml-2" />
                 </Listbox.Button>
-                <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                   {["All", ...new Set(rooms.map((r) => r.bedGroup))].map(
                     (option) => (
                       <Listbox.Option
@@ -495,7 +495,7 @@ const RoomManagement = () => {
             </div>
             <button
               onClick={() => setFilterOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] relative"
+              className="flex items-center gap-2 bg-gray-100 dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] relative"
             >
               <Filter
                 size={18}
@@ -517,12 +517,12 @@ const RoomManagement = () => {
             element={
               <div className="overflow-x-auto">
                 <table className="w-full text-center text-sm min-w-[1000px]">
-                  <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
+                  <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
                     <tr>
                       <th className="py-3 px-2">
                         <input
                           type="checkbox"
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           checked={
                             currentRooms.length > 0 &&
                             selectedRooms.length === currentRooms.length
@@ -538,7 +538,7 @@ const RoomManagement = () => {
                       <th className="text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-white dark:bg-black">
+                  <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
                     {currentRooms.length > 0 ? (
                       currentRooms.map((room, index) => (
                         <tr
@@ -548,7 +548,7 @@ const RoomManagement = () => {
                           <td className="px-2 py-3">
                             <input
                               type="checkbox"
-                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                               checked={selectedRooms.includes(room.roomNo)}
                               onChange={() => handleCheckboxChange(room.roomNo)}
                             />
@@ -597,7 +597,7 @@ const RoomManagement = () => {
                                 <span
                                   className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                px-3 py-1 text-xs rounded-md shadow-md
-               bg-white dark:bg-black text-black dark:text-white
+               bg-gray-100 dark:bg-black text-black dark:text-white
                opacity-0 group-hover:opacity-100
                transition-all duration-150"
                                 >
@@ -620,7 +620,7 @@ const RoomManagement = () => {
                                 <span
                                   className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                    px-3 py-1 text-xs rounded-md shadow-md
-                   bg-white dark:bg-black text-black dark:text-white
+                   bg-gray-100 dark:bg-black text-black dark:text-white
                    opacity-0 group-hover:opacity-100
                    transition-all duration-150 pointer-events-none"
                                 >
@@ -690,7 +690,7 @@ const RoomManagement = () => {
 
         {/* Pagination */}
         {!isBedListRoute && (
-          <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center h-full mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B]">

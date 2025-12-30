@@ -234,7 +234,7 @@ const DashboardComponents = () => {
       )}
 
       {/* Main Container */}
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-visible relative font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-visible relative font-[Helvetica]">
         {/* Gradient Background */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -264,7 +264,7 @@ const DashboardComponents = () => {
         ></div>
 
         {/* Top Navigation Bar */}
-        <div className="bg-white dark:bg-black mt-[-8px] flex gap-[97px] text-[14px] mb-2 overflow-x-hidden font-helvetica">
+        <div className="bg-gray-100 dark:bg-black mt-[-8px] flex gap-[97px] text-[14px] mb-2 overflow-x-hidden font-helvetica">
           {["Dashboard"].map((tab) => (
             <div
               key={tab}
@@ -282,7 +282,7 @@ const DashboardComponents = () => {
         {/* Content with Sub-Navigation and Grid */}
         <div className="min-h-[306px] rounded-[12px] overflow-visible">
           {activeTab === "Dashboard" && (
-            <div className="relative p-[26px_16px] rounded-[8px] min-w-[972px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible">
+            <div className="relative p-[26px_16px] rounded-[8px] min-w-[972px] shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-gray-100 dark:bg-transparent overflow-visible">
               {/* Dark mode gradient */}
               <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -585,7 +585,7 @@ const PeriodSelector = ({ selectedPeriod, setSelectedPeriod, periods }) => (
         ></span>
       </Listbox.Button>
       <Listbox.Options
-        className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+        className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
         style={{ zIndex: 50 }}
       >
         {periods.map((period) => (
@@ -633,7 +633,7 @@ const DateSelector = ({ selectedDate, setSelectedDate }) => (
         </span>
       </Listbox.Button>
       <Listbox.Options
-        className="absolute mt-1 w-full overflow-auto rounded-md bg-white dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
+        className="absolute mt-1 w-full overflow-auto rounded-md bg-gray-100 dark:bg-[#0C1A12] shadow-lg border border-gray-300 dark:border-[#3A3A3A] text-black dark:text-white"
         style={{ zIndex: 50 }}
       >
         {[...Array(7)].map((_, i) => {
@@ -673,7 +673,7 @@ const DateSelector = ({ selectedDate, setSelectedDate }) => (
 );
 
 const EmergencyCases = ({ emergencyCases, selectedDate, setSelectedDate }) => (
-  <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible ">
+  <div className="relative rounded-[20px] p-5 w-full h-[178px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-gray-100 dark:bg-transparent overflow-visible ">
     <div
       className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
       style={{
@@ -743,7 +743,7 @@ const Consultation = ({
     1;
 
   return (
-    <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible ">
+    <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-gray-100 dark:bg-transparent overflow-visible ">
       <div
         className="absolute inset-0 rounded-[20px] pointer-events-none dark:block hidden"
         style={{
@@ -858,7 +858,7 @@ const NotificationsPanel = ({
   formatTime,
   getNotificationColor,
 }) => (
-  <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-white dark:bg-transparent overflow-visible  flex-shrink-0">
+  <div className="relative rounded-[20px] p-7 w-[406px] h-[536px] text-white shadow-[0_0_4px_0_rgba(0,0,0,0.1)] dark:shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-gray-100 dark:bg-transparent overflow-visible  flex-shrink-0">
     <div
       className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
       style={{

@@ -128,13 +128,13 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
       <label className="text-sm text-black dark:text-white">{label}</label>
       <Listbox value={value || "Select"} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg  border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-50">
+          <Listbox.Options className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-gray-100 dark:bg-black shadow-lg  border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-50">
             {options.map((opt, i) => (
               <Listbox.Option
                 key={i}
@@ -165,7 +165,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[9990] font-[Helvetica]">
-      <div className="w-[504px] h-[520px] rounded-[20px] bg-white dark:bg-[#000000E5] p-6 relative overflow-hidden">
+      <div className="w-[504px] h-[520px] rounded-[20px] bg-gray-100 dark:bg-[#000000E5] p-6 relative overflow-hidden">
         <div style={{ position: "absolute", inset: 0, borderRadius: "20px", padding: "2px", background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }}></div>
 
         <div className="flex justify-between items-center pb-3 mb-4 relative z-10">
@@ -183,7 +183,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               onChange={e => setFormData({ ...formData, full_name: e.target.value })}
               placeholder="Enter full name"
               disabled={loading}
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
           </div>
 
@@ -197,7 +197,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               onChange={e => setFormData({ ...formData, specialization: e.target.value })}
               placeholder="Enter specialization"
               disabled={loading}
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
           </div>
 
@@ -210,7 +210,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               placeholder="Enter phone"
               maxLength="10"
               disabled={loading}
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
           </div>
 
@@ -222,7 +222,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               placeholder="Enter email"
               disabled={loading}
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
           </div>
 
@@ -238,7 +238,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
                 dateFormat="MM/dd/yyyy"
                 placeholderText="MM/DD/YYYY"
                 disabled={loading}
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none"
+                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none"
                 wrapperClassName="w-full"
                 popperClassName="z-[9999]"
               />
@@ -257,7 +257,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
         </div>
 
         <div className="flex justify-center gap-4 mt-8 relative ">
-          <button onClick={onClose} disabled={loading} className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] bg-white dark:bg-transparent text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] disabled:opacity-50">
+          <button onClick={onClose} disabled={loading} className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] disabled:opacity-50">
             Cancel
           </button>
           <button

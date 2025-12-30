@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException
 from django.db.models import Count, Q, Sum
 from django.db import models
 from datetime import datetime, timedelta
+
 import json
 from asgiref.sync import sync_to_async
 import asyncio
@@ -213,54 +214,114 @@ async def get_dashboard_stats():
             "error": str(e)
         }
 
+# @router.get("/recent-activities")
+# async def get_recent_activities():
+#     """Get recent activities for notifications"""
+#     try:
+#         recent_activities = []
+        
+#         # Get recent patients
+#         recent_patients = await get_recent_patients()
+#         for patient in recent_patients[:3]:  # Last 3 patients
+#             recent_activities.append({
+#                 "id": f"patient_{patient['id']}",
+#                 "type": "info",
+#                 "message": f"New patient registered: {patient['full_name']}",
+#                 "timestamp": patient['created_at'],
+#                 "read": False,
+#                 "category": "patient"
+#             })
+        
+#         # Get recent appointments
+#         recent_appointments = await get_recent_appointments()
+#         for appointment in recent_appointments[:3]:  # Last 3 appointments
+#             recent_activities.append({
+#                 "id": f"appointment_{appointment['id']}",
+#                 "type": "info", 
+#                 "message": f"New appointment: {appointment['patient_name']}",
+#                 "timestamp": appointment['created_at'],
+#                 "read": False,
+#                 "category": "appointment"
+#             })
+        
+#         # Get emergency cases
+#         emergency_count = await get_emergency_appointments()
+#         if emergency_count > 0:
+#             recent_activities.append({
+#                 "id": "emergency_alert",
+#                 "type": "error",
+#                 "message": f"{emergency_count} emergency case(s) require attention",
+#                 "timestamp": datetime.now().isoformat(),
+#                 "read": False,
+#                 "category": "emergency"
+#             })
+        
+#         # Sort by timestamp and return
+#         recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
+#         return recent_activities[:10]  # Return top 10
+        
+#     except Exception as e:
+#         print(f"Recent activities error: {str(e)}")
+#         return []
 @router.get("/recent-activities")
 async def get_recent_activities():
-    """Get recent activities for notifications"""
     try:
         recent_activities = []
-        
-        # Get recent patients
+
+        # Recent patients
         recent_patients = await get_recent_patients()
-        for patient in recent_patients[:3]:  # Last 3 patients
+        for patient in recent_patients[:3]:
             recent_activities.append({
                 "id": f"patient_{patient['id']}",
                 "type": "info",
                 "message": f"New patient registered: {patient['full_name']}",
-                "timestamp": patient['created_at'],
+                "timestamp": patient["created_at"],  # aware
                 "read": False,
                 "category": "patient"
             })
-        
-        # Get recent appointments
+
+        # Recent appointments
         recent_appointments = await get_recent_appointments()
-        for appointment in recent_appointments[:3]:  # Last 3 appointments
+        for appointment in recent_appointments[:3]:
             recent_activities.append({
                 "id": f"appointment_{appointment['id']}",
-                "type": "info", 
+                "type": "info",
                 "message": f"New appointment: {appointment['patient_name']}",
-                "timestamp": appointment['created_at'],
+                "timestamp": appointment["created_at"],  # aware
                 "read": False,
                 "category": "appointment"
             })
-        
-        # Get emergency cases
+
+        # Emergency alert (FIXED)
         emergency_count = await get_emergency_appointments()
         if emergency_count > 0:
             recent_activities.append({
                 "id": "emergency_alert",
                 "type": "error",
                 "message": f"{emergency_count} emergency case(s) require attention",
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": timezone.now(),  # ✅ aware
                 "read": False,
                 "category": "emergency"
             })
-        
-        # Sort by timestamp and return
-        recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
-        return recent_activities[:10]  # Return top 10
-        
+
+        # 🔒 Normalize ALL timestamps
+        for activity in recent_activities:
+            activity["timestamp"] = normalize_timestamp(activity["timestamp"])
+
+        # 🔢 Safe sort
+        recent_activities.sort(
+            key=lambda x: x["timestamp"],
+            reverse=True
+        )
+
+        # 🔄 Convert to ISO for frontend
+        for activity in recent_activities:
+            activity["timestamp"] = activity["timestamp"].isoformat()
+
+        return recent_activities[:10]
+
     except Exception as e:
-        print(f"Recent activities error: {str(e)}")
+        print(f"Recent activities error: {e}")
         return []
 
 @router.get("/debug-data")

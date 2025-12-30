@@ -30,14 +30,15 @@ import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE =
+  window.location.hostname === "18.119.210.2"
+    ? "http://18.119.210.2:8000/ambulance"
+    : "http://localhost:8000/ambulance";
 
-const WS_URL = API_BASE
-  .replace(/^https/, "wss")
-  .replace(/^http/, "ws")
-  .replace(/\/api$/, "") + "/ws";
-
-
+const WS_URL =
+  window.location.hostname === "18.119.210.2"
+    ? "ws://18.119.210.2:8000/ws"
+    : "ws://localhost:8000/ws";
 
 //const API_BASE = "http://localhost:8000/ambulance";
 //const WS_URL = "ws://localhost:8000/ws";
@@ -438,10 +439,10 @@ const formatMessageType = (type) => {
     setError(null);
     try {
       const [dispatchRes, tripRes, unitRes, patientRes] = await Promise.all([
-        fetch(`${API_BASE}/ambulance/dispatch`),
-        fetch(`${API_BASE}/ambulance/trips`),
-        fetch(`${API_BASE}/ambulance/units`),
-        fetch(`${API_BASE}/ambulance/patients`),
+        fetch(`${API_BASE}/dispatch`),
+        fetch(`${API_BASE}/trips`),
+        fetch(`${API_BASE}/units`),
+        fetch(`${API_BASE}/patients`),
       ]);
 
       if (!dispatchRes.ok || !tripRes.ok || !unitRes.ok || !patientRes.ok)
@@ -587,7 +588,7 @@ const formatMessageType = (type) => {
     try {
       const responses = await Promise.all(
         ids.map((id) =>
-          fetch(`${API_BASE}/ambulance/${endpoint}/${id}`, { method: "DELETE" })
+          fetch(`${API_BASE}/${endpoint}/${id}`, { method: "DELETE" })
         )
       );
 
@@ -659,8 +660,8 @@ const formatMessageType = (type) => {
   const saveDispatch = async (payload) => {
     const method = editingDispatch ? "PUT" : "POST";
     const url = editingDispatch
-      ? `${API_BASE}/ambulance/dispatch/${editingDispatch.id}`
-      : `${API_BASE}/ambulance/dispatch`;
+      ? `${API_BASE}/dispatch/${editingDispatch.id}`
+      : `${API_BASE}/dispatch`;
     try {
       const res = await fetch(url, {
         method,
@@ -683,8 +684,8 @@ const formatMessageType = (type) => {
   const saveTrip = async (payload) => {
     const method = editingTrip ? "PUT" : "POST";
     const url = editingTrip
-      ? `${API_BASE}/ambulance/trips/${editingTrip.id}`
-      : `${API_BASE}/ambulance/trips`;
+      ? `${API_BASE}/trips/${editingTrip.id}`
+      : `${API_BASE}/trips`;
     try {
       const res = await fetch(url, {
         method,
@@ -710,8 +711,8 @@ const formatMessageType = (type) => {
   const saveUnit = async (payload) => {
     const method = editingUnit ? "PUT" : "POST";
     const url = editingUnit
-      ? `${API_BASE}/ambulance/units/${editingUnit.id}`
-      : `${API_BASE}/ambulance/units`;
+      ? `${API_BASE}/units/${editingUnit.id}`
+      : `${API_BASE}/units`;
     try {
       const res = await fetch(url, {
         method,
@@ -740,7 +741,7 @@ const formatMessageType = (type) => {
     return <div className="p-10 text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col overflow-hidden relative">
       {/* Gradient Border */}
       <div
         style={{
@@ -833,7 +834,7 @@ const formatMessageType = (type) => {
               <div
                 key={i}
                 className={`relative p-5 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${
-                  s.bg || "bg-white/5 border-[#0EFF7B]/30"
+                  s.bg || "bg-gray-100/5 border-[#0EFF7B]/30"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -865,7 +866,7 @@ const formatMessageType = (type) => {
         </div>
 
         {/* REAL-TIME NOTIFICATIONS PANEL */}
-        <div className="w-full lg:w-96 bg-black/40 backdrop-blur-xl border border-[#0EFF7B]/30 rounded-2xl p-4 shadow-2xl">
+        <div className="w-full lg:w-96 bg-gray-300 dark:bg-black/40 backdrop-blur-xl border border-[#0EFF7B]/30 rounded-2xl p-4 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold flex items-center gap-3">
               <Bell size={20} className="text-[#0EFF7B]" />
@@ -973,7 +974,7 @@ const formatMessageType = (type) => {
       </div>
 
       {/* Table Header + Controls */}
-      <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 bg-white dark:bg-transparent">
+      <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 bg-gray-100 dark:bg-transparent">
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
           <h2 className="text-lg font-semibold">{activeTab}</h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -1003,7 +1004,7 @@ const formatMessageType = (type) => {
               <Trash2 size={18} />
               <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
                   </span>
@@ -1045,7 +1046,7 @@ const formatMessageType = (type) => {
                     type="checkbox"
                     checked={selectAll}
                     onChange={handleSelectAll}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 {activeTab === "Ambulance Units" ? (
@@ -1137,7 +1138,7 @@ const formatMessageType = (type) => {
                             type="checkbox"
                             checked={isRowSelected(id)}
                             onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           />
                         </td>
                         <td>{row.unit_number}</td>
@@ -1166,7 +1167,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Edit
               </span>
@@ -1181,7 +1182,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
               </span>
@@ -1204,7 +1205,7 @@ const formatMessageType = (type) => {
                             type="checkbox"
                             checked={isRowSelected(id)}
                             onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           />
                         </td>
                         <td>{row.dispatch_id}</td>
@@ -1224,7 +1225,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Phone
               </span>
@@ -1239,7 +1240,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Edit
               </span>
@@ -1254,7 +1255,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
               </span>
@@ -1277,7 +1278,7 @@ const formatMessageType = (type) => {
                             type="checkbox"
                             checked={isRowSelected(id)}
                             onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           />
                         </td>
                         <td>{row.trip_id}</td>
@@ -1325,7 +1326,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Edit
               </span>
@@ -1340,7 +1341,7 @@ const formatMessageType = (type) => {
                             />
                             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
               </span>
@@ -1354,7 +1355,7 @@ const formatMessageType = (type) => {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center h-full mt-4 bg-white dark:bg-transparent p-4 rounded gap-x-4">
+        <div className="flex items-center h-full mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4">
           <div className="text-sm text-black dark:text-white">
             Page{" "}
             <span className="text-[#08994A] dark:text-[#0EFF7B]">
@@ -1444,7 +1445,7 @@ const formatMessageType = (type) => {
     <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] 
       ">
 
-      <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-6 relative">
+      <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-6 relative">
 
         {/* Border Glow */}
         <div

@@ -23,7 +23,7 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md ">
-        <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-5 relative">
+        <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-5 relative">
           <div
             style={{
               position: "absolute",
@@ -89,7 +89,7 @@ const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
 const CloseConfirmPopup = ({ onConfirm, onCancel }) => (
   <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
     <div className="rounded-[20px] p-[1px] backdrop-blur-md">
-      <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-5 relative">
+      <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-5 relative">
         <div
           style={{
             position: "absolute",
@@ -881,7 +881,7 @@ const StockInventory = () => {
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
           <Listbox.Button
-            className={`w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
+            className={`w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             {value || "Select Option"}
@@ -890,7 +890,7 @@ const StockInventory = () => {
             </span>
           </Listbox.Button>
           {error && <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>}
-          <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-white dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -928,7 +928,7 @@ const StockInventory = () => {
   }
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
       {/* Error Display */}
       {error && (
         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded">
@@ -1023,7 +1023,7 @@ const StockInventory = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {years.map((y) => (
@@ -1049,7 +1049,7 @@ const StockInventory = () => {
               <select
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] shadow-[0_0_4px_0_#0EFF7B] text-black dark:text-white border border-[#08994A] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {months.map((m) => (
@@ -1068,7 +1068,7 @@ const StockInventory = () => {
       </div>
 
       {/* Statistics Cards */}
-      <div className="bg-gray-100 dark:bg-[#0D0D0D] px-6 py-6 w-full h-[102px] rounded-2xl mb-6">
+      <div className="bg-gray-200 dark:bg-[#0D0D0D] px-6 py-6 w-full h-[102px] rounded-2xl mb-6">
         <div className="grid grid-cols-4 gap-6 text-sm">
           {[
             {
@@ -1123,7 +1123,7 @@ const StockInventory = () => {
 
       <div className="flex flex-wrap w-full gap-4 mb-6">
         {/* Department Stocks Card */}
-        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-gray-100 dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3
             className="text-[#08994A] dark:text-[#0EFF7B] text-[14px] font-semibold mb-1"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1226,7 +1226,7 @@ const StockInventory = () => {
         </div>
 
         {/* Upcoming Stocks Card */}
-        <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+        <div className="flex-1 min-w-[250px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-gray-100 dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
             <span
               className="text-[#6E92FF] dark:text-[#6E92FF] text-[14px] uppercase flex items-center gap-1"
@@ -1313,7 +1313,7 @@ const StockInventory = () => {
         </div>
 
         {/* Expiring Stocks Card */}
-        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-white dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
+        <div className="flex-1 min-w-[280px] lg:min-w-[350px] h-[200px] rounded-lg border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] p-3 bg-gray-100 dark:bg-black shadow-[0px_0px_2px_0px_#A0A0A040]">
           <h3 className="flex justify-between text-[15px] font-semibold mb-1">
             <span
               className="text-[#FF2424] dark:text-[#FF2424] text-[14px] uppercase flex items-center gap-1"
@@ -1389,12 +1389,12 @@ const StockInventory = () => {
         List of all stock items ({inventoryData.length} total)
       </p>
 
-      <div className="w-full bg-[#ffffff] dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
+      <div className="w-full bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4 space-y-4">
         <div className="flex justify-between items-center w-full">
           <div className="relative">
             <button
               onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="w-[180px] h-[32px] flex justify-between items-center px-3 py-1.5 rounded-[20px] bg-white dark:bg-black shadow-[0_0_4px_0_#0EFF7B] border border-[#08994A] text-black dark:text-white text-[12px] font-medium"
+              className="w-[180px] h-[32px] flex justify-between items-center px-3 py-1.5 rounded-[20px] bg-gray-100 dark:bg-black shadow-[0_0_4px_0_#0EFF7B] border border-[#08994A] text-black dark:text-white text-[12px] font-medium"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               {selectedCategory || "All"}{" "}
@@ -1404,7 +1404,7 @@ const StockInventory = () => {
               />
             </button>
             {showCategoryDropdown && (
-              <div className="absolute top-full mt-2 left-0 w-[180px] bg-white dark:bg-[#000000] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-10">
+              <div className="absolute top-full mt-2 left-0 w-[180px] bg-gray-100 dark:bg-[#000000] p-2 rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] shadow-[0_0_4px_0_#FFFFFF1F] z-10">
                 <div className="max-h-36 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                   <ul className="text-black dark:text-white text-sm">
                     {allCategories.map((cat) => (
@@ -1431,7 +1431,7 @@ const StockInventory = () => {
                 size={16}
                 className="text-[#08994A] dark:text-[#0EFF7B]"
               />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
                 Search
               </span>
               <input
@@ -1449,12 +1449,12 @@ const StockInventory = () => {
                 className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
               >
                 <Filter size={16} className="text-[#0EFF7B]" />
-                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
                   Filter
                 </span>
               </button>
               {showFilterPopup && (
-                <div className="absolute top-full mt-4 left-[-110px] w-[188px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-white dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
+                <div className="absolute top-full mt-4 left-[-110px] w-[188px] gap-[12px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] p-[18px_12px] bg-gray-100 dark:bg-[#000000E5] shadow-[0_0_4px_0_#FFFFFF1F] flex flex-col z-50">
                   <button
                     onClick={() => setFilterStatus("IN STOCK")}
                     className={`w-full h-[25px] flex items-center justify-start px-3 rounded text-[14px] text-left font-normal ${
@@ -1516,7 +1516,7 @@ const StockInventory = () => {
               }`}
             >
               <Trash2 size={16} className="text-[#0EFF7B]" />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
                 Delete
               </span>
             </button>
@@ -1525,12 +1525,12 @@ const StockInventory = () => {
 
         <div className="overflow-x-hidden">
           <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
-            <thead className="border border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
-              <tr className="h-[52px] bg-gray-100 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] ">
+            <thead className="border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
+              <tr className="h-[52px] bg-gray-200 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] ">
                 <th className="px-3 py-3">
                   <input
                     type="checkbox"
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                     checked={
                       displayedData.length > 0 &&
                       selectedRows.length === displayedData.length
@@ -1605,17 +1605,17 @@ const StockInventory = () => {
                 ))}
               </tr>
             </thead>
-            <tbody className="text-sm bg-white dark:bg-transparent">
+            <tbody className="text-sm bg-gray-100 dark:bg-transparent">
               {sortedData.length > 0 ? (
                 sortedData.map((row, index) => (
                   <tr
                     key={row.id}
-                    className="w-full h-[62px] bg-white dark:bg-transparent px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E] relative hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                    className="w-full h-[62px] bg-gray-100 dark:bg-transparent px-[12px] py-[12px] border-b border-gray-300 dark:border-[#1E1E1E] relative hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                   >
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                         checked={selectedRows.includes(row.id)}
                         onChange={() => handleRowSelect(row.id)}
                       />
@@ -1686,7 +1686,7 @@ const StockInventory = () => {
                       </button>
                       <div
                         ref={(el) => (dropdownRefs.current[row.id] = el)}
-                        className={`absolute right-0 bg-white dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-1 z-50 ${
+                        className={`absolute right-0 bg-gray-100 dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-1 z-50 ${
                           openDropdownId === row.id ? "block" : "hidden"
                         } ${
                           index >= sortedData.length - 3
@@ -1725,7 +1725,7 @@ const StockInventory = () => {
                   </tr>
                 ))
               ) : (
-                <tr className="h-[62px] bg-white dark:bg-black">
+                <tr className="h-[62px] bg-gray-100 dark:bg-black">
                   <td
                     colSpan="9"
                     className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
@@ -1782,7 +1782,7 @@ const StockInventory = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[780px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[780px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
@@ -1791,7 +1791,7 @@ const StockInventory = () => {
                 </h2>
                 <button
                   onClick={() => handleClosePopup('add')}
-                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
+                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
                   <X size={18} className="text-black dark:text-white" />
                 </button>
@@ -1819,7 +1819,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.product_name}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -1850,7 +1850,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.dosage}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -1900,7 +1900,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.batch_number}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -1931,7 +1931,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -1962,7 +1962,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor_id}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -1990,7 +1990,7 @@ const StockInventory = () => {
                         if (formErrors.quantity)
                           setFormErrors({ ...formErrors, quantity: "" });
                       }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
                     {formErrors.quantity && (
@@ -2017,7 +2017,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.item_code}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2048,7 +2048,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.rack_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2079,7 +2079,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.shelf_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2110,7 +2110,7 @@ const StockInventory = () => {
                         if (formErrors.unit_price)
                           setFormErrors({ ...formErrors, unit_price: "" });
                       }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
@@ -2142,7 +2142,7 @@ const StockInventory = () => {
                   <button
                     type="button"
                     onClick={() => handleClosePopup('add')}
-                    className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
+                    className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >
                     Cancel
                   </button>
@@ -2164,7 +2164,7 @@ const StockInventory = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[780px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[780px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
@@ -2173,7 +2173,7 @@ const StockInventory = () => {
                 </h2>
                 <button
                   onClick={() => handleClosePopup('edit')}
-                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
+                  className="w-8 h-8 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
                 >
                   <X size={18} className="text-black dark:text-white" />
                 </button>
@@ -2196,7 +2196,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.product_name}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2225,7 +2225,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.dosage}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2268,7 +2268,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.batch_number}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2297,7 +2297,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2326,7 +2326,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor_id}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2355,7 +2355,7 @@ const StockInventory = () => {
                       onChange={(e) => {
                         handleEditFormChange('add_quantity', e.target.value);
                       }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
                     {formErrors.add_quantity && (
@@ -2394,7 +2394,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.item_code}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2423,7 +2423,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.rack_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2452,7 +2452,7 @@ const StockInventory = () => {
                         }
                       }}
                       maxLength={FIELD_LIMITS.shelf_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
                     {formErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
@@ -2478,7 +2478,7 @@ const StockInventory = () => {
                       onChange={(e) => {
                         handleEditFormChange('unit_price', e.target.value);
                       }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
@@ -2508,7 +2508,7 @@ const StockInventory = () => {
                   <button
                     type="button"
                     onClick={() => handleClosePopup('edit')}
-                    className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
+                    className="w-[160px] h-[40px] rounded-[10px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[15px] hover:bg-gray-50 dark:hover:bg-[#0EFF7B22] transition"
                   >
                     Cancel
                   </button>

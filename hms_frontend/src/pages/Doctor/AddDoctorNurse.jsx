@@ -112,14 +112,14 @@ const Dropdown = ({ label, value, onChange, options, required = false, error }) 
     </label>
     <Listbox value={value} onChange={onChange}>
       <div className="relative">
-        <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
+        <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
             <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-40 overflow-y-auto"
+          className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-40 overflow-y-auto"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -200,7 +200,7 @@ const DatePickerField = ({
           scrollableYearDropdown
           yearDropdownItemNumber={100}
           maxDate={maxDate}
-          className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] focus:ring-1 focus:ring-[#0EFF7B]"
+          className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] focus:ring-1 focus:ring-[#0EFF7B]"
           wrapperClassName="w-full"
           popperClassName="z-50"
         />
@@ -263,7 +263,7 @@ const InputField = ({
         onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
+        className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
       />
       {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
@@ -293,7 +293,7 @@ const TextAreaField = ({
       onBlur={onBlur}
       placeholder={placeholder}
       rows={rows}
-      className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] resize-none"
+      className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] resize-none"
     />
     {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
   </div>
@@ -762,7 +762,7 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto font-[Helvetica]">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
         {/* Dark Overlay */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -1121,7 +1121,7 @@ export default function NewRegistration({ isSidebarOpen }) {
             <div className="flex flex-col pt-7 sm:flex-row justify-end gap-3 md:gap-4">
               <button
                 type="reset"
-                className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-white dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
+                className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-gray-100 dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
                 onClick={handleReset}
                 disabled={loading}
               >

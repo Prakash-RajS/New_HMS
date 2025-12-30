@@ -10,7 +10,7 @@
 //           "
 //       >
 //         <div
-//           className="w-[504px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+//           className="w-[504px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
 //           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
 //         >
 //           {" "}
@@ -43,7 +43,7 @@
 //               onClick={onClose}
 //               className="w-6 h-6 rounded-full
 //                 border border-gray-300 dark:border-[#0EFF7B1A]
-//                 bg-white dark:bg-[#0EFF7B1A]
+//                 bg-gray-100 dark:bg-[#0EFF7B1A]
 //                 shadow flex items-center justify-center"
 //             >
 //               <X size={16} className="text-black dark:text-white" />
@@ -111,7 +111,7 @@ const DeleteAppointmentPopup = ({ onClose, onConfirm }) => {
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]">
         <div
-          className="w-[504px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+          className="w-[504px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {/* Gradient Border */}
@@ -138,7 +138,7 @@ const DeleteAppointmentPopup = ({ onClose, onConfirm }) => {
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                         bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                         bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>

@@ -745,7 +745,7 @@ const handleItemCodeBlur = async (index, value) => {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         {/* Gradient overlays */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -794,7 +794,7 @@ const handleItemCodeBlur = async (index, value) => {
               />
 
               {searchQuery && filteredPatients.length > 0 && (
-                <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+                <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
                   {filteredPatients.map((patient) => (
                     <div
                       key={patient.id}
@@ -821,7 +821,7 @@ const handleItemCodeBlur = async (index, value) => {
                   {patientInfo.patientName || "Select Name"}
                 </Listbox.Button>
 
-                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
+                <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
                   {patients.map((p) => (
                     <Listbox.Option
                       key={p.id}
@@ -850,7 +850,7 @@ const handleItemCodeBlur = async (index, value) => {
                   {patientInfo.patientID || "Select ID"}
                 </Listbox.Button>
 
-                <Listbox.Options className="absolute z-10 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
+                <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
                   {patients.map((p) => (
                     <Listbox.Option
                       key={p.id}
@@ -1049,7 +1049,7 @@ const handleItemCodeBlur = async (index, value) => {
                       z-10
                       mt-1
                       w-full
-                      bg-white dark:bg-black
+                      bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md
                       shadow-lg
@@ -1144,7 +1144,7 @@ const handleItemCodeBlur = async (index, value) => {
                       z-10
                       mt-1
                       w-full
-                      bg-white dark:bg-black
+                      bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md
                       shadow-lg
@@ -1213,7 +1213,7 @@ const handleItemCodeBlur = async (index, value) => {
                   </Listbox.Button>
                   <Listbox.Options
                     className="
-                      absolute z-10 mt-1 w-full bg-white dark:bg-black
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
                       text-sm font-[Helvetica] top-[100%] left-0
@@ -1276,7 +1276,7 @@ const handleItemCodeBlur = async (index, value) => {
                   </Listbox.Button>
                   <Listbox.Options
                     className="
-                      absolute z-10 mt-1 w-full bg-white dark:bg-black
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
                       text-sm font-[Helvetica] top-[100%] left-0
@@ -1341,7 +1341,7 @@ const handleItemCodeBlur = async (index, value) => {
                   <th className="p-2">Remove</th>
                 </tr>
               </thead>
-              <tbody className="text-[#08994A] dark:text-gray-300 bg-white dark:bg-black">
+              <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
                 {billingItems.map((item, i) => (
                   <tr
                     key={item.id}

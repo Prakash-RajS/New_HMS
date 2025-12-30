@@ -234,7 +234,7 @@ const DepartmentList = () => {
       <div className="relative w-full">
         <Listbox.Button
           className="w-full h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B]
-                 dark:border-[#3A3A3A] bg-white dark:bg-transparent
+                 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent
                  text-[#08994A] dark:text-[#0EFF7B] text-left
                  text-sm leading-[16px]"
         >
@@ -244,7 +244,7 @@ const DepartmentList = () => {
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black
+          className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black
                  shadow-lg z-[60] border border-[#0EFF7B]
                  dark:border-[#3A3A3A] max-h-60 overflow-y-auto"
         >
@@ -306,8 +306,8 @@ const DepartmentList = () => {
   return (
     <div className="w-full max-w-[2500px] mx-auto">
       <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-6 w-full max-w-[2500px] mx-auto flex flex-col
-     bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]"
+        className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-6 w-full max-w-[2500px] mx-auto flex flex-col
+     bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]"
       >
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -357,7 +357,7 @@ const DepartmentList = () => {
           <div className="flex items-center mr-4 relative w-5 h-5">
             <input
               type="checkbox"
-              className="appearance-none bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
+              className="appearance-none bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
               checked={
                 currentDepartments.length > 0 &&
                 selectedDepartments.length === currentDepartments.length
@@ -379,7 +379,7 @@ const DepartmentList = () => {
                 {bulkStatus || "Change Status"}
                 <ChevronDown className="h-5 w-5 text-[#0EFF7B] dark:text-[#0EFF7B]" />
               </Listbox.Button>
-              <Listbox.Options className="absolute mt-1 min-w-full w-full rounded-md bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A]">
+              <Listbox.Options className="absolute mt-1 min-w-full w-full rounded-md bg-gray-100 dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A]">
                 {["Active", "Inactive"].map((option, idx) => (
                   <Listbox.Option
                     key={idx}
@@ -415,19 +415,19 @@ const DepartmentList = () => {
                 setCurrentPage(1);
               }}
               className="w-[280px] h-[42px] pl-10 pr-3 rounded-[8px] border border-[#0EFF7B]
-                         dark:border-[#3A3A3A] bg-white dark:bg-transparent
+                         dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent
                          text-black dark:text-white placeholder-gray-500
                          outline-none text-sm"
             />
           </div>
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="relative group flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+            className="relative group flex items-center gap-2 bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
           >
             <Filter size={18} className="text-[#08994A] dark:text-white" />
             <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
   px-3 py-1 text-xs rounded-md shadow-md
-  bg-white dark:bg-black text-black dark:text-white opacity-0
+  bg-gray-100 dark:bg-black text-black dark:text-white opacity-0
   group-hover:opacity-100 transition-all duration-150
   z-50">
               Filter
@@ -435,12 +435,12 @@ const DepartmentList = () => {
           </button>
           <button
             onClick={() => setShowSettingsPopup(true)}
-            className="relative group flex items-center gap-2 bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+            className="relative group flex items-center gap-2 bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-gray-700 text-[#08994A] dark:text-white px-4 py-2 rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
           >
             <Settings size={18} className="text-[#08994A] dark:text-white" />
             <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap
   px-3 py-1 text-xs rounded-md shadow-md
-  bg-white dark:bg-black text-black dark:text-white opacity-0
+  bg-gray-100 dark:bg-black text-black dark:text-white opacity-0
   group-hover:opacity-100 transition-all duration-150
   z-50">
               Settings
@@ -450,13 +450,13 @@ const DepartmentList = () => {
         {/* Table Container - Added pb-8 for bottom spacing */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-8">
           <table className="w-full text-left text-sm min-w-[600px]">
-            <thead className="bg-[#F5F6F5] dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
+            <thead className="bg-[#F5F6F5] bg-gray-200 dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
               <tr>
                 <th className="py-3 px-4">
                   <div className="flex items-center relative w-5 h-5">
                     <input
                       type="checkbox"
-                      className="appearance-none bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
+                      className="appearance-none bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
                       checked={
                         currentDepartments.length > 0 &&
                         selectedDepartments.length === currentDepartments.length
@@ -480,7 +480,7 @@ const DepartmentList = () => {
                 <th className="text-center px-4">...</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-black border-b border-gray-300 dark:border-gray-600">
+            <tbody className="bg-gray-100 dark:bg-black border-b border-gray-300 dark:border-gray-600">
               {currentDepartments.length > 0 ? (
                 currentDepartments.map((dept, idx) => {
                   const IconComponent = departmentIcons[dept.name] || Activity;
@@ -488,13 +488,13 @@ const DepartmentList = () => {
                   return (
                     <tr
                       key={dept.id}
-                      className="border-b border-gray-300 dark:border-gray-600 h-[54px] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                      className="border-b border-gray-300 dark:border-gray-600 h-[54px] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
                     >
                       <td className="px-4">
                         <div className="flex items-center relative w-5 h-5">
                           <input
                             type="checkbox"
-                            className="appearance-none bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
+                            className="appearance-none bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#A0A0A0] w-5 h-5 rounded checked:bg-[#08994A] dark:checked:bg-green-900 checked:border-[#0EFF7B] dark:checked:border-green-500"
                             checked={selectedDepartments.includes(dept.id)}
                             onChange={() => handleCheckboxChange(dept.id)}
                           />
@@ -537,7 +537,7 @@ const DepartmentList = () => {
                         </div>
                         {menuOpenFor === dept.id && (
                           <div
-                            className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-white dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${dropdownPosition === "top"
+                            className={`absolute right-0 mr-3 z-[50] w-40 rounded-md bg-gray-100 dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${dropdownPosition === "top"
                               ? "bottom-full mb-0"
                               : "top-full mt-0"
                               }`}
@@ -595,7 +595,7 @@ const DepartmentList = () => {
             </tbody>
           </table>
           {/* Pagination - Reduced top margin from mt-12 to mt-8 */}
-          <div className="flex items-center mt-7 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center mt-7 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -643,7 +643,7 @@ const DepartmentList = () => {
         {/* Filter Popup */}
         {showFilterPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="relative w-[350px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+            <div className="relative w-[350px] border-[#0EFF7B] rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6">
               {/* Gradient Border */}
               <div
                 style={{
@@ -667,7 +667,7 @@ const DepartmentList = () => {
                 <button
                   onClick={() => setShowFilterPopup(false)}
                   className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A]
-                           bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center
+                           bg-gray-100 dark:bg-[#0EFF7B1A] flex items-center justify-center
                            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]
                            hover:text-[#08994A] dark:hover:text-white"
                 >
@@ -693,7 +693,7 @@ const DepartmentList = () => {
                 <button
                   onClick={handleClearFilters}
                   className="w-[100px] h-[33px] rounded-[8px] border border-[#0EFF7B]
-                           dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2
+                           dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2
                            text-black dark:text-white font-medium text-[14px]
                            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]
                            hover:text-[#08994A] dark:hover:text-white"
@@ -723,7 +723,7 @@ const DepartmentList = () => {
         {/* Settings Popup */}
         {showSettingsPopup && (
           <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[50]">
-            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6">
+            <div className="relative w-[504px] border-[#0EFF7B] rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6">
               {/* Gradient Border */}
               <div
                 style={{
@@ -747,7 +747,7 @@ const DepartmentList = () => {
                 </h3>
                 <button
                   onClick={() => setShowSettingsPopup(false)}
-                  className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
                 >
                   <X size={16} className="text-[#08994A] dark:text-white" />
                 </button>
@@ -760,14 +760,14 @@ const DepartmentList = () => {
                   </label>
                   <Listbox value={itemsPerPage} onChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}>
                     <div className="relative w-full min-w-0">
-                      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
+                      <Listbox.Button className="w-full h-10 md:h-[42px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] text-left text-sm md:text-[14px] leading-[16px]">
                         {itemsPerPage}
                         <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                           <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
                         </span>
                       </Listbox.Button>
                       <Listbox.Options
-                        className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
+                        className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-[60] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto left-0 no-scrollbar"
                       >
                         {[5, 6, 7, 8, 9, 10, 11, 12].map((option) => (
                           <Listbox.Option
@@ -809,7 +809,7 @@ const DepartmentList = () => {
               <div className="flex justify-center gap-6 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                  className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
                 >
                   Clear
                 </button>

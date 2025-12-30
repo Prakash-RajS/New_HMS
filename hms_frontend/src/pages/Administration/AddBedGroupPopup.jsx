@@ -355,7 +355,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 font-[Helvetica]">
         <div
           className="w-[420px] h-auto rounded-[20px]  
-        bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-md backdrop-blur-md relative"
+        bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-md backdrop-blur-md relative"
         >
           {/* Gradient Border */}
           <div
@@ -409,7 +409,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
                       ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
                       : "border-[#0EFF7B] dark:border-[#0D0D0D]"
                   }
-                  bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                  bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                   outline-none`}
               />
               {/* Format validation error - shows while typing */}
@@ -448,7 +448,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
                           ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
                           : "border-[#0EFF7B] dark:border-[#0D0D0D]"
                       }
-                      bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                      bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                       outline-none`}
                   />
                   {/* Format validation error - shows while typing */}
@@ -480,7 +480,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
                           ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
                           : "border-[#0EFF7B] dark:border-[#0D0D0D]"
                       }
-                      bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                      bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                       outline-none`}
                   />
                   {/* Format validation error - shows while typing */}
@@ -591,7 +591,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
       {/* Duplicate Bed Warning Popup */}
       {showDuplicateWarning && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-[60]">
-          <div className="w-[500px] rounded-[19px] bg-white dark:bg-[#000000] p-6 relative">
+          <div className="w-[500px] rounded-[19px] bg-gray-100 dark:bg-[#000000] p-6 relative">
             <div
               style={{
                 position: "absolute",
@@ -679,7 +679,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
                 onClick={handleUseDifferentRange}
                 className="w-full h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-gray-600
                          text-[#08994A] dark:text-white font-medium text-[14px]
-                         bg-white dark:bg-transparent
+                         bg-gray-100 dark:bg-transparent
                          hover:bg-gray-50 dark:hover:bg-gray-900 transition"
               >
                 Choose Different Range
@@ -689,7 +689,7 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
                 onClick={() => setShowDuplicateWarning(false)}
                 className="w-full h-[40px] rounded-[8px] border border-gray-400 dark:border-gray-600
                          text-gray-700 dark:text-gray-300 font-medium text-[14px]
-                         bg-white dark:bg-transparent
+                         bg-gray-100 dark:bg-transparent
                          hover:bg-gray-50 dark:hover:bg-gray-900 transition"
               >
                 Cancel

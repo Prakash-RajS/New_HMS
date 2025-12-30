@@ -304,7 +304,7 @@ const BedList = () => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="w-[504px] h-auto rounded-[20px]  bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+        <div className="w-[504px] h-auto rounded-[20px]  bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
           {/* Gradient Border */}
           <div
             style={{
@@ -341,7 +341,7 @@ const BedList = () => {
               </label>
               <Listbox value={bedGroup} onChange={setBedGroup}>
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
                     {bedGroup || "Select bed group"}
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                       <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
@@ -349,7 +349,7 @@ const BedList = () => {
                   </Listbox.Button>
 
                   <Listbox.Options
-                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
                     style={{
                       scrollbarWidth: "none",
                       msOverflowStyle: "none",
@@ -386,7 +386,7 @@ const BedList = () => {
               </label>
               <Listbox value={status} onChange={setStatus}>
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
                     {status || "Select status"}
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
                       <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
@@ -394,7 +394,7 @@ const BedList = () => {
                   </Listbox.Button>
 
                   <Listbox.Options
-                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
+                    className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scrollbar"
                     style={{
                       scrollbarWidth: "none",
                       msOverflowStyle: "none",
@@ -462,10 +462,10 @@ const BedList = () => {
   }
 
   return (
-    <div className="h-auto max-h-auto mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
+    <div className="h-auto max-h-auto mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
       <div
-        className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
+        className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col  
+     bg-gray-100 dark:bg-transparent overflow-hidden relative"
       >
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -520,7 +520,7 @@ const BedList = () => {
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
+                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
                 checked={
                   selectedRooms.length === currentRooms.length &&
                   currentRooms.length > 0
@@ -528,11 +528,11 @@ const BedList = () => {
                 onChange={handleSelectAll}
               />
               <div className="relative">
-                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
+                <Listbox.Button className="flex items-center justify-between px-4 h-[40px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-[#1E1E1E] text-[#08994A] dark:text-white min-w-[120px]">
                   {filterValue}
                   <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-green-400 ml-2" />
                 </Listbox.Button>
-                <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                <Listbox.Options className="absolute mt-2 w-full rounded-lg bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                   {["All", ...new Set(roomsData.map((r) => r.bedGroup))].map(
                     (option, idx) => (
                       <Listbox.Option
@@ -589,7 +589,7 @@ const BedList = () => {
             </div>
             <button
               onClick={() => setFilterOpen(true)}
-              className="flex items-center gap-2 bg-white dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] relative"
+              className="flex items-center gap-2 bg-gray-100 dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] px-4 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] relative"
             >
               <Filter
                 size={18}
@@ -618,12 +618,12 @@ const BedList = () => {
                   }}
                 >
                   <table className="w-full text-left text-sm mt-5 mb-3 border-collapse">
-                    <thead className="bg-[#F5F6F5] dark:bg-[#091810] border border-[#0EFF7B] dark:border-[#3C3C3C] text-[#08994A] dark:text-white text-[15px] sticky top-0 z-10">
+                    <thead className="bg-gray-200 dark:bg-[#091810] border border-[#0EFF7B] dark:border-[#3C3C3C] text-[#08994A] dark:text-white text-[15px] sticky top-0 z-10">
                       <tr>
                         <th className="px-4 py-3 w-[50px] h-[52px]">
                           <input
                             type="checkbox"
-                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
                             checked={
                               selectedRooms.length === currentRooms.length &&
                               currentRooms.length > 0
@@ -641,7 +641,7 @@ const BedList = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-white dark:bg-black">
+                    <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
                       {currentRooms.length > 0 ? (
                         currentRooms.map((room, index) => {
                           const isLastFewRows =
@@ -654,7 +654,7 @@ const BedList = () => {
                               <td className="px-4 py-3 h-[60px] ">
                                 <input
                                   type="checkbox"
-                                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
+                                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
                                   checked={selectedRooms.includes(index)}
                                   onChange={() => handleCheckboxChange(index)}
                                 />
@@ -696,7 +696,7 @@ const BedList = () => {
                                         isLastFewRows
                                           ? "bottom-full mb-2"
                                           : "mt-2"
-                                      } right-0 w-36 bg-white dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg z-50`}
+                                      } right-0 w-36 bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg z-50`}
                                     >
                                       <Menu.Item>
                                         {({ active }) => (
@@ -741,7 +741,7 @@ const BedList = () => {
                           );
                         })
                       ) : (
-                        <tr className="h-[60px] bg-white dark:bg-black">
+                        <tr className="h-[60px] bg-gray-100 dark:bg-black">
                           <td
                             colSpan="7"
                             className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
@@ -792,7 +792,7 @@ const BedList = () => {
         )}
         {/* Pagination */}
         {isBedListRoute && (
-          <div className="flex items-center h-full  bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center h-full  bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B]">

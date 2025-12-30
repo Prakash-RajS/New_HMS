@@ -59,7 +59,7 @@ const InputField = ({
         onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+        className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
       />
       {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
@@ -85,7 +85,7 @@ const Dropdown = ({
     <Listbox value={value} onChange={onChange}>
       <div className="relative mt-1 w-full">
         <Listbox.Button
-          className={`w-[225px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
+          className={`w-[225px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] ${className}`}
         >
           {value || placeholder}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -93,7 +93,7 @@ const Dropdown = ({
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-[225px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+          className="absolute mt-1 w-[225px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {options.map((option, idx) => (
@@ -597,7 +597,7 @@ const UserSettings = () => {
   };
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -624,7 +624,7 @@ const UserSettings = () => {
       ></div>
 
       {/* Header */}
-      <div className="mt-[10px] bg-white dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col dark:border-[#0D0D0D]">
+      <div className="mt-[10px] bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-6 w-full flex flex-col dark:border-[#0D0D0D]">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-black dark:text-[#0EFF7B]">
             User settings
@@ -680,7 +680,7 @@ const UserSettings = () => {
       </div>
 
       {/* User List Table */}
-      <div className="bg-white dark:bg-transparent text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#3C3C3C]">
+      <div className="bg-gray-100 dark:bg-transparent text-black dark:text-white rounded-xl p-6 mt-7 shadow-md border border-[#0EFF7B] dark:border-[#3C3C3C]">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-black dark:text-white">
             User List
@@ -692,7 +692,7 @@ const UserSettings = () => {
                 placeholder="Search users..."
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
-                className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-full border border-gray-300 dark:border-[#3C3C3C] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400"
+                className="bg-gray-100 dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-full border border-gray-300 dark:border-[#3C3C3C] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] placeholder-gray-600 dark:placeholder-gray-400"
               />
             )}
             <div
@@ -706,7 +706,7 @@ const UserSettings = () => {
               <span
                 className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150"
               >
                 Search
@@ -724,7 +724,7 @@ const UserSettings = () => {
                 <span
                   className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150"
                 >
                   Delete
@@ -742,13 +742,13 @@ const UserSettings = () => {
           <>
             <table className="w-full border-collapse">
               <thead>
-                <tr className="text-left h-[52px] bg-white dark:bg-[#0EFF7B1A] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
+                <tr className="text-left h-[52px] bg-gray-200 dark:bg-[#0EFF7B1A] text-gray-600 dark:text-gray-400 text-[16px] border-b border-gray-300 dark:border-[#3C3C3C]">
                   {canManageUsers && (
                     <th className="p-3">
                       <label className="flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           checked={
                             selectedUsers.length === users.length &&
                             users.length > 0
@@ -813,14 +813,14 @@ const UserSettings = () => {
                 {users.map((u, i) => (
                   <tr
                     key={i}
-                    className="border-b h-[22px] text-[15px] border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
+                    className="border-b h-[22px] text-[15px] border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] transition"
                   >
                     {canManageUsers && (
                       <td className="p-3">
                         <label className="flex items-center cursor-pointer">
                           <input
                             type="checkbox"
-                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                             checked={selectedUsers.includes(u)}
                             onChange={() => handleUserCheckboxChange(u)}
                           />
@@ -864,7 +864,7 @@ const UserSettings = () => {
                           <span
                             className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                             px-3 py-1 text-xs rounded-md shadow-md
-                            bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                            bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                             transition-all duration-150"
                           >
                             Edit
@@ -884,7 +884,7 @@ const UserSettings = () => {
                           <span
                             className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                             px-3 py-1 text-xs rounded-md shadow-md
-                            bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                            bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                             transition-all duration-150"
                           >
                             Delete
@@ -904,7 +904,7 @@ const UserSettings = () => {
               </div>
             )}
 
-            <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4">
+            <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent rounded gap-x-4">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 Page{" "}
                 <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -948,7 +948,7 @@ const UserSettings = () => {
       {/* Delete Confirmation */}
       {showDeleteUserPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="relative bg-white dark:bg-[#000000] rounded-[20px] p-6 w-[400px]">
+          <div className="relative bg-gray-100 dark:bg-[#000000] rounded-[20px] p-6 w-[400px]">
             <div
               style={{
                 position: "absolute",
@@ -991,7 +991,7 @@ const UserSettings = () => {
                     setShowDeleteUserPopup(false);
                     setDeleteUser(null);
                   }}
-                  className="bg-white dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-[8px] font-semibold hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition"
+                  className="bg-gray-100 dark:bg-[#1E1E1E] text-black dark:text-white px-4 py-2 rounded-[8px] font-semibold hover:bg-gray-100 dark:hover:bg-[#2A2A2A] transition"
                 >
                   Cancel
                 </button>
@@ -1014,7 +1014,7 @@ const UserSettings = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative"
+              className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-5 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-2 mb-3">
@@ -1026,7 +1026,7 @@ const UserSettings = () => {
                     setShowAddUserPopup(false);
                     resetAddUserForm();
                   }}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1053,7 +1053,7 @@ const UserSettings = () => {
       value={newUser.password}
       onChange={handlePasswordChange}
       placeholder="Enter password"
-      className="w-[228px] h-[30px] mt-[2px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+      className="w-[228px] h-[30px] mt-[2px] px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
     />
     <button
       type="button"
@@ -1094,7 +1094,7 @@ const UserSettings = () => {
                   }}>
                     <div className="relative mt-1 w-full">
                       <Listbox.Button
-                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
                       >
                         {newUser.role}
                         <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -1102,7 +1102,7 @@ const UserSettings = () => {
                         </span>
                       </Listbox.Button>
                       <Listbox.Options
-                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
                         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                       >
                         {availableRoles.map((option, idx) => (
@@ -1142,7 +1142,7 @@ const UserSettings = () => {
                   }}>
                     <div className="relative mt-1 w-full">
                       <Listbox.Button
-                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                        className="w-[228px] h-[30px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
                       >
                         {newUser.staffId}
                         <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -1150,7 +1150,7 @@ const UserSettings = () => {
                         </span>
                       </Listbox.Button>
                       <Listbox.Options
-                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
+                        className="absolute mt-1 w-[228px] max-h-[180px] overflow-auto scrollbar-hide rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3C3C3C]"
                         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                       >
                         {staffOptions.map((option, idx) => (
@@ -1229,7 +1229,7 @@ const UserSettings = () => {
                     setShowAddUserPopup(false);
                     resetAddUserForm();
                   }}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                 >
                   Cancel
                 </button>

@@ -277,7 +277,7 @@ export default function EditAppointmentPopup({
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                        bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                        bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
           >
             {loading ? (
@@ -301,36 +301,51 @@ export default function EditAppointmentPopup({
           {error && (
             <div className="text-red-500 text-xs mt-1">{error}</div>
           )}
-          <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
-                        shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {options.map((opt) => {
-              const label = isObject
-                ? opt.name || opt.full_name || String(opt.id)
-                : opt;
-              const val = isObject ? opt.id : opt;
-              return (
-                <Listbox.Option
-                  key={val}
-                  value={val}
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                      ${
-                        active
-                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                          : "text-black dark:text-white"
-                      }
-                      ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                  }
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  {label}
-                </Listbox.Option>
-              );
-            })}
-          </Listbox.Options>
+<Listbox.Options
+  className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
+            shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+>
+  {options.map((opt) => {
+    let label;
+    if (isObject) {
+      // For doctors (has full_name field) - add " - Doctor"
+      if (opt.full_name) {
+        label = `${opt.full_name} - Doctor`;
+      } 
+      // For departments and beds (has name field)
+      else if (opt.name) {
+        label = opt.name;
+      }
+      // Fallback
+      else {
+        label = String(opt.id);
+      }
+    } else {
+      label = opt;
+    }
+    
+    const val = isObject ? opt.id : opt;
+    return (
+      <Listbox.Option
+        key={val}
+        value={val}
+        className={({ active, selected }) =>
+          `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+            ${
+              active
+                ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                : "text-black dark:text-white"
+            }
+            ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+        }
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        {label}
+      </Listbox.Option>
+    );
+  })}
+</Listbox.Options>
         </div>
       </Listbox>
     </div>
@@ -433,7 +448,7 @@ export default function EditAppointmentPopup({
                     dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
       >
         <div
-          className="w-[804px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+          className="w-[804px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           <div
@@ -459,7 +474,7 @@ export default function EditAppointmentPopup({
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                          bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                          bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -475,7 +490,7 @@ export default function EditAppointmentPopup({
                 onChange={(e) => handleInputChange("patient_name", e.target.value)}
                 placeholder="Enter name"
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
               {validationErrors.patient_name && (
@@ -491,7 +506,7 @@ export default function EditAppointmentPopup({
                 value={formData.patient_id}
                 readOnly
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-white dark:bg-transparent text-gray-500 dark:text-gray-400 outline-none"
+                            bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-400 outline-none"
               />
             </div>
             
@@ -532,7 +547,7 @@ export default function EditAppointmentPopup({
   min={new Date().toISOString().split("T")[0]}
   className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
              border border-[#0EFF7B] dark:border-[#3A3A3A]
-             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
              outline-none cursor-pointer
              appearance-none
              [&::-webkit-calendar-picker-indicator]:opacity-0
@@ -560,7 +575,7 @@ export default function EditAppointmentPopup({
                 value={formData.appointment_time}
                 onChange={(e) => handleInputChange("appointment_time", e.target.value)}
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
-                           dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black 
+                           dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black 
                            dark:text-[#0EFF7B] outline-none"
               />
               {(validationErrors.appointment_time || validationErrors.appointment_date_time) && (
@@ -642,7 +657,7 @@ export default function EditAppointmentPopup({
                 placeholder="Enter phone"
                 maxLength="10"
                 className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
                             placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
               {validationErrors.phone_no && (
@@ -675,7 +690,7 @@ export default function EditAppointmentPopup({
               onClick={onClose}
               className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
                           text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                          shadow-[0_2px_12px_0px_#00000040] bg-white dark:bg-transparent"
+                          shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
             >
               Cancel
             </button>

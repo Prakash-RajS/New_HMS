@@ -16,7 +16,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
           className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                     bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+                     bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
                      outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
           {value || "Select"}
@@ -26,7 +26,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
         </Listbox.Button>
 
         <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto scrollbar-hide rounded-[8px] bg-white dark:bg-black shadow-lg z-50 
+          className="absolute mt-1 w-full max-h-40 overflow-auto scrollbar-hide rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 
                      border border-gray-300 dark:border-[#3A3A3A] left-[2px]"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
@@ -297,7 +297,7 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div
-        className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
+        className="w-[504px] h-auto rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
         style={{
           boxShadow: "0px 0px 4px 0px rgba(255,255,255,0.12)",
           backdropFilter: "blur(8px)",
@@ -402,7 +402,7 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
                 dateFormat="MM/dd/yyyy"
                 placeholderText="MM/DD/YYYY"
                 className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                           bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                            focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
                 wrapperClassName="w-full"
                 popperClassName="z-50"
@@ -447,7 +447,7 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
           <button
             onClick={onClose}
             className="w-[104px] h-[33px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                       bg-white dark:bg-[#1E1E1E] text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+                       bg-gray-100 dark:bg-[#1E1E1E] text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
           >
             Cancel
           </button>

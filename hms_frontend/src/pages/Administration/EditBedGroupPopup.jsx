@@ -102,7 +102,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-20 bg-opacity-50 z-50 font-[Helvetica]">
       <div className="w-[420px] h-auto rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-      bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+      bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
         {/* Gradient Border */}
         <div
           style={{
@@ -147,7 +147,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
               onChange={(e) => setFormData({ ...formData, bedGroupName: e.target.value })}
               placeholder="e.g., ICU, Ward, General"
               className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-              bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+              bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
               outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
             />
             {errors.bedGroupName && <p className="text-red-500 text-xs mt-1">{errors.bedGroupName}</p>}
@@ -164,7 +164,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
                 onChange={(e) => setFormData({ ...formData, bedFrom: e.target.value })}
                 placeholder="From"
                 className="w-1/2 h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-                bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                 outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
               />
               <span className="text-gray-600 dark:text-gray-300">to</span>
@@ -175,7 +175,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
                 onChange={(e) => setFormData({ ...formData, bedTo: e.target.value })}
                 placeholder="To"
                 className="w-1/2 h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-                bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
+                bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 
                 outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
               />
             </div>

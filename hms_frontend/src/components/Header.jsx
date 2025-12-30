@@ -39,7 +39,12 @@ const Header = ({ isCollapsed }) => {
     .toUpperCase()
     .slice(0, 2);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL =
+    window.location.hostname === "18.119.210.2"
+      ? "http://18.119.210.2:8000"
+      : window.location.hostname === "3.133.64.23"
+      ? "http://3.133.64.23:8000"
+      : "http://localhost:8000";
 
   // === SEARCH LOGIC (unchanged) ===
   const getModulePermissionKey = (item) => {
@@ -235,7 +240,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
         return;
       }
       try {
-        const response = await fetch(`${API_BASE}/api/profile/me/`, {
+        const response = await fetch(`${API_BASE_URL}/api/profile/me/`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -252,7 +257,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
         }
         const data = await response.json();
         const profilePic = data.profile_picture
-          ? `${API_BASE}${data.profile_picture.startsWith("/") ? "" : "/"}${
+          ? `${API_BASE_URL}${data.profile_picture.startsWith("/") ? "" : "/"}${
               data.profile_picture
             }`
           : null;
@@ -272,7 +277,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       }
     };
     fetchUserProfile();
-  }, [navigate, API_BASE]);
+  }, [navigate, API_BASE_URL]);
 
   const getNotificationColor = (type) => {
     switch (type) {
@@ -302,7 +307,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
   return (
     <div className="w-full font-[Helvetica]">
       <header
-        className="flex items-center justify-between p-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
+        className="flex items-center justify-between p-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
         style={{
           width: `calc(100% - ${isCollapsed ? "120px" : "270px"})`,
           maxWidth: "2580px",
@@ -360,7 +365,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
           {showSearchResults && (
             <div
               ref={searchDropdownRef}
-              className="absolute left-0 right-0 top-full mt-2 w-full bg-white dark:bg-[#1E1E1E] border border-[#0EFF7B] rounded-lg shadow-xl z-50 overflow-hidden"
+              className="absolute left-0 right-0 top-full mt-2 w-full bg-gray-100 dark:bg-[#1E1E1E] border border-[#0EFF7B] rounded-lg shadow-xl z-50 overflow-hidden"
             >
               {searchResults.length > 0 ? (
                 <>
@@ -413,7 +418,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
             ) : (
               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
             )}
-            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
               Dark/Light
             </span>
           </button>
@@ -426,7 +431,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
               size={20}
               className="text-[#08994A] dark:text-[#0EFF7B]"
             />
-            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+            <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
               Settings
             </span>
           </button>
@@ -445,8 +450,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
             </button>
             {/* Notification dropdown - keep your existing code */}
             {isNotificationOpen && (
-              <div className="absolute right-0 top-full mt-3 w-96 bg-white dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
-                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
+              <div className="absolute right-0 top-full mt-3 w-96 bg-gray-100 dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
+                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                   <h3 className="font-semibold text-gray-800 dark:text-white">
                     Notifications
@@ -578,8 +583,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
             </div>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-3 w-48 bg-white dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
-                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-white dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
+              <div className="absolute right-0 top-full mt-3 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+                <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
                 <div className="py-3">
                   <ul>
                     <li

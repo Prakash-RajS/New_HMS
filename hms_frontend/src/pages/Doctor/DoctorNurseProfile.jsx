@@ -210,7 +210,7 @@
 //         <div className="relative mt-1 w-[228px]">
 //           <Listbox.Button
 //             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-//                        bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
+//                        bg-gray-100 dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
 //             style={{
 //               borderColor: "#3C3C3C",
 //               boxShadow: "0px 0px 4px 0px #0EFF7B",
@@ -235,7 +235,7 @@
 //           </Listbox.Button>
 
 //           <Listbox.Options
-//             className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
+//             className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
 //             style={{
 //               scrollbarWidth: "none",
 //               msOverflowStyle: "none",
@@ -292,7 +292,7 @@
 //   ).length;
 
 //   return (
-//     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+//     <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
 //       <div
 //         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
 //         style={{
@@ -406,7 +406,7 @@
 //       {/* Filter Popup */}
 //       {showFilterPopup && (
 //         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-//           <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
+//           <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
 //             {/* Gradient Border */}
 //             <div
 //               style={{
@@ -458,7 +458,7 @@
 //             <div className="flex justify-center gap-6 mt-8 relative z-10">
 //               <button
 //                 onClick={handleClearFilters}
-//                 className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+//                 className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
 //               >
 //                 Clear
 //               </button>
@@ -575,7 +575,7 @@
 //       </div>
 
 //       {/* Pagination */}
-//       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+//       <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
 //         <div className="text-sm text-black dark:text-white">
 //           Page {currentPage} of {totalPages} (
 //           {(currentPage - 1) * rowsPerPage + 1} to{" "}
@@ -858,7 +858,7 @@ const ProfileSection = () => {
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
-                       bg-white dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
+                       bg-gray-100 dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
             style={{
               borderColor: "#3C3C3C",
               boxShadow: "0px 0px 4px 0px #0EFF7B",
@@ -883,7 +883,7 @@ const ProfileSection = () => {
           </Listbox.Button>
 
           <Listbox.Options
-            className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-white dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
+            className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
@@ -940,7 +940,7 @@ const ProfileSection = () => {
   ).length;
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden font-[Helvetica] relative">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -1036,7 +1036,7 @@ const ProfileSection = () => {
             <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Search
               </span>
@@ -1055,7 +1055,7 @@ const ProfileSection = () => {
             <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Filter
               </span>
@@ -1066,7 +1066,7 @@ const ProfileSection = () => {
       {/* Filter Popup */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
+          <div className="w-[600px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-lg backdrop-blur-md relative z-50">
             {/* Gradient Border */}
             <div
               style={{
@@ -1118,7 +1118,7 @@ const ProfileSection = () => {
             <div className="flex justify-center gap-6 mt-8 relative z-10">
               <button
                 onClick={handleClearFilters}
-                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
+                className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow hover:bg-[#0EFF7B1A] dark:hover:bg-gray-900"
               >
                 Clear
               </button>
@@ -1155,7 +1155,7 @@ const ProfileSection = () => {
           paginatedProfiles.map((profile, index) => (
             <div
               key={profile.id || index}
-              className="w-full h-full bg-gray-100 dark:bg-[#0EFF7B08] rounded-lg p-5 border border-[#0EFF7B80] dark:border-[#0EFF7B80] shadow-[0px_0px_4px_0px_#A0A0A040] dark:shadow-[0px_0px_4px_0px_#0EFF7B] relative text-center flex flex-col items-center"
+              className="w-full h-full bg-gray-200 dark:bg-[#0EFF7B08] rounded-lg p-5 border border-[#0EFF7B80] dark:border-[#0EFF7B80] shadow-[0px_0px_4px_0px_#A0A0A040] dark:shadow-[0px_0px_4px_0px_#0EFF7B] relative text-center flex flex-col items-center"
               style={{ zIndex: 20 }}
             >
               <div className="absolute top-4 left-4 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
@@ -1238,7 +1238,7 @@ const ProfileSection = () => {
                 <span>Edit</span>
                 <span className="absolute right-5 right-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">Edit</span>
               </button>
               <button
@@ -1252,7 +1252,7 @@ const ProfileSection = () => {
                 View profile
                 <span className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">View Profile</span>
               </button>
               
@@ -1266,7 +1266,7 @@ const ProfileSection = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
         <div className="text-sm text-black dark:text-white">
           Page {currentPage} of {totalPages} (
           {(currentPage - 1) * rowsPerPage + 1} to{" "}

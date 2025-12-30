@@ -163,7 +163,7 @@ const ProfileSection = () => {
 
   /* ==================== RENDER ==================== */
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -248,7 +248,7 @@ const ProfileSection = () => {
                 ${
                   activeMainTab === tab
                     ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white border-[#0EFF7B]"
-                    : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                    : "bg-gray-200 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
             >
               {tab}
@@ -257,7 +257,7 @@ const ProfileSection = () => {
         </div>
 
         <div className="flex gap-4">
-          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
+          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
             <Search size={18} className="text-green-600 dark:text-green-400" />
             <input
               type="text"
@@ -312,7 +312,7 @@ const ProfileSection = () => {
           {displayed.map((p) => (
             <div
               key={p.pk}
-              className="bg-white dark:bg-[#0D0D0D] rounded-lg p-[18px] pr-[12px] pl-[12px] border border-[#0EFF7B] dark:border-gray-800 shadow-[0px_0px_4px_0px_#D2D2D240] relative text-center"
+              className="bg-gray-100 dark:bg-[#0D0D0D] rounded-lg p-[18px] pr-[12px] pl-[12px] border border-[#0EFF7B] dark:border-gray-800 shadow-[0px_0px_4px_0px_#D2D2D240] relative text-center"
             >
               {/* Display patient type from backend */}
               <div className="absolute top-2 left-2 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
@@ -364,7 +364,7 @@ const ProfileSection = () => {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center mt-7 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-7 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

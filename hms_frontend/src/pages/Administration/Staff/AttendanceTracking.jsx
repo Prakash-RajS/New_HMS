@@ -97,7 +97,7 @@ const ThemeDropdown = ({ label, options, value, onChange }) => (
 
         {/* Dropdown Options */}
         <Listbox.Options
-          className="absolute z-10 mt-1 w-full min-w-[245px] max-w-auto bg-white dark:bg-black 
+          className="absolute z-10 mt-1 w-full min-w-[245px] max-w-auto bg-gray-100 dark:bg-black 
                      border border-[#0EFF7B] dark:border-[#3C3C3C] 
                      rounded-[8px] shadow-lg max-h-60 overflow-auto"
           style={{
@@ -359,7 +359,7 @@ const AttendanceTracking = () => {
   };
 
   return (
-    <div className="min-h-screen text-black dark:text-white p-6 bg-white dark:bg-black flex-1 w-full overflow-x-hidden font-[Helvetica]">
+    <div className="min-h-screen text-black dark:text-white p-6 bg-gray-100 dark:bg-black flex-1 w-full overflow-x-hidden font-[Helvetica]">
       <h1 className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium mb-4 sm:mb-6 font-inter">
         Attendance Tracking
       </h1>
@@ -374,7 +374,7 @@ const AttendanceTracking = () => {
   ].map((card, i) => (
     <div
       key={i}
-      className="relative bg-white dark:bg-[#0EFF7B0D] border border-gray-300 dark:border-[#0EFF7BB2] rounded-xl p-4 flex flex-col justify-between w-full h-[130px]"
+      className="relative bg-gray-100 dark:bg-[#0EFF7B0D] border border-gray-300 dark:border-[#0EFF7BB2] rounded-xl p-4 flex flex-col justify-between w-full h-[130px]"
     >
       <div>
         <p className="font-inter font-medium text-[24px] text-black dark:text-white">
@@ -430,7 +430,7 @@ const AttendanceTracking = () => {
 </div>
 
       {/* Chart */}
-      <div className="bg-white dark:bg-black rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 w-full border border-gray-300 dark:border-[#2B2B2B]">
+      <div className="bg-gray-100 dark:bg-black rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 w-full border border-gray-300 dark:border-[#2B2B2B]">
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={data}>
             <CartesianGrid
@@ -504,14 +504,14 @@ const AttendanceTracking = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-black rounded-xl overflow-x-auto w-full border border-gray-300 dark:border-gray-800">
+      <div className="bg-gray-100 dark:bg-black rounded-xl overflow-x-auto w-full border border-gray-300 dark:border-gray-800">
         <table className="w-full text-left border-collapse min-w-[600px] sm:min-w-[800px] md:min-w-[1000px]">
           <thead>
             <tr className="bg-[#F5F6F5] dark:bg-[#1E1E1E] text-[#08994A] dark:text-[#0EFF7B] text-xs">
-              <th className="p-2 sm:p-3 sticky top-0 bg-[#F5F6F5] dark:bg-[#091810] z-10">
+              <th className="p-2 sm:p-3 sticky top-0 dark:bg-[#091810] z-10">
                 <input
                   type="checkbox"
-                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   checked={selectAll}
                   onChange={handleSelectAll}
                 />
@@ -550,7 +550,7 @@ const AttendanceTracking = () => {
           </thead>
           <tbody className="text-gray-700 dark:text-gray-200 text-xs">
             {paginatedRows.length === 0 ? (
-              <tr className="bg-white dark:bg-black">
+              <tr className="bg-gray-100 dark:bg-black">
                 <td
                   colSpan="11"
                   className="text-center p-4 text-gray-500 dark:text-gray-400"
@@ -562,12 +562,12 @@ const AttendanceTracking = () => {
               paginatedRows.map((row, i) => (
                 <tr
                   key={i}
-                  className="bg-white dark:bg-black border-t border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                  className="bg-gray-100 dark:bg-black border-t border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                 >
                   <td className="p-2 sm:p-3">
                     <input
                       type="checkbox"
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       checked={selectedRows.includes(i)}
                       onChange={() => handleRowSelect(i)}
                     />
@@ -602,7 +602,7 @@ const AttendanceTracking = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 ">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 ">
         <div className="text-sm text-black dark:text-white">
           Page {currentPage} of {totalPages} (
           {(currentPage - 1) * rowsPerPage + 1} to{" "}

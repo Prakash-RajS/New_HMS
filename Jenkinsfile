@@ -14,18 +14,18 @@ pipeline {
         FASTAPI_DIR = "${REMOTE_BASE}/fastapi_app"
         FRONTEND_BUILD = 'dist'
  
-        DB_NAME = 'hms_project_db'
-        DB_USER = 'admin'
-        DB_PASSWORD = 'StacklyDB2025'
+        DB_NAME = 'hms_project_prod_db'
+        DB_USER = 'hms_prod_user'
+        DB_PASSWORD = 'StrongProdPass@123'
         DB_HOST = 'hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com'
         DB_PORT = '3306'
  
-        EMAIL_RECIPIENTS = 'pavanb@thestackly.com, uday@thestackly.com, prakashraj@thestackly.com, thummalajayanth@thestackly.com, guntur@thestackly.com, yarramallamaheshbabu@thestackly.com, nndinesh@thestackly.com, muruganps@thestackly.com'
+        EMAIL_RECIPIENTS = 'awsdevops@thestackly.com, pavanb@thestackly.com, uday@thestackly.com, prakashraj@thestackly.com, thummalajayanth@thestackly.com, guntur@thestackly.com, yarramallamaheshbabu@thestackly.com, nndinesh@thestackly.com, muruganps@thestackly.com'
     }
  
     stages {
  
-        /* ========== 1️⃣  CHECKOUT CODE ========== */
+        /* ========== 1️⃣ CHECKOUT CODE ========== */
         stage('Checkout Code') {
             agent { label 'Website' }
             steps {

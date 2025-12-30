@@ -32,7 +32,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
           className="w-full h-[33px] px-3 pr-8 rounded-full border border-[#0EFF7B] dark:border-[#0D0D0D]
-          bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+          bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
           focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
           {value || "Select"}
@@ -41,7 +41,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black
           shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scroll"
           style={{
             scrollbarWidth: "none",
@@ -729,7 +729,7 @@ const BillingManagement = () => {
 
   return (
     <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]"
+      className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -771,9 +771,9 @@ const BillingManagement = () => {
       <div className="flex flex-col lg:flex-row gap-6 mb-6">
         <div className="flex flex-col gap-8 flex-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-6 shadow-sm">
+            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] p-6 shadow-sm">
               <div className="flex flex-col gap-2">
-                <span className="font-medium text-[18px] text-black dark:text-white">
+                <span className="font-medium text-[18px]  text-black dark:text-white">
                   Total Bills Generated Today
                 </span>
                 <span className="text-[#08994A] dark:text-[#0EFF7B] text-[28px] font-bold">
@@ -781,7 +781,7 @@ const BillingManagement = () => {
                 </span>
               </div>
             </div>
-            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-6 shadow-sm">
+            <div className="flex flex-col rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] p-6 shadow-sm">
               <div className="flex flex-col gap-2">
                 <span className="font-medium text-[18px] text-black dark:text-white">
                   Insurance Claims
@@ -794,7 +794,7 @@ const BillingManagement = () => {
           </div>
         </div>
         
-        <div className="w-full lg:w-[280px] flex flex-col gap-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#0EFF7B1A] p-4 shadow-sm">
+        <div className="w-full lg:w-[280px] flex flex-col gap-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] p-4 shadow-sm">
           <div className="flex justify-between items-center pb-2 border-b border-gray-300 dark:border-[#3C3C3C]">
             <span className="text-[#6E92FF] dark:text-[#0EFF7B] text-sm font-semibold">
               VALIDATION & CONTROLS
@@ -822,19 +822,19 @@ const BillingManagement = () => {
             {/* <div className="flex flex-wrap gap-2">
               <button
                 onClick={handlePDFPrint}
-                className="bg-white dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+                className="bg-gray-100 dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
               >
                 <Printer size={16} /> Print
               </button>
               <button
   onClick={handleExport}
-  className="bg-white dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
+  className="bg-gray-100 dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
 >
   <Download size={16} /> Export
 </button>
             </div> */}
           </div>
-      <div className="w-full bg-white dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
+      <div className="w-full bg-gray-100 dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
         {error && (
           <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 p-4 rounded mb-4">
             <p>{error}</p>
@@ -852,7 +852,7 @@ const BillingManagement = () => {
                   <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Search
                   </span>
@@ -871,7 +871,7 @@ const BillingManagement = () => {
                   <Filter size={16} className="text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Filter
                   </span>
@@ -883,7 +883,7 @@ const BillingManagement = () => {
                   <Trash2 size={16} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
                   </span>
@@ -895,7 +895,7 @@ const BillingManagement = () => {
                   <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Print
                   </span>
@@ -908,7 +908,7 @@ const BillingManagement = () => {
                   <Download size={16} className="text-green-600 dark:text-green-500 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968] hover:text-green-700 dark:hover:text-green-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Download
                   </span>
@@ -921,7 +921,7 @@ const BillingManagement = () => {
                   <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400 cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Export
                   </span>
@@ -936,14 +936,14 @@ const BillingManagement = () => {
               <>
                 <div className="overflow-hidden rounded-lg">
                   <table className="w-full border-collapse min-w-[800px]">
-                    <thead className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#0EFF7B] dark:text-[#0EFF7B]">
+                    <thead className="bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#0EFF7B] dark:text-[#0EFF7B]">
                       <tr>
                         <th className="px-3 py-3 w-10">
                           <input
                             type="checkbox"
                             checked={selectAll}
                             onChange={handleSelectAll}
-                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           />
                         </th>
                         <th className="px-3 py-3 cursor-pointer" onClick={() => handleSort("id")}>
@@ -971,14 +971,14 @@ const BillingManagement = () => {
                       {displayedData.map((row) => (
                         <tr
                           key={row.id}
-                          className="h-[62px] bg-white dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                          className="h-[62px] bg-gray-100 dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                         >
                           <td className="px-3 py-3">
                             <input
                               type="checkbox"
                               checked={selectAll || selectedRows.includes(row.id)}
                               onChange={() => handleRowSelect(row.id)}
-                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                             />
                           </td>
                           <td className="px-3 py-3 text-black dark:text-white">
@@ -1015,7 +1015,7 @@ const BillingManagement = () => {
                     </tbody>
                   </table>
                 </div>
-                <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+                <div className="flex items-center h-full mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
                   <div className="text-sm text-black dark:text-white">
                     Page{" "}
                     <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span>{" "}
@@ -1054,7 +1054,7 @@ const BillingManagement = () => {
         )}
       </div>
       
-    <div className="w-full bg-white dark:bg-transparent mt-7 rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
+    <div className="w-full bg-gray-100 dark:bg-transparent mt-7 rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
         {hospitalError && (
           <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-600 text-red-700 dark:text-red-300 p-4 rounded mb-4">
             <p>{hospitalError}</p>
@@ -1074,7 +1074,7 @@ const BillingManagement = () => {
                   <Search size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Search
                   </span>
@@ -1095,7 +1095,7 @@ const BillingManagement = () => {
                   <Filter size={16} className="text-[#0EFF7B] dark:text-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Filter
                   </span>
@@ -1109,7 +1109,7 @@ const BillingManagement = () => {
                   <Trash2 size={16} className="text-red-600 dark:text-red-500 hover:text-red-700 dark:hover:text-red-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
                   </span>
@@ -1122,7 +1122,7 @@ const BillingManagement = () => {
                 >
                   <Printer size={16} className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400" /><span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Print
                   </span>
@@ -1136,7 +1136,7 @@ const BillingManagement = () => {
                   <Download size={16} className="text-green-600 dark:text-green-500 hover:text-green-700 dark:hover:text-green-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Download
                   </span>
@@ -1150,7 +1150,7 @@ const BillingManagement = () => {
                   <FileDown size={16} className="text-purple-600 dark:text-purple-500 hover:text-purple-700 dark:hover:text-purple-400" />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Export
                   </span>
@@ -1166,14 +1166,14 @@ const BillingManagement = () => {
               <>
                 <div className="overflow-hidden rounded-lg">
                   <table className="w-full border-collapse min-w-[800px]">
-                    <thead className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#0EFF7B] dark:text-[#0EFF7B]">
+                    <thead className="bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#0EFF7B] dark:text-[#0EFF7B]">
                       <tr>
                         <th className="px-3 py-3 w-10">
                           <input
                             type="checkbox"
                             checked={hospitalSelectAll}
                             onChange={handleHospitalSelectAll}
-                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                           />
                         </th>
                         <th className="px-3 py-3 cursor-pointer" onClick={() => handleHospitalSort("id")}>
@@ -1201,14 +1201,14 @@ const BillingManagement = () => {
                       {displayedHospitalData.map((row) => (
                         <tr
                           key={row.id}
-                          className="h-[62px] bg-white dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                          className="h-[62px] bg-gray-100 dark:bg-black border-b border-gray-300 dark:border-[#1E1E1E] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                         >
                           <td className="px-3 py-3">
                             <input
                               type="checkbox"
                               checked={hospitalSelectAll || selectedHospitalRows.includes(row.id)}
                               onChange={() => handleHospitalRowSelect(row.id)}
-                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                             />
                           </td>
                           <td className="px-3 py-3 text-black dark:text-white">
@@ -1242,7 +1242,7 @@ const BillingManagement = () => {
                   </table>
                 </div>
 
-                <div className="flex items-center h-full mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+                <div className="flex items-center h-full mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
                   <div className="text-sm text-black dark:text-white">
                     Page{" "}
                     <span className="text-[#08994A] dark:text-[#0EFF7B]">{hospitalCurrentPage}</span>{" "}
@@ -1284,7 +1284,7 @@ const BillingManagement = () => {
       {showDeletePopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px]">
-            <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
+            <div className="w-[400px] bg-gray-100 dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
               <div
                 style={{
                   position: "absolute",
@@ -1343,7 +1343,7 @@ const BillingManagement = () => {
       {showHospitalDeletePopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px]">
-            <div className="w-[400px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
+            <div className="w-[400px] bg-gray-100 dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans">
               <div
                 style={{
                   position: "absolute",
@@ -1407,7 +1407,7 @@ const BillingManagement = () => {
             dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4">
@@ -1419,7 +1419,7 @@ const BillingManagement = () => {
                 </h2>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1443,7 +1443,7 @@ const BillingManagement = () => {
                       type="date"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
-                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar
                       size={18}
@@ -1467,7 +1467,7 @@ const BillingManagement = () => {
               <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={handleClearFilter}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Cancel
@@ -1493,7 +1493,7 @@ const BillingManagement = () => {
             dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4">
@@ -1505,7 +1505,7 @@ const BillingManagement = () => {
                 </h2>
                 <button
                   onClick={() => setShowHospitalFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1529,7 +1529,7 @@ const BillingManagement = () => {
                       type="date"
                       value={hospitalFilterDate}
                       onChange={(e) => setHospitalFilterDate(e.target.value)}
-                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar
                       size={18}
@@ -1553,7 +1553,7 @@ const BillingManagement = () => {
               <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={handleHospitalClearFilter}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Cancel
@@ -1574,7 +1574,7 @@ const BillingManagement = () => {
       {showExportPopup && (
   <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
     <div className="rounded-[20px] p-[1px]">
-      <div className="w-[420px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans relative">
+      <div className="w-[420px] bg-gray-100 dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans relative">
         {/* Gradient Border */}
         <div
           style={{
@@ -1645,7 +1645,7 @@ const BillingManagement = () => {
 {showHospitalExportPopup && (
   <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
     <div className="rounded-[20px] p-[1px]">
-      <div className="w-[420px] bg-white dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans relative">
+      <div className="w-[420px] bg-gray-100 dark:bg-[#000000] rounded-[19px] p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md font-sans relative">
         {/* Gradient Border */}
         <div
           style={{

@@ -54,7 +54,7 @@ const TextInput = React.memo(({
         required={false}
         placeholder={placeholder}
         className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                    bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+                    bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
                     placeholder-gray-400 dark:placeholder-gray-500 outline-none"
       />
       <ErrorMessage 
@@ -95,7 +95,7 @@ const TextArea = React.memo(({
         required={false}
         placeholder={placeholder}
         className="w-full mt-1 px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                    bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+                    bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
                     placeholder-gray-400 dark:placeholder-gray-500 outline-none resize-none"
       />
       <ErrorMessage 
@@ -290,7 +290,7 @@ const AmbulanceUnitsModal = ({
                     bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70"
       >
         <div
-          className="w-[504px] h-[420px] rounded-[19px] bg-white dark:bg-[#000000] p-6 relative"
+          className="w-[504px] h-[420px] rounded-[19px] bg-gray-100 dark:bg-[#000000] p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {/* Inner gradient border */}
@@ -319,7 +319,7 @@ const AmbulanceUnitsModal = ({
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                          bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                          bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -353,7 +353,7 @@ const AmbulanceUnitsModal = ({
                   name="in_service"
                   checked={form.in_service}
                   onChange={handleChange}
-                  className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                  className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
                 <span className="ml-2 text-sm">
                   {form.in_service ? "Yes" : "No"}
@@ -405,7 +405,7 @@ const AmbulanceUnitsModal = ({
                 onClick={onClose}
                 className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
                             text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                            shadow-[0_2px_12px_0px_#00000040] bg-white dark:bg-transparent"
+                            shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
               >
                 Cancel
               </button>

@@ -746,7 +746,7 @@ const BillingPreview = () => {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -808,7 +808,7 @@ const BillingPreview = () => {
             </div>
             {/* Dropdown Results */}
             {searchQuery.trim() && filteredPatients.length > 0 && (
-              <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+              <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
                 {filteredPatients.map((patient) => (
                   <div
                     key={patient.id}
@@ -829,7 +829,7 @@ const BillingPreview = () => {
             )}
             {/* No results */}
             {searchQuery.trim() && filteredPatients.length === 0 && (
-              <div className="absolute mt-1 w-full p-3 text-center bg-white dark:bg-black rounded-[8px] shadow-lg border border-[#0EFF7B] dark:border-[#3C3C3C] text-gray-500 text-sm z-50">
+              <div className="absolute mt-1 w-full p-3 text-center bg-gray-100 dark:bg-black rounded-[8px] shadow-lg border border-[#0EFF7B] dark:border-[#3C3C3C] text-gray-500 text-sm z-50">
                 No patients found
               </div>
             )}
@@ -885,7 +885,7 @@ const BillingPreview = () => {
                     z-10
                     mt-1
                     w-full
-                    bg-white dark:bg-black
+                    bg-gray-100 dark:bg-black
                     border border-[#0EFF7B] dark:border-[#3C3C3C]
                     rounded-md
                     shadow-lg
@@ -965,7 +965,7 @@ const BillingPreview = () => {
                     z-10
                     mt-1
                     w-full
-                    bg-white dark:bg-black
+                    bg-gray-100 dark:bg-black
                     border border-[#0EFF7B] dark:border-[#3C3C3C]
                     rounded-md
                     shadow-lg
@@ -1151,7 +1151,7 @@ const BillingPreview = () => {
                       z-10
                       mt-1
                       w-full
-                      bg-white dark:bg-black
+                      bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md
                       shadow-lg
@@ -1220,7 +1220,7 @@ const BillingPreview = () => {
                   </Listbox.Button>
                   <Listbox.Options
                     className="
-                      absolute z-10 mt-1 w-full bg-white dark:bg-black
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
                       text-sm font-helvetica top-[100%] left-0
@@ -1283,7 +1283,7 @@ const BillingPreview = () => {
                   </Listbox.Button>
                   <Listbox.Options
                     className="
-                      absolute z-10 mt-1 w-full bg-white dark:bg-black
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
                       border border-[#0EFF7B] dark:border-[#3C3C3C]
                       rounded-md shadow-lg max-h-60 overflow-auto
                       text-sm font-helvetica top-[100%] left-0
@@ -1354,7 +1354,7 @@ const BillingPreview = () => {
                       <span
                         className={`${
                           isInsurance ? "translate-x-6" : "translate-x-1"
-                        } inline-block h-3 w-3 transform rounded-full bg-white transition`}
+                        } inline-block h-3 w-3 transform rounded-full bg-gray-100 transition`}
                       />
                     </Switch>
                   </div>
@@ -1370,7 +1370,7 @@ const BillingPreview = () => {
                       <span
                         className={`${
                           !isInsurance ? "translate-x-6" : "translate-x-1"
-                        } inline-block h-3 w-3 transform rounded-full bg-white transition`}
+                        } inline-block h-3 w-3 transform rounded-full bg-gray-100 transition`}
                       />
                     </Switch>
                   </div>
@@ -1402,7 +1402,7 @@ const BillingPreview = () => {
                         <th className="p-2">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="text-[#08994A] dark:text-gray-300 bg-white dark:bg-black">
+                    <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
                       {insurances.map((ins, index) => (
                         <tr
                           key={index}
@@ -1448,7 +1448,7 @@ const BillingPreview = () => {
                 <th className="p-2">Action</th>
               </tr>
             </thead>
-            <tbody className="text-[#08994A] dark:text-gray-300 bg-white dark:bg-black">
+            <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
               {billingItems.map((item, index) => (
                 <tr
                   key={index}
@@ -1558,73 +1558,73 @@ const BillingPreview = () => {
             </button>
           </div>
 
-          {/* Total and Action Buttons */}
-          <div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
-            <div
-              className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[404.31px] max-w-[744.31px]"
-              style={{
-                height: "103px",
-                backgroundColor: "#0B0B0B",
-              }}
-            >
-              <div className="flex flex-col justify-center flex-1 pl-5 pr-6 py-3 text-sm font-medium text-white gap-2">
-                <div className="flex justify-between w-full">
-                  <span>Subtotal:</span>
-                  <span className="text-[#FFB100] font-semibold">
-                    ${formattedSubtotal}
-                  </span>
-                </div>
-                <div className="flex justify-between w-full">
-                  <span>Tax (18%):</span>
-                  <span className="text-[#FFB100] font-semibold">
-                    ${formattedTax}
-                  </span>
-                </div>
-              </div>
+            {/* Total and Action Buttons */}
+            <div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
               <div
-                className="h-full w-[2px]"
+                className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[404.31px] max-w-[744.31px]"
                 style={{
-                  background:
-                    "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
+                  height: "103px",
+                  backgroundColor: "#0B0B0B",
                 }}
-              ></div>
-              <div className="flex flex-col justify-center px-6 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[120px]">
-                <span className="text-white text-sm font-semibold">Grand</span>
-                <span className="text-[#0EFF7B] text-lg font-bold">
-                  ${formattedGrand}
-                </span>
+              >
+                <div className="flex flex-col justify-center flex-1 pl-5 pr-6 py-3 text-sm font-medium text-white gap-2">
+                  <div className="flex justify-between w-full">
+                    <span>Subtotal:</span>
+                    <span className="text-[#FFB100] font-semibold">
+                      ${formattedSubtotal}
+                    </span>
+                  </div>
+                  <div className="flex justify-between w-full">
+                    <span>Tax (18%):</span>
+                    <span className="text-[#FFB100] font-semibold">
+                      ${formattedTax}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="h-full w-[2px]"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
+                  }}
+                ></div>
+                <div className="flex flex-col justify-center px-6 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[120px]">
+                  <span className="text-white text-sm font-semibold">Grand</span>
+                  <span className="text-[#0EFF7B] text-lg font-bold">
+                    ${formattedGrand}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-nowrap">
+                <button
+                  className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  style={{
+                    width: "236px",
+                    height: "50px",
+                    paddingTop: "4px",
+                    paddingRight: "12px",
+                    paddingBottom: "4px",
+                    paddingLeft: "12px",
+                    gap: "4px",
+                    background:
+                      "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
+                  }}
+                  disabled={generatingBill || 
+                    Object.values(unitPriceErrors).some(error => error) || 
+                    Object.values(quantityErrors).some(error => error)}
+                  onClick={handleGenerateBill}
+                >
+                  {generatingBill ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating PDF...
+                    </div>
+                  ) : (
+                    "Generate"
+                  )}
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-3 flex-nowrap">
-              <button
-                className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-                style={{
-                  width: "236px",
-                  height: "50px",
-                  paddingTop: "4px",
-                  paddingRight: "12px",
-                  paddingBottom: "4px",
-                  paddingLeft: "12px",
-                  gap: "4px",
-                  background:
-                    "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
-                }}
-                disabled={generatingBill || 
-                  Object.values(unitPriceErrors).some(error => error) || 
-                  Object.values(quantityErrors).some(error => error)}
-                onClick={handleGenerateBill}
-              >
-                {generatingBill ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating PDF...
-                  </div>
-                ) : (
-                  "Generate"
-                )}
-              </button>
-            </div>
-          </div>
         </div>
       </div>
       {/* Insurance Modal */}
@@ -1632,7 +1632,7 @@ const BillingPreview = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div
@@ -1661,7 +1661,7 @@ const BillingPreview = () => {
                     setEditingIndex(null);
                     setModalData(emptyModal);
                   }}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1677,7 +1677,7 @@ const BillingPreview = () => {
                       setModalData({ ...modalData, provider: v })
                     }
                   >
-                    <Listbox.Button className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] relative">
+                    <Listbox.Button className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] relative">
                       {modalData.provider || "Select Provider"}
                       <svg
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -1694,7 +1694,7 @@ const BillingPreview = () => {
                         />
                       </svg>
                     </Listbox.Button>
-                    <Listbox.Options className="absolute z-10 mt-1 min-w-[210px] bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm">
+                    <Listbox.Options className="absolute z-10 mt-1 min-w-[210px] bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm">
                       {providers.map((prov) => (
                         <Listbox.Option
                           key={prov}
@@ -1718,7 +1718,7 @@ const BillingPreview = () => {
                       setModalData({ ...modalData, policyNum: e.target.value })
                     }
                     placeholder="enter policy number"
-                    className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                    className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                   />
                 </div>
                 <div>
@@ -1737,7 +1737,7 @@ const BillingPreview = () => {
                       }
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Select date"
-                      className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />
                   </div>
@@ -1756,7 +1756,7 @@ const BillingPreview = () => {
                       }
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Select date"
-                      className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+                      className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />
                   </div>
@@ -1778,7 +1778,7 @@ const BillingPreview = () => {
                       })
                     }
                     className="w-full mt-1 px-3 py-1 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                      bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
+                      bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
                   />
                   {modalData.policyCard && (
                     <p className="text-xs mt-1 text-green-500 dark:text-[#0EFF7B]">
@@ -1795,7 +1795,7 @@ const BillingPreview = () => {
                     setEditingIndex(null);
                     setModalData(emptyModal);
                   }}
-                  className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-800 dark:text-white bg-white dark:bg-transparent"
+                  className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-800 dark:text-white bg-gray-100 dark:bg-transparent"
                 >
                   Cancel
                 </button>

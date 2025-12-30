@@ -384,13 +384,13 @@ const AppointmentList = () => {
       </label>
       <Listbox value={value || ""} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]">
             {value || placeholder}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
             {options.map((option, idx) => {
               let displayValue, optionValue;
 
@@ -427,7 +427,7 @@ const AppointmentList = () => {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -528,10 +528,10 @@ const AppointmentList = () => {
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] text-[13px] font-normal transition 
+              className={`min-w-[104px] h-[31px] rounded-[4px] text-[13px] font-normal transition 
                 ${activeMainTab === tab
                   ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white border-[#0EFF7B]"
-                  : "bg-gray-100 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                  : "bg-gray-200 text-gray-800 border-gray-300 dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
               onClick={() => {
                 setActiveMainTab(tab);
@@ -544,7 +544,7 @@ const AppointmentList = () => {
         </div>
 
         <div className="flex gap-4">
-          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 shadow dark:bg-[#1E1E1E] dark:border-[#3A3A3A]">
+          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-200 shadow dark:bg-[#1E1E1E] dark:border-[#3A3A3A]">
             <Search size={18} className="text-green-600 dark:text-green-400" />
             <input
               type="text"
@@ -557,12 +557,12 @@ const AppointmentList = () => {
 
           <button
             onClick={() => setShowFilterPopup(true)}
-            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900"
+            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900"
           >
             <Filter size={18} className="text-green-600 dark:text-green-400" />
             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
               Filter
             </span>
@@ -595,7 +595,7 @@ const AppointmentList = () => {
       {/* Table */}
       <div className="overflow-x-auto relative z-10">
         <table className="w-full text-left text-sm">
-          <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+          <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input
@@ -607,7 +607,7 @@ const AppointmentList = () => {
                     )
                   }
                   onChange={handleSelectAll}
-                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                 />
               </th>
               <th>Patient Name</th>
@@ -631,7 +631,7 @@ const AppointmentList = () => {
                   <td className="px-2">
                     <input
                       type="checkbox"
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       checked={selectedAppointments.includes(appt.id)}
                       onChange={() => handleCheckboxChange(appt.id)}
                     />
@@ -658,7 +658,21 @@ const AppointmentList = () => {
                   </td>
                   <td className="text-black dark:text-white">{appt.doctor}</td>
                   <td className="text-black dark:text-white">{appt.room}</td>
-                  <td className="text-black dark:text-white">{appt.type}</td>
+                  <td>
+  <span
+    className={`px-2 py-1 rounded-full text-xs ${
+      appt.type === "Checkup" || appt.type === "checkup"
+        ? "bg-purple-800 text-purple-200 dark:bg-purple-900 dark:text-purple-200"
+        : appt.type === "Follow-up" || appt.type === "followup"
+        ? "bg-green-800 text-green-200 dark:bg-green-900 dark:text-green-200"
+        : appt.type === "Emergency" || appt.type === "emergency"
+        ? "bg-red-800 text-red-200 dark:bg-red-900 dark:text-red-200"
+        : "bg-gray-800 text-gray-200 dark:bg-gray-800 dark:text-gray-300"
+    }`}
+  >
+    {appt.type}
+  </span>
+</td>
 
                   <td>
                     <span
@@ -696,7 +710,7 @@ const AppointmentList = () => {
                           }}
                           className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
                         />
-                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                           Edit
                         </span>
                       </div>
@@ -710,7 +724,7 @@ const AppointmentList = () => {
                           }}
                           className="cursor-pointer text-red-500 hover:scale-110"
                         />
-                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
                           Delete
                         </span>
                       </div>
@@ -733,7 +747,7 @@ const AppointmentList = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -771,7 +785,7 @@ const AppointmentList = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               {/* Gradient Inner Border */}
@@ -799,7 +813,7 @@ const AppointmentList = () => {
                 </h3>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -864,13 +878,12 @@ const AppointmentList = () => {
   name="date"
   value={filtersData.date}
   onChange={handleFilterChange}
-  className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B]
-             bg-white text-black outline-none cursor-pointer
+  className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer
              [appearance:textfield]
              [&::-webkit-calendar-picker-indicator]:opacity-0
              [&::-webkit-calendar-picker-indicator]:hidden"
 />
-
+ 
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
                   </div>
                 </div>
@@ -880,7 +893,7 @@ const AppointmentList = () => {
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={handleClearFilters}
-                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600 text-gray-600 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] bg-white dark:bg-transparent"
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600 text-gray-600 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
                 >
                   Clear
                 </button>

@@ -154,7 +154,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-            bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
             focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
           >
             <span className="block truncate">{value || "Select"}</span>
@@ -163,7 +163,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
             </span>
           </Listbox.Button>
           <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-[#1a1a1a]
+            className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a]
             shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
             style={{
               scrollbarWidth: "none",
@@ -202,7 +202,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
-        <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative">
+        <div className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
@@ -212,7 +212,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               onClick={onClose}
               disabled={loading}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-              bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center
+              bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center
               hover:opacity-80 transition-opacity disabled:opacity-50"
             >
               <X size={16} className="text-black dark:text-white" />
@@ -259,7 +259,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   setFormData({ ...formData, donor_name: e.target.value })
                 }
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 placeholder="Enter donor name"
               />
@@ -285,7 +285,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   }
                 }}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 placeholder="Enter phone number"
               />
@@ -307,7 +307,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                 placeholder="Enter email address"
               />
@@ -347,7 +347,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   dateFormat="MM/dd/yyyy"
                   placeholderText="Select date"
                   className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                              focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
@@ -390,7 +390,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               onClick={onClose}
               disabled={loading}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-white font-medium
+              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium
               hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50"
             >
               Cancel

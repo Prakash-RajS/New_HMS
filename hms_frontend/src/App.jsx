@@ -62,7 +62,7 @@ const PermissionGate = ({ moduleKey, children }) => {
 
   if (!hasPermission(moduleKey)) {
     return (
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[600px]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[600px]">
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-6 text-red-500">
             Access Denied
@@ -170,7 +170,7 @@ function AppContent({ contentRef }) {
   return (
     <div
       className={`flex min-h-screen transition-colors duration-300 
-        ${theme === "dark" ? "bg-black text-white" : "bg-white text-black"}`}
+        ${theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"}`}
     >
       {isAuthenticated && !isLoginPage && (
         <>

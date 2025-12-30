@@ -69,7 +69,7 @@ const AccessManagement = () => {
 
   return (
     <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative"
+      className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -149,7 +149,7 @@ const AccessManagement = () => {
             <Listbox.Button className="ml-2 p-2 bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md focus:outline-none">
               {selectedEntries}
             </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-16 bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg">
+            <Listbox.Options className="absolute mt-1 w-16 bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg">
               {entriesOptions.map((option) => (
                 <Listbox.Option
                   key={option}
@@ -183,7 +183,7 @@ const AccessManagement = () => {
             {paginatedUsers.map((user) => (
               <tr
                 key={user.sno}
-                className="bg-white dark:bg-transparent border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
+                className="bg-gray-100 dark:bg-transparent border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] transition"
               >
                 <td className="px-4 py-3 text-sm text-[#0EFF7B]">{user.sno}.</td>
                 <td className="px-4 py-3 text-sm">{user.name}</td>
@@ -212,7 +212,7 @@ const AccessManagement = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-[#000000] rounded gap-x-4 relative z-10">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-[#000000] rounded gap-x-4 relative z-10">
         <div className="text-sm text-gray-600 dark:text-gray-400">
           Page{" "}
           <span className="text-[#08994A] dark:text-green-500 font-semibold">
@@ -257,7 +257,7 @@ const AccessManagement = () => {
       dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4">
@@ -266,7 +266,7 @@ const AccessManagement = () => {
                 </h2>
                 <button
                   onClick={() => setShowEditPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -280,7 +280,7 @@ const AccessManagement = () => {
                     onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
                     placeholder="Enter name"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
@@ -290,7 +290,7 @@ const AccessManagement = () => {
                     onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
                     placeholder="Enter email"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
@@ -300,7 +300,7 @@ const AccessManagement = () => {
                     onChange={(e) => setEditedUser({ ...editedUser, doj: e.target.value })}
                     placeholder="Enter DOJ"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
@@ -310,7 +310,7 @@ const AccessManagement = () => {
                     onChange={(e) => setEditedUser({ ...editedUser, role: e.target.value })}
                     placeholder="Enter role"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
@@ -320,7 +320,7 @@ const AccessManagement = () => {
                     onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
                     placeholder="Enter phone"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
               </div>
@@ -329,7 +329,7 @@ const AccessManagement = () => {
                 <button
                   onClick={() => setShowEditPopup(false)}
                   className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-            bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+            bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                 >
                   Cancel
                 </button>

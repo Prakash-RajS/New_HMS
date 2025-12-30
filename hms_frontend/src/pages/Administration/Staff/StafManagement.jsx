@@ -215,7 +215,7 @@ const StaffManagement = () => {
   };
 
   const FilterPopup = () => (
-    <div className="absolute right-0 top-8 bg-white dark:bg-[#1E1E1E] p-4 rounded-[8px] shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+    <div className="absolute right-0 top-8 bg-gray-100 dark:bg-[#1E1E1E] p-4 rounded-[8px] shadow-lg z-10 border border-[#0EFF7B] dark:border-[#3C3C3C]">
       <h3 className="text-sm mb-2 text-black dark:text-white">
         Filter by Status
       </h3>
@@ -224,7 +224,7 @@ const StaffManagement = () => {
           <Listbox.Button className="w-full bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#3C3C3C] rounded px-2 py-1 mb-2 text-sm text-left">
             {filterStatus}
           </Listbox.Button>
-          <Listbox.Options className="absolute w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded shadow-lg z-50 text-sm">
+          <Listbox.Options className="absolute w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded shadow-lg z-50 text-sm">
             {["All", "Present", "Absent"].map((status, idx) => (
               <Listbox.Option
                 key={idx}
@@ -320,7 +320,7 @@ const StaffManagement = () => {
                   />
                   <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Filter
               </span>
@@ -333,11 +333,11 @@ const StaffManagement = () => {
             <div className="overflow-hidden">
               <table className="w-full h-auto border-collapse">
                 <thead>
-                  <tr className="bg-[#F5F6F5] dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-[#0EFF7B] ">
+                  <tr className="bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-[#0EFF7B] ">
                     <th className="px-4 py-3 font-medium">
                       <input
                         type="checkbox"
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white  dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-gray-100  dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                         checked={
                           selectAll ||
                           selectedRows.length === displayedData.length
@@ -361,7 +361,7 @@ const StaffManagement = () => {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="text-sm bg-white dark:bg-black">
+                <tbody className="text-sm bg-gray-100 dark:bg-black">
                   {displayedData.length > 0 ? (
                     displayedData.map((row) => (
                       <tr
@@ -371,7 +371,7 @@ const StaffManagement = () => {
                         <td className="px-4 py-3 h-[52px]">
                           <input
                             type="checkbox"
-                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
+                            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-gray-700 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white checked:before:text-sm"
                             checked={selectedRows.includes(row.id)}
                             onChange={() => handleRowSelect(row.id)}
                           />
@@ -409,7 +409,7 @@ const StaffManagement = () => {
                       </tr>
                     ))
                   ) : (
-                    <tr className="h-[52px] bg-white dark:bg-black">
+                    <tr className="h-[52px] bg-gray-100 dark:bg-black">
                       <td
                         colSpan="9"
                         className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
@@ -466,8 +466,8 @@ const StaffManagement = () => {
   };
   return (
     <div
-      className="mt-[80px]  mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]"
+      className="mt-[80px]  mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col  
+     bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -530,7 +530,7 @@ const StaffManagement = () => {
           <div className="flex text-[16px] items-center gap-2">
             <span>Year</span>
             <div className="relative w-[90px] h-[32px]">
-              <select className="appearance-none w-full h-full bg-white dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B] rounded-[8px] px-3 pr-8 text-sm outline-none">
+              <select className="appearance-none w-full h-full bg-gray-100 dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B] rounded-[8px] px-3 pr-8 text-sm outline-none">
                 <option>2025</option>
                 <option>2026</option>
               </select>
@@ -557,7 +557,7 @@ const StaffManagement = () => {
           <div className="flex text-[16px] items-center gap-2">
             <span>Month</span>
             <div className="relative w-[90px] h-[32px]">
-              <select className="appearance-none w-full h-full bg-white dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B] rounded-[8px] px-3 pr-8 text-sm outline-none">
+              <select className="appearance-none w-full h-full bg-gray-100 dark:bg-black text-[#08994A] dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B] rounded-[8px] px-3 pr-8 text-sm outline-none">
                 <option>Aug</option>
                 <option>Sep</option>
                 <option>Oct</option>
@@ -642,7 +642,7 @@ const StaffManagement = () => {
                 onClick={() => setActiveDept(card.dept)}
                 className={`p-4 rounded-[8px] mt-8 text-center transition min-w-[181px] h-[149px] cursor-pointer ${
                   isActive
-                    ? "bg-white  dark:bg-[#025126] border border-[#0EFF7B] dark:border-[#0EFF7B]"
+                    ? "bg-gray-100  dark:bg-[#025126] border border-[#0EFF7B] dark:border-[#0EFF7B]"
                     : "bg-[#F5F6F5] dark:bg-[#0EFF7B0D] border border-[#0EFF7B] dark:border-[#0EFF7B] hover:bg-gray-200 dark:hover:bg-gray-800"
                 }`}
               >
@@ -691,7 +691,7 @@ const StaffManagement = () => {
                 <span className="text-red-500 font-medium">2</span>
               </p>
               <div className="relative inline-block">
-                <select className="appearance-none bg-white dark:bg-black text-[12px] text-[#08994A] dark:text-gray-300 w-[106px] h-[32px] pl-2 pr-6 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] outline-none cursor-pointer">
+                <select className="appearance-none bg-gray-100 dark:bg-black text-[12px] text-[#08994A] dark:text-gray-300 w-[106px] h-[32px] pl-2 pr-6 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] outline-none cursor-pointer">
                   <option>Today</option>
                   <option>Tomorrow</option>
                 </select>

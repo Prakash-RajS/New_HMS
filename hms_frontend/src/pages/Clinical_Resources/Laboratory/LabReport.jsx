@@ -31,7 +31,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
           className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-          bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
+          bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
           focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
           {value || "Select"}
@@ -40,7 +40,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-white dark:bg-black 
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black 
           shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scroll"
           style={{
             scrollbarWidth: "none",
@@ -411,8 +411,8 @@ const LabReport = () => {
 
   return (
     <div
-      className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col  
-     bg-white dark:bg-transparent overflow-hidden relative"
+      className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col  
+     bg-gray-100 dark:bg-transparent overflow-hidden relative"
     >
       {/* Background gradients */}
       <div
@@ -566,7 +566,7 @@ const LabReport = () => {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {years.map((y) => (
@@ -592,7 +592,7 @@ const LabReport = () => {
               <select
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-white dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
+                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
                 {months.map((m) => (
@@ -647,7 +647,7 @@ const LabReport = () => {
                 <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
               </Listbox.Button>
 
-              <Listbox.Options className="absolute mt-1 min-w-[180px] rounded-[8px] bg-white dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
+              <Listbox.Options className="absolute mt-1 min-w-[180px] rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
                 <Listbox.Option
                   value="All"
                   className={({ active, selected }) =>
@@ -713,7 +713,7 @@ const LabReport = () => {
               />
               <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Filter
               </span>
@@ -723,7 +723,7 @@ const LabReport = () => {
 
         {/* ✅ Table */}
         {/* ✅ Alternative Fixed Table */}
-        <div className="overflow-x-auto bg-white dark:bg-black rounded-xl shadow-lg">
+        <div className="overflow-x-auto bg-gray-100 dark:bg-black rounded-xl shadow-lg">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-200 dark:bg-[#091810] h-[52px]">
               <tr className="border-b border-gray-300 dark:border-[#000000] text-[#0EFF7B] dark:text-[#0EFF7B]">
@@ -735,7 +735,7 @@ const LabReport = () => {
                       displayedData.length > 0
                     }
                     onChange={toggleSelectAll}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th className="py-3 px-4 text-left">Order ID</th>
@@ -767,7 +767,7 @@ const LabReport = () => {
                         type="checkbox"
                         checked={selectedOrders.includes(order.id)}
                         onChange={() => toggleSelectOrder(order.id)}
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       />
                     </td>
 
@@ -823,7 +823,7 @@ const LabReport = () => {
       />
       <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Edit
               </span>
@@ -844,7 +844,7 @@ const LabReport = () => {
       />
       <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
                     transition-all duration-150">
                     Delete
               </span>
@@ -862,7 +862,7 @@ const LabReport = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-transparent rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent rounded gap-x-4 relative z-10 flex-wrap gap-4 md:flex-nowrap">
         <div className="text-sm text-gray-600 dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -907,7 +907,7 @@ const LabReport = () => {
       dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] max-w-[90vw] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] max-w-[90vw] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               {/* Header */}
@@ -920,7 +920,7 @@ const LabReport = () => {
                 </h2>
                 <button
                   onClick={() => setShowFilterPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -953,7 +953,7 @@ const LabReport = () => {
                         setTempFilters({ ...tempFilters, date: e.target.value })
                       }
                       onClick={(e) => e.target.showPicker()}
-                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
+                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
                       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                     />
                     <Calendar
@@ -985,7 +985,7 @@ const LabReport = () => {
                       date: "",
                     });
                   }}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Clear
@@ -1021,7 +1021,7 @@ const LabReport = () => {
       dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
           >
             <div
-              className="w-[505px] max-w-[90vw] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[505px] max-w-[90vw] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               {/* Header */}
@@ -1034,7 +1034,7 @@ const LabReport = () => {
                 </h2>
                 <button
                   onClick={() => setShowEditPopup(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1058,7 +1058,7 @@ const LabReport = () => {
                     }
                     placeholder="Enter patient name"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                   {errors.patientName && (
@@ -1084,7 +1084,7 @@ const LabReport = () => {
                     }
                     placeholder="Enter patient ID"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                   {errors.patientId && (
@@ -1122,7 +1122,7 @@ const LabReport = () => {
                     }
                     placeholder="Enter test type"
                     className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                   {errors.testType && (
@@ -1148,7 +1148,7 @@ const LabReport = () => {
                 <button
                   onClick={() => setShowEditPopup(false)}
                   className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Cancel

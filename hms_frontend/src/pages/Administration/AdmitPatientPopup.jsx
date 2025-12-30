@@ -83,7 +83,7 @@ const TypeAheadDropdown = ({
             placeholder={placeholder}
             disabled={disabled}
             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                       bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
+                       bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
                        outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -93,7 +93,7 @@ const TypeAheadDropdown = ({
 
         {/* Dropdown Suggestions */}
         {isOpen && filteredOptions.length > 0 && (
-          <div className="absolute z-50 mt-1 w-full bg-white dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-50 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto">
             <div className="max-h-48 overflow-y-auto">
               {filteredOptions.map((option, idx) => (
                 <div
@@ -386,7 +386,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       <div
-        className="w-[504px] h-auto rounded-[20px] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
+        className="w-[504px] h-auto rounded-[20px] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 relative"
         style={{
           boxShadow: "0px 0px 4px 0px rgba(255,255,255,0.12)",
           backdropFilter: "blur(8px)",
@@ -515,7 +515,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
                 dateFormat="MM/dd/yyyy"
                 placeholderText="MM/DD/YYYY"
                 className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                           bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                           bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                            focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
                 wrapperClassName="w-full"
                 popperClassName="z-50"
@@ -549,7 +549,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           <button
             onClick={onClose}
             className="w-[104px] h-[33px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                       bg-white dark:bg-[#1E1E1E] text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
+                       bg-gray-100 dark:bg-[#1E1E1E] text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-100 dark:hover:bg-[#2A2A2A]"
           >
             Cancel
           </button>

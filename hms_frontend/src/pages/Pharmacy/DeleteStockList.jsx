@@ -7,7 +7,7 @@
 
 //   return (
 //     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-//       <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-white dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+//       <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-[#000000E5] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
 //         {/* Header */}
 //         <div className="flex justify-between items-center pb-3 mb-4">
 //           <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
@@ -70,7 +70,7 @@ const DeleteStockList = ({ onClose, onConfirm, data, itemsToDelete }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[400px] bg-white dark:bg-[#000000E5] rounded-[19px] p-6 relative">
+        <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-6 relative">
           <div
             style={{
               position: "absolute",

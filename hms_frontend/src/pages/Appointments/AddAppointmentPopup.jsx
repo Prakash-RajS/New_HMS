@@ -288,30 +288,35 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   }, []);
 
   // ── Load doctors when department changes ───────────────────────────
-  useEffect(() => {
-    if (!formData.department_id) {
-      setDoctors([]);
-      return;
-    }
-    let mounted = true;
-    setLoadingDoc(true);
-    fetch(`${API_BASE}/appointments/staff?department_id=${formData.department_id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load doctors");
-        return r.json();
-      })
-      .then((data) => {
-        if (mounted) setDoctors(Array.isArray(data) ? data : []);
-      })
-      .catch((e) => {
-        console.error(e);
-        errorToast("Failed to load doctors");
-      })
-      .finally(() => {
-        if (mounted) setLoadingDoc(false);
-      });
-    return () => (mounted = false);
-  }, [formData.department_id]);
+// ── Load doctors when department changes ───────────────────────────
+useEffect(() => {
+  if (!formData.department_id) {
+    setDoctors([]);
+    return;
+  }
+  let mounted = true;
+  setLoadingDoc(true);
+  fetch(`${API_BASE}/appointments/staff?department_id=${formData.department_id}`)
+    .then((r) => {
+      if (!r.ok) throw new Error("Failed to load doctors");
+      return r.json();
+    })
+    .then((data) => {
+      if (mounted) {
+        // Backend now filters by designation, so just set the data
+        console.log("Doctors from backend:", data);
+        setDoctors(Array.isArray(data) ? data : []);
+      }
+    })
+    .catch((e) => {
+      console.error(e);
+      errorToast("Failed to load doctors");
+    })
+    .finally(() => {
+      if (mounted) setLoadingDoc(false);
+    });
+  return () => (mounted = false);
+}, [formData.department_id]);
 
   // ── Save handler with validation ───────────────────────────────────
   const handleSave = async () => {
@@ -415,7 +420,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                    overflow-visible my-4"
       >
         <div
-          className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000]
+          className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000]
                      text-black dark:text-white p-6 relative overflow-visible"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
@@ -444,7 +449,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                         bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                         bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -464,7 +469,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 onFocus={() => setFocusedField("patient_name")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="Enter name"
-                className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B]
                            ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
@@ -495,7 +500,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   <Listbox.Button
                     onFocus={() => setFocusedField("department")}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] leading-[16px] flex items-center justify-between group
                                ${focusedField === "department" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -515,7 +520,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                     </span>
                   </Listbox.Button>
                   <Listbox.Options
-                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
                                shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
@@ -559,7 +564,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   <Listbox.Button
                     onFocus={() => setFocusedField("doctor")}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] leading-[16px] flex items-center justify-between group
                                ${focusedField === "doctor" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -579,31 +584,31 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                     </span>
                   </Listbox.Button>
                   <Listbox.Options
-                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
                                shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
                     {doctors.map((opt) => {
-                      const label = opt.full_name || String(opt.id);
-                      return (
-                        <Listbox.Option
-                          key={opt.id}
-                          value={opt.id}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                          }
-                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                        >
-                          {label}
-                        </Listbox.Option>
-                      );
-                    })}
+  const label = opt.full_name ? `${opt.full_name} - Doctor` : String(opt.id);
+  return (
+    <Listbox.Option
+      key={opt.id}
+      value={opt.id}
+      className={({ active, selected }) =>
+        `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+         ${
+           active
+             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+             : "text-black dark:text-white"
+         }
+         ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+      }
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      {label}
+    </Listbox.Option>
+  );
+})}
                   </Listbox.Options>
                 </div>
               </Listbox>
@@ -623,7 +628,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   <Listbox.Button
                     onFocus={() => setFocusedField("room")}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] leading-[16px] flex items-center justify-between group
                                ${focusedField === "room" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -643,7 +648,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                     </span>
                   </Listbox.Button>
                   <Listbox.Options
-                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
                                shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
@@ -690,7 +695,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 onFocus={() => setFocusedField("phone")}
                 onBlur={() => setFocusedField(null)}
                 placeholder="Enter phone no (10 digits)"
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B]
                            ${focusedField === "phone" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
@@ -721,7 +726,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   <Listbox.Button
                     onFocus={() => setFocusedField("appointment")}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] flex items-center justify-between group
                                ${focusedField === "appointment" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   >
@@ -738,7 +743,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                       <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
                     {["checkup", "followup", "emergency"].map((v) => (
                       <Listbox.Option
                         key={v}
@@ -770,7 +775,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   <Listbox.Button
                     onFocus={() => setFocusedField("status")}
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-white dark:bg-transparent 
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] flex items-center justify-between group
                                ${focusedField === "status" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   >
@@ -787,7 +792,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                       <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
                     {["new", "normal", "severe"].map((v) => (
                       <Listbox.Option
                         key={v}
@@ -824,7 +829,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       onBlur={() => setFocusedField(null)}
       min={new Date().toISOString().split("T")[0]} // ✅ upcoming dates only
       className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
-                  bg-white dark:bg-transparent outline-none
+                  bg-gray-100 dark:bg-transparent outline-none
                   text-black dark:text-[#0EFF7B] cursor-pointer
                   appearance-none
                   [&::-webkit-calendar-picker-indicator]:opacity-0
@@ -868,7 +873,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                 onChange={(e) => handleInputChange("appointment_time", e.target.value)}
                 onFocus={() => setFocusedField("appointment_time")}
                 onBlur={() => setFocusedField(null)}
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-white dark:bg-transparent 
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            outline-none text-black dark:text-[#0EFF7B]
                            ${focusedField === "appointment_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
@@ -893,7 +898,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
               onClick={onClose}
               className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
                          text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                         shadow-[0_2px_12px_0px_#00000040] bg-white dark:bg-transparent"
+                         shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
             >
               Cancel
             </button>

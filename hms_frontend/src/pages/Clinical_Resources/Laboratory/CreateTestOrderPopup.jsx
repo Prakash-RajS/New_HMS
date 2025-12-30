@@ -192,7 +192,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
               className={`w-full h-[32px] px-3 pr-8 rounded-[8px] border ${
                 loading
                   ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50 dark:border-[#3A3A3A] dark:bg-gray-800"
-                  : "border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                  : "border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
               } text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
               focus:outline-none`}
             >
@@ -210,7 +210,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
             </Listbox.Button>
             {!loading && (
               <Listbox.Options
-                className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-white dark:bg-black
+                className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black
                 shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
                 style={{
                   scrollbarWidth: "none",
@@ -261,7 +261,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
         dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
       >
         <div
-          className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 relative"
+          className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
           {/* Header */}
@@ -274,7 +274,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
             </h2>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -346,7 +346,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
                     className={`w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border ${
                       patientsLoading
                         ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50 dark:border-[#3A3A3A] dark:bg-gray-800"
-                        : "border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                        : "border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
                     } text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none`}
                   />
                   {errors.testType && (
@@ -365,7 +365,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
                   className={`w-[144px] h-[32px] rounded-[8px] border ${
                     patientsLoading
                       ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50 dark:border-[#3A3A3A] dark:bg-gray-800 text-gray-500"
-                      : "border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white"
+                      : "border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white"
                   } font-medium text-[14px] leading-[16px]`}
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >

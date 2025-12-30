@@ -171,7 +171,7 @@ const EditDispatchModal = ({
         }
       }}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
             {value
               ? isObject
                 ? options.find((o) => String(o.id) === String(value))
@@ -180,7 +180,7 @@ const EditDispatchModal = ({
               : placeholder}
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+          <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
             {options.map((opt) => {
               const label = isObject ? opt.unit_number || opt.id : opt;
               const val = isObject ? opt.id : opt;
@@ -217,14 +217,14 @@ const EditDispatchModal = ({
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow bg-gradient-to-r from-green-400/70 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[504px] h-auto rounded-[19px] bg-white dark:bg-black text-black dark:text-white p-6 relative">
+        <div className="w-[504px] h-auto rounded-[19px] bg-gray-100 dark:bg-black text-black dark:text-white p-6 relative">
           <div className="flex justify-between items-center pb-2 mb-3">
             <h3 className="font-medium text-[16px]">
               {isEdit ? "Edit Dispatch" : "Add Dispatch"}
             </h3>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
             >
               <X size={16} />
             </button>
@@ -255,7 +255,7 @@ const EditDispatchModal = ({
                 value={form.dispatcher}
                 onChange={handleChange}
                 placeholder="Enter name"
-                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]"
               />
               {/* Show real-time validation errors while typing */}
               {!isEdit && errors.dispatcher && (
@@ -272,11 +272,11 @@ const EditDispatchModal = ({
                 onChange={(v) => setForm((p) => ({ ...p, call_type: v }))}
               >
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
                     {form.call_type}
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                     {["Emergency", "Non-Emergency", "Transfer"].map((opt) => (
                       <Listbox.Option
                         key={opt}
@@ -306,11 +306,11 @@ const EditDispatchModal = ({
                 onChange={(v) => setForm((p) => ({ ...p, status: v }))}
               >
                 <div className="relative mt-1 w-[228px]">
-                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
+                  <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
                     {form.status}
                     <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                  <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
                     {["Standby", "En Route", "Completed", "Cancelled"].map((opt) => (
                       <Listbox.Option
                         key={opt}
@@ -340,7 +340,7 @@ const EditDispatchModal = ({
                 value={form.location}
                 onChange={handleChange}
                 placeholder="Enter location"
-                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]"
+                className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]"
               />
               {/* Show real-time validation errors while typing */}
               {!isEdit && errors.location && (
@@ -363,7 +363,7 @@ const EditDispatchModal = ({
                   name="timestamp"
                   value={form.timestamp}
                   onChange={handleChange}
-                  className="w-full h-[33px] pr-7 pl-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer"
+                  className="w-full h-[33px] pr-7 pl-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer"
                 />
                 <CalendarClock
                   onClick={openTimestampPicker}
@@ -379,7 +379,7 @@ const EditDispatchModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-white dark:bg-transparent"
+                className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-gray-100 dark:bg-transparent"
               >
                 Cancel
               </button>

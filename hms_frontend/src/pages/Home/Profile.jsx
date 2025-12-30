@@ -632,7 +632,7 @@ const Profile = () => {
 
   return (
     <>
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         {/* Gradient & Glow Effects */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -790,7 +790,7 @@ const Profile = () => {
         {/* Personal Info */}
         <div className="mt-10">
           <h2 className="text-lg font-medium mb-4">Personal Information</h2>
-          <div className="relative grid grid-cols-2 gap-4 p-6 rounded-xl bg-white dark:bg-black">
+          <div className="relative grid grid-cols-2 gap-4 p-6 rounded-xl bg-gray-100 dark:bg-black">
             <div
               className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
               style={{
@@ -894,8 +894,8 @@ const Profile = () => {
                     readOnly={!isEditing || readOnly}
                     className={`w-full ${icon ? "pl-9" : "pl-2"} p-2 rounded-lg ${
                       isEditing && !readOnly
-                        ? "bg-white dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B]"
-                        : "bg-white dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
+                        ? "bg-gray-100 dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B]"
+                        : "bg-gray-100 dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
                     }`}
                     placeholder={field === "phone" && isEditing ? "+country code phone number" : ""}
                   />
@@ -932,7 +932,7 @@ const Profile = () => {
       {showPasswordModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px]">
-            <div className="w-[400px] bg-white dark:bg-black rounded-[19px] p-6 relative">
+            <div className="w-[400px] bg-gray-100 dark:bg-black rounded-[19px] p-6 relative">
               <div
                 style={{
                   position: "absolute",
@@ -980,7 +980,7 @@ const Profile = () => {
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
                       placeholder="Enter new password"
                     />
                     <button
@@ -998,7 +998,7 @@ const Profile = () => {
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-white dark:bg-transparent"
+                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
                       placeholder="Confirm password"
                     />
                     <button

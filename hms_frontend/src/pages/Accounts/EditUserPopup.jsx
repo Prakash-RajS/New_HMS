@@ -26,7 +26,7 @@ function PasswordInput({
             error
               ? "border-red-500 dark:border-red-500"
               : "border-gray-300 dark:border-[#3A3A3A]"
-          } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none placeholder-gray-400 dark:placeholder-gray-500`}
+          } bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none placeholder-gray-400 dark:placeholder-gray-500`}
         />
         <button
           type="button"
@@ -135,14 +135,14 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
               error
                 ? "border-red-500 dark:border-red-500"
                 : "border-gray-300 dark:border-[#3A3A3A]"
-            } bg-white dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
+            } bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]`}
           >
             {value}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full max-h-[180px] overflow-auto rounded-[8px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3C]">
+          <Listbox.Options className="absolute mt-1 w-full max-h-[180px] overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3C]">
             {options.map((option, idx) => (
               <Listbox.Option
                 key={idx}
@@ -168,7 +168,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-        <div className="w-[505px] h-auto rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-5 relative">
+        <div className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-5 relative">
           <div className="flex justify-between items-center pb-2 mb-3">
             <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
               Edit User
@@ -176,7 +176,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center hover:bg-gray-100 dark:hover:bg-[#0EFF7B33] transition"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -209,7 +209,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
                     errors.username
                       ? "border-red-500 dark:border-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A]"
-                  } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none`}
+                  } bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none`}
                   placeholder="Enter username"
                 />
                 {errors.username && (
@@ -289,7 +289,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
             <button
               type="button"
               onClick={onClose}
-              className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition"
+              className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition"
             >
               Cancel
             </button>

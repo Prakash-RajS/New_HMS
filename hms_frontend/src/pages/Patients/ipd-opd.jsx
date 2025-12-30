@@ -225,7 +225,7 @@
 //       <Listbox value={value} onChange={onChange}>
 //         <div className="relative mt-1 w-[228px]">
 //           <Listbox.Button
-//             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+//             className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
 //             style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
 //           >
 //             {value || "Select"}
@@ -233,7 +233,7 @@
 //               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
 //             </span>
 //           </Listbox.Button>
-//           <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
+//           <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
 //             {options.map((o) => (
 //               <Listbox.Option
 //                 key={o}
@@ -266,7 +266,7 @@
 //   };
 
 //   return (
-//     <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative">
+//     <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
 //       {/* Gradient Border */}
 //       <div
 //         style={{
@@ -287,7 +287,7 @@
 
 //       {/* Initial Component Loading Overlay */}
 //       {initialLoading && (
-//         <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 z-40 rounded-xl">
+//         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100/80 dark:bg-black/80 z-40 rounded-xl">
 //           {/* Animated hospital logo */}
 //           <div className="relative mb-8">
 //             <div className="w-32 h-32 rounded-full border-4 border-[#0EFF7B] animate-ping opacity-20"></div>
@@ -397,7 +397,7 @@
 //             <span
 //               className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
 //                px-3 py-1 text-xs rounded-md shadow-md
-//                bg-white dark:bg-black text-black dark:text-white
+//                bg-gray-100 dark:bg-black text-black dark:text-white
 //                opacity-0 group-hover:opacity-100
 //                transition-all duration-150"
 //             >
@@ -446,7 +446,7 @@
 //                     type="checkbox"
 //                     checked={selected.length > 0 && selected.length === current.length}
 //                     onChange={selectAll}
-//                     className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+//                     className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
 //                   />
 //                 </th>
 //                 <th>Patient Name</th>
@@ -472,7 +472,7 @@
 //                       <td className="px-2">
 //                         <input
 //                           type="checkbox"
-//                           className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+//                           className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
 //                           checked={selected.includes(gIdx)}
 //                           onChange={() => toggle(i)}
 //                         />
@@ -524,7 +524,7 @@
 //                             <span
 //                               className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
 //           px-3 py-1 text-xs rounded-md shadow-md
-//           bg-white dark:bg-black text-black dark:text-white
+//           bg-gray-100 dark:bg-black text-black dark:text-white
 //           opacity-0 group-hover:opacity-100
 //           transition-all duration-150 z-50"
 //                             >
@@ -545,7 +545,7 @@
 //                             <span
 //                               className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
 //           px-3 py-1 text-xs rounded-md shadow-md
-//           bg-white dark:bg-black text-black dark:text-white
+//           bg-gray-100 dark:bg-black text-black dark:text-white
 //           opacity-0 group-hover:opacity-100
 //           transition-all duration-150 z-50"
 //                             >
@@ -575,7 +575,7 @@
 //       )}
 
 //       {/* Pagination */}
-//       <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+//       <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
 //         <div className="text-sm text-black dark:text-white">
 //           Page{" "}
 //           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -612,7 +612,7 @@
 //         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
 //           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
 //             <div
-//               className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+//               className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
 //               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
 //             >
 //               <div
@@ -638,7 +638,7 @@
 //                 </h3>
 //                 <button
 //                   onClick={() => setShowFilter(false)}
-//                   className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+//                   className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
 //                 >
 //                   <X size={16} className="text-black dark:text-white" />
 //                 </button>
@@ -654,7 +654,7 @@
 //                     value={filters.patientName}
 //                     onChange={onFilterChange}
 //                     placeholder="enter patient name"
-//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
 //                   />
 //                 </div>
 //                 <div>
@@ -666,7 +666,7 @@
 //                     value={filters.patientId}
 //                     onChange={onFilterChange}
 //                     placeholder="enter patient ID"
-//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+//                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
 //                   />
 //                 </div>
 //                 <Dropdown
@@ -703,7 +703,7 @@
 //                       name="date"
 //                       value={filters.date}
 //                       onChange={onFilterChange}
-//                       className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
+//                       className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
 //                       onClick={(e) => e.target.showPicker()}  // 🔥 opens the date picker on any click
 //                     />
 
@@ -718,7 +718,7 @@
 //               <div className="flex justify-center gap-2 mt-8">
 //                 <button
 //                   onClick={clearFilters}
-//                   className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent"
+//                   className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
 //                 >
 //                   Clear
 //                 </button>
@@ -1183,7 +1183,7 @@ const AppointmentListIPD = () => {
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] flex items-center justify-between">
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] flex items-center justify-between">
             <span>
               {loading
                 ? "Loading..."
@@ -1197,7 +1197,7 @@ const AppointmentListIPD = () => {
             </span>
             <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2 pointer-events-none" />
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-white dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
             {loading ? (
               <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
             ) : options.length === 0 ? (
@@ -1243,7 +1243,7 @@ const AppointmentListIPD = () => {
   const endItem = Math.min(page * perPage, total);
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -1271,7 +1271,7 @@ const AppointmentListIPD = () => {
 
       {/* Initial Component Loading Overlay */}
       {initialLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 z-40 rounded-xl">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100/80 dark:bg-black/80 z-40 rounded-xl">
           <div className="flex justify-center items-center h-64">
             <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -1330,10 +1330,10 @@ const AppointmentListIPD = () => {
           {["In-Patients", "Out-Patients"].map((t) => (
             <button
               key={t}
-              className={`min-w-[104px] h-[31px] hover:bg-[#0EFF7B1A] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
+              className={`min-w-[104px] h-[31px]  rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
                 ${activeTab === t
                   ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
-                  : "bg-gray-100 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
+                  : "bg-gray-200 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
                 }`}
               onClick={() => {
                 if (t === "Out-Patients") {
@@ -1350,7 +1350,7 @@ const AppointmentListIPD = () => {
         </div>
 
         <div className="flex gap-4">
-          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-100 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
+          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] shadow">
             <Search size={18} className="text-green-600 dark:text-green-400" />
             <input
               type="text"
@@ -1362,13 +1362,13 @@ const AppointmentListIPD = () => {
           </div>
           <button
             onClick={() => setShowFilter(true)}
-            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-100 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
+            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
           >
             <Filter size={18} className="text-green-600 dark:text-green-400" />
             <span
               className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                px-3 py-1 text-xs rounded-md shadow-md
-               bg-white dark:bg-black text-black dark:text-white
+               bg-gray-100 dark:bg-black text-black dark:text-white
                opacity-0 group-hover:opacity-100
                transition-all duration-150"
             >
@@ -1414,14 +1414,14 @@ const AppointmentListIPD = () => {
       ) : (
         <div className="overflow-x-hidden overflow-y-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+            <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] bg-gray-200 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
               <tr>
                 <th className="py-3 px-2">
                   <input
                     type="checkbox"
                     checked={selected.length > 0 && selected.length === appointments.length}
                     onChange={selectAll}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                   />
                 </th>
                 <th>Patient Name</th>
@@ -1445,7 +1445,7 @@ const AppointmentListIPD = () => {
                     <td className="px-2">
                       <input
                         type="checkbox"
-                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-white dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                        className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                         checked={selected.includes(i)}
                         onChange={() => toggle(i)}
                       />
@@ -1497,7 +1497,7 @@ const AppointmentListIPD = () => {
                           <span
                             className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
           px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
+          bg-gray-100 dark:bg-black text-black dark:text-white
           opacity-0 group-hover:opacity-100
           transition-all duration-150 z-50"
                           >
@@ -1518,7 +1518,7 @@ const AppointmentListIPD = () => {
                           <span
                             className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
           px-3 py-1 text-xs rounded-md shadow-md
-          bg-white dark:bg-black text-black dark:text-white
+          bg-gray-100 dark:bg-black text-black dark:text-white
           opacity-0 group-hover:opacity-100
           transition-all duration-150 z-50"
                           >
@@ -1546,7 +1546,7 @@ const AppointmentListIPD = () => {
       )}
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">
@@ -1583,7 +1583,7 @@ const AppointmentListIPD = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] rounded-[19px] bg-white dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div
@@ -1609,7 +1609,7 @@ const AppointmentListIPD = () => {
                 </h3>
                 <button
                   onClick={() => setShowFilter(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
                 >
                   <X size={16} className="text-black dark:text-white" />
                 </button>
@@ -1625,7 +1625,7 @@ const AppointmentListIPD = () => {
                     value={filters.patientName}
                     onChange={onFilterChange}
                     placeholder="enter patient name"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <div>
@@ -1637,7 +1637,7 @@ const AppointmentListIPD = () => {
                     value={filters.patientId}
                     onChange={onFilterChange}
                     placeholder="enter patient ID"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
                 </div>
                 <Dropdown
@@ -1689,7 +1689,7 @@ const AppointmentListIPD = () => {
   onClick={(e) => e.target.showPicker()}
   className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
              border border-[#0EFF7B] dark:border-[#3A3A3A]
-             bg-white dark:bg-transparent text-black dark:text-[#0EFF7B]
+             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
              outline-none cursor-pointer
              appearance-none
              [&::-webkit-calendar-picker-indicator]:opacity-0
@@ -1708,7 +1708,7 @@ const AppointmentListIPD = () => {
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={clearFilters}
-                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-white dark:bg-transparent"
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
                 >
                   Clear
                 </button>

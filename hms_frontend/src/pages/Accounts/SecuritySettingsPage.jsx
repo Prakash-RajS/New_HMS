@@ -183,7 +183,7 @@ const SecuritySettingsPage = () => {
         }`}
     >
       <span
-        className={`inline-block h-[18px] w-[18px] transform rounded-full bg-gray-100 dark:bg-white transition 
+        className={`inline-block h-[18px] w-[18px] transform rounded-full bg-gray-100 dark:bg-gray-100 transition 
           ${enabled ? "translate-x-[24px]" : "translate-x-[3px]"}`}
       />
     </button>
@@ -197,7 +197,7 @@ const SecuritySettingsPage = () => {
 
   if (!initialized) {
     return (
-      <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[400px]">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[400px]">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4 text-[#0EFF7B]">
             Loading Security Settings...
@@ -209,7 +209,7 @@ const SecuritySettingsPage = () => {
   }
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[1400px] mx-auto flex flex-col overflow-hidden relative">
       {/* Background gradients */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -266,7 +266,7 @@ const SecuritySettingsPage = () => {
         </p>
 
         <div className="min-w-[1000px] ml-2 rounded-[8px] overflow-x-auto">
-          <table className="min-w-full bg-white dark:bg-[#0EFF7B1A] border-collapse text-center">
+          <table className="min-w-full bg-gray-100 dark:bg-[#0EFF7B1A] border-collapse text-center">
             <thead className="h-[62px]">
               <tr className="text-[18px] text-black dark:text-[#0EFF7B]">
                 <th className="p-2">Modules</th>
@@ -281,7 +281,7 @@ const SecuritySettingsPage = () => {
               {modules.map(({ key, label }) => (
                 <tr
                   key={key}
-                  className="h-[52px] border-b border-gray-300 dark:border-[#3C3C3C] bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
+                  className="h-[52px] border-b border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black hover:bg-gray-100 dark:hover:bg-[#0EFF7B0D] transition"
                 >
                   <td className="p-2 break-words text-black dark:text-white text-left pl-4">
                     {label}

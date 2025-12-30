@@ -217,7 +217,7 @@ const DoctorCalendar = () => {
     const hours = getHours();
 
     return (
-        <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-white dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+        <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
             {/* Gradient Background */}
             <div
                 className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -295,11 +295,11 @@ const DoctorCalendar = () => {
             {/* Main Content - Calendar on Right */}
             <div className="flex gap-6 relative z-10">
                 {/* Left Side - Hourly View with header inside scrollable area */}
-                <div className="flex-1 bg-white dark:bg-[#1E1E1E] rounded-lg border border-gray-300 dark:border-[#3A3A3A] overflow-hidden">
+                <div className="flex-1 bg-gray-100 dark:bg-[#1E1E1E] rounded-lg border border-gray-300 dark:border-[#3A3A3A] overflow-hidden">
                     {/* Time Slots Container - Everything scrolls together */}
                     <div className="overflow-y-auto max-h-[550px]">
                         {/* Week Days Header - Inside scrollable area */}
-                        <div className="grid grid-cols-8 border-b border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#1E1E1E] sticky top-0 z-10">
+                        <div className="grid grid-cols-8 border-b border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] sticky top-0 z-10">
                             <div className="p-3 border-r border-gray-300 dark:border-[#3A3A3A] w-[80px] flex-shrink-0">
                                 <div className="text-sm text-gray-600 dark:text-gray-400">Time</div>
                             </div>
@@ -461,7 +461,7 @@ const DoctorCalendar = () => {
 
             {/* Bottom Section - Selected Date Details (Original Style) */}
             <div className="mt-6 relative z-10">
-                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#1E1E1E] p-4">
+                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4">
                     <h3 className="text-lg font-semibold mb-4 text-black dark:text-white flex items-center gap-2">
                         <CalendarIcon size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
                         Your Appointments for {selectedDate.toLocaleDateString('en-US', { 
@@ -485,7 +485,7 @@ const DoctorCalendar = () => {
                             {getAppointmentsForSelectedDate().map((appointment, index) => (
                                 <div 
                                     key={index} 
-                                    className="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
+                                    className="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#0D0D0D] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
                                 >
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
@@ -544,7 +544,7 @@ const DoctorCalendar = () => {
 
             {/* Legend - Original Style */}
             <div className="mt-6 relative z-10">
-                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#1E1E1E] p-4">
+                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4">
                     <h4 className="font-medium mb-3 text-black dark:text-white">Legend</h4>
                     <div className="grid grid-cols-4 gap-3">
                         <div className="flex items-center gap-2">

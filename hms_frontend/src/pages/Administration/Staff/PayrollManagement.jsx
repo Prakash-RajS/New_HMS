@@ -122,7 +122,7 @@ const PayrollManagement = () => {
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-black text-black dark:text-white min-h-screen font-[Helvetica]">
+    <div className="p-4 bg-gray-100 dark:bg-black text-black dark:text-white min-h-screen font-[Helvetica]">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-black dark:text-white">Payroll Management</h1>
@@ -130,19 +130,19 @@ const PayrollManagement = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-gray-100 dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-[#FFFFFF]">This Month's Payroll</div>
           <div className="text-2xl font-bold text-[#08994A]">$1,200,000</div>
         </div>
-        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-gray-100 dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-[#FFFFFF]">Employees Paid</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">90/100</div>
         </div>
-        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-gray-100 dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">8</div>
         </div>
-        <div className="bg-white dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
+        <div className="bg-gray-100 dark:bg-black border border-[#3C3C3C] p-4 rounded-lg shadow">
           <div className="text-sm text-gray-600 dark:text-gray-400">Failed</div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">2</div>
         </div>
@@ -174,7 +174,7 @@ const PayrollManagement = () => {
           </svg>
         </Listbox.Button>
         <Listbox.Options 
-          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg scrollbar-hide"
+          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-black rounded-md shadow-lg scrollbar-hide"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'
@@ -216,7 +216,7 @@ const PayrollManagement = () => {
           </svg>
         </Listbox.Button>
         <Listbox.Options 
-          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg scrollbar-hide"
+          className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-black rounded-md shadow-lg scrollbar-hide"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'
@@ -243,7 +243,7 @@ const PayrollManagement = () => {
       </div>
 
       {/* Table Container */}
-      <div className="w-full bg-white dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
+      <div className="w-full bg-gray-100 dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
         {/* Search + Filter + Delete - Separated */}
         <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
           <span className="text-black dark:text-white text-base font-medium">All Invoices</span>
@@ -282,14 +282,14 @@ const PayrollManagement = () => {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-black rounded-lg shadow overflow-hidden border border-gray-300 dark:border-gray-800">
+        <div className="bg-gray-100 dark:bg-black rounded-lg shadow overflow-hidden border border-gray-300 dark:border-gray-800">
           <table className="w-full">
-            <thead className="bg-[#F5F6F5] dark:bg-[#091810]">
+            <thead className="bg-gray-200 dark:bg-[#091810]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-white uppercase tracking-wider">
                   <input 
                     type="checkbox" 
-                    className="w-5 h-5 rounded border border-[#0EFF7B] dark:border-gray-700 bg-white dark:bg-black appearance-none checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 relative checked:after:content-['✓'] checked:after:absolute checked:after:text-white checked:after:text-xs checked:after:left-1/2 checked:after:top-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2" 
+                    className="w-5 h-5 rounded border border-[#0EFF7B] dark:border-gray-700 bg-gray-100 dark:bg-black appearance-none checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 relative checked:after:content-['✓'] checked:after:absolute checked:after:text-white checked:after:text-xs checked:after:left-1/2 checked:after:top-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2" 
                     checked={selectedEmployees.length === filteredEmployees.length && filteredEmployees.length > 0} 
                     onChange={handleSelectAll} 
                   />
@@ -303,14 +303,14 @@ const PayrollManagement = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-[#08994A] dark:text-[#0EFF7B] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody className="bg-gray-100 dark:bg-black divide-y divide-gray-200 dark:divide-gray-800">
               {paginatedEmployees.length > 0 ? (
                 paginatedEmployees.map((emp) => (
                   <tr key={emp.id} className="hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
-                        className="w-5 h-5 rounded border border-[#0EFF7B] dark:border-gray-700 bg-white dark:bg-black appearance-none checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 relative checked:after:content-['✓'] checked:after:absolute checked:after:text-white checked:after:text-xs checked:after:left-1/2 checked:after:top-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2" 
+                        className="w-5 h-5 rounded border border-[#0EFF7B] dark:border-gray-700 bg-gray-100 dark:bg-black appearance-none checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-gray-700 relative checked:after:content-['✓'] checked:after:absolute checked:after:text-white checked:after:text-xs checked:after:left-1/2 checked:after:top-1/2 checked:after:-translate-x-1/2 checked:after:-translate-y-1/2" 
                         checked={selectedEmployees.includes(emp.id)}
                         onChange={() => toggleSelect(emp.id)}
                       />
@@ -345,7 +345,7 @@ const PayrollManagement = () => {
       </div>
 
       {/* Pagination - Outside table container */}
-      <div className="flex items-center mt-4 bg-white dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page {currentPage} of {totalPages} (
           {(currentPage - 1) * itemsPerPage + 1} to{" "}
@@ -382,13 +382,13 @@ const PayrollManagement = () => {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#0D0D0D] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+          <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
             {/* Header */}
             <div className="flex justify-between items-center pb-3 mb-4">
               <h3 className="text-lg font-semibold text-black dark:text-white">Delete Payment Records</h3>
               <button
                 onClick={cancelDelete}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
@@ -404,7 +404,7 @@ const PayrollManagement = () => {
             <div className="flex justify-center gap-6">
               <button
                 onClick={cancelDelete}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 Cancel
               </button>
@@ -422,13 +422,13 @@ const PayrollManagement = () => {
       {/* Filter Modal */}
       {showFilterModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-white dark:bg-[#0D0D0D] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
+          <div className="w-[504px] rounded-[20px] border border-[#0EFF7B] dark:border-[#1E1E1E] bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white p-6 shadow-[0px_0px_4px_0px_rgba(255,255,255,0.12)] backdrop-blur-md relative">
             {/* Header */}
             <div className="flex justify-between items-center pb-3 mb-4">
               <h3 className="text-lg font-semibold text-black dark:text-white">Filter Payroll</h3>
               <button
                 onClick={closeFilterModal}
-                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-white dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-6 h-6 rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 <X size={16} className="text-[#08994A] dark:text-white" />
               </button>
@@ -452,7 +452,7 @@ const PayrollManagement = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </Listbox.Button>
-                    <Listbox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg">
+                    <Listbox.Options className="absolute z-10 mt-1 w-full max-h-60 overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-black rounded-md shadow-lg">
                       {statusOptions.map((status) => (
                         <Listbox.Option
                           key={status}
@@ -487,7 +487,7 @@ const PayrollManagement = () => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </Listbox.Button>
-                    <Listbox.Options className="absolute z-10 mt-1 w-full max-h-[210px] overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-white dark:bg-black rounded-md shadow-lg">
+                    <Listbox.Options className="absolute z-10 mt-1 w-full max-h-[210px] overflow-auto border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-100 dark:bg-black rounded-md shadow-lg">
                       {roles.map((rl) => (
                         <Listbox.Option
                           key={rl}
@@ -511,7 +511,7 @@ const PayrollManagement = () => {
             <div className="flex justify-center gap-6">
               <button
                 onClick={clearFilters}
-                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
+                className="w-[104px] h-[33px] rounded-[20px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent px-3 py-2 flex items-center justify-center gap-2 text-black dark:text-white font-medium text-[14px] leading-[16px] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.25)] opacity-100 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] hover:text-[#08994A] dark:hover:text-white"
               >
                 Clear
               </button>
