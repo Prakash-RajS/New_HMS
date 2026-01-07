@@ -5,7 +5,7 @@ from HMS_backend.models import BedGroup, Bed, Patient
 import django.db.models as models
 from datetime import datetime
 from asgiref.sync import sync_to_async
-from fastapi.concurrency import run_in_threadpool
+
 
 router = APIRouter(prefix="/bedgroups", tags=["Bed Groups"])
 

@@ -1394,7 +1394,7 @@
 //     </div>
 //   );
 // }
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Edit, Trash2 } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
@@ -1437,16 +1437,64 @@ export default function ViewPatientProfile() {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
 
+  const [testTypes, setTestTypes] = useState([]);
+  const [loadingTestTypes, setLoadingTestTypes] = useState(true);
+
   useEffect(() => {
     fetchDepartments();
     fetchPatients();
     fetchStock();
+    fetchTestTypes();
   }, []);
 
+  const displayValue = (value) => {
+    if (
+      value === null ||
+      value === undefined ||
+      value === "" ||
+      (Array.isArray(value) && value.length === 0)
+    ) {
+      return "-";
+    }
+    return value;
+  };
+
+  const fetchTestTypes = async () => {
+    try {
+      setLoadingTestTypes(true);
+      const res = await fetch(`${API_BASE}/labreports/test-types/`);
+      const text = await res.text();
+      
+      if (!res.ok) {
+        console.error("Test types raw response (non-OK):", text);
+        throw new Error("Failed to fetch test types");
+      }
+      
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error("Failed to parse test types JSON:", parseError);
+        console.error("Raw response:", text);
+        throw new Error("Invalid JSON response from test types API");
+      }
+      
+      const testTypesArray = data.test_types || data || [];
+      setTestTypes(testTypesArray);
+    } catch (error) {
+      console.error("Error fetching test types:", error);
+      setTestTypes([]);
+    } finally {
+      setLoadingTestTypes(false);
+    }
+  };
+
+  // Extract unique medicine names from stock
   const medicineNames = useMemo(() => {
     return [...new Set(stockData.map(s => s.product_name).filter(Boolean))].sort();
   }, [stockData]);
 
+  // Map medicine names to their available dosages
   const dosageMap = useMemo(() => {
     const map = {};
     stockData.forEach(s => {
@@ -1461,30 +1509,91 @@ export default function ViewPatientProfile() {
     return map;
   }, [stockData]);
 
+  // Get available stock quantity for a specific medicine and dosage
+  const getAvailableQuantity = useCallback((medicineName, dosage) => {
+    if (!medicineName || !dosage) return 0;
+    
+    const stockItem = stockData.find(s => 
+      s.product_name === medicineName && s.dosage === dosage
+    );
+    
+    return stockItem ? stockItem.quantity : 0;
+  }, [stockData]);
+
   const frequencyOptions = ["Morning", "Afternoon", "Evening", "Night"];
 
-  const toBinary = (selected) => {
-    if (!selected || selected.length === 0) return "";
-    const bin = [0, 0, 0, 0];
-    selected.forEach((s) => {
-      if (s === "Morning") bin[0] = 1;
-      else if (s === "Afternoon") bin[1] = 1;
-      else if (s === "Evening") bin[2] = 1;
-      else if (s === "Night") bin[3] = 1;
-    });
-    return bin.join(" ");
-  };
+  const toBinary = useCallback((selected) => {
+  if (!selected) return "";
+  
+  // Handle both array and string inputs
+  const frequencies = Array.isArray(selected) ? selected : [selected].filter(Boolean);
+  
+  if (frequencies.length === 0) return "";
+  
+  const bin = [0, 0, 0, 0];
+  frequencies.forEach((s) => {
+    if (s === "Morning") bin[0] = 1;
+    else if (s === "Afternoon") bin[1] = 1;
+    else if (s === "Evening") bin[2] = 1;
+    else if (s === "Night") bin[3] = 1;
+  });
+  return bin.join(" ");
+}, []);
 
-  const toNames = (binaryStr) => {
-    if (!binaryStr || binaryStr.trim() === "") return [];
-    const bin = binaryStr.split(" ").map(Number);
-    const selected = [];
-    if (bin[0]) selected.push("Morning");
-    if (bin[1]) selected.push("Afternoon");
-    if (bin[2]) selected.push("Evening");
-    if (bin[3]) selected.push("Night");
-    return selected;
-  };
+  const toNames = useCallback((binaryStr) => {
+    if (Array.isArray(binaryStr)) {
+      return binaryStr;
+    }
+    
+    if (!binaryStr) {
+      return [];
+    }
+    
+    if (typeof binaryStr === 'string') {
+      const trimmed = binaryStr.trim();
+      if (trimmed === "") return [];
+      
+      const bin = trimmed.split(" ").map(Number);
+      const selected = [];
+      if (bin[0]) selected.push("Morning");
+      if (bin[1]) selected.push("Afternoon");
+      if (bin[2]) selected.push("Evening");
+      if (bin[3]) selected.push("Night");
+      return selected;
+    }
+    
+    return [];
+  }, []);
+
+  // Auto-calculate quantity based on frequency and duration
+  const calculateQuantity = useCallback((frequency, duration) => {
+    if (!frequency || frequency.length === 0 || !duration) return "";
+    
+    // Parse duration (e.g., "5 days", "2 weeks", "1 month")
+    const durationStr = duration.toString().toLowerCase();
+    let days = 0;
+    
+    if (durationStr.includes("day")) {
+      days = parseInt(durationStr) || 0;
+    } else if (durationStr.includes("week")) {
+      const weeks = parseInt(durationStr) || 0;
+      days = weeks * 7;
+    } else if (durationStr.includes("month")) {
+      const months = parseInt(durationStr) || 0;
+      days = months * 30; // Approximate
+    } else {
+      // Try to parse as number of days
+      days = parseInt(durationStr) || 0;
+    }
+    
+    if (days <= 0) return "";
+    
+    // Calculate total doses
+    const dosesPerDay = frequency.length;
+    const totalDoses = days * dosesPerDay;
+    
+    return totalDoses.toString();
+  }, []);
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -1618,10 +1727,12 @@ export default function ViewPatientProfile() {
         console.error("Raw response:", text);
         throw new Error("Invalid JSON response from medicine history API");
       }
+      
       const processedData = (data || []).map(item => ({
         ...item,
-        frequency: toNames(item.frequency)
+        frequency: toNames(item.frequency || "")
       }));
+      
       setMedicineHistory(processedData);
     } catch (error) {
       console.error("Error fetching medicine history:", error);
@@ -1643,7 +1754,7 @@ export default function ViewPatientProfile() {
     setSearchQuery("");
   };
 
-  const handlePatientFieldChange = (field, value) => {
+  const handlePatientFieldChange = useCallback((field, value) => {
     if (field === "patientName" && value) {
       const selectedPatient = patients.find((p) => p.full_name === value);
       if (selectedPatient) {
@@ -1662,17 +1773,43 @@ export default function ViewPatientProfile() {
         department: value,
       }));
     }
-  };
+  }, [patients]);
 
-  const handleInputChange = (e, index, type) => {
+  const handleInputChange = useCallback((e, index, type) => {
     const { name, value } = e.target;
+    
     if (type === "medicine") {
       setMedicineData((prev) => {
         const newData = [...prev];
-        newData[index] = { ...newData[index], [name]: value };
-        if (name === "medicineName" && newData[index].dosage && !dosageMap[value]?.includes(newData[index].dosage)) {
-          newData[index].dosage = "";
+        const updatedItem = { ...newData[index], [name]: value };
+        
+        if (name === "medicineName") {
+          // Reset dosage when medicine changes
+          updatedItem.dosage = "";
+          updatedItem.quantity = "";
         }
+        
+        if (name === "dosage") {
+          // Check if enough stock is available
+          const availableQty = getAvailableQuantity(updatedItem.medicineName, value);
+          if (availableQty === 0) {
+            errorToast(`No stock available for ${updatedItem.medicineName} - ${value}`);
+          }
+        }
+        
+        // Auto-calculate quantity when frequency or duration changes
+        if (name === "duration" || name === "frequency") {
+          // Note: frequency is handled separately, so we need to get current frequency
+          if (name === "duration") {
+            const currentFrequency = newData[index].frequency || [];
+            const calculatedQty = calculateQuantity(currentFrequency, value);
+            if (calculatedQty) {
+              updatedItem.quantity = calculatedQty;
+            }
+          }
+        }
+        
+        newData[index] = updatedItem;
         return newData;
       });
     } else if (type === "labTest") {
@@ -1682,17 +1819,29 @@ export default function ViewPatientProfile() {
         return newTests;
       });
     }
-  };
+  }, [getAvailableQuantity, calculateQuantity]);
 
-  const handleFrequencyChange = (index, selected) => {
+  const handleFrequencyChange = useCallback((index, selected) => {
     setMedicineData((prev) => {
       const newData = [...prev];
-      newData[index].frequency = selected;
+      const currentItem = newData[index];
+      
+      // Update frequency
+      newData[index] = { ...currentItem, frequency: selected };
+      
+      // Auto-calculate quantity if duration is set
+      if (currentItem.duration) {
+        const calculatedQty = calculateQuantity(selected, currentItem.duration);
+        if (calculatedQty) {
+          newData[index].quantity = calculatedQty;
+        }
+      }
+      
       return newData;
     });
-  };
+  }, [calculateQuantity]);
 
-  const addMedicineEntry = () => {
+  const addMedicineEntry = useCallback(() => {
     setMedicineData((prev) => [
       ...prev,
       {
@@ -1705,19 +1854,19 @@ export default function ViewPatientProfile() {
         time: "",
       },
     ]);
-  };
+  }, []);
 
-  const addLabTestEntry = () => {
+  const addLabTestEntry = useCallback(() => {
     setLabTests((prev) => [...prev, { id: Date.now(), labTest: "" }]);
-  };
+  }, []);
 
-  const removeMedicineEntry = (id) => {
+  const removeMedicineEntry = useCallback((id) => {
     setMedicineData((prev) => prev.filter((entry) => entry.id !== id));
-  };
+  }, []);
 
-  const removeLabTestEntry = (id) => {
+  const removeLabTestEntry = useCallback((id) => {
     setLabTests((prev) => prev.filter((entry) => entry.id !== id));
-  };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1725,6 +1874,20 @@ export default function ViewPatientProfile() {
       errorToast("Please select a patient");
       return;
     }
+    
+    // Validate stock availability before submission
+    for (const med of medicineData) {
+      if (med.medicineName && med.dosage) {
+        const availableQty = getAvailableQuantity(med.medicineName, med.dosage);
+        const requestedQty = parseInt(med.quantity) || 0;
+        
+        if (requestedQty > availableQty) {
+          errorToast(`Insufficient stock for ${med.medicineName} - ${med.dosage}. Available: ${availableQty}, Requested: ${requestedQty}`);
+          return;
+        }
+      }
+    }
+    
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -1777,6 +1940,10 @@ export default function ViewPatientProfile() {
         lab_test_type: med.lab_test_type,
       }));
       setMedicineHistory((prev) => [...newHistoryEntries.map(item => ({...item, frequency: toNames(item.frequency)})), ...prev]);
+      
+      // Refresh stock data after allocation
+      await fetchStock();
+      
       handleClear();
       successToast("Medicines allocated successfully!");
     } catch (error) {
@@ -1787,7 +1954,7 @@ export default function ViewPatientProfile() {
     }
   };
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setMedicineData([
       {
         id: Date.now(),
@@ -1800,18 +1967,29 @@ export default function ViewPatientProfile() {
       },
     ]);
     setLabTests([{ id: Date.now(), labTest: "" }]);
-  };
+  }, []);
 
-  const handleEditMedicine = (medicine) => {
-    const freqArray = toNames(medicine.frequency);
-    setEditingMedicine({...medicine, frequency: freqArray});
+  const handleEditMedicine = useCallback((medicine) => {
+    let freqArray = [];
+    if (medicine.frequency) {
+      if (Array.isArray(medicine.frequency)) {
+        freqArray = medicine.frequency;
+      } else if (typeof medicine.frequency === 'string') {
+        freqArray = toNames(medicine.frequency);
+      }
+    }
+    
+    setEditingMedicine({
+      ...medicine, 
+      frequency: freqArray
+    });
     setIsEditPopupOpen(true);
-  };
+  }, [toNames]);
 
-  const handleDeleteMedicine = (medicine) => {
+  const handleDeleteMedicine = useCallback((medicine) => {
     setDeletingMedicine(medicine);
     setIsDeletePopupOpen(true);
-  };
+  }, []);
 
   const handleUpdateMedicine = async (updatedData) => {
     try {
@@ -1871,20 +2049,277 @@ export default function ViewPatientProfile() {
     }
   };
 
-  const patientNames = patients
-    .map((patient) => patient?.full_name)
-    .filter((name) => name && name.trim() !== "")
-    .filter((name, index, self) => self.indexOf(name) === index);
-  const patientIDs = patients
-    .map((patient) => patient?.patient_unique_id)
-    .filter((id) => id && id.trim() !== "")
-    .filter((id, index, self) => self.indexOf(id) === index);
-  const departmentNames = departments
-    .map((dept) => dept?.name)
-    .filter((name) => name && name.trim() !== "")
-    .filter((name, index, self) => self.indexOf(name) === index);
+  const patientNames = useMemo(() => 
+    patients
+      .map((patient) => patient?.full_name)
+      .filter((name) => name && name.trim() !== "")
+      .filter((name, index, self) => self.indexOf(name) === index),
+    [patients]
+  );
 
-  const PatientNameDropdown = () => (
+  const patientIDs = useMemo(() => 
+    patients
+      .map((patient) => patient?.patient_unique_id)
+      .filter((id) => id && id.trim() !== "")
+      .filter((id, index, self) => self.indexOf(id) === index),
+    [patients]
+  );
+
+  const departmentNames = useMemo(() => 
+    departments
+      .map((dept) => dept?.name)
+      .filter((name) => name && name.trim() !== "")
+      .filter((name, index, self) => self.indexOf(name) === index),
+    [departments]
+  );
+
+  const CustomInput = useCallback(({ label, name, value, index, placeholder, type = "text", readOnly = false }) => {
+    const handleChange = (e) => {
+      const newValue = type === "number" ? parseInt(e.target.value) || "" : e.target.value;
+      const fakeEvent = { target: { name, value: newValue } };
+      handleInputChange(fakeEvent, index, "medicine");
+    };
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+          {label}
+        </label>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          className={`
+            w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
+            border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+            text-black dark:text-white text-sm leading-none
+            shadow-[0_0_2.09px_#0EFF7B] outline-none
+            transition-all duration-300 font-[Helvetica]
+            focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
+            ${!value ? "text-gray-500" : ""}
+            ${readOnly ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : ""}
+          `}
+        />
+      </div>
+    );
+  }, [handleInputChange]);
+
+  const MedicineDropdown = useCallback(({ label, name, value, options, index }) => {
+    const handleChange = (selectedValue) => {
+      const fakeEvent = { target: { name, value: selectedValue } };
+      handleInputChange(fakeEvent, index, "medicine");
+    };
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+          {label}
+        </label>
+        <Listbox value={value} onChange={handleChange}>
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
+                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                  border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+                  text-black dark:text-white text-left text-sm leading-none
+                  shadow-[0_0_2.09px_#0EFF7B] outline-none
+                  transition-all duration-300 font-[Helvetica]
+                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                  ${!value ? "text-gray-500" : ""}
+                `}
+              >
+                <span className="block truncate">
+                  {value || `Select ${label.toLowerCase()}`}
+                </span>
+                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </span>
+              </Listbox.Button>
+              <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                {options.length > 0 ? (
+                  options.map((option) => (
+                    <Listbox.Option
+                      key={option}
+                      value={option}
+                      className={({ active, selected }) =>
+                        `
+                          cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
+                          ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                          ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                          hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                        `
+                      }
+                    >
+                      {option}
+                    </Listbox.Option>
+                  ))
+                ) : (
+                  <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                    No {label.toLowerCase()} available
+                  </div>
+                )}
+              </Listbox.Options>
+            </>
+          )}
+        </Listbox>
+      </div>
+    );
+  }, [handleInputChange]);
+
+  const DosageDropdown = useCallback(({ label, name, value, medicineName, index }) => {
+    const dosages = medicineName ? (dosageMap[medicineName] || []) : [];
+    
+    const handleChange = (selectedValue) => {
+      const fakeEvent = { target: { name, value: selectedValue } };
+      handleInputChange(fakeEvent, index, "medicine");
+    };
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+          {label}
+        </label>
+        <Listbox value={value} onChange={handleChange} disabled={!medicineName || dosages.length === 0}>
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
+                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                  border-gray-300 dark:border-[#3C3C3C] 
+                  ${!medicineName || dosages.length === 0 ? 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed' : 'bg-gray-100 dark:bg-black'}
+                  text-black dark:text-white text-left text-sm leading-none
+                  shadow-[0_0_2.09px_#0EFF7B] outline-none
+                  transition-all duration-300 font-[Helvetica]
+                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                  ${!value ? "text-gray-500" : ""}
+                `}
+              >
+                <span className="block truncate">
+                  {!medicineName ? "Select medicine first" : 
+                   dosages.length === 0 ? "No dosages available" :
+                   value || `Select ${label.toLowerCase()}`}
+                </span>
+                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </span>
+              </Listbox.Button>
+              {medicineName && dosages.length > 0 && (
+                <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                  {dosages.map((dosage) => {
+                    const availableQty = getAvailableQuantity(medicineName, dosage);
+                    return (
+                      <Listbox.Option
+                        key={dosage}
+                        value={dosage}
+                        disabled={availableQty === 0}
+                        className={({ active, selected, disabled }) =>
+                          `
+                            cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
+                            ${active && !disabled ? "bg-[#0EFF7B33] text-[#0EFF7B]" : ""}
+                            ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                            ${disabled ? "opacity-50 cursor-not-allowed text-gray-500" : "text-black dark:text-white"}
+                            hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                          `
+                        }
+                      >
+                        <div className="flex justify-between items-center">
+                          <span>{dosage}</span>
+                          <span className={`text-xs ${availableQty === 0 ? 'text-red-500' : 'text-green-500'}`}>
+                            Stock: {availableQty}
+                          </span>
+                        </div>
+                      </Listbox.Option>
+                    );
+                  })}
+                </Listbox.Options>
+              )}
+            </>
+          )}
+        </Listbox>
+      </div>
+    );
+  }, [dosageMap, getAvailableQuantity, handleInputChange]);
+
+  const MultiFrequencyDropdown = useCallback(({ index, selected, onChange }) => {
+    const handleChange = (selectedOptions) => {
+      onChange(selectedOptions);
+    };
+
+    return (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+          Frequency
+        </label>
+        <Listbox value={selected} onChange={handleChange} multiple>
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
+                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                  border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+                  text-black dark:text-white text-left text-sm leading-none
+                  shadow-[0_0_2.09px_#0EFF7B] outline-none
+                  transition-all duration-300 font-[Helvetica]
+                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                  ${!selected || selected.length === 0 ? "text-gray-500" : ""}
+                `}
+              >
+                <span className="block truncate">
+                  {selected && selected.length > 0 ? selected.join(", ") : "Select frequencies"}
+                </span>
+                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </span>
+              </Listbox.Button>
+              <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                {frequencyOptions.map((option) => (
+                  <Listbox.Option
+                    key={option}
+                    value={option}
+                    className={({ active, selected: isSelected }) =>
+                      `
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica] flex items-center
+                        ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                        ${isSelected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                    }
+                  >
+                    {({ selected: isSelected }) => (
+                      <>
+                        <span className={`mr-2 ${isSelected ? "text-[#0EFF7B]" : ""}`}>
+                          {isSelected ? "✓" : ""}
+                        </span>
+                        {option}
+                      </>
+                    )}
+                  </Listbox.Option>
+                ))}
+              </Listbox.Options>
+            </>
+          )}
+        </Listbox>
+      </div>
+    );
+  }, []);
+
+  const PatientNameDropdown = useCallback(() => (
     <div className="relative">
       <label className="block text-sm font-medium mb-1 text-black dark:text-white">
         Patient Name
@@ -1945,9 +2380,9 @@ export default function ViewPatientProfile() {
         )}
       </Listbox>
     </div>
-  );
+  ), [patientInfo.patientName, patientNames, handlePatientFieldChange]);
 
-  const PatientIDDropdown = () => (
+  const PatientIDDropdown = useCallback(() => (
     <div className="relative">
       <label className="block text-sm font-medium mb-1 text-black dark:text-white">
         Patient ID
@@ -2008,9 +2443,9 @@ export default function ViewPatientProfile() {
         )}
       </Listbox>
     </div>
-  );
+  ), [patientInfo.patientID, patientIDs, handlePatientFieldChange]);
 
-  const DepartmentDropdown = () => (
+  const DepartmentDropdown = useCallback(() => (
     <div className="relative">
       <label className="block text-sm font-medium mb-1 text-black dark:text-white">
         Department
@@ -2071,160 +2506,7 @@ export default function ViewPatientProfile() {
         )}
       </Listbox>
     </div>
-  );
-
-  // Reusable Custom Input Field (same design as dropdowns)
-  const CustomInput = ({ label, name, value, index, placeholder, type = "text" }) => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-        {label}
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={(e) => handleInputChange(e, index, "medicine")}
-        placeholder={placeholder}
-        className={`
-          w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
-          border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-          text-black dark:text-white text-sm leading-none
-          shadow-[0_0_2.09px_#0EFF7B] outline-none
-          transition-all duration-300 font-[Helvetica]
-          focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-          ${!value ? "text-gray-500" : ""}
-        `}
-      />
-    </div>
-  );
-
-  // Medicine Dropdown (only for Medicine Name and Duration)
-  const MedicineDropdown = ({ label, name, value, options, index }) => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-        {label}
-      </label>
-      <Listbox
-        value={value}
-        onChange={(selectedValue) => {
-          const fakeEvent = { target: { name, value: selectedValue } };
-          handleInputChange(fakeEvent, index, "medicine");
-        }}
-      >
-        {({ open }) => (
-          <>
-            <Listbox.Button
-              className={`
-                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-                text-black dark:text-white text-left text-sm leading-none
-                shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-[Helvetica]
-                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
-                ${!value ? "text-gray-500" : ""}
-              `}
-            >
-              <span className="block truncate">
-                {value || `Select ${label.toLowerCase()}`}
-              </span>
-              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                <ChevronDown
-                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {options.length > 0 ? (
-                options.map((option) => (
-                  <Listbox.Option
-                    key={option}
-                    value={option}
-                    className={({ active, selected }) =>
-                      `
-                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
-                        ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                        ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                      `
-                    }
-                  >
-                    {option}
-                  </Listbox.Option>
-                ))
-              ) : (
-                <div className="py-2 px-3 text-sm text-gray-500 text-center">
-                  No {label.toLowerCase()} available
-                </div>
-              )}
-            </Listbox.Options>
-          </>
-        )}
-      </Listbox>
-    </div>
-  );
-
-  const MultiFrequencyDropdown = ({ index, selected, onChange }) => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-        Frequency
-      </label>
-      <Listbox value={selected} onChange={onChange} multiple>
-        {({ open }) => (
-          <>
-            <Listbox.Button
-              className={`
-                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-                text-black dark:text-white text-left text-sm leading-none
-                shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-[Helvetica]
-                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
-                ${!selected || selected.length === 0 ? "text-gray-500" : ""}
-              `}
-            >
-              <span className="block truncate">
-                {selected && selected.length > 0 ? selected.join(", ") : "Select frequencies"}
-              </span>
-              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                <ChevronDown
-                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {frequencyOptions.map((option) => (
-                <Listbox.Option
-                  key={option}
-                  value={option}
-                  className={({ active, selected: isSelected }) =>
-                    `
-                      cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica] flex items-center
-                      ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                      ${isSelected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                      hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                    `
-                  }
-                >
-                  {({ selected: isSelected }) => (
-                    <>
-                      <span className={`mr-2 ${isSelected ? "text-[#0EFF7B]" : ""}`}>
-                        {isSelected ? "✓" : ""}
-                      </span>
-                      {option}
-                    </>
-                  )}
-                </Listbox.Option>
-              ))}
-            </Listbox.Options>
-          </>
-        )}
-      </Listbox>
-    </div>
-  );
+  ), [patientInfo.department, departmentNames, handlePatientFieldChange]);
 
   return (
     <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
@@ -2312,7 +2594,7 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Patient Profile Section */}
-      <div className="mb-8 p-4 sm:p-5 bg-gray-100 dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
+      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
           <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
             {fullPatient?.photo_url ? (
@@ -2385,7 +2667,7 @@ export default function ViewPatientProfile() {
                 <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
                   {item.label}
                 </span>
-                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-gray-100 dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
+                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
                   {item.value}
                 </div>
               </div>
@@ -2411,7 +2693,7 @@ export default function ViewPatientProfile() {
                 </svg>
                 <span className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                   View more
                 </span>
@@ -2517,41 +2799,34 @@ export default function ViewPatientProfile() {
                     options={medicineNames}
                     index={index}
                   />
-                  <CustomInput
+                  <DosageDropdown
                     label="Dosage"
                     name="dosage"
                     value={med.dosage}
+                    medicineName={med.medicineName}
                     index={index}
-                    placeholder="e.g. 500mg"
                   />
                   <CustomInput
                     label="Quantity"
                     name="quantity"
                     value={med.quantity}
                     index={index}
-                    placeholder="e.g. 30"
+                    placeholder="Auto-calculated"
                     type="number"
+                    readOnly={true}
                   />
                   <MultiFrequencyDropdown
                     index={index}
                     selected={med.frequency}
                     onChange={(selected) => handleFrequencyChange(index, selected)}
                   />
-                  {/* <MedicineDropdown
+                  <CustomInput
                     label="Duration"
                     name="duration"
                     value={med.duration}
-                    options={["5 days", "10 days", "15 days", "30 days"]}
                     index={index}
-                  /> */}
-                  <CustomInput
-  label="Duration"
-  name="duration"
-  value={med.duration}
-  index={index}
-  placeholder="e.g. 5 days"
- />
-
+                    placeholder="e.g. 5 days"
+                  />
                   <CustomInput
                     label="Time"
                     name="time"
@@ -2560,10 +2835,21 @@ export default function ViewPatientProfile() {
                     placeholder="e.g. 8:00 AM"
                   />
                 </div>
+                {med.medicineName && med.dosage && (
+                  <div className="mt-2 text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Available stock:{" "}
+                    </span>
+                    <span className={`font-medium ${getAvailableQuantity(med.medicineName, med.dosage) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {getAvailableQuantity(med.medicineName, med.dosage)}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
+          {/* Lab Tests Section (unchanged) */}
           <div className="mt-6">
             <h4 className="font-medium text-[#0EFF7B] mb-2">Lab Tests</h4>
             {labTests.map((test, index) => (
@@ -2581,51 +2867,63 @@ export default function ViewPatientProfile() {
                         };
                         handleInputChange(fakeEvent, index, "labTest");
                       }}
+                      disabled={loadingTestTypes}
                     >
                       {({ open }) => (
                         <>
                           <Listbox.Button
                             className={`
-                              relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                              border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-                              text-black dark:text-white text-left text-sm leading-none
-                              shadow-[0_0_2.09px_#0EFF7B] outline-none
-                              transition-all duration-300 font-[Helvetica]
-                              ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
-                              ${!test.labTest ? "text-gray-500" : ""}
-                            `}
+                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                  border-gray-300 dark:border-[#3C3C3C] 
+                  ${loadingTestTypes ? 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed' : 'bg-gray-100 dark:bg-black'}
+                  text-black dark:text-white text-left text-sm leading-none
+                  shadow-[0_0_2.09px_#0EFF7B] outline-none
+                  transition-all duration-300 font-[Helvetica]
+                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                  ${!test.labTest ? "text-gray-500" : ""}
+                  ${loadingTestTypes ? "opacity-70" : ""}
+                `}
                           >
                             <span className="block truncate">
-                              {test.labTest || "Select lab test"}
+                              {loadingTestTypes ? "Loading test types..." : (test.labTest || "Select lab test")}
                             </span>
                             <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                              <ChevronDown
-                                className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                                  open ? "rotate-180" : ""
-                                }`}
-                              />
+                              {loadingTestTypes ? (
+                                <div className="h-4 w-4 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <ChevronDown
+                                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${open ? "rotate-180" : ""
+                                    }`}
+                                />
+                              )}
                             </span>
                           </Listbox.Button>
-                          <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-                            {["Blood Test", "Urine Test", "X-Ray", "MRI"].map(
-                              (option) => (
-                                <Listbox.Option
-                                  key={option}
-                                  value={option}
-                                  className={({ active, selected }) =>
-                                    `
-                                      cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
-                                      ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                                      ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                                      hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                                    `
-                                  }
-                                >
-                                  {option}
-                                </Listbox.Option>
-                              )
-                            )}
-                          </Listbox.Options>
+                          {!loadingTestTypes && (
+                            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                              {testTypes.length > 0 ? (
+                                testTypes.map((testType) => (
+                                  <Listbox.Option
+                                    key={testType}
+                                    value={testType}
+                                    className={({ active, selected }) =>
+                                      `
+                            cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
+                            ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                            ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                            hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                          `
+                                    }
+                                  >
+                                    {testType}
+                                  </Listbox.Option>
+                                ))
+                              ) : (
+                                <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                                  No test types available
+                                </div>
+                              )}
+                            </Listbox.Options>
+                          )}
                         </>
                       )}
                     </Listbox>
@@ -2639,9 +2937,9 @@ export default function ViewPatientProfile() {
                   >
                     +
                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+          transition-all duration-150">
                       Add
                     </span>
                   </button>
@@ -2654,9 +2952,9 @@ export default function ViewPatientProfile() {
                   >
                     ×
                     <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+          transition-all duration-150">
                       Close
                     </span>
                   </button>
@@ -2685,7 +2983,7 @@ export default function ViewPatientProfile() {
         </form>
       </div>
 
-      {/* Medicine Allocation History */}
+      {/* Medicine Allocation History (unchanged) */}
       <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine allocation history
@@ -2712,13 +3010,13 @@ export default function ViewPatientProfile() {
                   key={item.id || index}
                   className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-gray-100 dark:bg-black"
                 >
-                  <td className="py-1.5 px-2 sm:px-3">{item.patient_name}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.patient_id}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.doctor}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.allocation_date}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.medicine_name}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.dosage}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{item.duration}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.patient_name)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.patient_id)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.doctor)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.allocation_date)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.medicine_name)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.dosage)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.duration)}</td>
                   <td className="py-1.5 px-2 sm:px-3">
                     {item.frequency && item.frequency.length > 0 ? (
                       <span className="text-[#0EFF7B] font-medium">
@@ -2756,7 +3054,7 @@ export default function ViewPatientProfile() {
                         className="relative group text-red-500 hover:text-red-700 transition-colors"
                       >
                         <Trash2 size={16} />
-                        <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+                        <span className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
                           px-3 py-1 text-xs rounded-md shadow-md
                           bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                           transition-all duration-150">

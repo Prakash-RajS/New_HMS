@@ -987,7 +987,7 @@
 import os
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
@@ -996,16 +996,19 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import date
 from jose import JWTError, jwt
-from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport
-from HMS_backend.models import Patient, Department, Staff, Stock
+from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport, Stock
+from HMS_backend.models import Patient, Department, Staff
 from Fastapi_app.routers.notifications import NotificationService
+
 router = APIRouter(prefix="/medicine_allocation", tags=["Medicine Allocation"])
+
 # ---------- JWT Settings ----------
 SECRET_KEY = "super_secret_123"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
+
 def parse_date(date_str: Optional[str]):
     if not date_str:
         return None
@@ -1013,23 +1016,27 @@ def parse_date(date_str: Optional[str]):
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return None
+
 # ---------- Helper to Safely Parse Optional Integers ----------
 def parse_optional_int(value: Optional[str]):
     try:
         return int(value)
     except (TypeError, ValueError):
         return None
+
 # ---------- Pydantic Schemas ----------
 class MedicineAllocationCreate(BaseModel):
     medicine_name: str
     dosage: str
-    quantity: Optional[str] = None
+    quantity: Optional[Union[str, int]] = None
     frequency: Optional[str] = None
     duration: str
     time: Optional[str] = None
+
 class AllocationRequest(BaseModel):
     medicines: List[MedicineAllocationCreate]
     lab_test_types: Optional[List[str]] = []
+
 class MedicineAllocationResponse(BaseModel):
     id: int
     patient_name: str
@@ -1039,13 +1046,15 @@ class MedicineAllocationResponse(BaseModel):
     medicine_name: str
     dosage: str
     duration: str
-    quantity: Optional[str] = None
+    quantity: Optional[Union[str, int]] = None
     frequency: Optional[str] = None
     time: Optional[str] = None
     lab_report_ids: Optional[List[int]] = None
     lab_test_types: Optional[str] = None
+
 class AllocationResponse(BaseModel):
     medicines: List[MedicineAllocationResponse]
+
 # ---------- Dependency to Get Current Staff ----------
 def get_current_staff(token: str = Depends(oauth2_scheme)):
     try:
@@ -1062,10 +1071,51 @@ def get_current_staff(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
-# ---------- Allocate Medicines and Lab Reports ----------
+
+# ---------- Helper function to update stock ----------
+async def update_stock_quantity(medicine_name: str, dosage: str, quantity: int, operation: str = "decrement"):
+    """
+    Update stock quantity for a medicine.
+    operation: "decrement" or "increment"
+    """
+    try:
+        # Find the stock item
+        stock_item = await run_in_threadpool(
+            Stock.objects.get,
+            product_name=medicine_name,
+            dosage=dosage,
+            status='available'
+        )
+        
+        if operation == "decrement":
+            if stock_item.quantity < quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient stock for {medicine_name} ({dosage}). Available: {stock_item.quantity}, Requested: {quantity}"
+                )
+            stock_item.quantity -= quantity
+        elif operation == "increment":
+            stock_item.quantity += quantity
+        
+        # Update status if quantity becomes 0
+        if stock_item.quantity == 0:
+            stock_item.status = 'outofstock'
+        else:
+            stock_item.status = 'available'
+        
+        await run_in_threadpool(stock_item.save)
+        return True
+    except Stock.DoesNotExist:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Stock item not found for {medicine_name} ({dosage})"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update stock: {str(e)}")
+
 # ---------- Allocate Medicines and Lab Reports (Async Version) ----------
 from asgiref.sync import sync_to_async
-# ---------- Allocate Medicines and Lab Reports (Async Version) ----------
+
 @router.post("/{patient_id}/allocations/", response_model=AllocationResponse)
 async def allocate_medicines(
     patient_id: int,
@@ -1076,7 +1126,16 @@ async def allocate_medicines(
         patient = await sync_to_async(Patient.objects.get)(id=patient_id)
         department = await sync_to_async(lambda: patient.department)()
         allocations = []
-        # 1️⃣ Create all lab reports (if any)
+        
+        # 1️⃣ Validate and update stock for each medicine
+        for med in allocation.medicines:
+            if med.medicine_name and med.dosage and med.quantity:
+                quantity = int(med.quantity) if med.quantity else 0
+                if quantity > 0:
+                    # Check stock availability before creating allocation
+                    await update_stock_quantity(med.medicine_name, med.dosage, quantity, "decrement")
+        
+        # 2️⃣ Create all lab reports (if any)
         created_lab_reports = []
         for lab_type in allocation.lab_test_types or []:
             lab_report = await sync_to_async(LabReport.objects.create)(
@@ -1086,27 +1145,64 @@ async def allocate_medicines(
                 status="pending",
             )
             created_lab_reports.append(lab_report)
+        
         # Prepare IDs and test names
         lab_report_ids_list = [l.id for l in created_lab_reports]
         lab_test_names = [l.test_type for l in created_lab_reports]
         lab_test_str = ", ".join(lab_test_names) if lab_test_names else None
-        # 2️⃣ Create medicine allocations ONLY if there are medicines
-        for med in allocation.medicines or []: # Use 'or []' to handle None
+        
+        # 3️⃣ Create medicine allocations ONLY if there are medicines
+        if allocation.medicines and len(allocation.medicines) > 0:
+            for med in allocation.medicines:
+                medicine_allocation = await sync_to_async(MedicineAllocation.objects.create)(
+                    patient=patient,
+                    staff=current_staff,
+                    department=department,
+                    medicine_name=med.medicine_name,
+                    dosage=med.dosage,
+                    quantity=med.quantity,
+                    frequency=med.frequency,
+                    duration=med.duration,
+                    time=med.time,
+                    allocation_date=date.today(),
+                    lab_report_ids=lab_report_ids_list if created_lab_reports else None,
+                )
+                # ✅ ADD NOTIFICATION HERE
+                await NotificationService.send_medicine_allocated(medicine_allocation)
+                allocations.append(
+                    MedicineAllocationResponse(
+                        id=medicine_allocation.id,
+                        patient_name=patient.full_name,
+                        patient_id=patient.patient_unique_id,
+                        doctor=current_staff.full_name,
+                        allocation_date=medicine_allocation.allocation_date.strftime("%d-%m-%Y"),
+                        medicine_name=medicine_allocation.medicine_name,
+                        dosage=medicine_allocation.dosage,
+                        duration=medicine_allocation.duration,
+                        quantity=medicine_allocation.quantity,
+                        frequency=medicine_allocation.frequency,
+                        time=medicine_allocation.time,
+                        lab_report_ids=lab_report_ids_list if created_lab_reports else None,
+                        lab_test_types=lab_test_str,
+                    )
+                )
+        
+        # 4️⃣ Handle case where only lab reports are created (no medicines)
+        # Create a dummy medicine allocation entry with empty medicine name
+        if (not allocation.medicines or len(allocation.medicines) == 0) and created_lab_reports:
             medicine_allocation = await sync_to_async(MedicineAllocation.objects.create)(
                 patient=patient,
                 staff=current_staff,
                 department=department,
-                medicine_name=med.medicine_name,
-                dosage=med.dosage,
-                quantity=med.quantity,
-                frequency=med.frequency,
-                duration=med.duration,
-                time=med.time,
+                medicine_name="",  # Empty medicine name
+                dosage="",
+                quantity=None,
+                frequency=None,
+                duration="",
+                time=None,
                 allocation_date=date.today(),
-                lab_report_ids=lab_report_ids_list if created_lab_reports else None, # Only link if lab reports exist
+                lab_report_ids=lab_report_ids_list,
             )
-            # ✅ ADD NOTIFICATION HERE
-            await NotificationService.send_medicine_allocated(medicine_allocation)
             allocations.append(
                 MedicineAllocationResponse(
                     id=medicine_allocation.id,
@@ -1114,22 +1210,17 @@ async def allocate_medicines(
                     patient_id=patient.patient_unique_id,
                     doctor=current_staff.full_name,
                     allocation_date=medicine_allocation.allocation_date.strftime("%d-%m-%Y"),
-                    medicine_name=medicine_allocation.medicine_name,
-                    dosage=medicine_allocation.dosage,
-                    duration=medicine_allocation.duration,
-                    quantity=medicine_allocation.quantity,
-                    frequency=medicine_allocation.frequency,
-                    time=medicine_allocation.time,
-                    lab_report_ids=lab_report_ids_list if created_lab_reports else None,
+                    medicine_name="Lab Test Only",
+                    dosage="",
+                    duration="",
+                    quantity=None,
+                    frequency=None,
+                    time=None,
+                    lab_report_ids=lab_report_ids_list,
                     lab_test_types=lab_test_str,
                 )
             )
-        # 3️⃣ Handle case where only lab reports are created (no medicines)
-        # Return empty medicine list but indicate lab reports were created
-        if not allocation.medicines and created_lab_reports:
-            # Return empty list for medicines but we can add a message
-            # Or you could create a different response model
-            pass
+        
         return AllocationResponse(medicines=allocations)
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -1137,7 +1228,7 @@ async def allocate_medicines(
         import traceback
         print("ERROR TRACEBACK:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
-# ---------- Fetch Medicine Allocation History ----------
+
 # ---------- Fetch Medicine Allocation History ----------
 @router.get("/{patient_id}/medicine-allocations/", response_model=List[MedicineAllocationResponse])
 def get_medicine_allocations(patient_id: int):
@@ -1186,6 +1277,7 @@ def get_medicine_allocations(patient_id: int):
         import traceback
         print("ERROR TRACEBACK:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
 # ---------- Update Medicine Allocation ----------
 @router.put("/{patient_id}/medicine-allocations/{allocation_id}/", response_model=MedicineAllocationResponse)
 async def update_medicine_allocation(
@@ -1199,6 +1291,26 @@ async def update_medicine_allocation(
         allocation = await sync_to_async(MedicineAllocation.objects.select_related("patient", "staff").get)(
             id=allocation_id, patient__id=patient_id
         )
+        
+        # If medicine name or dosage changed, handle stock adjustment
+        old_quantity = int(allocation.quantity) if allocation.quantity else 0
+        new_quantity = int(medicine_data.quantity) if medicine_data.quantity else 0
+        
+        if (allocation.medicine_name != medicine_data.medicine_name or 
+            allocation.dosage != medicine_data.dosage or
+            old_quantity != new_quantity):
+            
+            # Restore old stock if there was a previous allocation
+            if allocation.medicine_name and allocation.dosage and old_quantity > 0:
+                try:
+                    await update_stock_quantity(allocation.medicine_name, allocation.dosage, old_quantity, "increment")
+                except HTTPException:
+                    pass  # If stock item doesn't exist anymore, continue
+            
+            # Deduct new stock
+            if medicine_data.medicine_name and medicine_data.dosage and new_quantity > 0:
+                await update_stock_quantity(medicine_data.medicine_name, medicine_data.dosage, new_quantity, "decrement")
+        
         # Update fields
         allocation.medicine_name = medicine_data.medicine_name
         allocation.dosage = medicine_data.dosage
@@ -1210,6 +1322,7 @@ async def update_medicine_allocation(
         await sync_to_async(allocation.save)()
         # ✅ ADD NOTIFICATION HERE
         await NotificationService.send_medicine_updated(allocation)
+        
         # Convert lab_report_ids to list[int]
         lab_report_ids_list = []
         if allocation.lab_report_ids:
@@ -1219,6 +1332,7 @@ async def update_medicine_allocation(
                 lab_report_ids_list = [int(x) for x in allocation.lab_report_ids if x]
             else:
                 lab_report_ids_list = []
+        
         # Rebuild lab test names
         lab_test_types = None
         if lab_report_ids_list:
@@ -1226,6 +1340,7 @@ async def update_medicine_allocation(
                 LabReport.objects.filter(id__in=lab_report_ids_list).values_list("test_type", flat=True)
             )
             lab_test_types = ", ".join(tests) if tests else None
+        
         return MedicineAllocationResponse(
             id=allocation.id,
             patient_name=allocation.patient.full_name,
@@ -1247,6 +1362,7 @@ async def update_medicine_allocation(
         import traceback
         print("UPDATE ERROR TRACEBACK:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
 # ---------- Delete Medicine Allocation ----------
 @router.delete("/{patient_id}/medicine-allocations/{allocation_id}/")
 async def delete_medicine_allocation(patient_id: int, allocation_id: int):
@@ -1266,11 +1382,21 @@ async def delete_medicine_allocation(patient_id: int, allocation_id: int):
         }
       
         lab_report_ids = allocation.lab_report_ids
+        
+        # Restore stock if medicine was allocated
+        if allocation.medicine_name and allocation.dosage and allocation.quantity:
+            try:
+                quantity = int(allocation.quantity) if allocation.quantity else 0
+                if quantity > 0:
+                    await update_stock_quantity(allocation.medicine_name, allocation.dosage, quantity, "increment")
+            except HTTPException:
+                pass  # If stock item doesn't exist, continue
       
         # Delete the allocation
         await sync_to_async(allocation.delete)()
         # ✅ ADD NOTIFICATION HERE
         await NotificationService.send_medicine_deleted(allocation_data)
+        
         # Delete lab reports only if not linked elsewhere
         if lab_report_ids:
             ids = lab_report_ids if isinstance(lab_report_ids, list) else [int(x) for x in lab_report_ids.split(",") if x]
@@ -1291,6 +1417,102 @@ async def delete_medicine_allocation(patient_id: int, allocation_id: int):
         raise HTTPException(status_code=404, detail="Medicine allocation not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# ---------- Get available medicines from stock ----------
+@router.get("/available-medicines/")
+async def get_available_medicines():
+    """
+    Returns list of available medicines with their dosages from stock
+    """
+    try:
+        # Get all available stock items with quantity > 0
+        stock_items = await sync_to_async(list)(
+            Stock.objects.filter(
+                status='available',
+                quantity__gt=0
+            ).values(
+                'product_name', 'dosage', 'quantity', 'item_code'
+            ).order_by('product_name', 'dosage')
+        )
+        
+        # Group by product_name
+        medicine_map = {}
+        for item in stock_items:
+            name = item['product_name']
+            dosage = item['dosage'] or "Not Specified"
+            quantity = item['quantity']
+            item_code = item['item_code']
+            
+            if name not in medicine_map:
+                medicine_map[name] = {
+                    "name": name,
+                    "item_code": item_code,
+                    "dosages": []
+                }
+            
+            # Add dosage with available quantity
+            medicine_map[name]["dosages"].append({
+                "dosage": dosage,
+                "available_quantity": quantity
+            })
+        
+        # Convert to list and sort
+        result = []
+        for name, data in medicine_map.items():
+            # Sort dosages
+            data["dosages"].sort(key=lambda x: x["dosage"])
+            result.append(data)
+        
+        # Sort by medicine name
+        result.sort(key=lambda x: x["name"].lower())
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------- Get stock data for frontend ----------
+@router.get("/stock/list")
+async def get_stock_list():
+    """
+    Returns all stock items for the medicine allocation dropdown
+    """
+    try:
+        stock_items = await sync_to_async(list)(
+            Stock.objects.filter(
+                status='available'
+            ).values(
+                'id', 'product_name', 'dosage', 'quantity', 
+                'batch_number', 'item_code', 'unit_price'
+            ).order_by('product_name', 'dosage')
+        )
+        return stock_items
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------- Get available stock ----------
+@router.get("/available/")
+def get_available_stock():
+    stock = Stock.objects.filter(
+        status="available", quantity__gt=0
+    ).values(
+        "id", "product_name", "dosage", "quantity", "batch_number", "item_code"
+    )
+    return list(stock)
+
+@router.get("/medicine-by-code/{item_code}")
+async def get_medicine_by_code(
+    item_code: str = Path(..., description="Medicine item code (e.g., P001, M123)")
+):
+    try:
+        stock_item = await sync_to_async(Stock.objects.get)(item_code=item_code)
+        return {
+            "drug_name": stock_item.product_name,
+            "rack_no": getattr(stock_item, "rack_no", ""),
+            "shelf_no": getattr(stock_item, "shelf_no", ""),
+            "unit_price": float(stock_item.unit_price or 0),
+        }
+    except Stock.DoesNotExist:
+        raise HTTPException(status_code=404, detail=f"Medicine with code '{item_code}' not found")
+
 # ---------- Edit Patient ----------
 @router.put("/{patient_id}/edit")
 async def edit_patient(
@@ -1418,6 +1640,7 @@ async def edit_patient(
         raise HTTPException(status_code=404, detail="Staff not found")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Update failed: {str(e)}")
+
 # ---------- List Patients ----------
 @router.get("/edit")
 async def list_patients():
@@ -1460,37 +1683,52 @@ def get_patient_diagnoses(patient_id: int):
         import traceback
         print("DIAGNOSES ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+
 # --------------------------------------------------------------
 # 2. PRESCRIPTIONS
 # --------------------------------------------------------------
 @router.get("/{patient_id}/prescriptions/", response_model=List[dict])
 def get_patient_prescriptions(patient_id: int):
     try:
-        # Filter out allocations with empty/null medicine_name
         allocs = MedicineAllocation.objects.filter(
             patient__id=patient_id,
             medicine_name__isnull=False
         ).exclude(
             medicine_name__exact=''
         ).values(
-            "allocation_date", "medicine_name", "dosage", "quantity", "frequency", "time"
+            "allocation_date",
+            "medicine_name",
+            "dosage",
+            "quantity",
+            "frequency",
+            "time"
         )
-      
+
         return [
             {
                 "date": a["allocation_date"].strftime("%d %b %Y") if a["allocation_date"] else "—",
                 "prescription": a["medicine_name"],
-                "dosage": f"{a['dosage']} {a['quantity'] or ''}".strip(),
-                "timing": f"{a['frequency'] or ''} {a['time'] or ''}".strip(),
+
+                # ✅ SEPARATE FIELDS
+                "dosage": a["dosage"] or "—",
+                "quantity": a["quantity"] or "—",
+
+                "frequency": a["frequency"] or "—",
+                "timing": a["time"] or "—",
+
                 "status": "Completed",
             }
             for a in allocs
         ]
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
 # Add these imports at the top of your FastAPI router
 from HMS_backend.models import HospitalInvoiceHistory, PharmacyInvoiceHistory, PharmacyInvoiceItem
 from django.shortcuts import get_object_or_404
+
 # Add these endpoints to your medicine_allocation.py router
 # --------------------------------------------------------------
 # 4. HOSPITAL INVOICES
@@ -1550,6 +1788,8 @@ def get_patient_hospital_invoices(patient_id: int):
         import traceback
         print("HOSPITAL INVOICES ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    
+
 # --------------------------------------------------------------
 # 5. PHARMACY INVOICES
 # --------------------------------------------------------------
@@ -1615,6 +1855,8 @@ def get_patient_pharmacy_invoices(patient_id: int):
         import traceback
         print("PHARMACY INVOICES ERROR:", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
+    
+
 # --------------------------------------------------------------
 # 6. ALL INVOICES (Combined) - FINAL FIXED VERSION
 # --------------------------------------------------------------
@@ -1771,34 +2013,58 @@ def get_patient_all_invoices(patient_id: int):
 @router.get("/{patient_id}/test-reports/", response_model=List[dict])
 def get_patient_test_reports(patient_id: int):
     try:
-        reports = LabReport.objects.filter(patient__id=patient_id).values(
-            "id", "test_type", "department", "status", "created_at"
+        reports = LabReport.objects.filter(
+            patient__id=patient_id
+        ).values(
+            "id",
+            "order_id",
+            "test_type",
+            "department",
+            "status",
+            "created_at",
+            "file_path"
         )
-        lab_dict = {r["id"]: r for r in reports}
-        # Get referenced IDs from allocations
+
+        # Find lab reports referenced via medicine allocation
         referenced = set()
-        for alloc in MedicineAllocation.objects.filter(patient__id=patient_id).values("lab_report_ids"):
+        for alloc in MedicineAllocation.objects.filter(
+            patient__id=patient_id
+        ).values("lab_report_ids"):
             if alloc["lab_report_ids"]:
                 if isinstance(alloc["lab_report_ids"], list):
                     referenced.update(alloc["lab_report_ids"])
                 else:
-                    ids = [int(x) for x in alloc["lab_report_ids"].split(",") if x.strip()]
+                    ids = [
+                        int(x)
+                        for x in alloc["lab_report_ids"].split(",")
+                        if x.strip().isdigit()
+                    ]
                     referenced.update(ids)
+
         result = []
         for r in reports:
-            source = "Medicine Allocation" if r["id"] in referenced else "Independent"
             result.append({
-                "source": source,
+                # ✅ REQUIRED FOR FRONTEND
+                "reportId": r["id"],
+                "orderId": r["order_id"],
+                "hasReport": bool(r["file_path"]),
+
+                # UI fields
+                "source": "Medicine Allocation" if r["id"] in referenced else "Independent",
                 "dateTime": r["created_at"].strftime("%Y-%m-%d %I:%M %p") if r["created_at"] else "—",
                 "month": r["created_at"].strftime("%B") if r["created_at"] else "—",
                 "testType": r["test_type"],
                 "department": r["department"] or "General",
                 "status": r["status"].capitalize(),
             })
+
+        # Sort latest first
         result.sort(key=lambda x: x["dateTime"], reverse=True)
         return result
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
   
 @router.get("/departments/", response_model=List[str])
 def get_departments():

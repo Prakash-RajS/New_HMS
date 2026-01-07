@@ -222,12 +222,10 @@
 #     )
 
 # main.py
-# --------------------------------------------------------------
-# 1. Django must be configured **first**, before any Django models are imported
-# --------------------------------------------------------------
-import Fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
-# -------------------------------------------------------------
 
+
+
+import Fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -237,6 +235,8 @@ import json
 from typing import List, Dict, Any
 from datetime import datetime
 import asyncio
+from django.db import close_old_connections
+from fastapi import FastAPI, Request
 
 # Import WebSocket service
 from Fastapi_app.services.websocket_service import manager, notify_clients
@@ -250,7 +250,7 @@ from Fastapi_app.routers import (
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
     pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing, hospital_billing,
-    dashboard
+    dashboard, treatment_charges, laboratory
 )
 
 @asynccontextmanager
@@ -319,6 +319,8 @@ os.makedirs(HOSPITALBILLING_DIR, exist_ok=True)
 # Mount the static files directory so invoices can be served/downloaded
 app.mount("/invoices_generator", StaticFiles(directory=HOSPITALBILLING_DIR), name="invoices_generator")
 app.mount("/Fastapi_app/Staff_documents", StaticFiles(directory="Fastapi_app/Staff_documents"), name="staff_docs")
+
+app.mount("/uploads", StaticFiles(directory="Fastapi_app/uploads"), name="uploads")
 # ==================== HEALTH CHECK ====================
 @app.get("/")
 async def root():
@@ -350,7 +352,12 @@ async def websocket_status():
             for data in manager.connection_data.values()
         ]
     }
-
+@app.middleware("http")
+async def django_db_lifecycle(request: Request, call_next):
+    close_old_connections()
+    response = await call_next(request)
+    close_old_connections()
+    return response
 # ==================== WEBSOCKET ENDPOINT ====================
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -414,6 +421,8 @@ app.include_router(notifications.router)
 app.include_router(invoice_pharmacy_billing.router)
 app.include_router(hospital_billing.router)
 app.include_router(dashboard.router)
+app.include_router(treatment_charges.router)
+app.include_router(laboratory.router)
 
 # Make notify_clients available to routers
 app.state.notify_clients = notify_clients
@@ -427,3 +436,6 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+    
+
+

@@ -41,6 +41,7 @@ import DoctorNurseProfile from "./pages/Doctor/DoctorNurseProfile.jsx";
 import ViewProfile from "./pages/Doctor/ViewProfiles.jsx";
 import MedicineAllocation from "./pages/Doctor/MedicineAllocation.jsx";
 import LaboratoryReports from "./pages/Clinical_Resources/Laboratory/LabReport.jsx";
+import Laboratory from "./pages/Clinical_Resources/Laboratory/Laboratory.jsx";
 import BloodBank from "./pages/Clinical_Resources/ClinicalReport/BloodBank/BloodBank.jsx";
 import Billing from "./pages/Billing/Billing.jsx";
 import BillingPreview from "./pages/Billing/BillingPreview.jsx";
@@ -54,6 +55,7 @@ import {
   PermissionProvider,
   PermissionContext,
 } from "./components/PermissionContext";
+import TreatmentCharges from "./pages/Patients/TreatmentCharges.jsx";
 
 // -------------------- Permission Gate for Access Denied --------------------
 const PermissionGate = ({ moduleKey, children }) => {
@@ -96,6 +98,7 @@ const FirstPermittedPage = () => {
       "patients_view",
       "patients_create",
       "patients_profile",
+      "treatment_charges",
       "medicine_allocation",
       "bed_management",
       "room_management",
@@ -103,6 +106,7 @@ const FirstPermittedPage = () => {
       "pharmacy_inventory",
       "pharmacy_billing",
       "doctors_manage",
+      "laboratory_manage",
       "lab_reports",
       "blood_bank",
       "ambulance",
@@ -116,6 +120,7 @@ const FirstPermittedPage = () => {
       appointments: "/appointments",
       patients_view: "/patients/ipd-opd",
       patients_create: "/patients/new-registration",
+      treatment_charges : "/patients/treatment-charges",
       patients_profile: "/patients/profile",
       medicine_allocation: "/Doctors-Nurse/MedicineAllocation",
       bed_management: "/Administration/BedList",
@@ -125,6 +130,7 @@ const FirstPermittedPage = () => {
       pharmacy_billing: "/Pharmacy/Bill",
       doctors_manage: "/Doctors-Nurse/DoctorNurseProfile",
       lab_reports: "/ClinicalResources/Laboratory/LaboratoryReports",
+      laboratory_manage: "/ClinicalResources/Laboratory/Laboratory",  
       blood_bank: "/ClinicalResources/ClinicalReports/BloodBank",
       ambulance: "/ClinicalResources/EmergencyServices/Ambulance",
       billing: "/Billing",
@@ -294,6 +300,16 @@ function AppContent({ contentRef }) {
                 </ProtectedRoute>
               }
             />
+            <Route
+  path="/patients/treatment-charges"
+  element={
+    <ProtectedRoute>
+      <PermissionGate moduleKey="treatment_charges">
+        <TreatmentCharges />
+      </PermissionGate>
+    </ProtectedRoute>
+  }
+/>
 
             {/* Administration */}
             <Route
@@ -462,6 +478,17 @@ function AppContent({ contentRef }) {
                 </ProtectedRoute>
               }
             />
+            <Route
+  path="/ClinicalResources/Laboratory/Laboratory"
+  element={
+    <ProtectedRoute>
+      <PermissionGate moduleKey="laboratory_manage">
+        <Laboratory />
+      </PermissionGate>
+    </ProtectedRoute>
+  }
+/>
+
 
             {/* Billing */}
             <Route

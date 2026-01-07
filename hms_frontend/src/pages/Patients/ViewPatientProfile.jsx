@@ -905,7 +905,7 @@
 //   );
 // }
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -924,6 +924,8 @@ import {
   Ruler,
   Thermometer,
   History,
+  Eye,
+  Download,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
@@ -932,56 +934,50 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("Diagnosis");
+  const [activeTab, setActiveTab] = useState("Prescription");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [testReports, setTestReports] = useState([]);
   const [invoices, setInvoices] = useState([]);
-  const [history, setHistory] = useState([]); // NEW: History data
+  const [history, setHistory] = useState([]);
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPrescriptionPage, setCurrentPrescriptionPage] = useState(1);
   const [currentTestPage, setCurrentTestPage] = useState(1);
-  const [currentHistoryPage, setCurrentHistoryPage] = useState(1); // NEW: History pagination
+  const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
   const itemsPerPage = 5;
-  
+
   // Filters
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  
+
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
-  
+
   // Responsive state
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
-  const isTablet = windowWidth >= 768 && windowWidth < 1024;
-  const isSmallDesktop = windowWidth >= 1024 && windowWidth < 1320;
-  const isLargeDesktop = windowWidth >= 1320;
 
-  // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await axios.get(
-          `${API_BASE}/medicine_allocation/departments/`
-        );
+        const res = await axios.get(`${API_BASE}/medicine_allocation/departments/`);
         setDepartments(["All", ...res.data]);
       } catch (err) {
         console.error("Failed to load departments", err);
@@ -1006,10 +1002,10 @@ export default function ViewPatientProfile() {
     fetchPatient();
   }, [patient_id]);
 
-  // Fetch All Data including Invoices and History
+  // Fetch All Tab Data
   useEffect(() => {
     if (!patient) return;
-    
+
     const fetchTabData = async () => {
       setDataLoading(true);
       try {
@@ -1018,21 +1014,19 @@ export default function ViewPatientProfile() {
           axios.get(`${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`),
           axios.get(`${API_BASE}/medicine_allocation/${patient_id}/test-reports/`),
           axios.get(`${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`),
-          axios.get(`${API_BASE}/patients/${patient_id}/history?page=1&limit=20`) // NEW: Fetch history
+          axios.get(`${API_BASE}/patients/${patient_id}/history?page=1&limit=20`),
         ]);
-        
+
         setDiagnoses(diagRes.data || []);
         setPrescriptions(presRes.data || []);
         setTestReports(testRes.data || []);
         setInvoices(invRes.data || []);
-        setHistory(histRes.data?.history || []); // NEW: Set history data
-        
-        // Auto-select latest invoice
+        setHistory(histRes.data?.history || []);
+
         if (invRes.data.length > 0) {
           setSelectedInvoiceIndex(0);
         }
-        
-        // Reset pagination to first page on data load
+
         setCurrentPage(1);
         setCurrentPrescriptionPage(1);
         setCurrentTestPage(1);
@@ -1043,7 +1037,7 @@ export default function ViewPatientProfile() {
         setDataLoading(false);
       }
     };
-    
+
     fetchTabData();
   }, [patient, patient_id]);
 
@@ -1052,13 +1046,46 @@ export default function ViewPatientProfile() {
     setCurrentTestPage(1);
   }, [selectedMonth, selectedDepartment, selectedStatus]);
 
+  // Helper: Extract filename from report path
+  const extractFilenameFromPath = (filePath) => {
+    if (!filePath) return null;
+    const parts = filePath.split("/");
+    return parts[parts.length - 1];
+  };
+
+  // View report in new tab
+  const handleViewReport = (reportPath) => {
+    if (!reportPath) return;
+    const url = `${API_BASE}${reportPath}`;
+    window.open(url, "_blank");
+  };
+
+  // Download report
+  const handleDownloadReport = async (reportPath, patientName = "", testType = "") => {
+    if (!reportPath) return;
+    try {
+      const filename = extractFilenameFromPath(reportPath);
+      if (!filename) return;
+
+      const downloadUrl = `${API_BASE}/labreports/download/${filename}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `Lab_Report_${patientName || "Patient"}_${testType || "Test"}_${filename}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading report:", error);
+    }
+  };
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#0EFF7B] mb-4"></div>
       </div>
     );
-   
+
   if (!patient)
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
@@ -1066,55 +1093,33 @@ export default function ViewPatientProfile() {
       </div>
     );
 
-  // Pagination Helpers
-  const paginate = (items, page) =>
-    items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  
+  // Pagination helpers
+  const paginate = (items, page) => items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
-  
+
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
-  const currentHistory = paginate(history, currentHistoryPage); // NEW: Paginated history
-  
+  const currentHistory = paginate(history, currentHistoryPage);
+
   const filteredTests = testReports.filter(
     (t) =>
       (selectedMonth === "All" || t.month === selectedMonth) &&
       (selectedDepartment === "All" || t.department === selectedDepartment) &&
       (selectedStatus === "All" || t.status === selectedStatus)
   );
-  
+
   const currentTests = paginate(filteredTests, currentTestPage);
   const currentInvoice = invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
 
-  // Dynamic Vitals Data
+  // Vitals Data
   const vitalsData = [
-    {
-      icon: HeartPulse,
-      label: "Blood Pressure",
-      value: patient.blood_pressure || "—",
-      unit: "mmHg",
-    },
-    {
-      icon: Scale,
-      label: "Weight",
-      value: patient.weight_in_kg ? patient.weight_in_kg.toString() : "—",
-      unit: "kg",
-    },
-    {
-      icon: Ruler,
-      label: "Height",
-      value: patient.height_in_cm ? patient.height_in_cm.toString() : "—",
-      unit: "cm",
-    },
-    {
-      icon: Thermometer,
-      label: "Temperature",
-      value: patient.body_temperature ? patient.body_temperature.toString() : "—",
-      unit: "°C",
-    },
+    { icon: HeartPulse, label: "Blood Pressure", value: patient.blood_pressure || "—", unit: "mmHg" },
+    { icon: Scale, label: "Weight", value: patient.weight_in_kg?.toString() || "—", unit: "kg" },
+    { icon: Ruler, label: "Height", value: patient.height_in_cm?.toString() || "—", unit: "cm" },
+    { icon: Thermometer, label: "Temperature", value: patient.body_temperature?.toString() || "—", unit: "°C" },
   ];
 
-  // Reusable Listbox Component
+  // Reusable Filter Listbox
   const FilterListbox = ({ value, onChange, options, label }) => (
     <Listbox value={value} onChange={onChange}>
       <div className="relative w-full sm:w-[164px]">
@@ -1128,11 +1133,7 @@ export default function ViewPatientProfile() {
               key={opt}
               value={opt}
               className={({ active }) =>
-                `cursor-pointer select-none py-2 px-4 text-sm ${
-                  active
-                    ? "bg-[#0EFF7B1A] text-[#08994A]"
-                    : "text-black dark:text-white"
-                }`
+                `cursor-pointer select-none py-2 px-4 text-sm ${active ? "bg-[#0EFF7B1A] text-[#08994A]" : "text-black dark:text-white"}`
               }
             >
               {opt}
@@ -1143,7 +1144,7 @@ export default function ViewPatientProfile() {
     </Listbox>
   );
 
-  // Responsive Table Component
+  // Responsive Table
   const ResponsiveTable = ({ children, headers, mobileData }) => {
     if (isMobile) {
       return (
@@ -1161,19 +1162,17 @@ export default function ViewPatientProfile() {
         </div>
       );
     }
-   
+
     return (
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="min-w-full inline-block align-middle">
-          <table className="min-w-full">
-            {children}
-          </table>
+          <table className="min-w-full">{children}</table>
         </div>
       </div>
     );
   };
 
-  // Mobile Navigation
+  // Mobile Tabs
   const MobileTabs = () => (
     <div className="md:hidden">
       <button
@@ -1183,15 +1182,15 @@ export default function ViewPatientProfile() {
         <span>{activeTab}</span>
         {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
-     
+
       {mobileMenuOpen && (
         <div className="bg-gray-100 dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
           {[
-            { name: "Diagnosis", icon: ClipboardList },
+            // { name: "Diagnosis", icon: ClipboardList },
             { name: "Prescription", icon: FileText },
             { name: "Invoice", icon: Receipt },
             { name: "Test Reports", icon: TestTube2 },
-            { name: "History", icon: History }, // NEW: History tab
+            { name: "History", icon: History },
           ].map(({ name, icon: Icon }) => (
             <button
               key={name}
@@ -1200,9 +1199,7 @@ export default function ViewPatientProfile() {
                 setMobileMenuOpen(false);
               }}
               className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
-                activeTab === name
-                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                activeTab === name ? "bg-[#0EFF7B]/10 text-[#0EFF7B]" : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
             >
               <Icon size={20} />
@@ -1216,77 +1213,30 @@ export default function ViewPatientProfile() {
 
   return (
     <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
-      {/* Gradient Background */}
-      <div
-        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-          zIndex: 0,
-        }}
-      />
-     
-      {/* Gradient Border - FIXED for responsiveness */}
-      <div
-        className="absolute inset-0 rounded-[10px] pointer-events-none"
-        style={{
-          background:
-            "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-          WebkitMask:
-            "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-          padding: "2px",
-          zIndex: 0,
-        }}
-      />
-      
+      {/* Gradient Background & Border */}
+      <div className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden" style={{ background: "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)", zIndex: 0 }} />
+      <div className="absolute inset-0 rounded-[10px] pointer-events-none" style={{ background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", padding: "2px", zIndex: 0 }} />
+
       {/* Back Button */}
       <button
-        onClick={() => {
-          if (window.history.state && window.history.state.idx > 0) {
-            navigate(-1);
-          } else {
-            navigate("/patients");
-          }
-        }}
+        onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate("/patients"))}
         className="flex mt-4 items-center gap-2 w-[92px] h-[40px] rounded-[8px] px-3 border-b-[2px] border-[#0EFF7B] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition-transform hover:scale-105 mb-6"
-        style={{
-          background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-        }}
+        style={{ background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)" }}
       >
-        <ArrowLeft size={18} />
-        Back
+        <ArrowLeft size={18} /> Back
       </button>
-      
-      {/* Profile Card - FIXED WIDTH ISSUE */}
-      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-gray-100 dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
-        {/* Avatar Section */}
-        <div className="w-full lg:w-auto flex flex-col items-center mb-2 lg:mb-0 lg:mr-8">
+
+      {/* Profile Card */}
+      <div className="relative mb-6 sm:mb-8 w-full bg-gray-100 dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden z-10">
+        <div className="w-full lg:w-auto flex flex-col items-center mb-4 lg:mb-0 lg:mr-8">
           <div className="w-[80px] h-[80px] sm:w-[94px] sm:h-[94px] rounded-full overflow-hidden bg-gray-200 border-2 border-[#0EFF7B]">
-            <img
-              src={patient.photo_url || "/default-avatar.png"}
-              alt={patient.full_name}
-              className="w-full h-full object-cover"
-            />
+            <img src={patient.photo_url || "/default-avatar.png"} alt={patient.full_name} className="w-full h-full object-cover" />
           </div>
-          <span className="text-[#08994A] dark:text-[#0EFF7B] text-[18px] font-medium mt-2">
-            {patient.full_name}
-          </span>
-          <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">
-            ID: {patient.patient_unique_id}
-          </span>
-          <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">
-            {patient.email_address || "—"}
-          </span>
+          <span className="text-[#08994A] dark:text-[#0EFF7B] text-[18px] font-medium mt-2">{patient.full_name}</span>
+          <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">ID: {patient.patient_unique_id}</span>
+          <span className="text-[14px] text-gray-600 dark:text-[#A0A0A0]">{patient.email_address || "—"}</span>
         </div>
-        
-        {/* Vertical Separator - Only on large screens */}
-        {isLargeDesktop && (
-          <div className="hidden lg:block w-[1px] h-[240px] bg-gray-300 dark:bg-[#A0A0A0] mr-8" />
-        )}
-        
-        {/* Info Grid - Responsive */}
+
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 lg:mt-0">
           {[
             { label: "Gender", value: patient.gender },
@@ -1301,81 +1251,56 @@ export default function ViewPatientProfile() {
             { label: "Consultation type", value: patient.consultation_type },
           ].map((item, i) => (
             <div key={i} className="p-2 sm:p-3">
-              <p className="text-[14px] sm:text-[16px] text-[#0EFF7B] font-semibold mb-1">
-                {item.label}
-              </p>
-              <p className="text-[12px] sm:text-[14px] text-black dark:text-white truncate">
-                {item.value || "—"}
-              </p>
+              <p className="text-[14px] sm:text-[16px] text-[#0EFF7B] font-semibold mb-1">{item.label}</p>
+              <p className="text-[12px] sm:text-[14px] text-black dark:text-white truncate">{item.value || "—"}</p>
             </div>
           ))}
         </div>
       </div>
-      
-      {/* Vitals Section */}
-<div className="mb-6 sm:mb-8 relative z-10">
-  <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
-    Patient Current Vitals
-  </h1>
-  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {vitalsData.map((vital, i) => (
-      <div
-        key={i}
-        className="w-full h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
-        style={{
-          backgroundColor: "rgba(14, 255, 123, 0.02)",
-        }}
-      >
-        <vital.icon
-          className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]"
-        />
-        <div className="flex flex-col justify-center items-end space-y-1">
-          <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-800 dark:text-white font-medium">
-            {vital.label}
-          </span>
-          <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
-            {vital.value}
-            {vital.value !== "—" && (
-              <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-600 dark:text-white font-normal ml-1">
-                {vital.unit}
-              </span>
-            )}
-          </span>
+
+      {/* Vitals */}
+      <div className="mb-6 sm:mb-8 relative z-10">
+        <h1 className="text-black dark:text-white text-xl font-semibold mb-4">Patient Current Vitals</h1>
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {vitalsData.map((vital, i) => (
+            <div
+              key={i}
+              className="w-full h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+              style={{ backgroundColor: "rgba(14, 255, 123, 0.02)" }}
+            >
+              <vital.icon className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]" />
+              <div className="flex flex-col justify-center items-end space-y-1">
+                <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-800 dark:text-white font-medium">{vital.label}</span>
+                <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
+                  {vital.value}
+                  {vital.value !== "—" && <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-gray-600 dark:text-white font-normal ml-1">{vital.unit}</span>}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-    ))}
-  </div>
-</div>
-      
-      {/* Main Tabs Container - FIXED WIDTH ISSUE */}
+
+      {/* Main Tabs Container */}
       <div className="w-full bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-gray-100 dark:bg-transparent overflow-visible relative z-10">
-        {/* Mobile Navigation */}
         <MobileTabs />
-        
-        {/* Desktop Tabs */}
+
         <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
           <div className="flex justify-start sm:justify-center min-w-max">
             {[
-              { name: "Diagnosis", icon: ClipboardList },
+              // { name: "Diagnosis", icon: ClipboardList },
               { name: "Prescription", icon: FileText },
               { name: "Invoice", icon: Receipt },
               { name: "Test Reports", icon: TestTube2 },
-              { name: "History", icon: History }, // NEW: History tab
+              { name: "History", icon: History },
             ].map(({ name, icon: Icon }) => (
               <button
                 key={name}
                 onClick={() => setActiveTab(name)}
                 className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
-                  activeTab === name
-                    ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-                    : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
+                  activeTab === name ? "bg-[#0EFF7B14] text-[#0EFF7B]" : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
                 }`}
-                style={{
-                  borderBottom: "1px solid",
-                  borderImageSlice: 1,
-                  borderImageSource:
-                    "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
-                }}
+                style={{ borderBottom: "1px solid", borderImageSlice: 1, borderImageSource: "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)" }}
               >
                 <Icon size={18} className="text-[#0EFF7B]" />
                 <span className="hidden sm:inline">{name}</span>
@@ -1384,42 +1309,24 @@ export default function ViewPatientProfile() {
             ))}
           </div>
         </div>
-        
-        {dataLoading && (
-          <div className="text-center py-8 text-gray-600 dark:text-gray-400">
-            Loading records...
-          </div>
-        )}
-        
-        {/* === DIAGNOSIS TAB === */}
-        {activeTab === "Diagnosis" && !dataLoading && (
+
+        {dataLoading && <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading records...</div>}
+
+        {/* DIAGNOSIS TAB */}
+        {/* {activeTab === "Diagnosis" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
-              Patient's diagnosis information.
-            </p>
+            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">Patient's diagnosis information.</p>
             {diagnoses.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No diagnoses found
-              </p>
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">No diagnoses found</p>
             ) : (
               <>
                 <ResponsiveTable
                   headers={["Report Type", "Date", "Department", "Status"]}
-                  mobileData={currentDiagnoses.map(d => [
+                  mobileData={currentDiagnoses.map((d) => [
                     d.reportType,
                     d.date,
                     d.department,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        d.status === "Completed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : d.status === "Pending"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {d.status}
-                    </span>
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${d.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : d.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>{d.status}</span>,
                   ])}
                 >
                   <thead>
@@ -1432,23 +1339,12 @@ export default function ViewPatientProfile() {
                   </thead>
                   <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentDiagnoses.map((d, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
+                      <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
                         <td className="py-3 px-2 sm:px-4">{d.reportType}</td>
                         <td className="py-3 px-2 sm:px-4">{d.date}</td>
                         <td className="py-3 px-2 sm:px-4">{d.department}</td>
                         <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              d.status === "Completed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : d.status === "Pending"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${d.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : d.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>
                             {d.status}
                           </span>
                         </td>
@@ -1457,65 +1353,34 @@ export default function ViewPatientProfile() {
                   </tbody>
                 </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentPage} of {totalPages(diagnoses)}
-                  </div>
+                  <div className="text-sm text-black dark:text-white">Page {currentPage} of {totalPages(diagnoses)}</div>
                   <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentPage(
-                          Math.min(totalPages(diagnoses), currentPage + 1)
-                        )
-                      }
-                      disabled={currentPage === totalPages(diagnoses)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
+                    <button onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronLeft size={12} /></button>
+                    <button onClick={() => setCurrentPage(Math.min(totalPages(diagnoses), currentPage + 1))} disabled={currentPage === totalPages(diagnoses)} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronRight size={12} /></button>
                   </div>
                 </div>
               </>
             )}
           </div>
-        )}
-        
-        {/* === PRESCRIPTION TAB === */}
+        )} */}
+
+        {/* PRESCRIPTION TAB */}
         {activeTab === "Prescription" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
-              Patient's prescription details.
-            </p>
+            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">Patient's prescription details.</p>
             {prescriptions.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No prescriptions found
-              </p>
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">No prescriptions found</p>
             ) : (
               <>
                 <ResponsiveTable
-                  headers={["Date", "Prescription", "Dosage", "Timing", "Status"]}
-                  mobileData={currentPrescriptions.map(p => [
+                  headers={["Date", "Prescription", "Dosage", "Durations", "Timing", "Status"]}
+                  mobileData={currentPrescriptions.map((p) => [
                     p.date,
                     p.prescription,
                     p.dosage,
+                    p.duration,
                     p.timing,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        p.status === "Completed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : p.status === "Pending"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {p.status}
-                    </span>
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${p.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : p.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>{p.status}</span>,
                   ])}
                 >
                   <thead>
@@ -1523,30 +1388,21 @@ export default function ViewPatientProfile() {
                       <th className="py-3 px-2 sm:px-4">Date</th>
                       <th className="py-3 px-2 sm:px-4">Prescription</th>
                       <th className="py-3 px-2 sm:px-4">Dosage</th>
-                      <th className="py-3 px-2 sm:px-4">Timing</th>
+                      <th className="py-3 px-2 sm:px-4">Duration</th>
+                      <th className="py-3 px-2 sm:px-4">Frequency</th>
                       <th className="py-3 px-2 sm:px-4">Status</th>
                     </tr>
                   </thead>
                   <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentPrescriptions.map((p, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
+                      <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
                         <td className="py-3 px-2 sm:px-4">{p.date}</td>
                         <td className="py-3 px-2 sm:px-4">{p.prescription}</td>
                         <td className="py-3 px-2 sm:px-4">{p.dosage}</td>
+                        <td className="py-3 px-2 sm:px-4">{p.duration}</td>
                         <td className="py-3 px-2 sm:px-4">{p.timing}</td>
                         <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              p.status === "Completed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : p.status === "Pending"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${p.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : p.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>
                             {p.status}
                           </span>
                         </td>
@@ -1555,90 +1411,46 @@ export default function ViewPatientProfile() {
                   </tbody>
                 </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentPrescriptionPage} of {totalPages(prescriptions)}
-                  </div>
+                  <div className="text-sm text-black dark:text-white">Page {currentPrescriptionPage} of {totalPages(prescriptions)}</div>
                   <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentPrescriptionPage(Math.max(1, currentPrescriptionPage - 1))}
-                      disabled={currentPrescriptionPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentPrescriptionPage(
-                          Math.min(totalPages(prescriptions), currentPrescriptionPage + 1)
-                        )
-                      }
-                      disabled={currentPrescriptionPage === totalPages(prescriptions)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
+                    <button onClick={() => setCurrentPrescriptionPage(Math.max(1, currentPrescriptionPage - 1))} disabled={currentPrescriptionPage === 1} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronLeft size={12} /></button>
+                    <button onClick={() => setCurrentPrescriptionPage(Math.min(totalPages(prescriptions), currentPrescriptionPage + 1))} disabled={currentPrescriptionPage === totalPages(prescriptions)} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronRight size={12} /></button>
                   </div>
                 </div>
               </>
             )}
           </div>
         )}
-        
-        {/* === INVOICE TAB === */}
+
+        {/* INVOICE TAB */}
         {activeTab === "Invoice" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
             {invoices.length === 0 ? (
-              <p className="text-center py-12 lg:py-20 text-gray-600 dark:text-gray-400 italic text-base lg:text-lg font-medium">
-                No invoices found
-              </p>
+              <p className="text-center py-12 lg:py-20 text-gray-600 dark:text-gray-400 italic text-base lg:text-lg font-medium">No invoices found</p>
             ) : (
               <>
-                {/* Invoice Selector */}
                 <div className="flex justify-center lg:justify-end mb-4 lg:mb-8">
                   <div className="relative w-full lg:min-w-[300px] lg:w-[380px] xl:w-[420px]">
-                    <Listbox
-                      value={selectedInvoiceIndex}
-                      onChange={(value) => setSelectedInvoiceIndex(value)}
-                    >
-                      <Listbox.Button
-                        className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between"
-                      >
+                    <Listbox value={selectedInvoiceIndex} onChange={setSelectedInvoiceIndex}>
+                      <Listbox.Button className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] px-4 lg:px-6 pr-12 font-medium text-sm text-left flex items-center justify-between hover:shadow-[0_0_16px_#0EFF7B50]">
                         <span className="truncate text-xs lg:text-sm">
-                          {invoices.length > 0
-                            ? `${invoices[
-                                selectedInvoiceIndex
-                              ]?.type.toUpperCase()} • ${
-                                invoices[selectedInvoiceIndex]?.invoice_number
-                              } • ${
-                                invoices[selectedInvoiceIndex]?.display_date
-                              }`
-                            : "Select Invoice"}
+                          {invoices[selectedInvoiceIndex]?.type.toUpperCase()} • {invoices[selectedInvoiceIndex]?.invoice_number} • {invoices[selectedInvoiceIndex]?.display_date}
                         </span>
                         <ChevronDown className="absolute right-4 w-5 h-5 text-[#0EFF7B]" />
                       </Listbox.Button>
-                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-gray-100 dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
+                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-white dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl max-h-60 overflow-auto text-sm font-medium py-2">
                         {invoices.map((inv, idx) => (
                           <Listbox.Option
                             key={idx}
                             value={idx}
-                            className={({ active }) =>
-                              `cursor-pointer select-none px-4 lg:px-6 py-3 transition-all duration-200 flex items-center justify-between ${
-                                active
-                                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
-                                  : "text-gray-800 dark:text-gray-200"
-                              }`
-                            }
+                            className={({ active }) => `cursor-pointer select-none px-4 lg:px-6 py-3 ${active ? "bg-[#0EFF7B]/10 text-[#0EFF7B]" : "text-gray-800 dark:text-gray-200"}`}
                           >
                             {({ selected }) => (
                               <>
                                 <span className={`truncate ${selected ? "font-bold" : "font-medium"} text-xs lg:text-sm`}>
                                   {inv.type.toUpperCase()} • {inv.invoice_number} • {inv.display_date}
                                 </span>
-                                {selected && (
-                                  <div className="w-5 h-5 bg-[#0EFF7B] rounded-full flex items-center justify-center flex-shrink-0">
-                                    <div className="w-2 h-2 bg-black rounded-full" />
-                                  </div>
-                                )}
+                                {selected && <div className="w-5 h-5 bg-[#0EFF7B] rounded-full flex items-center justify-center"><div className="w-2 h-2 bg-black rounded-full" /></div>}
                               </>
                             )}
                           </Listbox.Option>
@@ -1647,74 +1459,50 @@ export default function ViewPatientProfile() {
                     </Listbox>
                   </div>
                 </div>
+
                 {currentInvoice && (
                   <>
-                    {/* Invoice Header */}
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-10 gap-4 lg:gap-6">
-                      <div className="w-full lg:w-auto">
-                        <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold text-[#0EFF7B] tracking-tight">
-                          Invoice #{currentInvoice.invoice_number}
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
-                          Issued: {currentInvoice.display_date} • {currentInvoice.type.toUpperCase()} Invoice
-                        </p>
+                      <div>
+                        <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold text-[#0EFF7B] tracking-tight">Invoice #{currentInvoice.invoice_number}</h2>
+                        <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">Issued: {currentInvoice.display_date} • {currentInvoice.type.toUpperCase()} Invoice</p>
                       </div>
                       <div className="bg-[#0EFF7B] text-black px-4 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-bold text-lg lg:text-xl xl:text-2xl shadow-xl w-full lg:w-auto text-center">
                         Total: ${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}
                       </div>
                     </div>
-                    {/* Patient Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-gray-100 dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
+
+                    {/* Patient, Age/Gender, Doctor Info */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
                       <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
-                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">PATIENT</h3>
-                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
-                          {currentInvoice.patient_name || patient.full_name}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          ID: {currentInvoice.patient_id}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
-                          {currentInvoice.patient?.address || patient.address || "—"}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">
-                          {currentInvoice.patient?.phone || patient.phone_number || "—"}
-                        </p>
+                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4">PATIENT</h3>
+                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">{currentInvoice.patient_name || patient.full_name}</p>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">ID: {currentInvoice.patient_id}</p>
+                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">{currentInvoice.patient?.address || patient.address || "—"}</p>
+                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">{currentInvoice.patient?.phone || patient.phone_number || "—"}</p>
                       </div>
                       <div className="text-center space-y-3 lg:space-y-6">
                         <div>
-                          <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                            Age / Gender
-                          </p>
-                          <p className="text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B] mt-1 lg:mt-2">
-                            {patient.age} yrs / {patient.gender}
-                          </p>
+                          <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">Age / Gender</p>
+                          <p className="text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B] mt-1 lg:mt-2">{patient.age} yrs / {patient.gender}</p>
                         </div>
                         {currentInvoice.admission_date && (
                           <div>
-                            <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                              Admission
-                            </p>
-                            <p className="text-sm lg:text-base xl:text-xl font-semibold text-gray-900 dark:text-white mt-1 lg:mt-2">
-                              {currentInvoice.admission_date}
-                            </p>
+                            <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">Admission</p>
+                            <p className="text-sm lg:text-base xl:text-xl font-semibold text-gray-900 dark:text-white mt-1 lg:mt-2">{currentInvoice.admission_date}</p>
                           </div>
                         )}
                       </div>
                       <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
-                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">DOCTOR</h3>
-                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
-                          {currentInvoice.doctor || currentInvoice.doctor_name || "—"}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
-                          {patient.department?.name || "General Medicine"}
-                        </p>
-                        <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
-                          Stacklycare Hospital
-                        </p>
+                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4">DOCTOR</h3>
+                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">{currentInvoice.doctor || currentInvoice.doctor_name || "—"}</p>
+                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">{patient.department?.name || "General Medicine"}</p>
+                        <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">Stacklycare Hospital</p>
                       </div>
                     </div>
+
                     {/* Items Table */}
-                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-gray-100 dark:bg-[#0F0F0F] mb-4 lg:mb-6">
+                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-white dark:bg-[#0F0F0F] mb-4 lg:mb-6">
                       <table className="min-w-full">
                         <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
                           <tr>
@@ -1726,58 +1514,30 @@ export default function ViewPatientProfile() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                          {currentInvoice.items && currentInvoice.items.length > 0 ? (
+                          {currentInvoice.items?.length > 0 ? (
                             currentInvoice.items.map((item, index) => (
                               <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A]">
-                                <td className="py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-700 dark:text-gray-300">
-                                  {index + 1}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 font-medium text-xs lg:text-sm text-gray-900 dark:text-white">
-                                  {item.item || item.drug_name || item.description || "Service Charge"}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-center text-xs lg:text-sm text-gray-800 dark:text-gray-200">
-                                  {item.qty || item.quantity || 1}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm text-gray-800 dark:text-gray-200">
-                                  ${item.price || item.unit_price || "0.00"}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm font-bold text-[#0EFF7B]">
-                                  ${item.total || item.line_total || "0.00"}
-                                </td>
+                                <td className="py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-700 dark:text-gray-300">{index + 1}</td>
+                                <td className="py-3 px-2 lg:px-4 font-medium text-xs lg:text-sm text-gray-900 dark:text-white">{item.item || item.drug_name || item.description || "Service Charge"}</td>
+                                <td className="py-3 px-2 lg:px-4 text-center text-xs lg:text-sm text-gray-800 dark:text-gray-200">{item.qty || item.quantity || 1}</td>
+                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm text-gray-800 dark:text-gray-200">${item.price || item.unit_price || "0.00"}</td>
+                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm font-bold text-[#0EFF7B]">${item.total || item.line_total || "0.00"}</td>
                               </tr>
                             ))
                           ) : (
-                            <tr>
-                              <td colSpan="5" className="text-center py-8 text-gray-500">
-                                No item details available
-                              </td>
-                            </tr>
+                            <tr><td colSpan="5" className="text-center py-8 text-gray-500">No item details available</td></tr>
                           )}
                         </tbody>
                       </table>
                     </div>
-                    {/* Totals Summary */}
+
+                    {/* Totals */}
                     <div className="flex justify-center lg:justify-end">
                       <div className="w-full lg:max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-xl lg:rounded-2xl p-4 lg:p-8 border-2 border-[#0EFF7B]/30 shadow">
                         <div className="space-y-2 lg:space-y-4">
-                          <div className="flex justify-between text-sm lg:text-base">
-                            <span className="font-medium">Subtotal</span>
-                            <span className="font-semibold">${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
-                          </div>
-                         
-                          {currentInvoice.tax_amount > 0 && (
-                            <div className="flex justify-between text-xs lg:text-sm">
-                              <span>Tax ({currentInvoice.tax_percent || 18}%)</span>
-                              <span>${currentInvoice.tax_amount || "0.00"}</span>
-                            </div>
-                          )}
-                         
-                          {currentInvoice.discount_amount > 0 && (
-                            <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium">
-                              <span>Discount</span>
-                              <span>-${currentInvoice.discount_amount || "0.00"}</span>
-                            </div>
-                          )}
+                          <div className="flex justify-between text-sm lg:text-base"><span className="font-medium">Subtotal</span><span className="font-semibold">${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span></div>
+                          {currentInvoice.tax_amount > 0 && <div className="flex justify-between text-xs lg:text-sm"><span>Tax ({currentInvoice.tax_percent || 18}%)</span><span>${currentInvoice.tax_amount || "0.00"}</span></div>}
+                          {currentInvoice.discount_amount > 0 && <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium"><span>Discount</span><span>-${currentInvoice.discount_amount || "0.00"}</span></div>}
                           <div className="border-t-2 border-[#0EFF7B]/50 pt-3 lg:pt-6 mt-3 lg:mt-6">
                             <div className="flex justify-between text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B]">
                               <span>Grand Total</span>
@@ -1787,18 +1547,10 @@ export default function ViewPatientProfile() {
                         </div>
                       </div>
                     </div>
-                    {/* Payment Status */}
+
                     <div className="mt-4 lg:mt-10 text-center text-xs lg:text-sm text-gray-600 dark:text-gray-400 space-y-1 lg:space-y-2">
-                      <p>
-                        Payment Method: <strong className="text-gray-900 dark:text-white">
-                          {currentInvoice.payment_method || currentInvoice.payment_mode || "Cash"}
-                        </strong>
-                      </p>
-                      <p>
-                        Status: <strong className="text-green-600 text-sm lg:text-base xl:text-lg font-bold">
-                          {currentInvoice.status || currentInvoice.payment_status || "Paid"}
-                        </strong>
-                      </p>
+                      <p>Payment Method: <strong className="text-gray-900 dark:text-white">{currentInvoice.payment_method || currentInvoice.payment_mode || "Cash"}</strong></p>
+                      <p>Status: <strong className="text-green-600 text-sm lg:text-base xl:text-lg font-bold">{currentInvoice.status || currentInvoice.payment_status || "Paid"}</strong></p>
                     </div>
                   </>
                 )}
@@ -1806,64 +1558,37 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-        
-        {/* === TEST REPORTS TAB === */}
+
+        {/* TEST REPORTS TAB (with View/Download) */}
         {activeTab === "Test Reports" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
-              <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
-                Patients test report information.
-              </p>
+              <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">Patients test report information.</p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
-                <FilterListbox
-                  value={selectedMonth}
-                  onChange={setSelectedMonth}
-                  options={[
-                    "All",
-                    "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December",
-                  ]}
-                  label="Month"
-                />
-                <FilterListbox
-                  value={selectedDepartment}
-                  onChange={setSelectedDepartment}
-                  options={departments}
-                  label="Department"
-                />
-                <FilterListbox
-                  value={selectedStatus}
-                  onChange={setSelectedStatus}
-                  options={["All", "Completed", "Pending", "Cancelled"]}
-                  label="Status"
-                />
+                <FilterListbox value={selectedMonth} onChange={setSelectedMonth} options={["All", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]} label="Month" />
+                <FilterListbox value={selectedDepartment} onChange={setSelectedDepartment} options={departments} label="Department" />
+                <FilterListbox value={selectedStatus} onChange={setSelectedStatus} options={["All", "Completed", "Pending", "Cancelled"]} label="Status" />
               </div>
             </div>
             {filteredTests.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No test reports found
-              </p>
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">No test reports found</p>
             ) : (
               <>
                 <ResponsiveTable
-                  headers={["Source", "Date & Time", "Month", "Test Type", "Department", "Status"]}
-                  mobileData={currentTests.map(t => [
-                    t.source,
+                  headers={["Source", "Date & Time", "Month", "Test Type", "Department", "Status", "Report"]}
+                  mobileData={currentTests.map((t) => [
+                    t.source || "Lab",
                     t.dateTime,
                     t.month,
                     t.testType,
                     t.department,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        t.status === "Completed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : t.status === "Pending"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${t.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : t.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>{t.status}</span>,
+                    t.reportPath ? (
+                      <div className="flex gap-1">
+                        <button onClick={(e) => { e.stopPropagation(); handleViewReport(t.reportPath); }} className="p-1 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"><Eye size={14} className="text-[#08994A] dark:text-[#0EFF7B]" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDownloadReport(t.reportPath, patient.full_name, t.testType); }} className="p-1 rounded-full border border-[#08994A1A] bg-[#08994A1A] hover:bg-[#0cd96822]"><Download size={14} className="text-[#08994A] dark:text-[#0EFF7B]" /></button>
+                      </div>
+                    ) : "No report",
                   ])}
                 >
                   <thead>
@@ -1874,20 +1599,15 @@ export default function ViewPatientProfile() {
                       <th className="py-3 px-2 sm:px-4">Test Type</th>
                       <th className="py-3 px-2 sm:px-4">Department</th>
                       <th className="py-3 px-2 sm:px-4">Status</th>
+                      <th className="py-3 px-2 sm:px-4">Report</th>
                     </tr>
                   </thead>
                   <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
                     {currentTests.map((t, i) => (
                       <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
                         <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                              t.source === "Medicine Allocation"
-                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-                                : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                            }`}
-                          >
-                            {t.source}
+                          <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${t.source === "Medicine Allocation" ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"}`}>
+                            {t.source || "Lab"}
                           </span>
                         </td>
                         <td className="py-3 px-2 sm:px-4">{t.dateTime}</td>
@@ -1895,155 +1615,97 @@ export default function ViewPatientProfile() {
                         <td className="py-3 px-2 sm:px-4">{t.testType}</td>
                         <td className="py-3 px-2 sm:px-4">{t.department}</td>
                         <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              t.status === "Completed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : t.status === "Pending"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${t.status === "Completed" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : t.status === "Pending" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"}`}>
                             {t.status}
                           </span>
+                        </td>
+                        <td className="py-3 px-2 sm:px-4">
+                          {t.reportPath ? (
+                            <div className="flex items-center gap-2">
+                              <div className="relative group">
+                                <button onClick={() => handleViewReport(t.reportPath)} className="flex items-center justify-center w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
+                                  <Eye size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                                </button>
+                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all">View Report</span>
+                              </div>
+                              <div className="relative group">
+                                <button onClick={() => handleDownloadReport(t.reportPath, patient.full_name, t.testType)} className="flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] bg-[#08994A1A] hover:bg-[#0cd96822]">
+                                  <Download size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                                </button>
+                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all">Download Report</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 dark:text-gray-400 text-sm">No report</span>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentTestPage} of {totalPages(filteredTests)}
-                  </div>
+                  <div className="text-sm text-black dark:text-white">Page {currentTestPage} of {totalPages(filteredTests)}</div>
                   <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentTestPage(Math.max(1, currentTestPage - 1))}
-                      disabled={currentTestPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentTestPage(
-                          Math.min(totalPages(filteredTests), currentTestPage + 1)
-                        )
-                      }
-                      disabled={currentTestPage === totalPages(filteredTests)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
+                    <button onClick={() => setCurrentTestPage(Math.max(1, currentTestPage - 1))} disabled={currentTestPage === 1} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronLeft size={12} /></button>
+                    <button onClick={() => setCurrentTestPage(Math.min(totalPages(filteredTests), currentTestPage + 1))} disabled={currentTestPage === totalPages(filteredTests)} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronRight size={12} /></button>
                   </div>
                 </div>
               </>
             )}
           </div>
         )}
-        
-       {/* === HISTORY TAB === */}
-{activeTab === "History" && !dataLoading && (
-  <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
-      <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
-        Patient's history records showing registration and status changes.
-      </p>
-    </div>
-    {history.length === 0 ? (
-      <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-        No history records found
-      </p>
-    ) : (
-      <>
-        <ResponsiveTable
-          headers={["Doctor", "Department", "Status", "Date & Time"]}
-          mobileData={currentHistory.map((h, idx) => [
-            (currentHistoryPage - 1) * itemsPerPage + idx + 1,
-            h.doctor,
-            h.department,
-            <span
-              className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                h.status?.toLowerCase() === "active"
-                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                  : h.status?.toLowerCase() === "pending"
-                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              }`}
-            >
-              {h.status}
-            </span>,
-            h.created_at
-          ])}
-        >
-          <thead>
-            <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-              {/* <th className="py-3 px-2 sm:px-4">#</th> */}
-              <th className="py-3 px-2 sm:px-4">Doctor</th>
-              <th className="py-3 px-2 sm:px-4">Department</th>
-              <th className="py-3 px-2 sm:px-4">Status</th>
-              <th className="py-3 px-2 sm:px-4">Date & Time</th>
-            </tr>
-          </thead>
-          <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-            {currentHistory.map((h, i) => (
-              <tr
-                key={i}
-                className="border-b border-gray-200 dark:border-gray-700 "
-              >
-                {/* <td className="py-3 px-2 sm:px-4">{(currentHistoryPage - 1) * itemsPerPage + i + 1}</td> */}
-                <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>
-                <td className="py-3 px-2 sm:px-4">{h.department || "—"}</td>
-                <td className="py-3 px-2 sm:px-4">
-                  <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                      h.status?.toLowerCase() === "active"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                        : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : h.status?.toLowerCase() === "pending"
-                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                        : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    }`}
-                  >
-                    {h.status}
-                  </span>
-                </td>
-                <td className="py-3 px-2 sm:px-4">{h.created_at}</td>
-              </tr>
-            ))}
-          </tbody>
-        </ResponsiveTable>
-        <div className="flex items-center mt-4 gap-x-4">
-          <div className="text-sm text-black dark:text-white">
-            Page {currentHistoryPage} of {totalPages(history)}
+
+        {/* HISTORY TAB */}
+        {activeTab === "History" && !dataLoading && (
+          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">Patient's history records showing registration and status changes.</p>
+            {history.length === 0 ? (
+              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">No history records found</p>
+            ) : (
+              <>
+                <ResponsiveTable
+                  headers={["Doctor", "Department", "Status", "Date & Time"]}
+                  mobileData={currentHistory.map((h, idx) => [
+                    h.doctor || "—",
+                    h.department || "—",
+                    <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${h.status?.toLowerCase() === "active" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : (h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged") ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : h.status?.toLowerCase() === "pending" ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"}`}>{h.status}</span>,
+                    h.created_at,
+                  ])}
+                >
+                  <thead>
+                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                      <th className="py-3 px-2 sm:px-4">Doctor</th>
+                      <th className="py-3 px-2 sm:px-4">Department</th>
+                      <th className="py-3 px-2 sm:px-4">Status</th>
+                      <th className="py-3 px-2 sm:px-4">Date & Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+                    {currentHistory.map((h, i) => (
+                      <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
+                        <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>
+                        <td className="py-3 px-2 sm:px-4">{h.department || "—"}</td>
+                        <td className="py-3 px-2 sm:px-4">
+                          <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${h.status?.toLowerCase() === "active" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : (h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged") ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" : h.status?.toLowerCase() === "pending" ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"}`}>
+                            {h.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 sm:px-4">{h.created_at}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </ResponsiveTable>
+                <div className="flex items-center mt-4 gap-x-4">
+                  <div className="text-sm text-black dark:text-white">Page {currentHistoryPage} of {totalPages(history)}</div>
+                  <div className="flex items-center gap-x-2">
+                    <button onClick={() => setCurrentHistoryPage(Math.max(1, currentHistoryPage - 1))} disabled={currentHistoryPage === 1} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronLeft size={12} /></button>
+                    <button onClick={() => setCurrentHistoryPage(Math.min(totalPages(history), currentHistoryPage + 1))} disabled={currentHistoryPage === totalPages(history)} className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"><ChevronRight size={12} /></button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex items-center gap-x-2">
-            <button
-              onClick={() => setCurrentHistoryPage(Math.max(1, currentHistoryPage - 1))}
-              disabled={currentHistoryPage === 1}
-              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <button
-              onClick={() =>
-                setCurrentHistoryPage(
-                  Math.min(totalPages(history), currentHistoryPage + 1)
-                )
-              }
-              disabled={currentHistoryPage === totalPages(history)}
-              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-            >
-              <ChevronRight size={12} />
-            </button>
-          </div>
-        </div>
-      </>
-    )}
-  </div>
-)}
+        )}
       </div>
     </div>
   );

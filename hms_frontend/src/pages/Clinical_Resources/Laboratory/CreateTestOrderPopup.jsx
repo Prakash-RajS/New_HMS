@@ -15,10 +15,31 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const [errors, setErrors] = useState({});
   const [patients, setPatients] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [testTypes, setTestTypes] = useState([]);
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [patientsLoading, setPatientsLoading] = useState(false);
+  const [testTypesLoading, setTestTypesLoading] = useState(false);
 
-   const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  // Fetch test types from API
+  const fetchTestTypes = async () => {
+    setTestTypesLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/labreports/test-types`);
+      if (!response.ok) throw new Error("Failed to fetch test types");
+      
+      const data = await response.json();
+      console.log("Fetched test types:", data.test_types);
+      setTestTypes(data.test_types || []);
+    } catch (error) {
+      console.error("Error fetching test types:", error);
+      errorToast("Failed to load test types");
+      setTestTypes([]);
+    } finally {
+      setTestTypesLoading(false);
+    }
+  };
 
   // Fetch departments from API
   const fetchDepartments = async () => {
@@ -67,6 +88,9 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
 
         // Fetch departments
         await fetchDepartments();
+        
+        // Fetch test types
+        await fetchTestTypes();
       } catch (err) {
         console.error("Failed to fetch data:", err);
         errorToast("Failed to load data");
@@ -133,6 +157,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
     isPatientName = false,
     isPatientId = false,
     isDepartment = false,
+    isTestType = false,
     required = false,
     loading = false,
   }) => {
@@ -143,6 +168,8 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
         (dept) => String(dept.id) === String(value)
       );
       displayValue = selectedDept?.name || value || "Select";
+    } else if (isTestType) {
+      displayValue = value || "Select test type";
     } else {
       displayValue = value || "Select";
     }
@@ -180,6 +207,11 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
               setFormData({
                 ...formData,
                 department_id: val,
+              });
+            } else if (isTestType) {
+              setFormData({
+                ...formData,
+                testType: val,
               });
             } else {
               onChange(val);
@@ -224,24 +256,44 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
                 ) : (
                   options.map((option, idx) => {
                     // For departments, show name but store id
-                    const optionValue = isDepartment ? option.id : option;
-                    const optionLabel = isDepartment ? option.name : option;
-
-                    return (
-                      <Listbox.Option
-                        key={idx}
-                        value={optionValue}
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-3 text-sm rounded-md ${
-                            active
-                              ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
-                              : "text-black dark:text-white"
-                          } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        {optionLabel}
-                      </Listbox.Option>
-                    );
+                    if (isDepartment) {
+                      const optionValue = option.id;
+                      const optionLabel = option.name;
+                      return (
+                        <Listbox.Option
+                          key={idx}
+                          value={optionValue}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm rounded-md ${
+                              active
+                                ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
+                                : "text-black dark:text-white"
+                            } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          {optionLabel}
+                        </Listbox.Option>
+                      );
+                    } else {
+                      // For test types and other simple arrays
+                      const optionValue = option;
+                      const optionLabel = option;
+                      return (
+                        <Listbox.Option
+                          key={idx}
+                          value={optionValue}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm rounded-md ${
+                              active
+                                ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
+                                : "text-black dark:text-white"
+                            } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          {optionLabel}
+                        </Listbox.Option>
+                      );
+                    }
                   })
                 )}
               </Listbox.Options>
@@ -281,7 +333,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
           </div>
 
           {/* Loading State */}
-          {patientsLoading ? (
+          {patientsLoading || testTypesLoading ? (
             <div className="flex justify-center items-center h-40">
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-[#0EFF7B]" />
@@ -327,43 +379,25 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
                   loading={departmentsLoading}
                 />
 
-                {/* Test Type */}
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Test Type<span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    name="testType"
-                    value={formData.testType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, testType: e.target.value })
-                    }
-                    placeholder="e.g., X-ray, MRI, Blood Test"
-                    disabled={patientsLoading}
-                    className={`w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border ${
-                      patientsLoading
-                        ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50 dark:border-[#3A3A3A] dark:bg-gray-800"
-                        : "border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
-                    } text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none`}
-                  />
-                  {errors.testType && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.testType}
-                    </p>
-                  )}
-                </div>
+                {/* Test Type Dropdown */}
+                <Dropdown
+                  label="Test Type"
+                  value={formData.testType}
+                  options={testTypes}
+                  error={errors.testType}
+                  isTestType={true}
+                  required={true}
+                  loading={testTypesLoading}
+                />
               </div>
 
               {/* Buttons */}
               <div className="flex justify-center gap-4 mt-8">
                 <button
                   onClick={onClose}
-                  disabled={patientsLoading}
+                  disabled={patientsLoading || testTypesLoading}
                   className={`w-[144px] h-[32px] rounded-[8px] border ${
-                    patientsLoading
+                    patientsLoading || testTypesLoading
                       ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-50 dark:border-[#3A3A3A] dark:bg-gray-800 text-gray-500"
                       : "border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white"
                   } font-medium text-[14px] leading-[16px]`}
@@ -373,16 +407,16 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={patientsLoading || departmentsLoading}
+                  disabled={patientsLoading || departmentsLoading || testTypesLoading}
                   className={`w-[144px] h-[32px] border-b-[2px] border-[#0EFF7B] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                   text-white font-medium text-[14px] leading-[16px] transition ${
-                    patientsLoading || departmentsLoading
+                    patientsLoading || departmentsLoading || testTypesLoading
                       ? "opacity-50 cursor-not-allowed"
                       : "hover:scale-105"
                   }`}
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
-                  {patientsLoading || departmentsLoading
+                  {patientsLoading || departmentsLoading || testTypesLoading
                     ? "Loading..."
                     : "Save Order"}
                 </button>

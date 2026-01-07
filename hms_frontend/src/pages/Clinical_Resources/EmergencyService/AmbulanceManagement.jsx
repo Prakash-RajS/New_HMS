@@ -29,19 +29,11 @@ import EditTripModal from "./EditTrip";
 import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
-const API_BASE =
-  window.location.hostname === "18.119.210.2"
-    ? "http://18.119.210.2:8000/ambulance"
-    : "http://localhost:8000/ambulance";
 
-const WS_URL =
-  window.location.hostname === "18.119.210.2"
-    ? "ws://18.119.210.2:8000/ws"
-    : "ws://localhost:8000/ws";
 
-//const API_BASE = "http://localhost:8000/ambulance";
-//const WS_URL = "ws://localhost:8000/ws";
 
 const AmbulanceManagement = () => {
   // ── STATE ─────────────────────────────────────
@@ -108,8 +100,7 @@ const AmbulanceManagement = () => {
     setConnectionStatus("connecting");
 
     try {
-      ws.current = new WebSocket(WS_URL);
-
+      ws.current = new WebSocket(WS_URL + "/ws");
       ws.current.onopen = () => {
         if (!isMountedRef.current) {
           ws.current?.close();
@@ -439,10 +430,10 @@ const formatMessageType = (type) => {
     setError(null);
     try {
       const [dispatchRes, tripRes, unitRes, patientRes] = await Promise.all([
-        fetch(`${API_BASE}/dispatch`),
-        fetch(`${API_BASE}/trips`),
-        fetch(`${API_BASE}/units`),
-        fetch(`${API_BASE}/patients`),
+        fetch(`${API_BASE}/ambulance/dispatch`),
+        fetch(`${API_BASE}/ambulance/trips`),
+        fetch(`${API_BASE}/ambulance/units`),
+        fetch(`${API_BASE}/ambulance/patients`),
       ]);
 
       if (!dispatchRes.ok || !tripRes.ok || !unitRes.ok || !patientRes.ok)
@@ -588,7 +579,7 @@ const formatMessageType = (type) => {
     try {
       const responses = await Promise.all(
         ids.map((id) =>
-          fetch(`${API_BASE}/${endpoint}/${id}`, { method: "DELETE" })
+          fetch(`${API_BASE}/ambulance/${endpoint}/${id}`, { method: "DELETE" })
         )
       );
 
@@ -660,8 +651,8 @@ const formatMessageType = (type) => {
   const saveDispatch = async (payload) => {
     const method = editingDispatch ? "PUT" : "POST";
     const url = editingDispatch
-      ? `${API_BASE}/dispatch/${editingDispatch.id}`
-      : `${API_BASE}/dispatch`;
+      ? `${API_BASE}/ambulance/dispatch/${editingDispatch.id}`
+      : `${API_BASE}/ambulance/dispatch`;
     try {
       const res = await fetch(url, {
         method,
@@ -684,8 +675,8 @@ const formatMessageType = (type) => {
   const saveTrip = async (payload) => {
     const method = editingTrip ? "PUT" : "POST";
     const url = editingTrip
-      ? `${API_BASE}/trips/${editingTrip.id}`
-      : `${API_BASE}/trips`;
+      ? `${API_BASE}/ambulance/trips/${editingTrip.id}`
+      : `${API_BASE}/ambulance/trips`;
     try {
       const res = await fetch(url, {
         method,
@@ -711,8 +702,8 @@ const formatMessageType = (type) => {
   const saveUnit = async (payload) => {
     const method = editingUnit ? "PUT" : "POST";
     const url = editingUnit
-      ? `${API_BASE}/units/${editingUnit.id}`
-      : `${API_BASE}/units`;
+      ? `${API_BASE}/ambulance/units/${editingUnit.id}`
+      : `${API_BASE}/ambulance/units`;
     try {
       const res = await fetch(url, {
         method,

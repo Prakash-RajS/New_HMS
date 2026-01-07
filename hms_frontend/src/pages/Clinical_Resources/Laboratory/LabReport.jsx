@@ -17,12 +17,11 @@ import {
   Edit,
   Trash2,
   FileText,
+  Eye,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
- const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-//const API = "http://127.0.0.1:8000/labreports";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -30,9 +29,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
     <Listbox value={value || "Select"} onChange={onChange}>
       <div className="relative mt-1 w-[228px]">
         <Listbox.Button
-          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] 
-          bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] 
-          focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#0D0D0D] bg-gray-100 dark:bg-black text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
         >
           {value || "Select"}
           <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -40,8 +37,7 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
           </span>
         </Listbox.Button>
         <Listbox.Options
-          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black 
-          shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scroll"
+          className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] no-scroll"
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
@@ -52,13 +48,11 @@ const Dropdown = ({ label, value, onChange, options, error }) => (
               key={idx}
               value={option.value || option}
               className={({ active, selected }) =>
-                `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
-                ${
+                `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
                   active
                     ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
                     : "text-black dark:text-white"
-                }
-                ${
+                } ${
                   selected
                     ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
                     : ""
@@ -101,11 +95,13 @@ const LabReport = () => {
     department: "",
     testType: "",
     status: "pending",
+    labReportFile: null,
   });
   const [errors, setErrors] = useState({});
   const [testOrders, setTestOrders] = useState([]);
+  const [testTypes, setTestTypes] = useState([]); // Add testTypes state
   const [isLoading, setIsLoading] = useState(false);
-
+  const [testTypesLoading, setTestTypesLoading] = useState(false); // Add loading state
   const itemsPerPage = 15;
 
   // === Status colors ===
@@ -120,6 +116,26 @@ const LabReport = () => {
     pending: "Pending",
     completed: "Completed",
     inprogress: "In Progress",
+  };
+
+  // === Fetch test types from backend ===
+  const fetchTestTypes = async () => {
+    try {
+      setTestTypesLoading(true);
+      const res = await fetch(`${API_BASE}/labreports/test-types`);
+      if (!res.ok) {
+        console.error("Failed to fetch test types:", res.status);
+        return;
+      }
+      const data = await res.json();
+      setTestTypes(data.test_types || []);
+    } catch (err) {
+      console.error("Error loading test types:", err);
+      errorToast("Failed to load test types");
+      setTestTypes([]);
+    } finally {
+      setTestTypesLoading(false);
+    }
   };
 
   // === Fetch lab reports from backend ===
@@ -142,6 +158,7 @@ const LabReport = () => {
         status: item.status,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
+        filePath: item.file_path, // Add file_path from backend
         raw: item,
       }));
       setTestOrders(mapped);
@@ -154,6 +171,7 @@ const LabReport = () => {
 
   useEffect(() => {
     fetchLabReports();
+    fetchTestTypes(); // Fetch test types on component mount
   }, []);
 
   // === API handlers ===
@@ -165,18 +183,15 @@ const LabReport = () => {
         department: formData.department,
         test_type: formData.testType,
       };
-
       const res = await fetch(`${API_BASE}/labreports/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Failed to create lab report");
       }
-
       await fetchLabReports();
       return await res.json();
     } catch (err) {
@@ -187,18 +202,21 @@ const LabReport = () => {
 
   const handleUpdateReport = async (id, formData) => {
     try {
-      const payload = {
-        patient_name: formData.patientName,
-        patient_id: formData.patientId,
-        department: formData.department,
-        test_type: formData.testType,
-        status: formData.status,
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append("patient_name", formData.patientName);
+      formDataToSend.append("patient_id", formData.patientId);
+      formDataToSend.append("department", formData.department);
+      formDataToSend.append("test_type", formData.testType);
+      formDataToSend.append("status", formData.status);
+
+      // Only append file if it exists
+      if (formData.labReportFile && formData.status === "completed") {
+        formDataToSend.append("lab_report_file", formData.labReportFile);
+      }
 
       const res = await fetch(`${API_BASE}/labreports/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: formDataToSend, // Note: Don't set Content-Type header for FormData, browser will set it with boundary
       });
 
       if (!res.ok) {
@@ -213,35 +231,30 @@ const LabReport = () => {
       }
 
       const result = await res.json();
-
       // Refresh list
       await fetchLabReports();
-
       // Success toast
       successToast(`Lab report #${id} updated successfully!`);
-
       return result;
     } catch (err) {
       // Only show error toast — no console.error in production
       errorToast(err.message || "Failed to update lab report");
-
       // Re-throw so caller can handle (e.g. keep modal open)
       throw err;
     }
   };
+
   const handleDeleteReport = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/labreports/${id}`, {
         method: "DELETE",
       });
-
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error("Lab report not found");
         }
         throw new Error("Failed to delete lab report");
       }
-
       // Refresh the list after successful deletion
       await fetchLabReports();
       return true;
@@ -250,6 +263,49 @@ const LabReport = () => {
       throw err;
     }
   };
+
+  // View the lab report in a new tab
+  const handleViewReport = (filePath) => {
+    if (!filePath) {
+      errorToast("No lab report file available yet.");
+      return;
+    }
+    try {
+      const fullUrl = `${API_BASE}${filePath}`; // e.g. http://localhost:8000/uploads/lab_reports/xxx.pdf
+      window.open(fullUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error viewing report:", error);
+      errorToast("Failed to open lab report");
+    }
+  };
+
+  // Download the lab report
+  // Download the lab report
+// Download the lab report - now forces real download
+const handleDownloadReport = (filePath, orderId) => {
+  if (!filePath) {
+    errorToast("No lab report file available to download.");
+    return;
+  }
+
+  try {
+    // Extract just the filename from /uploads/lab_reports/xxx.pdf
+    const filename = filePath.split("/").pop();
+    
+    // Use the new dedicated download endpoint
+    const downloadUrl = `${API_BASE}/labreports/download/${filename}`;
+    
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `Lab_Report_${orderId}.pdf`;  // Suggested filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Error triggering download:", error);
+    errorToast("Failed to download lab report");
+  }
+};
 
   // === Status Counts ===
   const statusCounts = {
@@ -268,17 +324,12 @@ const LabReport = () => {
       order.testType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.orderId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.patientId?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus =
-      filterStatus === "All" || order.status === filterStatus;
-
+    const matchesStatus = filterStatus === "All" || order.status === filterStatus;
     const matchesCategory =
       filterCategory === "All" || order.department === filterCategory;
-
     const matchesDate =
       !filterDate ||
       (order.createdAt && order.createdAt.slice(0, 10) === filterDate);
-
     return matchesSearch && matchesStatus && matchesCategory && matchesDate;
   });
 
@@ -306,11 +357,7 @@ const LabReport = () => {
   };
 
   const clearFilters = () => {
-    setTempFilters({
-      status: "All",
-      category: "All",
-      date: "",
-    });
+    setTempFilters({ status: "All", category: "All", date: "" });
     setFilterStatus("All");
     setFilterCategory("All");
     setFilterDate("");
@@ -353,6 +400,7 @@ const LabReport = () => {
       department: order.department,
       testType: order.testType,
       status: order.status,
+      labReportFile: null,
     });
     setShowEditPopup(true);
   };
@@ -364,10 +412,8 @@ const LabReport = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.patientName.trim())
-      newErrors.patientName = "Patient name is required";
-    if (!formData.patientId.trim())
-      newErrors.patientId = "Patient ID is required";
+    if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
+    if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
     if (!formData.department) newErrors.department = "Department is required";
     if (!formData.testType.trim()) newErrors.testType = "Test type is required";
     if (!formData.status) newErrors.status = "Status is required";
@@ -377,7 +423,6 @@ const LabReport = () => {
 
   const handleSaveEdit = async () => {
     if (!validateForm()) return;
-
     try {
       await handleUpdateReport(selectedOrderForEdit.id, formData);
       setShowEditPopup(false);
@@ -410,10 +455,7 @@ const LabReport = () => {
   ];
 
   return (
-    <div
-      className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col  
-     bg-gray-100 dark:bg-transparent overflow-hidden relative"
-    >
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
       {/* Background gradients */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -423,7 +465,6 @@ const LabReport = () => {
           zIndex: 0,
         }}
       ></div>
-
       <div
         style={{
           position: "absolute",
@@ -448,26 +489,17 @@ const LabReport = () => {
             Laboratory & Radiology
           </h1>
           <p className="text-sm text-[#A0A0A0] mt-1">
-            Manage lab reports, test orders, and radiology requests in one
-            place.
+            Manage lab reports, test orders, and radiology requests in one place.
           </p>
         </div>
         <button
-  onClick={() => setShowCreatePopup(true)}
-  className="w-[200px] h-[40px] flex items-center justify-center gap-2
-  bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
-  border-b-[2px] border-[#0EFF7B]
-  shadow-[0px_2px_12px_0px_#00000040]
-  hover:opacity-90
-  text-white font-semibold
-  px-4 py-2 rounded-[8px]
-  transition duration-300 ease-in-out"
-  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
->
-  <Plus className="w-5 h-5 text-white dark:text-white" />
-  <span>Create test order</span>
-</button>
-
+          onClick={() => setShowCreatePopup(true)}
+          className="w-[200px] h-[40px] flex items-center justify-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+        >
+          <Plus className="w-5 h-5 text-white dark:text-white" />
+          <span>Create test order</span>
+        </button>
       </div>
 
       {/* Status Counts */}
@@ -481,9 +513,7 @@ const LabReport = () => {
               {statusCounts.total}
             </span>
           </div>
-
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
               Pending
@@ -492,9 +522,7 @@ const LabReport = () => {
               {statusCounts.pending}
             </span>
           </div>
-
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
               In Progress
@@ -503,9 +531,7 @@ const LabReport = () => {
               {statusCounts.inprogress}
             </span>
           </div>
-
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700 hidden md:block"></div>
-
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-[Helvetica] text-gray-600 dark:text-[#A0A0A0]">
               Completed
@@ -517,109 +543,13 @@ const LabReport = () => {
         </div>
       </div>
 
-      {/* Action Buttons */}
-      {/* <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
-        <div className="flex gap-3 flex-wrap md:flex-nowrap">
-          <button
-            className="flex items-center justify-center gap-2 min-w-[164px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Fetch Previous Report
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 min-w-[121px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Integrate PACS
-          </button>
-          <button
-            className="flex items-center justify-center gap-2 min-w-[149px] h-[32px] 
-            px-4 py-2 rounded-[4px] 
-            bg-[#0EFF7B33] dark:bg-[#1E1E1E] 
-            text-black dark:text-white text-sm 
-            shadow-[0_0_20px_0_#00000066] 
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] 
-            transition relative"
-          >
-            Test Type Validation
-          </button>
-        </div>
-        <div className="flex items-center gap-6 flex-wrap md:flex-nowrap">
-          <div className="flex items-center gap-2">
-            <span
-              className="text-gray-400"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Year
-            </span>
-            <div className="relative">
-              <select
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className="text-gray-400"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Month
-            </span>
-            <div className="relative">
-              <select
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-                className="appearance-none bg-gray-100 dark:bg-[#0D0D0D] text-black dark:text-white border border-[#08994A] shadow-[0_0_4px_0_#0EFF7B] rounded-md px-4 py-1 pr-8 focus:outline-none"
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {months.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                className="absolute right-2 top-2 text-[#08994A] pointer-events-none"
-              />
-            </div>
-          </div>
-        </div>
-      </div> */}
-
       {/* Recent Test Orders & Clear Filters */}
       <div className="flex justify-between items-center mb-6 relative z-10 flex-wrap gap-4 md:flex-nowrap">
         <h1 className="text-lg font-semibold text-black dark:text-white">
           Recent Test Orders
           <p className="text-sm text-[#A0A0A0] mt-1">List of all test orders</p>
         </h1>
-
-        {(filterStatus !== "All" ||
-          filterCategory !== "All" ||
-          filterDate !== "") && (
+        {(filterStatus !== "All" || filterCategory !== "All" || filterDate !== "") && (
           <button
             onClick={clearFilters}
             className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline flex items-center gap-1"
@@ -646,7 +576,6 @@ const LabReport = () => {
                 {filterCategory === "All" ? "Departments" : filterCategory}
                 <ChevronDown className="absolute right-2 top-2.5 w-4 h-4 pointer-events-none text-[#08994A] dark:text-[#0EFF7B]" />
               </Listbox.Button>
-
               <Listbox.Options className="absolute mt-1 min-w-[180px] rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[50] border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-60 overflow-y-auto">
                 <Listbox.Option
                   value="All"
@@ -664,7 +593,6 @@ const LabReport = () => {
                 >
                   All
                 </Listbox.Option>
-
                 {departments.map((dept, index) => (
                   <Listbox.Option
                     key={index}
@@ -687,7 +615,6 @@ const LabReport = () => {
               </Listbox.Options>
             </Listbox>
           </div>
-
           <div className="flex items-center gap-3 flex-grow md:flex-grow-0">
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
@@ -702,27 +629,19 @@ const LabReport = () => {
                 className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
               />
             </div>
-
             <button
               onClick={openFilterPopup}
               className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
             >
-              <Filter
-                size={18}
-                className="text-[#0EFF7B] dark:text-[#0EFF7B]"
-              />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Filter
+              <Filter size={18} className="text-[#0EFF7B] dark:text-[#0EFF7B]" />
+              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                Filter
               </span>
             </button>
           </div>
         </div>
 
         {/* ✅ Table */}
-        {/* ✅ Alternative Fixed Table */}
         <div className="overflow-x-auto bg-gray-100 dark:bg-black rounded-xl shadow-lg">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-200 dark:bg-[#091810] h-[52px]">
@@ -745,14 +664,17 @@ const LabReport = () => {
                 <th className="py-3 px-4 text-left">Test Type</th>
                 <th className="py-3 px-4 text-left">Status</th>
                 <th className="py-3 px-4 text-left">Created Date</th>
+                <th className="py-3 px-4 text-left">Report</th>
                 <th className="py-3 px-4 text-left">Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {displayedData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                  <td
+                    colSpan={10}
+                    className="py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
                     No data found
                   </td>
                 </tr>
@@ -770,27 +692,21 @@ const LabReport = () => {
                         className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
                       />
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white font-mono">
                       {order.orderId}
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white">
                       {order.patientName}
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white">
                       {order.patientId}
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white">
                       {order.department}
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white">
                       {order.testType}
                     </td>
-
                     <td
                       className={`py-3 px-4 font-medium ${
                         statusColors[order.status]
@@ -798,61 +714,83 @@ const LabReport = () => {
                     >
                       {statusDisplayMap[order.status]}
                     </td>
-
                     <td className="py-3 px-4 text-gray-800 dark:text-white">
                       {order.createdAt
                         ? new Date(order.createdAt).toLocaleDateString()
                         : "N/A"}
                     </td>
-
                     <td className="py-3 px-4">
-  <div className="flex items-center gap-2">
-
-    {/* Edit Button */}
-    <div
-      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
-                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
-                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer 
-                 hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
-      onClick={() => openEditPopup(order)}
-    >
-      <Edit
-        size={18}
-        className="text-[#08994A] dark:text-[#0EFF7B] 
-                   hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-      />
-      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
-    </div>
-
-    {/* Delete Button */}
-    <div
-      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
-                 border border-red-500/20 dark:border-red-500/20 
-                 bg-red-500/10 dark:bg-red-500/10 cursor-pointer 
-                 hover:bg-red-500/20 dark:hover:bg-red-500/20"
-      onClick={() => openDeletePopup(order)}
-    >
-      <Trash2
-        size={18}
-        className="text-red-600 dark:text-red-400 
-                   hover:text-red-700 dark:hover:text-red-300"
-      />
-      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
-    </div>
-
-  </div>
-</td>
-
+                      {order.filePath ? (
+                        <div className="flex items-center gap-2">
+                          {/* View Button */}
+                          <div className="relative group">
+                            <button
+                              onClick={() => handleViewReport(order.filePath)}
+                              className="flex items-center justify-center w-8 h-8 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+                            >
+                              <Eye
+                                size={18}
+                                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                              />
+                            </button>
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                              View Report
+                            </span>
+                          </div>
+                          {/* Download Button */}
+                          <div className="relative group">
+                            <button
+                              onClick={() =>
+                                handleDownloadReport(order.filePath, order.orderId)
+                              }
+                              className="flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
+                            >
+                              <Download
+                                size={18}
+                                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                              />
+                            </button>
+                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                              Download Report
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 dark:text-gray-400 text-sm">
+                          No report
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        {/* Edit Button */}
+                        <div
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
+                          onClick={() => openEditPopup(order)}
+                        >
+                          <Edit
+                            size={18}
+                            className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                          />
+                          <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                            Edit
+                          </span>
+                        </div>
+                        {/* Delete Button */}
+                        <div
+                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-red-500/20 dark:border-red-500/20 bg-red-500/10 dark:bg-red-500/10 cursor-pointer hover:bg-red-500/20 dark:hover:bg-red-500/20"
+                          onClick={() => openDeletePopup(order)}
+                        >
+                          <Trash2
+                            size={18}
+                            className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                          />
+                          <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+                            Delete
+                          </span>
+                        </div>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -901,11 +839,7 @@ const LabReport = () => {
       {/* Filter Popup */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
               className="w-[505px] max-w-[90vw] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -937,7 +871,6 @@ const LabReport = () => {
                   options={["All", ...departments]}
                   className="w-[228px] h-[32px] mt-1"
                 />
-
                 <div>
                   <label
                     className="text-sm text-black dark:text-white"
@@ -962,7 +895,6 @@ const LabReport = () => {
                     />
                   </div>
                 </div>
-
                 <Dropdown
                   label="Status"
                   value={tempFilters.status}
@@ -979,18 +911,13 @@ const LabReport = () => {
                 <button
                   onClick={() => {
                     clearFilters();
-                    setTempFilters({
-                      status: "All",
-                      category: "All",
-                      date: "",
-                    });
+                    setTempFilters({ status: "All", category: "All", date: "" });
                   }}
                   className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Clear
                 </button>
-
                 <button
                   onClick={applyFilters}
                   className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
@@ -1015,11 +942,7 @@ const LabReport = () => {
       {/* Edit Popup */}
       {showEditPopup && selectedOrderForEdit && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div
-            className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-          >
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
               className="w-[505px] max-w-[90vw] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1057,8 +980,7 @@ const LabReport = () => {
                       setFormData({ ...formData, patientName: e.target.value })
                     }
                     placeholder="Enter patient name"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                   {errors.patientName && (
@@ -1083,8 +1005,7 @@ const LabReport = () => {
                       setFormData({ ...formData, patientId: e.target.value })
                     }
                     placeholder="Enter patient ID"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                     style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                   />
                   {errors.patientId && (
@@ -1106,31 +1027,15 @@ const LabReport = () => {
                   className="w-[228px] h-[32px] mt-1"
                 />
 
-                {/* Test Type */}
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Test Type
-                  </label>
-                  <input
-                    name="testType"
-                    value={formData.testType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, testType: e.target.value })
-                    }
-                    placeholder="Enter test type"
-                    className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  />
-                  {errors.testType && (
-                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
-                      {errors.testType}
-                    </p>
-                  )}
-                </div>
+                {/* Test Type Dropdown */}
+                <Dropdown
+                  label="Test Type"
+                  value={formData.testType}
+                  onChange={(val) => setFormData({ ...formData, testType: val })}
+                  options={testTypes}
+                  error={errors.testType}
+                  className="w-[228px] h-[32px] mt-1"
+                />
 
                 {/* Status Dropdown */}
                 <Dropdown
@@ -1141,23 +1046,60 @@ const LabReport = () => {
                   error={errors.status}
                   className="w-[228px] h-[32px] mt-1"
                 />
+
+                {/* Lab Report File Upload - Only show when status is "completed" */}
+                {formData.status === "completed" && (
+                  <div className="col-span-2">
+                    <label
+                      className="text-sm text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      Upload Lab Report
+                    </label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        id="labReportFile"
+                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFormData({
+                              ...formData,
+                              labReportFile: e.target.files[0],
+                            });
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="labReportFile"
+                        className="flex items-center justify-center w-full h-[32px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] transition-colors"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        {formData.labReportFile
+                          ? formData.labReportFile.name
+                          : "Choose file"}
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Buttons */}
               <div className="flex justify-center gap-4 mt-8 flex-wrap md:flex-nowrap">
                 <button
                   onClick={() => setShowEditPopup(false)}
-                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+                  className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Cancel
                 </button>
-
                 <button
                   onClick={handleSaveEdit}
-                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+                  className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
                   style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                 >
                   Update

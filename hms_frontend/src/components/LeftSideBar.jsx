@@ -334,6 +334,12 @@ const menuItems = [
         icon: ClipboardList,
         permission: "patients_profile",
       },
+      {
+      name: "Treatment Charges",
+      path: "/patients/treatment-charges",
+      icon: DollarSign, // Using DollarSign icon for charges
+      permission: "treatment_charges", // Add this permission key
+    },
     ],
   },
 
@@ -366,12 +372,6 @@ const menuItems = [
         icon: UserCog,
         permission: "staff_management",
       },
-      // {
-      //   name: "Bed Management",
-      //   path: "/Administration/BedManagement",
-      //   icon: Bed,
-      //   permission: "bed_management",
-      // },
     ],
   },
 
@@ -445,6 +445,12 @@ const menuItems = [
         icon: BarChart3,
         permission: "lab_reports",
       },
+      {
+      name: "Laboratory Management",
+      path: "/ClinicalResources/Laboratory/Laboratory",
+      icon: Microscope, // Using the Microscope icon for lab management
+      permission: "laboratory_manage",
+    },
       {
         name: "Blood Bank",
         path: "/ClinicalResources/ClinicalReports/BloodBank",

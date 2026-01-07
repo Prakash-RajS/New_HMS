@@ -489,7 +489,7 @@ const BillingManagement = () => {
   };
 
   const handleHospitalViewInvoice = (invoiceId) => {
-    window.open(`${API_BASE}/hospital-billing/pdf/${invoiceId}`, "_blank");
+    window.open(`${API_BASE}/invoices_generator/${invoiceId}.pdf`, "_blank");
   };
 
   const handlePDFDownload = async () => {

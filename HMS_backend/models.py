@@ -624,6 +624,8 @@ class LabReport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    file_path = models.CharField(max_length=500, null=True, blank=True)
+
     class Meta:
         db_table = "lab_reports"
         ordering = ["-created_at"]
@@ -1170,7 +1172,78 @@ class PharmacyInvoiceItem(models.Model):
         return f"{self.drug_name} ({self.item_code})"
     
 # HMS_backend/models.py
+class TreatmentCharge(models.Model):
+    PENDING = "PENDING"
+    BILLED = "BILLED"
+    CANCELLED = "CANCELLED"
 
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (BILLED, "Billed"),
+        (CANCELLED, "Cancelled"),
+    ]
+
+    # visit = models.ForeignKey(Visits,on_delete=models.CASCADE,related_name="charges")
+    patient = models.ForeignKey(Patient,on_delete=models.CASCADE,related_name="treatment_charges")
+    description = models.CharField(max_length=255,help_text="Example: Bed charges, Operation theatre, Doctor consultation")
+
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10,decimal_places=2)
+    amount = models.DecimalField(max_digits=12,decimal_places=2,null=True,blank=True,help_text="Optional. Can be auto-calculated.")
+
+    status = models.CharField(max_length=10,choices=STATUS_CHOICES,default=PENDING)
+
+    hospital_invoice = models.ForeignKey(
+        HospitalInvoiceHistory, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name="treatment_charges"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # Auto-calculate amount if not provided
+        if not self.amount or self.amount == 0:
+            self.amount = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.description} - {self.amount}"
+
+
+class MedicalTest(models.Model):
+    test_type = models.CharField(
+        max_length=100,
+        help_text="Eg: X-Ray, MRI, CT Scan, Blood Test"
+    )
+
+    description = models.TextField(blank=True)
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    duration_minutes = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Approx duration in minutes"
+    )
+
+    status = models.CharField(
+        max_length=50,
+        default="available",
+        help_text="Eg: available, unavailable, maintenance"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.test_name} - {self.test_type}"
 
 
 

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/profile", tags=["User_Profile"])
 # ------------------- JWT Settings -------------------
 SECRET_KEY = "super_secret_123"  # Make sure this matches your auth endpoint
 ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # ------------------- Async Database Operations -------------------
 @sync_to_async
