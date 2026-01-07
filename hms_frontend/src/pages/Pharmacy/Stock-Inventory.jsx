@@ -919,7 +919,7 @@ const StockInventory = () => {
 
   if (loading && inventoryData.length === 0) {
     return (
-      <div className="mt-[80px] mb-4 flex items-center justify-center h-64">
+      <div className=" mb-4 flex items-center justify-center h-64">
         <div className="text-black dark:text-white text-lg">
           Loading stock data...
         </div>

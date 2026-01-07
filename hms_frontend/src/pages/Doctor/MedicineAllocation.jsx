@@ -2509,7 +2509,7 @@ export default function ViewPatientProfile() {
   ), [patientInfo.department, departmentNames, handlePatientFieldChange]);
 
   return (
-    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
+    <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
       {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

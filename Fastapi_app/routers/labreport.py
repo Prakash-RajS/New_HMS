@@ -321,3 +321,75 @@ async def download_lab_report(filename: str):
         media_type="application/octet-stream",  # Forces download
         headers={"Content-Disposition": f"attachment; filename=Lab_Report_{filename}"}
     )
+    
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
+from pathlib import Path
+from django.core.exceptions import ObjectDoesNotExist
+from asgiref.sync import sync_to_async
+
+router = APIRouter(prefix="/labreports", tags=["Lab Reports"])
+
+@router.get("/{report_id}/view")
+async def view_lab_report(report_id: int):
+    try:
+        # Use sync_to_async for Django ORM operations
+        report = await sync_to_async(LabReport.objects.get)(id=report_id)
+        
+        if not report.file_path:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Extract just the filename from the path
+        # Assuming file_path is like "/uploads/lab_reports/filename.ext"
+        filename = report.file_path.split('/')[-1] if '/' in report.file_path else report.file_path
+        
+        # Construct the URL to serve the file
+        # This assumes you have static files mounted at /uploads
+        file_url = f"/uploads/lab_reports/{filename}"
+        return RedirectResponse(url=file_url)
+        
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="Report not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@router.get("/{report_id}/download")
+async def download_lab_report(report_id: int):
+    try:
+        # Use sync_to_async for Django ORM operations
+        report = await sync_to_async(LabReport.objects.get)(id=report_id)
+        
+        if not report.file_path:
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Get the absolute file path
+        # Assuming file_path is stored as relative path like "uploads/lab_reports/filename.ext"
+        if report.file_path.startswith('/'):
+            file_path_str = report.file_path[1:]  # Remove leading slash
+        else:
+            file_path_str = report.file_path
+        
+        file_path = Path(file_path_str)
+        
+        if not file_path.exists():
+            # Try with absolute path
+            base_dir = Path(__file__).resolve().parent.parent
+            file_path = base_dir / file_path_str
+            
+            if not file_path.exists():
+                raise HTTPException(status_code=404, detail="File not found on server")
+        
+        # Clean the test type for filename
+        clean_test_type = report.test_type.replace(' ', '_').replace('/', '_')
+        
+        # Force download
+        return FileResponse(
+            path=file_path,
+            filename=f"Lab_Report_{report_id}_{clean_test_type}{file_path.suffix}",
+            media_type="application/octet-stream"
+        )
+        
+    except ObjectDoesNotExist:
+        raise HTTPException(status_code=404, detail="Report not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")

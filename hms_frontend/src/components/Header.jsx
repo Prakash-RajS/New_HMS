@@ -304,7 +304,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       <header
         className="flex items-center justify-between p-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
         style={{
-          width: `calc(100% - ${isCollapsed ? "120px" : "270px"})`,
+          width: `calc(100% - ${isCollapsed ? "120px" : "220px"})`,
           maxWidth: "2580px",
           position: "fixed",
           left: isCollapsed ? "100px" : "247px",

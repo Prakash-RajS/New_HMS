@@ -163,7 +163,7 @@ const ProfileSection = () => {
 
   /* ==================== RENDER ==================== */
   return (
-    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className=" mb-4 bg-gray-100 dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{

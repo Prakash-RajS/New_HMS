@@ -745,7 +745,7 @@ const handleItemCodeBlur = async (index, value) => {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         {/* Gradient overlays */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

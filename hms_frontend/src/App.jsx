@@ -163,6 +163,7 @@ const FirstPermittedPage = () => {
 };
 
 // -------------------- App Content --------------------
+// Update your AppContent component structure
 function AppContent({ contentRef }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useContext(ThemeContext);
@@ -170,37 +171,44 @@ function AppContent({ contentRef }) {
 
   const token = localStorage.getItem("token");
   const isLoginPage = location.pathname === "/";
-
   const isAuthenticated = !!token;
 
   return (
-    <div
-      className={`flex min-h-screen transition-colors duration-300 
-        ${theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"}`}
-    >
+    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${
+      theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
+    }`}>
+      {/* Fixed header at the top */}
       {isAuthenticated && !isLoginPage && (
         <>
           <GlobalBackgroundText isCollapsed={isCollapsed} />
-          <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+          <Header isCollapsed={isCollapsed} />
         </>
       )}
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex flex-1">
+        {/* Fixed sidebar */}
         {isAuthenticated && !isLoginPage && (
-          <Header isCollapsed={isCollapsed} />
+          <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
         )}
 
-        <div
+        {/* Main content area with proper scroll */}
+        <main
           ref={contentRef}
-          className={`flex-1 p-2 overflow-y-auto overflow-x-hidden transition-all duration-300 ${
+          className={`flex-1 transition-all duration-300 overflow-y-auto ${
             isLoginPage ? "flex items-center justify-center" : ""
           }`}
           style={
             isAuthenticated && !isLoginPage
-              ? { marginLeft: isCollapsed ? "100px" : "240px" }
-              : {}
+              ? { 
+                  marginTop: "72px", // Height of your header
+                  marginLeft: isCollapsed ? "100px" : "240px",
+                  height: "calc(100vh - 72px)" // Full viewport minus header
+                }
+              : { height: "100vh" }
           }
         >
+          <div className="p-4">
+      
           <Routes>
             <Route path="/" element={<Login />} />
 
@@ -537,6 +545,7 @@ function AppContent({ contentRef }) {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>
+        </main>
       </div>
 
       <ToastProvider />

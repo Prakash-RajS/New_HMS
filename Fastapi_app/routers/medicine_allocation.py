@@ -2048,7 +2048,7 @@ def get_patient_test_reports(patient_id: int):
                 "reportId": r["id"],
                 "orderId": r["order_id"],
                 "hasReport": bool(r["file_path"]),
-
+                "filename": str(r["file_path"]).split("/")[-1] if r["file_path"] else None,
                 # UI fields
                 "source": "Medicine Allocation" if r["id"] in referenced else "Independent",
                 "dateTime": r["created_at"].strftime("%Y-%m-%d %I:%M %p") if r["created_at"] else "—",

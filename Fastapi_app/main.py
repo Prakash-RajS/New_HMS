@@ -321,6 +321,7 @@ app.mount("/invoices_generator", StaticFiles(directory=HOSPITALBILLING_DIR), nam
 app.mount("/Fastapi_app/Staff_documents", StaticFiles(directory="Fastapi_app/Staff_documents"), name="staff_docs")
 
 app.mount("/uploads", StaticFiles(directory="Fastapi_app/uploads"), name="uploads")
+
 # ==================== HEALTH CHECK ====================
 @app.get("/")
 async def root():

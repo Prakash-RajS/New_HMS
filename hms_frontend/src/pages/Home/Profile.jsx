@@ -632,7 +632,7 @@ const Profile = () => {
 
   return (
     <>
-      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+      <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-[8px] p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         {/* Gradient & Glow Effects */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
