@@ -1327,7 +1327,7 @@ export default function ViewPatientProfile() {
   );
 
   return (
-    <div className="mt-[80px] mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className=" mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

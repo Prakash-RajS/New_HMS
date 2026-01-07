@@ -161,9 +161,9 @@ const FirstPermittedPage = () => {
     </div>
   );
 };
+// Update your AppContent component structure
 
 // -------------------- App Content --------------------
-// Update your AppContent component structure
 function AppContent({ contentRef }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useContext(ThemeContext);
@@ -173,378 +173,379 @@ function AppContent({ contentRef }) {
   const isLoginPage = location.pathname === "/";
   const isAuthenticated = !!token;
 
+  // Different layout for login page vs authenticated pages
+  if (isLoginPage) {
+    return (
+      <div className={`min-h-screen transition-colors duration-300 ${
+        theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
+      }`}>
+        <Routes>
+          <Route path="/" element={<Login />} />
+        </Routes>
+        <ToastProvider />
+      </div>
+    );
+  }
+
+  // Authenticated layout
   return (
-    <div className={`flex flex-col min-h-screen transition-colors duration-300 ${
+    <div className={`flex min-h-screen transition-colors duration-300 ${
       theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
     }`}>
-      {/* Fixed header at the top */}
-      {isAuthenticated && !isLoginPage && (
-        <>
-          <GlobalBackgroundText isCollapsed={isCollapsed} />
-          <Header isCollapsed={isCollapsed} />
-        </>
-      )}
-
-      <div className="flex flex-1">
-        {/* Fixed sidebar */}
-        {isAuthenticated && !isLoginPage && (
-          <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-        )}
-
-        {/* Main content area with proper scroll */}
+      {/* Sidebar */}
+      <GlobalBackgroundText isCollapsed={isCollapsed} />
+      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      
+      {/* Main content area with header and scrollable content */}
+      <div className="flex flex-col flex-1">
+        {/* Fixed Header */}
+        <Header isCollapsed={isCollapsed} />
+        
+        {/* Scrollable main content */}
         <main
           ref={contentRef}
-          className={`flex-1 transition-all duration-300 overflow-y-auto ${
-            isLoginPage ? "flex items-center justify-center" : ""
-          }`}
-          style={
-            isAuthenticated && !isLoginPage
-              ? { 
-                  marginTop: "72px", // Height of your header
-                  marginLeft: isCollapsed ? "100px" : "240px",
-                  height: "calc(100vh - 72px)" // Full viewport minus header
-                }
-              : { height: "100vh" }
-          }
+          className="flex-1 overflow-y-auto main-content-scrollbar"
+          style={{
+            marginTop: "72px", // Height of header
+            marginLeft: isCollapsed ? "100px" : "240px",
+            height: "calc(100vh - 72px)",
+            width: `calc(100vw - ${isCollapsed ? "100px" : "240px"})`
+          }}
         >
-          <div className="p-4">
-      
-          <Routes>
-            <Route path="/" element={<Login />} />
+          <div className="p-4 min-h-full">
+            <Routes>
+              <Route path="/home" element={<FirstPermittedPage />} />
 
-            <Route path="/home" element={<FirstPermittedPage />} />
+              {/* Dashboard */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="dashboard">
+                      <DashboardComponents />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="dashboard">
-                    <DashboardComponents />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              }
-            />
+              {/* Appointments */}
+              <Route
+                path="/appointments"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="appointments">
+                      <AppointmentList />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/appointments/calendar"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="appointments">
+                      <AppointmentCalendar />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Appointments */}
-            <Route
-              path="/appointments"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="appointments">
-                    <AppointmentList />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/appointments/calendar"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="appointments">
-                    <AppointmentCalendar />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              {/* Patients */}
+              <Route
+                path="/patients/new-registration"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="patients_create">
+                      <NewRegistration />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/ipd-opd"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="patients_view">
+                      <IpdOpd />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/out-patients"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="patients_view">
+                      <AppointmentListOPD />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/profile"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="patients_profile">
+                      <PatientProfile />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/profile/:patient_id"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="patients_profile">
+                      <ViewPatientProfile />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/treatment-charges"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="treatment_charges">
+                      <TreatmentCharges />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Patients */}
-            <Route
-              path="/patients/new-registration"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="patients_create">
-                    <NewRegistration />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/ipd-opd"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="patients_view">
-                    <IpdOpd />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/out-patients"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="patients_view">
-                    <AppointmentListOPD />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/profile"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="patients_profile">
-                    <PatientProfile />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/patients/profile/:patient_id"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="patients_profile">
-                    <ViewPatientProfile />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-  path="/patients/treatment-charges"
-  element={
-    <ProtectedRoute>
-      <PermissionGate moduleKey="treatment_charges">
-        <TreatmentCharges />
-      </PermissionGate>
-    </ProtectedRoute>
-  }
-/>
+              {/* Administration */}
+              <Route
+                path="/Administration/Departments"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="departments">
+                      <DepartmentList />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/RoomManagement"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="room_management">
+                      <RoomManagement />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/BedList"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="bed_management">
+                      <BedList />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/StaffManagement"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="staff_management">
+                      <StaffManagement />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/StaffManagement/surgical"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="staff_management">
+                      <SurgicalDept />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/StaffManagement/supportive"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="staff_management">
+                      <SupportiveDept />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Administration/StaffManagement/administrative"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="staff_management">
+                      <AdministrativeDept />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Administration */}
-            <Route
-              path="/Administration/Departments"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="departments">
-                    <DepartmentList />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/RoomManagement"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="room_management">
-                    <RoomManagement />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/BedList"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="bed_management">
-                    <BedList />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/StaffManagement"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="staff_management">
-                    <StaffManagement />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/StaffManagement/surgical"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="staff_management">
-                    <SurgicalDept />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/StaffManagement/supportive"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="staff_management">
-                    <SupportiveDept />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Administration/StaffManagement/administrative"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="staff_management">
-                    <AdministrativeDept />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              {/* Pharmacy */}
+              <Route
+                path="/Pharmacy/Stock-Inventory"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="pharmacy_inventory">
+                      <StockInventory />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Pharmacy/Bill"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="pharmacy_billing">
+                      <PharmacyBill />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Pharmacy */}
-            <Route
-              path="/Pharmacy/Stock-Inventory"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="pharmacy_inventory">
-                    <StockInventory />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Pharmacy/Bill"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="pharmacy_billing">
-                    <PharmacyBill />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              {/* Doctors / Nurse */}
+              <Route
+                path="/Doctors-Nurse/AddDoctorNurse"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="doctors_manage">
+                      <AddDoctorNurse />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Doctors-Nurse/DoctorNurseProfile"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="doctors_manage">
+                      <DoctorNurseProfile />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Doctors-Nurse/ViewProfile"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="doctors_manage">
+                      <ViewProfile />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/Doctors-Nurse/MedicineAllocation"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="medicine_allocation">
+                      <MedicineAllocation />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Doctors / Nurse */}
-            <Route
-              path="/Doctors-Nurse/AddDoctorNurse"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="doctors_manage">
-                    <AddDoctorNurse />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Doctors-Nurse/DoctorNurseProfile"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="doctors_manage">
-                    <DoctorNurseProfile />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Doctors-Nurse/ViewProfile"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="doctors_manage">
-                    <ViewProfile />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/Doctors-Nurse/MedicineAllocation"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="medicine_allocation">
-                    <MedicineAllocation />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              {/* Clinical Resources */}
+              <Route
+                path="/ClinicalResources/Laboratory/LaboratoryReports"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="lab_reports">
+                      <LaboratoryReports />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ClinicalResources/ClinicalReports/BloodBank"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="blood_bank">
+                      <BloodBank />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ClinicalResources/EmergencyServices/Ambulance"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="ambulance">
+                      <Ambulance />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/ClinicalResources/Laboratory/Laboratory"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="laboratory_manage">
+                      <Laboratory />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Clinical Resources */}
-            <Route
-              path="/ClinicalResources/Laboratory/LaboratoryReports"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="lab_reports">
-                    <LaboratoryReports />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ClinicalResources/ClinicalReports/BloodBank"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="blood_bank">
-                    <BloodBank />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/ClinicalResources/EmergencyServices/Ambulance"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="ambulance">
-                    <Ambulance />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-  path="/ClinicalResources/Laboratory/Laboratory"
-  element={
-    <ProtectedRoute>
-      <PermissionGate moduleKey="laboratory_manage">
-        <Laboratory />
-      </PermissionGate>
-    </ProtectedRoute>
-  }
-/>
+              {/* Billing */}
+              <Route
+                path="/Billing"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="billing">
+                      <Billing />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/BillingPreview"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="billing">
+                      <BillingPreview />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
+              {/* Accounts */}
+              <Route
+                path="/UserSettings"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="user_settings">
+                      <UserSettings />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Billing */}
-            <Route
-              path="/Billing"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="billing">
-                    <Billing />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/BillingPreview"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="billing">
-                    <BillingPreview />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
+              {/* Security Settings */}
+              <Route
+                path="/security"
+                element={
+                  <ProtectedRoute>
+                    <Security />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Accounts */}
-            <Route
-              path="/UserSettings"
-              element={
-                <ProtectedRoute>
-                  <PermissionGate moduleKey="user_settings">
-                    <UserSettings />
-                  </PermissionGate>
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Security Settings - Special: Always allow view, read-only if no edit permission */}
-            <Route
-              path="/security"
-              element={
-                <ProtectedRoute>
-                  <Security />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
         </main>
       </div>
 
@@ -569,3 +570,4 @@ export default function App() {
     </ThemeProvider>
   );
 }
+

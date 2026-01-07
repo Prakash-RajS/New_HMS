@@ -578,7 +578,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
             </div>
 
             {isDropdownOpen && (
-              <div className="absolute right-0 top-full mt-3 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+              <div className="absolute right-[60px] top-full mt-5 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
                 <div className="py-3">
                   <ul>
