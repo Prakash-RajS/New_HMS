@@ -916,7 +916,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
                 type="submit"
                 className={`min-w-[500px] h-[54px] rounded-[8px] font-semibold transition-all duration-300 ${
                   isLoading
-                    ? "bg-gray-500 cursor-not-allowed"
+                    ? "bg-[#0EFF7B80] cursor-not-allowed"
                     : isLightMode
                     ? "bg-[#0EFF7BB2] text-black"
                     : "bg-[#0EFF7B80] text-black"

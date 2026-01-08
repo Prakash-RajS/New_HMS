@@ -120,7 +120,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/donors/add`, {
+      const response = await fetch(`${API_BASE}/api/donors/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
