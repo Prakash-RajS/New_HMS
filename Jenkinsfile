@@ -89,6 +89,7 @@ pipeline {
                           pip install -r requirement.txt
 
                           echo "🚀 Applying Django migrations..."
+                          python manage.py makemigrations
                           python manage.py migrate
 ENDSSH
                     """
