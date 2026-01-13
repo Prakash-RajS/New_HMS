@@ -201,7 +201,12 @@ const StockInventory = () => {
     unit_price: "",
     status: "IN STOCK",
   });
-  const [formErrors, setFormErrors] = useState({});
+  
+  // NEW: Validation states following patient registration pattern
+  const [validationErrors, setValidationErrors] = useState({}); // Format errors (show while typing)
+  const [fieldErrors, setFieldErrors] = useState({}); // Required errors (show only after submission)
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  
   const [inventoryData, setInventoryData] = useState([]);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [isEditFormChanged, setIsEditFormChanged] = useState(false);
@@ -234,17 +239,93 @@ const StockInventory = () => {
     shelf_no: 20,
   };
 
-  // Validation helper functions
+  // Format validation functions (show while typing)
   const validateDosageFormat = (dosage) => {
-    if (!dosage || dosage.trim() === "") return false;
+    if (!dosage || dosage.trim() === "") return "";
     const dosageRegex = /^(\d+(\.\d+)?\s*(mg|g|ml|L|IU|µg|mcg|%)?(\/\d+(\.\d+)?\s*(mg|g|ml|L)?)?)$/i;
-    return dosageRegex.test(dosage.trim());
+    if (!dosageRegex.test(dosage.trim())) {
+      return "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
+    }
+    return "";
   };
 
-  const validateBatchDuplicate = (batchNumber, currentId = null) => {
-    return inventoryData.some(item => 
-      item.batch === batchNumber && item.id !== currentId
+  const validateProductNameFormat = (value) => {
+    if (!value || value.trim() === "") return "";
+    if (value.trim().length < 2) {
+      return "Product name must be at least 2 characters";
+    }
+    return "";
+  };
+
+  const validateBatchNumberFormat = (value, currentId = null) => {
+    if (!value || value.trim() === "") return "";
+    // Check for duplicate batch number (TC_018)
+    const isDuplicate = inventoryData.some(item => 
+      item.batch === value.trim() && item.id !== currentId
     );
+    if (isDuplicate) {
+      return "Batch number already exists";
+    }
+    return "";
+  };
+
+  const validateQuantityFormat = (value) => {
+    if (!value || value.trim() === "") return "";
+    const qty = parseInt(value);
+    if (isNaN(qty)) {
+      return "Quantity must be a valid number";
+    }
+    if (qty < 0) {
+      return "Quantity cannot be negative";
+    }
+    if (qty === 0) {
+      return "Quantity must be greater than 0";
+    }
+    return "";
+  };
+
+  const validateAddQuantityFormat = (value) => {
+    if (!value || value.trim() === "") return "";
+    const qty = parseInt(value);
+    if (isNaN(qty)) {
+      return "Quantity must be a valid number";
+    }
+    if (qty < 0) {
+      return "Quantity cannot be negative";
+    }
+    return "";
+  };
+
+  const validateUnitPriceFormat = (value) => {
+    if (!value || value.trim() === "") return "";
+    const price = parseFloat(value);
+    if (isNaN(price)) {
+      return "Unit price must be a valid number";
+    }
+    if (price < 0) {
+      return "Unit price cannot be negative";
+    }
+    if (price === 0) {
+      return "Unit price must be greater than 0";
+    }
+    return "";
+  };
+
+  // Status-quantity validation
+  const validateStatusFormat = (status, quantity, isEditForm = false, currentQty = 0, addQty = 0) => {
+    if (!status) return "";
+    let totalQty = parseInt(quantity) || 0;
+    if (isEditForm) {
+      totalQty = currentQty + addQty;
+    }
+    
+    if (totalQty > 0 && status === "OUT OF STOCK") {
+      return "Cannot set OUT OF STOCK status when quantity is greater than 0";
+    }
+    if (totalQty === 0 && status !== "OUT OF STOCK") {
+      return "Status must be OUT OF STOCK when quantity is 0";
+    }
+    return "";
   };
 
   // === API Functions ===
@@ -387,145 +468,189 @@ const StockInventory = () => {
     };
   }, [openDropdownId]);
 
-  // Validation function for Add Stock form
-  const validateAddForm = () => {
+  // Required field validation (only for submission)
+  const validateRequiredFields = (formData, isEditForm = false) => {
     const errors = {};
+    const requiredFields = [
+      "product_name",
+      "dosage",
+      "category",
+      "batch_number",
+      "vendor",
+      "vendor_id",
+      "item_code",
+      "rack_no",
+      "shelf_no",
+      "unit_price",
+      "status",
+    ];
 
-    // Required fields with custom messages
-    if (!newStock.product_name.trim())
-      errors.product_name = "Product name is required";
-    
-    // Dosage validation with format check (TC_014)
-    if (!newStock.dosage.trim()) {
-      errors.dosage = "Dosage is required";
-    } else if (!validateDosageFormat(newStock.dosage)) {
-      errors.dosage = "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
-    }
-    
-    if (!newStock.category) errors.category = "Category is required";
-    
-    // Batch number validation with duplicate check (TC_018)
-    if (!newStock.batch_number.trim()) {
-      errors.batch_number = "Batch number is required";
-    } else if (validateBatchDuplicate(newStock.batch_number)) {
-      errors.batch_number = "Batch number already exists";
-    }
-    
-    if (!newStock.vendor.trim()) errors.vendor = "Vendor is required";
-    if (!newStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
-    
-    // Quantity validation for zero (TC_022)
-    if (!newStock.quantity) {
-      errors.quantity = "Quantity is required";
-    } else {
-      const qty = parseInt(newStock.quantity);
-      if (isNaN(qty)) {
-        errors.quantity = "Quantity must be a valid number";
-      } else if (qty <= 0) {
-        errors.quantity = "Quantity must be greater than 0";
-      }
-    }
-    
-    if (!newStock.item_code.trim()) errors.item_code = "Item code is required";
-    if (!newStock.rack_no.trim()) errors.rack_no = "Rack No is required";
-    if (!newStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
-    
-    // Unit price validation for zero (TC_031)
-    if (!newStock.unit_price) {
-      errors.unit_price = "Unit price is required";
-    } else {
-      const price = parseFloat(newStock.unit_price);
-      if (isNaN(price)) {
-        errors.unit_price = "Unit price must be a valid number";
-      } else if (price <= 0) {
-        errors.unit_price = "Unit price must be greater than 0";
-      }
-    }
-    
-    if (!newStock.status) errors.status = "Status is required";
-    
-    // Status-quantity validation (TC_034)
-    const qty = parseInt(newStock.quantity) || 0;
-    if (qty > 0 && newStock.status === "OUT OF STOCK") {
-      errors.status = "Cannot set OUT OF STOCK status when quantity is greater than 0";
-    }
-    if (qty === 0 && newStock.status !== "OUT OF STOCK") {
-      errors.status = "Status must be OUT OF STOCK when quantity is 0";
+    // For add form, include quantity
+    if (!isEditForm) {
+      requiredFields.push("quantity");
     }
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    requiredFields.forEach((field) => {
+      if (
+        !formData[field] ||
+        (typeof formData[field] === "string" && formData[field].trim() === "")
+      ) {
+        const fieldLabel = field
+          .replace(/_/g, " ")
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase());
+        errors[field] = `${fieldLabel} is required`;
+      }
+    });
+
+    return errors;
   };
 
-  // Validation function for Edit Stock form
-  const validateEditForm = () => {
-    const errors = {};
+  // Format validation for all fields (called on submit)
+  const validateAllFormats = (formData, isEditForm = false) => {
+    const formatErrors = {
+      product_name: validateProductNameFormat(formData.product_name),
+      dosage: validateDosageFormat(formData.dosage),
+      batch_number: validateBatchNumberFormat(formData.batch_number, isEditForm ? editStockId : null),
+      quantity: isEditForm ? "" : validateQuantityFormat(formData.quantity),
+      add_quantity: isEditForm ? validateAddQuantityFormat(formData.add_quantity) : "",
+      unit_price: validateUnitPriceFormat(formData.unit_price),
+    };
 
-    // Required fields for edit
-    if (!editStock.product_name.trim())
-      errors.product_name = "Product name is required";
-    
-    // Dosage validation (TC_014)
-    if (!editStock.dosage.trim()) {
-      errors.dosage = "Dosage is required";
-    } else if (!validateDosageFormat(editStock.dosage)) {
-      errors.dosage = "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
-    }
-    
-    if (!editStock.category) errors.category = "Category is required";
-    
-    // Batch number validation with duplicate check (TC_018)
-    if (!editStock.batch_number.trim()) {
-      errors.batch_number = "Batch number is required";
-    } else if (validateBatchDuplicate(editStock.batch_number, editStockId)) {
-      errors.batch_number = "Batch number already exists";
-    }
-    
-    if (!editStock.vendor.trim()) errors.vendor = "Vendor is required";
-    if (!editStock.vendor_id.trim()) errors.vendor_id = "Vendor ID is required";
-    
-    // Validate add_quantity if provided
-    if (editStock.add_quantity) {
-      const addQty = parseInt(editStock.add_quantity);
-      if (isNaN(addQty)) {
-        errors.add_quantity = "Quantity must be a valid number";
-      } else if (addQty < 0) {
-        errors.add_quantity = "Quantity must be non-negative";
-      }
-    }
-
-    if (!editStock.item_code.trim()) errors.item_code = "Item code is required";
-    if (!editStock.rack_no.trim()) errors.rack_no = "Rack No is required";
-    if (!editStock.shelf_no.trim()) errors.shelf_no = "Shelf No is required";
-    
-    // Unit price validation (TC_031)
-    if (!editStock.unit_price) {
-      errors.unit_price = "Unit price is required";
+    // Status validation based on quantity
+    if (isEditForm) {
+      const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
+      const addQty = parseInt(formData.add_quantity) || 0;
+      formatErrors.status = validateStatusFormat(formData.status, "", true, currentQty, addQty);
     } else {
-      const price = parseFloat(editStock.unit_price);
-      if (isNaN(price)) {
-        errors.unit_price = "Unit price must be a valid number";
-      } else if (price <= 0) {
-        errors.unit_price = "Unit price must be greater than 0";
-      }
-    }
-    
-    if (!editStock.status) errors.status = "Status is required";
-    
-    // Status validation based on calculated quantity (TC_034)
-    const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
-    const addQty = parseInt(editStock.add_quantity) || 0;
-    const totalQty = currentQty + addQty;
-    
-    if (totalQty > 0 && editStock.status === "OUT OF STOCK") {
-      errors.status = "Cannot set OUT OF STOCK status when total quantity is greater than 0";
-    }
-    if (totalQty === 0 && editStock.status !== "OUT OF STOCK") {
-      errors.status = "Status must be OUT OF STOCK when total quantity is 0";
+      formatErrors.status = validateStatusFormat(formData.status, formData.quantity);
     }
 
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
+    return formatErrors;
+  };
+
+  // Handle input change for Add form
+  const handleAddInputChange = (field, value) => {
+    setNewStock(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear any existing required field error for this field
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+
+    // Perform real-time format validation
+    let formatError = "";
+    switch (field) {
+      case "product_name":
+        formatError = validateProductNameFormat(value);
+        break;
+      case "dosage":
+        formatError = validateDosageFormat(value);
+        break;
+      case "batch_number":
+        formatError = validateBatchNumberFormat(value);
+        break;
+      case "quantity":
+        formatError = validateQuantityFormat(value);
+        break;
+      case "unit_price":
+        formatError = validateUnitPriceFormat(value);
+        break;
+      case "status":
+        formatError = validateStatusFormat(value, newStock.quantity);
+        break;
+      default:
+        break;
+    }
+
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    } else if (validationErrors[field]) {
+      // Clear format error if validation passes
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle input change for Edit form
+  const handleEditInputChange = (field, value) => {
+    setEditStock(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Check if form has changed (TC_094)
+      if (initialEditForm) {
+        const hasChanged = Object.keys(newData).some(key => {
+          if (key === 'add_quantity') return false;
+          return newData[key] !== initialEditForm[key];
+        });
+        setIsEditFormChanged(hasChanged);
+      }
+      
+      return newData;
+    });
+    
+    // Clear any existing required field error for this field
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+
+    // Perform real-time format validation
+    let formatError = "";
+    switch (field) {
+      case "product_name":
+        formatError = validateProductNameFormat(value);
+        break;
+      case "dosage":
+        formatError = validateDosageFormat(value);
+        break;
+      case "batch_number":
+        formatError = validateBatchNumberFormat(value, editStockId);
+        break;
+      case "add_quantity":
+        formatError = validateAddQuantityFormat(value);
+        break;
+      case "unit_price":
+        formatError = validateUnitPriceFormat(value);
+        break;
+      case "status":
+        const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
+        const addQty = parseInt(editStock.add_quantity) || 0;
+        formatError = validateStatusFormat(value, "", true, currentQty, addQty);
+        break;
+      default:
+        break;
+    }
+
+    if (formatError) {
+      setValidationErrors(prev => ({
+        ...prev,
+        [field]: formatError
+      }));
+    } else if (validationErrors[field]) {
+      // Clear format error if validation passes
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
   };
 
   // Popup handling functions
@@ -557,7 +682,9 @@ const StockInventory = () => {
         unit_price: "",
         status: "IN STOCK",
       });
-      setFormErrors({});
+      setValidationErrors({});
+      setFieldErrors({});
+      setIsSubmitted(false);
     } else if (popupType === 'edit') {
       setShowEditStockPopup(false);
       setEditStock({
@@ -577,33 +704,12 @@ const StockInventory = () => {
       setEditStockId(null);
       setInitialEditForm(null);
       setIsEditFormChanged(false);
-      setFormErrors({});
+      setValidationErrors({});
+      setFieldErrors({});
+      setIsSubmitted(false);
     }
     setShowCloseConfirm(false);
     setPopupToClose(null);
-  };
-
-  // Edit form change handler
-  const handleEditFormChange = (field, value) => {
-    setEditStock(prev => {
-      const newData = { ...prev, [field]: value };
-      
-      // Check if form has changed (TC_094)
-      if (initialEditForm) {
-        const hasChanged = Object.keys(newData).some(key => {
-          if (key === 'add_quantity') return false;
-          return newData[key] !== initialEditForm[key];
-        });
-        setIsEditFormChanged(hasChanged);
-      }
-      
-      return newData;
-    });
-    
-    // Clear error for this field
-    if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: "" }));
-    }
   };
 
   const filteredData = inventoryData.filter((item) => {
@@ -690,99 +796,123 @@ const StockInventory = () => {
 
   const handleAddStock = async (e) => {
     e.preventDefault();
+    setIsSubmitted(true);
 
-    if (!validateAddForm()) {
-      errorToast("Please fill all required fields correctly");
-      return;
-    }
+    // Check required fields
+    const requiredErrors = validateRequiredFields(newStock, false);
+    setFieldErrors(requiredErrors);
 
-    try {
-      const stockData = {
-        product_name: newStock.product_name.trim(),
-        dosage: newStock.dosage.trim(),
-        category: newStock.category,
-        batch_number: newStock.batch_number.trim(),
-        vendor: newStock.vendor.trim(),
-        quantity: parseInt(newStock.quantity) || 0,
-        vendor_id: newStock.vendor_id.trim(),
-        item_code: newStock.item_code.trim(),
-        rack_no: newStock.rack_no.trim(),
-        shelf_no: newStock.shelf_no.trim(),
-        unit_price: parseFloat(newStock.unit_price) || 0,
-        status: mapStatusToBackend(newStock.status),
-      };
-      await addStock(stockData);
-      await fetchStocks();
-      setShowAddStockPopup(false);
-      setNewStock({
-        product_name: "",
-        dosage: "",
-        category: "",
-        batch_number: "",
-        vendor: "",
-        vendor_id: "",
-        quantity: "",
-        item_code: "",
-        rack_no: "",
-        shelf_no: "",
-        unit_price: "",
-        status: "IN STOCK",
-      });
-      setFormErrors({});
-    } catch (err) {
-      console.error("Error adding stock:", err);
-      setError(err.message || "Failed to add stock");
+    // Check format validation
+    const formatErrors = validateAllFormats(newStock, false);
+    setValidationErrors(formatErrors);
+
+    // Only submit if no errors
+    if (Object.keys(requiredErrors).length === 0 && 
+        !Object.values(formatErrors).some(error => error !== '')) {
+      try {
+        const stockData = {
+          product_name: newStock.product_name.trim(),
+          dosage: newStock.dosage.trim(),
+          category: newStock.category,
+          batch_number: newStock.batch_number.trim(),
+          vendor: newStock.vendor.trim(),
+          quantity: parseInt(newStock.quantity) || 0,
+          vendor_id: newStock.vendor_id.trim(),
+          item_code: newStock.item_code.trim(),
+          rack_no: newStock.rack_no.trim(),
+          shelf_no: newStock.shelf_no.trim(),
+          unit_price: parseFloat(newStock.unit_price) || 0,
+          status: mapStatusToBackend(newStock.status),
+        };
+        await addStock(stockData);
+        await fetchStocks();
+        setShowAddStockPopup(false);
+        setNewStock({
+          product_name: "",
+          dosage: "",
+          category: "",
+          batch_number: "",
+          vendor: "",
+          vendor_id: "",
+          quantity: "",
+          item_code: "",
+          rack_no: "",
+          shelf_no: "",
+          unit_price: "",
+          status: "IN STOCK",
+        });
+        setValidationErrors({});
+        setFieldErrors({});
+        setIsSubmitted(false);
+      } catch (err) {
+        console.error("Error adding stock:", err);
+        setError(err.message || "Failed to add stock");
+      }
+    } else {
+      errorToast("Please fix all validation errors before saving.");
     }
   };
 
   const handleEditStock = async (e) => {
     e.preventDefault();
+    setIsSubmitted(true);
 
-    if (!validateEditForm()) {
-      errorToast("Please fill required fields correctly");
-      return;
-    }
+    // Check required fields
+    const requiredErrors = validateRequiredFields(editStock, true);
+    setFieldErrors(requiredErrors);
 
-    try {
-      const stockData = {
-        product_name: editStock.product_name.trim(),
-        dosage: editStock.dosage.trim(),
-        category: editStock.category,
-        batch_number: editStock.batch_number.trim(),
-        vendor: editStock.vendor.trim(),
-        add_quantity: parseInt(editStock.add_quantity) || 0,
-        vendor_id: editStock.vendor_id.trim(),
-        item_code: editStock.item_code.trim(),
-        rack_no: editStock.rack_no.trim(),
-        shelf_no: editStock.shelf_no.trim(),
-        unit_price: parseFloat(editStock.unit_price) || 0,
-        status: mapStatusToBackend(editStock.status),
-      };
+    // Check format validation
+    const formatErrors = validateAllFormats(editStock, true);
+    setValidationErrors(formatErrors);
 
-      await updateStock(editStockId, stockData);
-      await fetchStocks();
-      setShowEditStockPopup(false);
-      setEditStock({
-        product_name: "",
-        dosage: "",
-        category: "",
-        batch_number: "",
-        vendor: "",
-        vendor_id: "",
-        add_quantity: "",
-        item_code: "",
-        rack_no: "",
-        shelf_no: "",
-        unit_price: "",
-        status: "IN STOCK",
-      });
-      setEditStockId(null);
-      setInitialEditForm(null);
-      setIsEditFormChanged(false);
-      setFormErrors({});
-    } catch (err) {
-      console.error("Error updating stock:", err);
-      setError(err.message || "Failed to update stock");
+    // Only submit if no errors
+    if (Object.keys(requiredErrors).length === 0 && 
+        !Object.values(formatErrors).some(error => error !== '')) {
+      try {
+        const stockData = {
+          product_name: editStock.product_name.trim(),
+          dosage: editStock.dosage.trim(),
+          category: editStock.category,
+          batch_number: editStock.batch_number.trim(),
+          vendor: editStock.vendor.trim(),
+          add_quantity: parseInt(editStock.add_quantity) || 0,
+          vendor_id: editStock.vendor_id.trim(),
+          item_code: editStock.item_code.trim(),
+          rack_no: editStock.rack_no.trim(),
+          shelf_no: editStock.shelf_no.trim(),
+          unit_price: parseFloat(editStock.unit_price) || 0,
+          status: mapStatusToBackend(editStock.status),
+        };
+
+        await updateStock(editStockId, stockData);
+        await fetchStocks();
+        setShowEditStockPopup(false);
+        setEditStock({
+          product_name: "",
+          dosage: "",
+          category: "",
+          batch_number: "",
+          vendor: "",
+          vendor_id: "",
+          add_quantity: "",
+          item_code: "",
+          rack_no: "",
+          shelf_no: "",
+          unit_price: "",
+          status: "IN STOCK",
+        });
+        setEditStockId(null);
+        setInitialEditForm(null);
+        setIsEditFormChanged(false);
+        setValidationErrors({});
+        setFieldErrors({});
+        setIsSubmitted(false);
+      } catch (err) {
+        console.error("Error updating stock:", err);
+        setError(err.message || "Failed to update stock");
+      }
+    } else {
+      errorToast("Please fix all validation errors before saving.");
     }
   };
 
@@ -810,7 +940,9 @@ const StockInventory = () => {
     setIsEditFormChanged(false);
     setEditStockId(item.id);
     setShowEditStockPopup(true);
-    setFormErrors({});
+    setValidationErrors({});
+    setFieldErrors({});
+    setIsSubmitted(false);
   };
 
   const handleSort = (column) => {
@@ -889,7 +1021,9 @@ const StockInventory = () => {
               <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          {error && <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>}
+          {error && isSubmitted && (
+            <p className="mt-1 text-[12px] text-[#FF2424]">{error}</p>
+          )}
           <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
             {options.map((option, idx) => (
               <Listbox.Option
@@ -919,7 +1053,7 @@ const StockInventory = () => {
 
   if (loading && inventoryData.length === 0) {
     return (
-      <div className=" mb-4 flex items-center justify-center h-64">
+      <div className="mt-[80px] mb-4 flex items-center justify-center h-64">
         <div className="text-black dark:text-white text-lg">
           Loading stock data...
         </div>
@@ -928,7 +1062,7 @@ const StockInventory = () => {
   }
 
   return (
-    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-[8px] p-4 w-full max-w-[2500px] mx-auto font-[Helvetica] flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
       {/* Error Display */}
       {error && (
         <div className="mb-4 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded">
@@ -985,7 +1119,9 @@ const StockInventory = () => {
         <button
           onClick={() => {
             setShowAddStockPopup(true);
-            setFormErrors({});
+            setValidationErrors({});
+            setFieldErrors({});
+            setIsSubmitted(false);
           }}
           className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
@@ -1810,20 +1946,22 @@ const StockInventory = () => {
                       value={newStock.product_name}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.product_name) {
-                          setNewStock({
-                            ...newStock,
-                            product_name: e.target.value,
-                          });
-                          if (formErrors.product_name)
-                            setFormErrors({ ...formErrors, product_name: "" });
+                          handleAddInputChange('product_name', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.product_name}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.product_name && (
+                    {/* Format validation error - shows while typing */}
+                    {validationErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.product_name}
+                        {validationErrors.product_name}
+                      </p>
+                    )}
+                    {/* Required field error - only shows after submit attempt */}
+                    {isSubmitted && fieldErrors.product_name && !validationErrors.product_name && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.product_name}
                       </p>
                     )}
                     {newStock.product_name.length === FIELD_LIMITS.product_name && (
@@ -1844,17 +1982,20 @@ const StockInventory = () => {
                       value={newStock.dosage}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.dosage) {
-                          setNewStock({ ...newStock, dosage: e.target.value });
-                          if (formErrors.dosage)
-                            setFormErrors({ ...formErrors, dosage: "" });
+                          handleAddInputChange('dosage', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.dosage}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.dosage && (
+                    {validationErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.dosage}
+                        {validationErrors.dosage}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.dosage && !validationErrors.dosage && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.dosage}
                       </p>
                     )}
                     {newStock.dosage.length === FIELD_LIMITS.dosage && (
@@ -1866,18 +2007,47 @@ const StockInventory = () => {
 
                   {/* Category */}
                   <div>
-                    <Dropdown
-                      label="Category"
-                      value={newStock.category}
-                      onChange={(val) => {
-                        setNewStock({ ...newStock, category: val });
-                        if (formErrors.category)
-                          setFormErrors({ ...formErrors, category: "" });
-                      }}
-                      options={categories}
-                      error={formErrors.category}
-                      required={true}
-                    />
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Category<span className="text-[#FF2424]">*</span>
+                    </label>
+                    <Listbox value={newStock.category} onChange={(val) => handleAddInputChange('category', val)}>
+                      <div className="relative mt-1 w-full">
+                        <Listbox.Button
+                          className="w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {newStock.category || "Select Option"}
+                          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                            <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
+                          </span>
+                        </Listbox.Button>
+                        {isSubmitted && fieldErrors.category && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{fieldErrors.category}</p>
+                        )}
+                        <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                          {categories.map((option, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              value={option}
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] ${
+                                  active
+                                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                    : "text-black dark:text-white"
+                                } ${
+                                  selected
+                                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                    : ""
+                                }`
+                              }
+                              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                            >
+                              {option}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
                   </div>
 
                   {/* Batch Number */}
@@ -1891,20 +2061,20 @@ const StockInventory = () => {
                       value={newStock.batch_number}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.batch_number) {
-                          setNewStock({
-                            ...newStock,
-                            batch_number: e.target.value,
-                          });
-                          if (formErrors.batch_number)
-                            setFormErrors({ ...formErrors, batch_number: "" });
+                          handleAddInputChange('batch_number', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.batch_number}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.batch_number && (
+                    {validationErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.batch_number}
+                        {validationErrors.batch_number}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.batch_number && !validationErrors.batch_number && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.batch_number}
                       </p>
                     )}
                     {newStock.batch_number.length === FIELD_LIMITS.batch_number && (
@@ -1925,17 +2095,15 @@ const StockInventory = () => {
                       value={newStock.vendor}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.vendor) {
-                          setNewStock({ ...newStock, vendor: e.target.value });
-                          if (formErrors.vendor)
-                            setFormErrors({ ...formErrors, vendor: "" });
+                          handleAddInputChange('vendor', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.vendor && (
+                    {isSubmitted && fieldErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.vendor}
+                        {fieldErrors.vendor}
                       </p>
                     )}
                     {newStock.vendor.length === FIELD_LIMITS.vendor && (
@@ -1956,17 +2124,15 @@ const StockInventory = () => {
                       value={newStock.vendor_id}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.vendor_id) {
-                          setNewStock({ ...newStock, vendor_id: e.target.value });
-                          if (formErrors.vendor_id)
-                            setFormErrors({ ...formErrors, vendor_id: "" });
+                          handleAddInputChange('vendor_id', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor_id}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.vendor_id && (
+                    {isSubmitted && fieldErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.vendor_id}
+                        {fieldErrors.vendor_id}
                       </p>
                     )}
                     {newStock.vendor_id.length === FIELD_LIMITS.vendor_id && (
@@ -1986,16 +2152,19 @@ const StockInventory = () => {
                       placeholder="Stock Quantity"
                       value={newStock.quantity}
                       onChange={(e) => {
-                        setNewStock({ ...newStock, quantity: e.target.value });
-                        if (formErrors.quantity)
-                          setFormErrors({ ...formErrors, quantity: "" });
+                        handleAddInputChange('quantity', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
-                    {formErrors.quantity && (
+                    {validationErrors.quantity && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.quantity}
+                        {validationErrors.quantity}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.quantity && !validationErrors.quantity && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.quantity}
                       </p>
                     )}
                   </div>
@@ -2011,17 +2180,15 @@ const StockInventory = () => {
                       value={newStock.item_code}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.item_code) {
-                          setNewStock({ ...newStock, item_code: e.target.value });
-                          if (formErrors.item_code)
-                            setFormErrors({ ...formErrors, item_code: "" });
+                          handleAddInputChange('item_code', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.item_code}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.item_code && (
+                    {isSubmitted && fieldErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.item_code}
+                        {fieldErrors.item_code}
                       </p>
                     )}
                     {newStock.item_code.length === FIELD_LIMITS.item_code && (
@@ -2042,17 +2209,15 @@ const StockInventory = () => {
                       value={newStock.rack_no}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.rack_no) {
-                          setNewStock({ ...newStock, rack_no: e.target.value });
-                          if (formErrors.rack_no)
-                            setFormErrors({ ...formErrors, rack_no: "" });
+                          handleAddInputChange('rack_no', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.rack_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.rack_no && (
+                    {isSubmitted && fieldErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.rack_no}
+                        {fieldErrors.rack_no}
                       </p>
                     )}
                     {newStock.rack_no.length === FIELD_LIMITS.rack_no && (
@@ -2073,17 +2238,15 @@ const StockInventory = () => {
                       value={newStock.shelf_no}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
-                          setNewStock({ ...newStock, shelf_no: e.target.value });
-                          if (formErrors.shelf_no)
-                            setFormErrors({ ...formErrors, shelf_no: "" });
+                          handleAddInputChange('shelf_no', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.shelf_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.shelf_no && (
+                    {isSubmitted && fieldErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.shelf_no}
+                        {fieldErrors.shelf_no}
                       </p>
                     )}
                     {newStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
@@ -2103,38 +2266,70 @@ const StockInventory = () => {
                       placeholder="Enter Unit Price"
                       value={newStock.unit_price}
                       onChange={(e) => {
-                        setNewStock({
-                          ...newStock,
-                          unit_price: e.target.value,
-                        });
-                        if (formErrors.unit_price)
-                          setFormErrors({ ...formErrors, unit_price: "" });
+                        handleAddInputChange('unit_price', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
-                    {formErrors.unit_price && (
+                    {validationErrors.unit_price && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.unit_price}
+                        {validationErrors.unit_price}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.unit_price}
                       </p>
                     )}
                   </div>
 
                   {/* Status */}
                   <div>
-                    <Dropdown
-                      label="Status"
-                      value={newStock.status}
-                      onChange={(val) => {
-                        setNewStock({ ...newStock, status: val });
-                        if (formErrors.status)
-                          setFormErrors({ ...formErrors, status: "" });
-                      }}
-                      options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-                      error={formErrors.status}
-                      required={true}
-                    />
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Status<span className="text-[#FF2424]">*</span>
+                    </label>
+                    <Listbox value={newStock.status} onChange={(val) => handleAddInputChange('status', val)}>
+                      <div className="relative mt-1 w-full">
+                        <Listbox.Button
+                          className="w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {newStock.status || "Select Option"}
+                          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                            <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
+                          </span>
+                        </Listbox.Button>
+                        {validationErrors.status && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{validationErrors.status}</p>
+                        )}
+                        {isSubmitted && fieldErrors.status && !validationErrors.status && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{fieldErrors.status}</p>
+                        )}
+                        <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                          {["IN STOCK", "LOW STOCK", "OUT OF STOCK"].map((option, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              value={option}
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] ${
+                                  active
+                                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                    : "text-black dark:text-white"
+                                } ${
+                                  selected
+                                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                    : ""
+                                }`
+                              }
+                              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                            >
+                              {option}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
                   </div>
                 </div>
 
@@ -2192,15 +2387,20 @@ const StockInventory = () => {
                       value={editStock.product_name}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.product_name) {
-                          handleEditFormChange('product_name', e.target.value);
+                          handleEditInputChange('product_name', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.product_name}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.product_name && (
+                    {validationErrors.product_name && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.product_name}
+                        {validationErrors.product_name}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.product_name && !validationErrors.product_name && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.product_name}
                       </p>
                     )}
                     {editStock.product_name.length === FIELD_LIMITS.product_name && (
@@ -2221,15 +2421,20 @@ const StockInventory = () => {
                       value={editStock.dosage}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.dosage) {
-                          handleEditFormChange('dosage', e.target.value);
+                          handleEditInputChange('dosage', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.dosage}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.dosage && (
+                    {validationErrors.dosage && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.dosage}
+                        {validationErrors.dosage}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.dosage && !validationErrors.dosage && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.dosage}
                       </p>
                     )}
                     {editStock.dosage.length === FIELD_LIMITS.dosage && (
@@ -2241,16 +2446,47 @@ const StockInventory = () => {
 
                   {/* Category */}
                   <div>
-                    <Dropdown
-                      label="Category"
-                      value={editStock.category}
-                      onChange={(val) => {
-                        handleEditFormChange('category', val);
-                      }}
-                      options={categories}
-                      error={formErrors.category}
-                      required={true}
-                    />
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Category<span className="text-[#FF2424]">*</span>
+                    </label>
+                    <Listbox value={editStock.category} onChange={(val) => handleEditInputChange('category', val)}>
+                      <div className="relative mt-1 w-full">
+                        <Listbox.Button
+                          className="w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {editStock.category || "Select Option"}
+                          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                            <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
+                          </span>
+                        </Listbox.Button>
+                        {isSubmitted && fieldErrors.category && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{fieldErrors.category}</p>
+                        )}
+                        <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                          {categories.map((option, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              value={option}
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] ${
+                                  active
+                                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                    : "text-black dark:text-white"
+                                } ${
+                                  selected
+                                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                    : ""
+                                }`
+                              }
+                              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                            >
+                              {option}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
                   </div>
 
                   {/* Batch Number */}
@@ -2264,15 +2500,20 @@ const StockInventory = () => {
                       value={editStock.batch_number}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.batch_number) {
-                          handleEditFormChange('batch_number', e.target.value);
+                          handleEditInputChange('batch_number', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.batch_number}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.batch_number && (
+                    {validationErrors.batch_number && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.batch_number}
+                        {validationErrors.batch_number}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.batch_number && !validationErrors.batch_number && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.batch_number}
                       </p>
                     )}
                     {editStock.batch_number.length === FIELD_LIMITS.batch_number && (
@@ -2293,15 +2534,15 @@ const StockInventory = () => {
                       value={editStock.vendor}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.vendor) {
-                          handleEditFormChange('vendor', e.target.value);
+                          handleEditInputChange('vendor', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.vendor && (
+                    {isSubmitted && fieldErrors.vendor && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.vendor}
+                        {fieldErrors.vendor}
                       </p>
                     )}
                     {editStock.vendor.length === FIELD_LIMITS.vendor && (
@@ -2322,15 +2563,15 @@ const StockInventory = () => {
                       value={editStock.vendor_id}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.vendor_id) {
-                          handleEditFormChange('vendor_id', e.target.value);
+                          handleEditInputChange('vendor_id', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.vendor_id}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.vendor_id && (
+                    {isSubmitted && fieldErrors.vendor_id && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.vendor_id}
+                        {fieldErrors.vendor_id}
                       </p>
                     )}
                     {editStock.vendor_id.length === FIELD_LIMITS.vendor_id && (
@@ -2353,14 +2594,14 @@ const StockInventory = () => {
                       placeholder="Enter quantity to add"
                       value={editStock.add_quantity}
                       onChange={(e) => {
-                        handleEditFormChange('add_quantity', e.target.value);
+                        handleEditInputChange('add_quantity', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       min="0"
                     />
-                    {formErrors.add_quantity && (
+                    {validationErrors.add_quantity && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.add_quantity}
+                        {validationErrors.add_quantity}
                       </p>
                     )}
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -2390,15 +2631,15 @@ const StockInventory = () => {
                       value={editStock.item_code}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.item_code) {
-                          handleEditFormChange('item_code', e.target.value);
+                          handleEditInputChange('item_code', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.item_code}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.item_code && (
+                    {isSubmitted && fieldErrors.item_code && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.item_code}
+                        {fieldErrors.item_code}
                       </p>
                     )}
                     {editStock.item_code.length === FIELD_LIMITS.item_code && (
@@ -2419,15 +2660,15 @@ const StockInventory = () => {
                       value={editStock.rack_no}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.rack_no) {
-                          handleEditFormChange('rack_no', e.target.value);
+                          handleEditInputChange('rack_no', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.rack_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.rack_no && (
+                    {isSubmitted && fieldErrors.rack_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.rack_no}
+                        {fieldErrors.rack_no}
                       </p>
                     )}
                     {editStock.rack_no.length === FIELD_LIMITS.rack_no && (
@@ -2448,15 +2689,15 @@ const StockInventory = () => {
                       value={editStock.shelf_no}
                       onChange={(e) => {
                         if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
-                          handleEditFormChange('shelf_no', e.target.value);
+                          handleEditInputChange('shelf_no', e.target.value);
                         }
                       }}
                       maxLength={FIELD_LIMITS.shelf_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {formErrors.shelf_no && (
+                    {isSubmitted && fieldErrors.shelf_no && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.shelf_no}
+                        {fieldErrors.shelf_no}
                       </p>
                     )}
                     {editStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
@@ -2476,31 +2717,70 @@ const StockInventory = () => {
                       placeholder="Enter Unit Price"
                       value={editStock.unit_price}
                       onChange={(e) => {
-                        handleEditFormChange('unit_price', e.target.value);
+                        handleEditInputChange('unit_price', e.target.value);
                       }}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                       step="0.01"
                       min="0"
                     />
-                    {formErrors.unit_price && (
+                    {validationErrors.unit_price && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {formErrors.unit_price}
+                        {validationErrors.unit_price}
+                      </p>
+                    )}
+                    {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
+                      <p className="mt-1 text-[12px] text-[#FF2424]">
+                        {fieldErrors.unit_price}
                       </p>
                     )}
                   </div>
 
                   {/* Status */}
                   <div>
-                    <Dropdown
-                      label="Status"
-                      value={editStock.status}
-                      onChange={(val) => {
-                        handleEditFormChange('status', val);
-                      }}
-                      options={["IN STOCK", "LOW STOCK", "OUT OF STOCK"]}
-                      error={formErrors.status}
-                      required={true}
-                    />
+                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+                      Status<span className="text-[#FF2424]">*</span>
+                    </label>
+                    <Listbox value={editStock.status} onChange={(val) => handleEditInputChange('status', val)}>
+                      <div className="relative mt-1 w-full">
+                        <Listbox.Button
+                          className="w-full h-[36px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {editStock.status || "Select Option"}
+                          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                            <ChevronDown className="h-4 w-4 text-black dark:text-[#0EFF7B]" />
+                          </span>
+                        </Listbox.Button>
+                        {validationErrors.status && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{validationErrors.status}</p>
+                        )}
+                        {isSubmitted && fieldErrors.status && !validationErrors.status && (
+                          <p className="mt-1 text-[12px] text-[#FF2424]">{fieldErrors.status}</p>
+                        )}
+                        <Listbox.Options className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-[#000000] shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]">
+                          {["IN STOCK", "LOW STOCK", "OUT OF STOCK"].map((option, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              value={option}
+                              className={({ active, selected }) =>
+                                `cursor-pointer select-none py-2 px-3 text-sm rounded-[4px] ${
+                                  active
+                                    ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                                    : "text-black dark:text-white"
+                                } ${
+                                  selected
+                                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                                    : ""
+                                }`
+                              }
+                              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                            >
+                              {option}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
                   </div>
                 </div>
 
@@ -2514,8 +2794,8 @@ const StockInventory = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={!isEditFormChanged}
-                    className={`w-[160px] h-[40px] rounded-[10px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[15px] transition shadow-lg ${!isEditFormChanged ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+                    
+                    className="w-[160px] h-[40px] rounded-[10px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[15px] transition shadow-lg hover:scale-105"
                   >
                     Update Stock
                   </button>

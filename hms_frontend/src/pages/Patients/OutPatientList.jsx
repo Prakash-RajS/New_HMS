@@ -984,7 +984,7 @@ const AppointmentListOPD = () => {
   const endItem = Math.min(page * perPage, total);
 
   return (
-    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -1090,11 +1090,22 @@ const AppointmentListOPD = () => {
             />
           </div>
           <button
-            onClick={() => setShowFilter(true)}
-            className="flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
-          >
-            <Filter size={18} className="text-green-600 dark:text-green-400" />
-          </button>
+  onClick={() => setShowFilter(true)}
+  className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
+>
+  <Filter size={18} className="text-green-600 dark:text-green-400" />
+
+  <span
+    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white
+      opacity-0 group-hover:opacity-100
+      transition-all duration-150 z-50"
+  >
+    Filter
+  </span>
+</button>
+
         </div>
       </div>
 
@@ -1181,25 +1192,57 @@ const AppointmentListOPD = () => {
                       </span>
                     </td>
                     <td className="text-center">
-                      <div className="flex justify-center gap-2">
-                        <Edit2
-                          size={16}
-                          onClick={() => {
-                            setSelAppt(a);
-                            setShowEdit(true);
-                          }}
-                          className="text-[#08994A] cursor-pointer"
-                        />
-                        <Trash2
-                          size={16}
-                          onClick={() => {
-                            setSelAppt(a);
-                            setShowDel(true);
-                          }}
-                          className="text-red-500 cursor-pointer"
-                        />
-                      </div>
-                    </td>
+  <div className="flex items-center justify-center gap-4 relative">
+    
+    {/* EDIT ICON + TOOLTIP */}
+    <div className="relative group">
+      <Edit2
+        size={16}
+        onClick={() => {
+          setSelAppt(a);
+          setShowEdit(true);
+        }}
+        className="text-[#08994A] cursor-pointer"
+      />
+      <span
+        className="absolute bottom-full mb-1
+          left-1/2 -translate-x-[60%]
+          whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white
+          opacity-0 group-hover:opacity-100
+          transition-opacity duration-150
+          pointer-events-none z-50"
+      >
+        Edit
+      </span>
+    </div>
+
+    {/* DELETE ICON + TOOLTIP */}
+    <div className="relative group">
+      <Trash2
+        size={16}
+        onClick={() => {
+          setSelAppt(a);
+          setShowDel(true);
+        }}
+        className="text-red-500 cursor-pointer"
+      />
+      <span
+        className="absolute bottom-full mb-1
+          left-1/2 -translate-x-[60%]
+          whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white
+          opacity-0 group-hover:opacity-100
+          transition-opacity duration-150
+          pointer-events-none z-50"
+      >
+        Delete
+      </span>
+    </div>
+
+  </div>
+</td>
+
                   </tr>
                 ))
               ) : (

@@ -338,6 +338,8 @@ from HMS_backend.models import (
     Stock,
     PharmacyInvoiceHistory,
     PharmacyInvoiceItem,
+    Patient,
+    MedicineAllocation  # ✅ ADD THIS IMPORT
 )
 
 # Import notification service
@@ -475,6 +477,80 @@ async def reduce_stock_quantities(items: List[InvoiceItemSchema]):
 
     return low_stock_items, out_of_stock_items
 
+# ------------------------------
+# ✅ Mark medicine allocations as billed
+# ------------------------------
+async def mark_medicine_allocations_as_billed(patient_id: str, invoice):
+    """
+    Mark all pending medicine allocations for a patient as 'billed'
+    when invoice is created
+    """
+    try:
+        # Get the patient
+        patient = await sync_to_async(
+            Patient.objects.filter(patient_unique_id=patient_id).first
+        )()
+        
+        if not patient:
+            print(f"⚠️ Patient not found: {patient_id}")
+            return
+        
+        # Get all pending allocations for this patient
+        allocations = await sync_to_async(list)(
+            MedicineAllocation.objects.filter(
+                patient=patient,
+                billing_status="pending"  # Only pending allocations
+            )
+        )
+        
+        count = 0
+        for allocation in allocations:
+            allocation.billing_status = "billed"  # ✅ Set to billed
+            allocation.pharmacy_invoice = invoice  # ✅ Link to invoice
+            await sync_to_async(allocation.save)()
+            count += 1
+        
+        print(f"✅ Marked {count} medicine allocations as billed for patient {patient_id}")
+        
+    except Exception as e:
+        print(f"❌ Error marking allocations as billed: {str(e)}")
+        # Don't raise error, just log it
+
+# ------------------------------
+# ✅ Mark allocations as paid when invoice is paid
+# ------------------------------
+async def mark_allocations_as_paid(invoice_id: str):
+    """
+    Mark medicine allocations as 'paid' when invoice payment status changes to 'paid'
+    """
+    try:
+        invoice = await sync_to_async(
+            PharmacyInvoiceHistory.objects.filter(bill_no=invoice_id).first
+        )()
+        
+        if not invoice:
+            print(f"⚠️ Invoice not found: {invoice_id}")
+            return
+        
+        # Get all billed allocations linked to this invoice
+        allocations = await sync_to_async(list)(
+            MedicineAllocation.objects.filter(
+                pharmacy_invoice=invoice,
+                billing_status="billed"  # Only billed allocations
+            )
+        )
+        
+        count = 0
+        for allocation in allocations:
+            allocation.billing_status = "paid"  # ✅ Set to paid
+            await sync_to_async(allocation.save)()
+            count += 1
+        
+        print(f"✅ Marked {count} medicine allocations as paid for invoice {invoice_id}")
+        
+    except Exception as e:
+        print(f"❌ Error marking allocations as paid: {str(e)}")
+        # Don't raise error, just log it
 
 # ------------------------------
 # Utility wrappers
@@ -534,8 +610,8 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
             bill_date=data.bill_date,
             subtotal=float(subtotal),
             cgst_percent=data.cgst_percent,
-            sgst_percent=data.sgst_percent,
             cgst_amount=float(cgst_amount),
+            sgst_percent=data.sgst_percent,
             sgst_amount=float(sgst_amount),
             discount_amount=data.discount_amount,
             net_amount=float(grand_total),
@@ -556,7 +632,7 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
                 line_total=item["line_total"],
             )
 
-        return invoice.id, float(grand_total), float(tax_total)
+        return invoice.id, float(grand_total), float(tax_total), invoice
 
 # ------------------------------
 # API: CREATE PHARMACY INVOICE
@@ -566,9 +642,12 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
     auto_bill_no = None
     try:
         auto_bill_no = await generate_invoice_number()
-        invoice_id, grand_total, tax_total = await _create_invoice_atomic(auto_bill_no, data)
+        invoice_id, grand_total, tax_total, invoice_obj = await _create_invoice_atomic(auto_bill_no, data)
         
         low_stock_items, out_of_stock_items = await reduce_stock_quantities(data.items)
+        
+        # ✅ MARK ALLOCATIONS AS BILLED
+        await mark_medicine_allocations_as_billed(data.patient_id, invoice_obj)
 
         db_invoice = await _get_invoice_by_id(invoice_id)
         db_items = await _get_invoice_items_for_invoice(db_invoice)
@@ -607,6 +686,8 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
         
         if data.payment_status.lower() == "paid":
             await NotificationService.send_pharmacy_payment_received(invoice_data)
+            # ✅ MARK ALLOCATIONS AS PAID
+            await mark_allocations_as_paid(auto_bill_no)
 
         # Stock notifications
         for stock in low_stock_items:
@@ -788,6 +869,9 @@ async def update_pharmacy_payment_status(bill_no: str, status: str):
                 "payment_mode": invoice.payment_mode,
                 "payment_type": invoice.payment_type,
             })
+            
+            # ✅ MARK ALLOCATIONS AS PAID
+            await mark_allocations_as_paid(bill_no)
 
         return invoice_data
 
@@ -979,4 +1063,3 @@ async def get_pharmacy_invoice_stats():
             reference_id=None
         )
         raise HTTPException(status_code=500, detail=f"Error getting statistics: {str(e)}")
-

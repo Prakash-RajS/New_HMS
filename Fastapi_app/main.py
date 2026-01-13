@@ -272,16 +272,28 @@ app = FastAPI(
 )
 
 # ==================== CORS ====================
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "http://localhost:5173",      # Vite dev
+#         "http://127.0.0.1:5173",
+#         "https://hms.stacklycloud.com"  # Production frontend
+#     ],
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",      # Vite dev
-        "http://127.0.0.1:5173",
-        "https://hms.stacklycloud.com"  # Production frontend
+        "https://hms.stacklycloud.com",  # Your production domain
+        "http://localhost:5173",         # Local development
     ],
-    allow_credentials=True,
+    allow_credentials=True,  # Important for cookies
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],    # Important for CORS
+    max_age=3600,            # Cache preflight requests for 1 hour
 )
 
 # ==================== STATIC FILES ====================

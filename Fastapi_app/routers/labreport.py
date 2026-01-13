@@ -11,6 +11,11 @@ from pathlib import Path
 from Fastapi_app.routers.notifications import NotificationService
 from asgiref.sync import sync_to_async
 import sys
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, RedirectResponse
+from pathlib import Path
+from django.core.exceptions import ObjectDoesNotExist
+from asgiref.sync import sync_to_async
 
 # Assuming this is in Fastapi_app/routers/labreports.py
 # Set UPLOAD_DIR relative to Fastapi_app
@@ -322,13 +327,6 @@ async def download_lab_report(filename: str):
         headers={"Content-Disposition": f"attachment; filename=Lab_Report_{filename}"}
     )
     
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
-from pathlib import Path
-from django.core.exceptions import ObjectDoesNotExist
-from asgiref.sync import sync_to_async
-
-router = APIRouter(prefix="/labreports", tags=["Lab Reports"])
 
 @router.get("/{report_id}/view")
 async def view_lab_report(report_id: int):

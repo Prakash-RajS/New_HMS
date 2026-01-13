@@ -729,7 +729,7 @@ const BillingManagement = () => {
 
   return (
     <div
-      className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]"
+      className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]"
     >
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -999,15 +999,28 @@ const BillingManagement = () => {
                           </td>
                           <td className="px-3 py-3">
                             <div
-  title="View"
-  className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+  className="relative group w-8 h-8 flex items-center justify-center rounded-full
+             border border-[#08994A1A] dark:border-[#0EFF7B1A]
+             bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+  onClick={() => handleViewInvoice(row.id)}
 >
   <Eye
     size={16}
-    className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-    onClick={() => handleViewInvoice(row.id)}
+    className="text-[#08994A] dark:text-[#0EFF7B]
+               hover:text-[#0cd968] dark:hover:text-[#0cd968]"
   />
+
+  <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-gray-100 dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150"
+  >
+    View
+  </span>
 </div>
+
 
                           </td>
                         </tr>
@@ -1228,13 +1241,29 @@ const BillingManagement = () => {
                             {row.status}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer">
-                              <Eye
-                                size={16}
-                                className="text-[#08994A] dark:text-[#0EFF7B] cursor-pointer hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                onClick={() => handleHospitalViewInvoice(row.id)}
-                              />
-                            </div>
+                            <div
+  className="relative group w-8 h-8 flex items-center justify-center rounded-full
+             border border-[#08994A1A] dark:border-[#0EFF7B1A]
+             bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+  onClick={() => handleHospitalViewInvoice(row.id)}
+>
+  <Eye
+    size={16}
+    className="text-[#08994A] dark:text-[#0EFF7B]
+               hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+  />
+
+  <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-gray-100 dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150"
+  >
+    View
+  </span>
+</div>
+
                           </td>
                         </tr>
                       ))}

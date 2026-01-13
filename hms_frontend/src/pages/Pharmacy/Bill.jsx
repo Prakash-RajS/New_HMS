@@ -12,7 +12,7 @@ const Bill = () => {
   const [patientInfo, setPatientInfo] = useState({
     patientName: "",
     patientID: "",
-    doctorName: "", // Add doctorName to patientInfo
+    doctorName: "",
     paymentType: "Full Payment",
     paymentStatus: "Paid",
     paymentMode: "Cash",
@@ -47,14 +47,11 @@ const Bill = () => {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-  // Fetch patients, staff, and doctors
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
-    // fetchDoctors();
   }, []);
 
-  // Search filter
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredPatients(patients);
@@ -70,18 +67,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       );
     }
   }, [searchQuery, patients]);
-
-  // Helper function to convert binary frequency to names
-  // const toNames = (binaryStr) => {
-  //   if (!binaryStr || binaryStr.trim() === "") return [];
-  //   const bin = binaryStr.split(" ").map(Number);
-  //   const selected = [];
-  //   if (bin[0]) selected.push("Morning");
-  //   if (bin[1]) selected.push("Afternoon");
-  //   if (bin[2]) selected.push("Evening");
-  //   if (bin[3]) selected.push("Night");
-  //   return selected;
-  // };
 
   const fetchPatients = async () => {
     try {
@@ -111,36 +96,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       setStaffInfo({ staffName: "Unknown Staff", staffID: "N/A" });
     }
   };
-// Add debounce function at the top of your component (outside the Bill function)
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-  
-  return debouncedValue;
-};
-  // const fetchDoctors = async () => {
-  //   try {
-  //     const res = await axios.get(`${API_BASE}/doctor/list`);
-  //     // Transform the data to ensure we have full_name and id
-  //     const doctorList = res.data.map((doctor) => ({
-  //       id: doctor.id,
-  //       full_name: doctor.full_name || doctor.name || "Unknown Doctor",
-  //     }));
-  //     setDoctors(doctorList);
-  //   } catch (err) {
-  //     console.error("Failed to load doctors:", err);
-  //     setDoctors([]);
-  //   }
-  // };
 
   const fetchPatientDetails = async (uniqueId) => {
     try {
@@ -151,39 +106,6 @@ const useDebounce = (value, delay) => {
     }
   };
 
-  // Fetch medicine details by item code
-  const fetchMedicineByCode = async (code, index) => {
-    if (!code.trim()) return;
-    try {
-      const res = await axios.get(`${API_BASE}/medicine_allocation/medicine/${code}`);
-      const data = res.data;
-      setBillingItems((prev) => {
-        const updated = [...prev];
-        updated[index].name = data.medicine_name || data.name_of_drug || "";
-        updated[index].rackNo = data.rack_no || "";
-        updated[index].shelfNo = data.shelf_no || "";
-        updated[index].unitPrice = data.unit_price ? String(data.unit_price) : "0.00";
-        updated[index].frequency = data.frequency || "";
-
-        // Recalculate total
-        const qty = parseFloat(updated[index].quantity) || 0;
-        const price = parseFloat(updated[index].unitPrice) || 0;
-        const disc = parseFloat(updated[index].discount.replace("%", "")) || 0;
-        const tax = parseFloat(updated[index].tax.replace("%", "")) || 10;
-        const base = qty * price;
-        const afterDisc = base - (base * disc) / 100;
-        const total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
-        updated[index].total = total;
-
-        return updated;
-      });
-    } catch (err) {
-      console.error(`Medicine with code ${code} not found:`, err);
-      errorToast(`Medicine with code ${code} not found`);
-    }
-  };
-
-  // Format date to dd.mm.yyyy (TC_014)
   const formatDateToDisplay = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -193,7 +115,6 @@ const useDebounce = (value, delay) => {
     return `${day}.${month}.${year}`;
   };
 
-  // Get today's date in yyyy-mm-dd format
   const getTodayDate = () => {
     const today = new Date();
     const year = today.getFullYear();
@@ -206,7 +127,6 @@ const useDebounce = (value, delay) => {
     if (!patientId) return;
     setLoading(true);
     try {
-      // Build URL with date filters
       let url = `${API_BASE}/pharmacy-billing/${patientId}/`;
       const params = new URLSearchParams();
 
@@ -219,13 +139,13 @@ const useDebounce = (value, delay) => {
 
       const res = await axios.get(url);
 
-      // Filter out any lab reports and only show medicine allocations
       const medicineItems = (res.data.items || [])
         .filter(
-          (item) => item.medicine_name || item.name_of_drug // Only include medicine items
+          (item) => item.medicine_name || item.name_of_drug
         )
         .map((item, i) => ({
-          id: item.id || i,
+          id: item.allocation_id || Date.now() + i,
+          allocation_id: item.allocation_id,
           sNo: (i + 1).toString(),
           itemCode: item.item_code || "N/A",
           name: item.medicine_name || item.name_of_drug || "",
@@ -241,12 +161,11 @@ const useDebounce = (value, delay) => {
               : "0.00",
           doctorName: item.doctor_name || "N/A",
           allocationDate: item.allocation_date || "",
-          frequency: item.frequency || "", // Add frequency from API response
+          frequency: item.frequency || "",
         }));
 
       setBillingItems(medicineItems);
 
-      // Show info toast if no items found but request was successful
       if (medicineItems.length === 0) {
         if (fromDate || toDate) {
           errorToast(
@@ -282,7 +201,7 @@ const useDebounce = (value, delay) => {
     setPatientInfo({
       patientName: patient.full_name || "",
       patientID: patient.patient_unique_id || "",
-      doctorName: "", // Reset doctor name when new patient selected
+      doctorName: "",
       paymentType: "Full Payment",
       paymentStatus: "Paid",
       paymentMode: "Cash",
@@ -300,17 +219,14 @@ const useDebounce = (value, delay) => {
   };
 
   const handleDateChange = (type, value) => {
-    // Validate date format and constraints (TC_016, TC_017, TC_018)
     const today = getTodayDate();
 
     if (type === "from") {
-      // Validate "From" date is not in the future
       if (value > today) {
         errorToast("'From' date cannot be in the future");
         return;
       }
 
-      // Validate "From" date is not after "To" date
       if (dateTo && value > dateTo) {
         errorToast("'From' date cannot be after 'To' date");
         return;
@@ -318,13 +234,11 @@ const useDebounce = (value, delay) => {
 
       setDateFrom(value);
     } else if (type === "to") {
-      // Validate "To" date is not in the future
       if (value > today) {
         errorToast("'To' date cannot be in the future");
         return;
       }
 
-      // Validate "To" date is not before "From" date
       if (dateFrom && value < dateFrom) {
         errorToast("'To' date cannot be before 'From' date");
         return;
@@ -333,7 +247,6 @@ const useDebounce = (value, delay) => {
       setDateTo(value);
     }
 
-    // If patient is selected, refetch data with new date filters
     if (selectedPatientId) {
       const newFromDate = type === "from" ? value : dateFrom;
       const newToDate = type === "to" ? value : dateTo;
@@ -345,11 +258,10 @@ const useDebounce = (value, delay) => {
     setDateFrom("");
     setDateTo("");
     if (selectedPatientId) {
-      fetchBillingItems(selectedPatientId); // Fetch without date filters
+      fetchBillingItems(selectedPatientId);
     }
   };
 
-  // Check for duplicate item code and merge quantities (TC_056)
   const handleAddMedicine = () => {
     if (!selectedPatientId) {
       errorToast("Please select a patient first");
@@ -357,7 +269,8 @@ const useDebounce = (value, delay) => {
     }
 
     const newItem = {
-      id: Date.now(), // Unique ID
+      id: Date.now(),
+      allocation_id: null,
       sNo: (billingItems.length + 1).toString(),
       itemCode: "",
       name: "",
@@ -370,184 +283,173 @@ const useDebounce = (value, delay) => {
       total: "0.00",
       doctorName: "",
       allocationDate: new Date().toISOString().split("T")[0],
-      frequency: "", // Initialize frequency
+      frequency: "",
     };
 
     setBillingItems((prev) => [...prev, newItem]);
   };
-const fetchMedicineDetails = async (itemCode) => {
-  // Remove the minimum character check or make it 1
-  if (!itemCode.trim() || itemCode.trim().length < 1) {
-    return null;
-  }
-  
-  // Check cache first
-  if (medicineLookup[itemCode]) return medicineLookup[itemCode];
 
-  try {
-    const res = await axios.get(
-      `${API_BASE}/medicine_allocation/medicine-by-code/${itemCode.trim()}`
-    );
-    const data = res.data;
-    setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
-    return data;
-  } catch (err) {
-    // Only show error if item code exists
-    if (itemCode.trim().length > 0) {
-      errorToast(`No medicine found with item code: ${itemCode}`);
+  const fetchMedicineDetails = async (itemCode) => {
+    if (!itemCode.trim() || itemCode.trim().length < 1) {
+      return null;
     }
-    return null;
-  }
-};
-// Add a useEffect to handle debounced item code lookups
-useEffect(() => {
-  const fetchDebouncedCodes = async () => {
-    for (const [index, code] of Object.entries(itemCodeInputs)) {
-      if (code.trim() && code.trim().length >= 1) { // Minimum 2 characters
-        const idx = parseInt(index);
-        const details = await fetchMedicineDetails(code.trim());
-        if (details) {
-          setBillingItems((prev) => {
-            const updated = [...prev];
-            const item = updated[idx];
-            
-            // Only update if the current itemCode still matches what we searched for
-            if (item.itemCode === code.trim()) {
-              item.name = details.drug_name || "";
-              item.rackNo = details.rack_no || "";
-              item.shelfNo = details.shelf_no || "";
-              item.unitPrice = details.unit_price
-                ? String(details.unit_price)
-                : "0.00";
+    
+    if (medicineLookup[itemCode]) return medicineLookup[itemCode];
+
+    try {
+      const res = await axios.get(
+        `${API_BASE}/medicine_allocation/medicine-by-code/${itemCode.trim()}`
+      );
+      const data = res.data;
+      setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
+      return data;
+    } catch (err) {
+      if (itemCode.trim().length > 0) {
+        errorToast(`No medicine found with item code: ${itemCode}`);
+      }
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    const fetchDebouncedCodes = async () => {
+      for (const [index, code] of Object.entries(itemCodeInputs)) {
+        if (code.trim() && code.trim().length >= 1) {
+          const idx = parseInt(index);
+          const details = await fetchMedicineDetails(code.trim());
+          if (details) {
+            setBillingItems((prev) => {
+              const updated = [...prev];
+              const item = updated[idx];
               
-              // Recalculate total
-              const qty = parseFloat(item.quantity) || 1;
-              const price = parseFloat(item.unitPrice) || 0;
-              const disc = parseFloat(item.discount.replace("%", "")) || 0;
-              const tax = parseFloat(item.tax.replace("%", "")) || 10;
+              if (item.itemCode === code.trim()) {
+                item.name = details.drug_name || "";
+                item.rackNo = details.rack_no || "";
+                item.shelfNo = details.shelf_no || "";
+                item.unitPrice = details.unit_price
+                  ? String(details.unit_price)
+                  : "0.00";
+                
+                const qty = parseFloat(item.quantity) || 1;
+                const price = parseFloat(item.unitPrice) || 0;
+                const disc = parseFloat(item.discount.replace("%", "")) || 0;
+                const tax = parseFloat(item.tax.replace("%", "")) || 10;
+                
+                const base = qty * price;
+                const afterDisc = base - (base * disc) / 100;
+                item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
+              }
               
-              const base = qty * price;
-              const afterDisc = base - (base * disc) / 100;
-              item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
-            }
-            
-            return updated;
-          });
+              return updated;
+            });
+          }
         }
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      fetchDebouncedCodes();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [itemCodeInputs]);
+
+  const handleBillingChange = async (index, field, value) => {
+    setDuplicateError("");
+    
+    if (field === "itemCode") {
+      setItemCodeInputs(prev => ({
+        ...prev,
+        [index]: value
+      }));
+    }
+    
+    setBillingItems((prev) => {
+      const updated = [...prev];
+      let item = { ...updated[index] };
+      
+      if (field === "itemCode" && value.trim() !== item.itemCode) {
+        const duplicateIndex = updated.findIndex(
+          (it, i) => i !== index && it.itemCode === value.trim() && it.allocation_id !== item.allocation_id
+        );
+        if (duplicateIndex !== -1) {
+          setDuplicateError(`Duplicate item code "${value}" already exists.`);
+          return prev;
+        }
+        
+        item.itemCode = value.trim();
+        if (value.trim() !== prev[index].itemCode) {
+          item.name = "";
+          item.rackNo = "";
+          item.shelfNo = "";
+          item.unitPrice = "0.00";
+          item.total = "0.00";
+        }
+      }
+      
+      item[field] = value;
+      
+      if ((field === "discount" || field === "tax") && value) {
+        const regex = /^(\d+(\.\d+)?%?|%?)$/;
+        if (!regex.test(value)) {
+          errorToast(
+            `${
+              field.charAt(0).toUpperCase() + field.slice(1)
+            } must be a number with optional %`
+          );
+          return prev;
+        }
+        if (!value.includes("%") && value !== "") item[field] = value + "%";
+      }
+      
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unitPrice) || 0;
+      const disc = parseFloat(item.discount.replace("%", "")) || 0;
+      const tax = parseFloat(item.tax.replace("%", "")) || 10;
+      
+      const base = qty * price;
+      const afterDisc = base - (base * disc) / 100;
+      item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
+      
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const handleItemCodeBlur = async (index, value) => {
+    if (value.trim() && value.trim().length >= 1) {
+      const details = await fetchMedicineDetails(value.trim());
+      if (details) {
+        setBillingItems((prev) => {
+          const updated = [...prev];
+          const item = updated[index];
+          
+          if (item.itemCode === value.trim()) {
+            item.name = details.drug_name || "";
+            item.rackNo = details.rack_no || "";
+            item.shelfNo = details.shelf_no || "";
+            item.unitPrice = details.unit_price
+              ? String(details.unit_price)
+              : "0.00";
+            
+            const qty = parseFloat(item.quantity) || 1;
+            const price = parseFloat(item.unitPrice) || 0;
+            const disc = parseFloat(item.discount.replace("%", "")) || 0;
+            const tax = parseFloat(item.tax.replace("%", "")) || 10;
+            
+            const base = qty * price;
+            const afterDisc = base - (base * disc) / 100;
+            item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
+          }
+          
+          return updated;
+        });
       }
     }
   };
-  
-  const timer = setTimeout(() => {
-    fetchDebouncedCodes();
-  }, 500); // 500ms debounce delay
-  
-  return () => clearTimeout(timer);
-}, [itemCodeInputs]);
-// Update the API endpoint to handle partial matches more gracefully
-  // Handle billing changes with duplicate item code check (TC_056)
-  const handleBillingChange = async (index, field, value) => {
-  setDuplicateError("");
-  
-  // If it's an itemCode field change, track it for debouncing
-  if (field === "itemCode") {
-    setItemCodeInputs(prev => ({
-      ...prev,
-      [index]: value
-    }));
-  }
-  
-  setBillingItems((prev) => {
-    const updated = [...prev];
-    let item = { ...updated[index] };
-    
-    // Item Code change → duplicate check + reset fields
-    if (field === "itemCode" && value.trim() !== item.itemCode) {
-      const duplicateIndex = updated.findIndex(
-        (it, i) => i !== index && it.itemCode === value.trim()
-      );
-      if (duplicateIndex !== -1) {
-        setDuplicateError(`Duplicate item code "${value}" already exists.`);
-        return prev;
-      }
-      
-      item.itemCode = value.trim();
-      // Only reset fields if it's a completely new code
-      if (value.trim() !== prev[index].itemCode) {
-        item.name = "";
-        item.rackNo = "";
-        item.shelfNo = "";
-        item.unitPrice = "0.00";
-        item.total = "0.00";
-      }
-    }
-    
-    // Apply value
-    item[field] = value;
-    
-    // Validate discount/tax
-    if ((field === "discount" || field === "tax") && value) {
-      const regex = /^(\d+(\.\d+)?%?|%?)$/;
-      if (!regex.test(value)) {
-        errorToast(
-          `${
-            field.charAt(0).toUpperCase() + field.slice(1)
-          } must be a number with optional %`
-        );
-        return prev;
-      }
-      if (!value.includes("%") && value !== "") item[field] = value + "%";
-    }
-    
-    // Recalculate total if needed
-    const qty = parseFloat(item.quantity) || 0;
-    const price = parseFloat(item.unitPrice) || 0;
-    const disc = parseFloat(item.discount.replace("%", "")) || 0;
-    const tax = parseFloat(item.tax.replace("%", "")) || 10;
-    
-    const base = qty * price;
-    const afterDisc = base - (base * disc) / 100;
-    item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
-    
-    updated[index] = item;
-    return updated;
-  });
-};
-const handleItemCodeBlur = async (index, value) => {
-  if (value.trim() && value.trim().length >= 1) {
-    const details = await fetchMedicineDetails(value.trim());
-    if (details) {
-      setBillingItems((prev) => {
-        const updated = [...prev];
-        const item = updated[index];
-        
-        // Only update if the current itemCode still matches what we searched for
-        if (item.itemCode === value.trim()) {
-          item.name = details.drug_name || "";
-          item.rackNo = details.rack_no || "";
-          item.shelfNo = details.shelf_no || "";
-          item.unitPrice = details.unit_price
-            ? String(details.unit_price)
-            : "0.00";
-          
-          // Recalculate total
-          const qty = parseFloat(item.quantity) || 1;
-          const price = parseFloat(item.unitPrice) || 0;
-          const disc = parseFloat(item.discount.replace("%", "")) || 0;
-          const tax = parseFloat(item.tax.replace("%", "")) || 10;
-          
-          const base = qty * price;
-          const afterDisc = base - (base * disc) / 100;
-          item.total = (afterDisc + (afterDisc * tax) / 100).toFixed(2);
-        }
-        
-        return updated;
-      });
-    }
-  }
-};
+
   const handleRemoveItem = (index) => {
-    setDuplicateError(""); // Clear duplicate error when removing item
+    setDuplicateError("");
     setBillingItems((prev) =>
       prev
         .filter((_, i) => i !== index)
@@ -584,7 +486,6 @@ const handleItemCodeBlur = async (index, value) => {
       return;
     }
 
-    // Check for duplicate item codes before generating bill
     const itemCodes = billingItems
       .map((item) => item.itemCode)
       .filter((code) => code.trim() !== "");
@@ -596,6 +497,10 @@ const handleItemCodeBlur = async (index, value) => {
       return;
     }
 
+    const allocationIds = billingItems
+      .map((item) => item.allocation_id)
+      .filter((id) => id !== null && id !== undefined);
+
     const itemsToSend = billingItems.map((item, index) => ({
       sl_no: index + 1,
       item_code: item.itemCode || "N/A",
@@ -606,6 +511,7 @@ const handleItemCodeBlur = async (index, value) => {
       unit_price: parseFloat(item.unitPrice) || 0,
       discount_pct: parseFloat(item.discount.replace("%", "")) || 0,
       tax_pct: parseFloat(item.tax.replace("%", "")) || 10,
+      allocation_id: item.allocation_id || null,
     }));
 
     if (itemsToSend.length === 0) {
@@ -619,8 +525,7 @@ const handleItemCodeBlur = async (index, value) => {
       patient_name: patientInfo.patientName,
       patient_id: patientInfo.patientID,
       age: parseInt(fullPatient?.age) || 0,
-      doctor_name:
-        patientInfo.doctorName || billingItems[0]?.doctorName || "N/A",
+      doctor_name: patientInfo.doctorName || billingItems[0]?.doctorName || "N/A",
       billing_staff: staffInfo.staffName,
       staff_id: staffInfo.staffID,
       patient_type: "Outpatient",
@@ -633,11 +538,11 @@ const handleItemCodeBlur = async (index, value) => {
       cgst_percent: 5,
       sgst_percent: 5,
       items: itemsToSend,
+      allocation_ids: allocationIds,
     };
 
     setGeneratingBill(true);
     try {
-      // First, check stock availability
       const stockCheckResponse = await axios.get(
         `${API_BASE}/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
         {
@@ -665,32 +570,39 @@ const handleItemCodeBlur = async (index, value) => {
         return;
       }
 
-      // FIXED: Use the PHARMACY endpoint instead of general billing endpoint
       const response = await axios.post(
-        `${API_BASE}/pharmacy/create-invoice`, // CHANGED THIS LINE
+        `${API_BASE}/pharmacy/create-invoice`,
         invoiceData,
         {
           responseType: "blob",
         }
       );
 
-      // Create blob and open in new tab
       const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
 
       successToast(`Bill generated successfully! Stock quantities updated.`);
 
-      // Refresh the page after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+      setBillingItems([]);
+      setPatientInfo({
+        patientName: "",
+        patientID: "",
+        doctorName: "",
+        paymentType: "Full Payment",
+        paymentStatus: "Paid",
+        paymentMode: "Cash",
+      });
+      setSelectedPatientId(null);
+      setFullPatient(null);
+      setDateFrom("");
+      setDateTo("");
+      setDuplicateError("");
+
     } catch (err) {
       console.error("Error generating bill:", err);
 
-      // Better error handling
       if (err.response?.status === 422) {
-        // Parse the error response if it's JSON
         if (err.response.data instanceof Blob) {
           const errorText = await err.response.data.text();
           try {
@@ -745,8 +657,7 @@ const handleItemCodeBlur = async (index, value) => {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
-      <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
-        {/* Gradient overlays */}
+      <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -779,11 +690,8 @@ const handleItemCodeBlur = async (index, value) => {
           This is the information only related to pharmacy department
         </p>
 
-        {/* Search & Filters */}
         <div className="mb-6 flex flex-col gap-3 w-full">
-          {/* ---------- ROW 1: Search + Patient Name + Patient ID ---------- */}
           <div className="flex flex-row flex-wrap items-center gap-2 w-full justify-end">
-            {/* Search Input */}
             <div className="flex-1 min-w-[200px] max-w-[350px] lg:max-w-[400px] relative">
               <input
                 type="text"
@@ -808,7 +716,6 @@ const handleItemCodeBlur = async (index, value) => {
               )}
             </div>
 
-            {/* Patient Name Listbox */}
             <div className="relative min-w-[140px] w-[160px] lg:w-[180px]">
               <Listbox
                 value={patientInfo.patientName}
@@ -835,7 +742,6 @@ const handleItemCodeBlur = async (index, value) => {
               </Listbox>
             </div>
 
-            {/* Patient ID Listbox */}
             <div className="relative min-w-[140px] w-[160px] lg:w-[180px]">
               <Listbox
                 value={patientInfo.patientID}
@@ -865,34 +771,30 @@ const handleItemCodeBlur = async (index, value) => {
             </div>
           </div>
 
-          {/* ---------- ROW 2: Date From + Date To + Buttons ---------- */}
           <div className="flex flex-row flex-wrap items-center gap-3 w-full justify-end">
-            {/* From Date */}
             <div className="relative">
               <input
                 id="dateFrom"
                 type="date"
                 value={dateFrom}
                 onChange={(e) => handleDateChange("from", e.target.value)}
-                max={getTodayDate()} // TC_016: Disable future dates
+                max={getTodayDate()}
                 className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-2 text-sm text-[#08994A] dark:text-white cursor-pointer"
               />
             </div>
 
-            {/* To Date */}
             <div className="relative">
               <input
                 id="dateTo"
                 type="date"
                 value={dateTo}
                 onChange={(e) => handleDateChange("to", e.target.value)}
-                max={getTodayDate()} // TC_017: Disable future dates
-                min={dateFrom} // TC_018: Can't be before "From" date
+                max={getTodayDate()}
+                min={dateFrom}
                 className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-2 text-sm text-[#08994A] dark:text-white cursor-pointer"
               />
             </div>
 
-            {/* Clear Button - TC_015: Disabled when no dates selected */}
             <button
               onClick={handleClearDates}
               disabled={!dateFrom && !dateTo}
@@ -908,7 +810,6 @@ const handleItemCodeBlur = async (index, value) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-          {/* Left Panel */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm text-gray-600 dark:text-gray-300">
@@ -951,7 +852,6 @@ const handleItemCodeBlur = async (index, value) => {
               />
             </div>
           </div>
-          {/* Middle Panel */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm text-gray-600 dark:text-gray-300">
@@ -992,10 +892,8 @@ const handleItemCodeBlur = async (index, value) => {
               />
             </div>
           </div>
-          {/* Right Panel */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
-              {/* Doctor Name Dropdown - TC_030, TC_031 */}
               <label className="text-sm text-gray-600 dark:text-gray-300">
                 Doctor Name
               </label>
@@ -1301,13 +1199,11 @@ const handleItemCodeBlur = async (index, value) => {
             </div>
           </div>
         </div>
-        {/* Billing Table */}
         <div className="bg-[#F5F6F5] dark:bg-transparent border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-xl p-4">
           <h3 className="text-[#08994A] dark:text-[#0EFF7B] mb-3">
             Billing Information
           </h3>
 
-          {/* Duplicate Error Message */}
           {duplicateError && (
             <div className="mb-3 p-3 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 rounded-md">
               ⚠️ {duplicateError}
@@ -1359,14 +1255,19 @@ const handleItemCodeBlur = async (index, value) => {
                         }}
                       />
                     </td>
-                    {/* <td className="p-2">
+                    <td className="p-2">
                       <input
                         type="text"
                         value={item.itemCode}
                         onChange={(e) =>
                           handleBillingChange(i, "itemCode", e.target.value)
                         }
-                        onBlur={(e) => fetchMedicineByCode(i, e.target.value)}
+                        onBlur={(e) => handleItemCodeBlur(i, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleItemCodeBlur(i, e.target.value);
+                          }
+                        }}
                         className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
                         style={{
                           border: "2px solid #0EFF7B1A",
@@ -1374,28 +1275,7 @@ const handleItemCodeBlur = async (index, value) => {
                         }}
                         placeholder="Enter item code"
                       />
-                    </td> */}
-                    <td className="p-2">
-  <input
-    type="text"
-    value={item.itemCode}
-    onChange={(e) =>
-      handleBillingChange(i, "itemCode", e.target.value)
-    }
-    onBlur={(e) => handleItemCodeBlur(i, e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') {
-        handleItemCodeBlur(i, e.target.value);
-      }
-    }}
-    className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-    style={{
-      border: "2px solid #0EFF7B1A",
-      boxShadow: "0px 0px 2px 0px #0EFF7B",
-    }}
-    placeholder="Enter item code"
-  />
-</td>
+                    </td>
                     <td className="p-2">
                       <input
                         type="text"
@@ -1541,7 +1421,6 @@ const handleItemCodeBlur = async (index, value) => {
               </tbody>
             </table>
           )}
-          {/* Add Button - TC_034: Disabled when no patient selected */}
           <div className="flex justify-end mt-4">
             <button
               onClick={handleAddMedicine}
@@ -1559,7 +1438,6 @@ const handleItemCodeBlur = async (index, value) => {
               Add
             </button>
           </div>
-          {/* Totals */}
           <div className="mt-6 grid grid-cols-5 gap-3 text-sm text-gray-600 dark:text-gray-200">
             <div className="col-span-1"></div>
             <div className="col-span-4 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1583,7 +1461,6 @@ const handleItemCodeBlur = async (index, value) => {
               <span>{totals.net}</span>
             </div>
           </div>
-          {/* Action Buttons */}
           <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={handleCancel}

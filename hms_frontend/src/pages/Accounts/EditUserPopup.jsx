@@ -126,7 +126,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
   const Dropdown = ({ label, value, onChange, options, error }) => (
     <div>
       <label className="block text-sm font-medium mb-2 text-black dark:text-white">
-        {label} *
+        {label} <span className="text-red-500">*</span>
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-full">
@@ -199,7 +199,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
               {/* Username */}
               <div>
                 <label className="block text-sm font-medium mb-2 text-black dark:text-white">
-                  Username *
+                  Username <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"

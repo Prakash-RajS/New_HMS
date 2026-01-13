@@ -374,6 +374,115 @@ export default function NewRegistration({ isSidebarOpen }) {
       .catch(() => errorToast("Failed to load departments"));
   }, []);
 
+  
+// Levenshtein distance for typo detection
+  const levenshtein = (a, b) => {
+    const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
+      Array.from({ length: a.length + 1 }, (_, j) =>
+        i === 0 ? j : j === 0 ? i : 0
+      )
+    );
+  
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        matrix[i][j] =
+          b[i - 1] === a[j - 1]
+            ? matrix[i - 1][j - 1]
+            : Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              );
+      }
+    }
+    return matrix[b.length][a.length];
+  };
+  // Real-time format validation functions (for typing)
+  const validateNameFormat = (value) => {
+    if (/[0-9]/.test(value)) return "Name should not contain numbers";
+    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid name";
+    return "";
+  };
+
+  const validateEmailFormat = (value) => {
+  const email = value.trim();
+  if (!email) return "";
+
+  // 1️⃣ Basic structure check
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address (e.g., user@domain.com)";
+  }
+
+  // 2️⃣ Suspicious formatting
+  if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
+    return "Invalid email format";
+  }
+
+  const [localPart, domain] = email.toLowerCase().split("@");
+
+  // 3️⃣ Local-part sanity
+  if (localPart.length < 2) {
+    return "Email username is too short";
+  }
+
+  if (/(.)\1{5,}/.test(localPart)) {
+    return "Email appears to be invalid";
+  }
+
+  if (/(\.\.|__|--|\+\+)/.test(localPart)) {
+    return "Email contains invalid characters";
+  }
+
+  // 4️⃣ Disposable / fake domains (hard block)
+  const invalidDomains = [
+    "email.com",
+    "example.com",
+    "test.com",
+    "domain.com",
+    "mailinator.com",
+    "tempmail.com",
+    "guerrillamail.com",
+    "10minutemail.com",
+    "yopmail.com",
+    "fakeemail.com",
+    "temp-mail.org",
+    "throwawayemail.com",
+    "dispostable.com",
+    "maildrop.cc"
+  ];
+
+  if (invalidDomains.includes(domain)) {
+    return "Disposable or invalid email domains are not allowed";
+  }
+
+  // 5️⃣ Dynamic typo detection for major providers
+  const providers = [
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "icloud.com"
+  ];
+
+  for (const provider of providers) {
+    const distance = levenshtein(domain, provider);
+
+    // distance 1–2 = very likely a typo
+    if (distance > 0 && distance <= 2) {
+      return `Did you mean ${localPart}@${provider}?`;
+    }
+  }
+
+  // 6️⃣ TLD sanity (not restrictive)
+  const tld = domain.split(".").pop();
+  if (tld.length < 2) {
+    return "Please use a valid domain extension";
+  }
+
+  return "";
+};
+
   // ── Format validation functions (while typing) ───────────────────────
   const validateFieldFormat = (field, value) => {
     if (!value || value.trim() === "") return ""; // Empty values handled by required validation
@@ -386,9 +495,7 @@ export default function NewRegistration({ isSidebarOpen }) {
         return "";
       
       case "email":
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Please enter a valid email address";
-        if (value.length > 100) return "Email cannot exceed 100 characters";
-        return "";
+        return validateEmailFormat(value);
       
       case "phone":
         if (!/^\d+$/.test(value)) return "Phone number must contain only digits";
@@ -762,7 +869,7 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto font-[Helvetica]">
-      <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
+      <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
         {/* Dark Overlay */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

@@ -13,7 +13,9 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     status: "",
     lastUpdated: "",
   });
+
   const [errors, setErrors] = useState({});
+  const [formatErrors, setFormatErrors] = useState({});
   const [bloodTypes, setBloodTypes] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -24,8 +26,8 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${date.getFullYear()}`;
   };
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
-  // Populate form data when bloodData changes
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   useEffect(() => {
     console.log("🟡 EditBloodTypePopup received bloodData:", bloodData);
     if (bloodData) {
@@ -39,27 +41,18 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     }
   }, [bloodData]);
 
-  // Fetch blood types from backend
   useEffect(() => {
     const fetchBloodTypes = async () => {
       try {
         setLoading(true);
-        console.log("🟡 Fetching blood types from backend...");
         const response = await fetch(`${API_BASE}/api/blood-types/`);
-        console.log("🟡 Response status:", response.status);
         if (response.ok) {
           const data = await response.json();
-          console.log("🟡 Blood types data:", data);
           setBloodTypes(data.blood_types || []);
         } else {
-          console.error(
-            "❌ Failed to fetch blood types, status:",
-            response.status
-          );
           setBloodTypes(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
         }
       } catch (error) {
-        console.error("❌ Error fetching blood types:", error);
         setBloodTypes(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
       } finally {
         setLoading(false);
@@ -68,21 +61,46 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     fetchBloodTypes();
   }, []);
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.type) newErrors.type = "Blood type is required";
-    if (!formData.units || isNaN(formData.units) || formData.units < 0)
-      newErrors.units = "Valid units (non-negative number) is required";
-    if (!formData.status) newErrors.status = "Status is required";
-    if (!formData.lastUpdated)
-      newErrors.lastUpdated = "Last updated date is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateUnitsFormat = (value) => {
+    if (!value) return "";
+    const units = parseInt(value, 10);
+    if (isNaN(units)) {
+      return "Units must be a valid number";
+    }
+    if (units < 0) {
+      return "Units cannot be negative";
+    }
+    return "";
+  };
+
+  const validateRequiredFields = () => {
+    const requiredErrors = {};
+    
+    if (!formData.type) requiredErrors.type = "Blood type is required";
+    if (!formData.units) requiredErrors.units = "Available units is required";
+    if (!formData.status) requiredErrors.status = "Status is required";
+    if (!formData.lastUpdated) requiredErrors.lastUpdated = "Last updated date is required";
+    
+    return requiredErrors;
+  };
+
+  const validateAllFormats = () => {
+    const formatErrors = {
+      units: validateUnitsFormat(formData.units),
+    };
+    return formatErrors;
   };
 
   const handleUpdate = () => {
-    if (validateForm()) {
-      // Ensure we're passing the correct data structure
+    const requiredErrors = validateRequiredFields();
+    setErrors(requiredErrors);
+
+    const formatErrors = validateAllFormats();
+    setFormatErrors(formatErrors);
+
+    if (Object.keys(requiredErrors).length === 0 && 
+        !Object.values(formatErrors).some(error => error !== '')) {
+      
       const updateData = {
         id: formData.id,
         type: formData.type,
@@ -90,10 +108,33 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
         status: formData.status,
         lastUpdated: formData.lastUpdated,
       };
+      
       console.log("🟡 Sending update data:", updateData);
       if (onUpdate) onUpdate(updateData);
       successToast("Blood group updated successfully!");
       onClose();
+    } else {
+      errorToast("Please fix all validation errors before saving.");
+    }
+  };
+
+  const handleUnitsChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, units: value });
+    
+    if (errors.units) {
+      setErrors(prev => ({ ...prev, units: "" }));
+    }
+    
+    const formatError = validateUnitsFormat(value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, units: formatError }));
+    } else if (formatErrors.units) {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.units;
+        return newErrors;
+      });
     }
   };
 
@@ -112,7 +153,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
         className="text-sm text-black dark:text-white"
         style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
       >
-        {label}
+        {label}<span className="text-red-500 ml-1">*</span>
       </label>
       <Listbox value={value} onChange={onChange} disabled={disabled}>
         <div className="relative mt-1 w-[228px]">
@@ -167,6 +208,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     </div>
   );
 
+  const getDropdownError = (field) => {
+    return errors[field] || "";
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div
@@ -193,55 +238,70 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
+          
           {/* Form Fields */}
           <div className="grid grid-cols-2 gap-6">
             {/* Blood Type - Now Dynamic */}
             <Dropdown
               label="Blood Type"
               value={formData.type}
-              onChange={(val) => setFormData({ ...formData, type: val })}
+              onChange={(val) => {
+                setFormData({ ...formData, type: val });
+                if (errors.type) {
+                  setErrors(prev => ({ ...prev, type: "" }));
+                }
+              }}
               options={bloodTypes}
-              error={errors.type}
+              error={getDropdownError("type")}
               disabled={loading}
             />
+            
             {/* Available Units */}
             <div>
               <label
                 className="text-sm text-black dark:text-white"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
-                Available Units
+                Available Units<span className="text-red-500 ml-1">*</span>
               </label>
               <input
                 type="text"
                 name="units"
                 value={formData.units}
-                onChange={(e) =>
-                  setFormData({ ...formData, units: e.target.value })
-                }
+                onChange={handleUnitsChange}
                 placeholder="Enter units"
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
               />
-              {errors.units && (
+              {formatErrors.units && (
+                <p className="text-red-500 text-xs mt-1">{formatErrors.units}</p>
+              )}
+              {errors.units && !formatErrors.units && (
                 <p className="text-red-500 text-xs mt-1">{errors.units}</p>
               )}
             </div>
+            
             {/* Status */}
             <Dropdown
               label="Status"
               value={formData.status}
-              onChange={(val) => setFormData({ ...formData, status: val })}
+              onChange={(val) => {
+                setFormData({ ...formData, status: val });
+                if (errors.status) {
+                  setErrors(prev => ({ ...prev, status: "" }));
+                }
+              }}
               options={statuses}
-              error={errors.status}
+              error={getDropdownError("status")}
             />
+            
             {/* Last Updated */}
             <div>
               <label
                 className="text-sm text-black dark:text-white"
                 style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
               >
-                Last Updated
+                Last Updated<span className="text-red-500 ml-1">*</span>
               </label>
               <div className="relative">
                 <DatePicker
@@ -259,6 +319,9 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
                         )}/${date.getFullYear()}`
                       : "";
                     setFormData({ ...formData, lastUpdated: formatted });
+                    if (errors.lastUpdated) {
+                      setErrors(prev => ({ ...prev, lastUpdated: "" }));
+                    }
                   }}
                   dateFormat="MM/dd/yyyy"
                   placeholderText="MM/DD/YYYY"
@@ -293,6 +356,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
               )}
             </div>
           </div>
+          
           {/* Buttons */}
           <div className="flex justify-center gap-4 mt-8">
             <button

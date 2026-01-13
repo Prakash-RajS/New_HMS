@@ -992,6 +992,30 @@ class Permission(models.Model):
         return {perm.module: perm.enabled for perm in permissions}
     
     
+# class MedicineAllocation(models.Model):
+#     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="medicine_allocations")
+#     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, related_name="medicine_allocations")
+#     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True)
+
+#     # ✅ changed from ForeignKey → JSONField to store multiple lab report IDs
+#     lab_report_ids = models.JSONField(default=list, blank=True, null=True)
+
+#     medicine_name = models.CharField(max_length=100)
+#     dosage = models.CharField(max_length=50)
+#     quantity = models.CharField(max_length=50, blank=True, null=True)
+#     frequency = models.CharField(max_length=50, blank=True, null=True)
+#     duration = models.CharField(max_length=50)
+#     time = models.CharField(max_length=50, blank=True, null=True)
+#     allocation_date = models.DateField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+
+#     class Meta:
+#         db_table = "medicine_allocations"
+#         ordering = ["-allocation_date"]
+
+#     def __str__(self):
+#         return f"{self.medicine_name} for {self.patient.full_name} ({self.allocation_date})"
 class MedicineAllocation(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="medicine_allocations")
     staff = models.ForeignKey(Staff, on_delete=models.SET_NULL, null=True, related_name="medicine_allocations")
@@ -1009,6 +1033,24 @@ class MedicineAllocation(models.Model):
     allocation_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    BILLING_STATUS = [
+        ("pending", "Pending"),
+        ("billed", "Billed"),
+        ("paid", "Paid"),
+    ]
+    billing_status = models.CharField(
+        max_length=20,
+        choices=BILLING_STATUS,
+        default="pending"
+    )
+
+    pharmacy_invoice = models.ForeignKey(
+        'PharmacyInvoiceHistory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
 
     class Meta:
         db_table = "medicine_allocations"

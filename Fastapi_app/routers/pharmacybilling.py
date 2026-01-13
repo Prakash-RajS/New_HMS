@@ -22,6 +22,7 @@ class StockCheckResponse(BaseModel):
     stock_check: List[StockCheckItem]
     
 class PharmacyBillingItem(BaseModel):
+    allocation_id: int 
     item_code: str
     name_of_drug: str
     rack_no: Optional[str] = None
@@ -53,8 +54,11 @@ async def get_pharmacy_billing_details(
         # Fetch patient
         patient = await sync_to_async(Patient.objects.get)(id=patient_id)
 
-        # Fetch allocations WITH STAFF in one query
-        allocations_query = MedicineAllocation.objects.select_related("staff").filter(patient=patient)
+        # ✅ Fetch ONLY pending allocations (not billed or paid)
+        allocations_query = MedicineAllocation.objects.select_related("staff").filter(
+            patient=patient,
+            billing_status="pending"  # ✅ Only show pending allocations
+        )
         
         # Apply date filtering if provided
         if date_from:
@@ -83,6 +87,7 @@ async def get_pharmacy_billing_details(
             quantity = int(allocation.quantity or 0)
 
             item = PharmacyBillingItem(
+                allocation_id=allocation.id,
                 item_code=stock.item_code if stock else "N/A",
                 name_of_drug=allocation.medicine_name,
                 rack_no=stock.rack_no if stock else None,
@@ -121,6 +126,7 @@ async def get_pharmacy_billing_details(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+    
 @router.get("/check-stock-availability/{patient_id}/", response_model=StockCheckResponse)
 async def check_stock_availability(
     patient_id: int, 
@@ -128,8 +134,11 @@ async def check_stock_availability(
     date_to: Optional[str] = None
 ):
     try:
-        # Fetch patient allocations (same logic as billing)
-        allocations_query = MedicineAllocation.objects.select_related("staff").filter(patient_id=patient_id)
+        # ✅ Fetch ONLY pending allocations for stock check
+        allocations_query = MedicineAllocation.objects.select_related("staff").filter(
+            patient_id=patient_id,
+            billing_status="pending"  # ✅ Only check stock for pending allocations
+        )
         
         if date_from:
             allocations_query = allocations_query.filter(allocation_date__gte=date_from)

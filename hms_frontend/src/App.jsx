@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound.jsx";
 
 import Login from "./pages/Login.jsx";
 import { ToastProvider } from "./components/Toast.jsx";
+import { startTokenRefresh } from "./utils/axiosConfig";
 
 // Pages
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
@@ -168,6 +169,10 @@ function AppContent({ contentRef }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useContext(ThemeContext);
   const location = useLocation();
+  useEffect(() => {
+    const interval = startTokenRefresh();
+    return () => clearInterval(interval);
+  }, []);
 
   const token = localStorage.getItem("token");
   const isLoginPage = location.pathname === "/";

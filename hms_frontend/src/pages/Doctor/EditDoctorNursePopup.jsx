@@ -5,9 +5,8 @@ import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-//const API_BASE = "http://127.0.0.1:8000";
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
-    
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   // Safety: Close if no profile
   useEffect(() => {
@@ -27,8 +26,157 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
     date_of_joining: "",
     status: "Active"
   });
+
   const [loading, setLoading] = useState(false);
-  const [departments, setDepartments] = useState([]); // Store full objects
+  const [departments, setDepartments] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [formatErrors, setFormatErrors] = useState({});
+
+  // Levenshtein distance for typo detection
+  const levenshtein = (a, b) => {
+    const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
+      Array.from({ length: a.length + 1 }, (_, j) =>
+        i === 0 ? j : j === 0 ? i : 0
+      )
+    );
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        matrix[i][j] =
+          b[i - 1] === a[j - 1]
+            ? matrix[i - 1][j - 1]
+            : Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              );
+      }
+    }
+    return matrix[b.length][a.length];
+  };
+
+  // Enhanced email validation
+  const validateEmailFormat = (value) => {
+    const email = value.trim();
+    if (!email) return "";
+
+    // 1️⃣ Basic structure check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address (e.g., user@domain.com)";
+    }
+
+    // 2️⃣ Suspicious formatting
+    if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
+      return "Invalid email format";
+    }
+
+    const [localPart, domain] = email.toLowerCase().split("@");
+
+    // 3️⃣ Local-part sanity
+    if (localPart.length < 2) {
+      return "Email username is too short";
+    }
+
+    if (/(.)\1{5,}/.test(localPart)) {
+      return "Email appears to be invalid";
+    }
+
+    if (/(\.\.|__|--|\+\+)/.test(localPart)) {
+      return "Email contains invalid characters";
+    }
+
+    // 4️⃣ Disposable / fake domains (hard block)
+    const invalidDomains = [
+      "email.com",
+      "example.com",
+      "test.com",
+      "domain.com",
+      "mailinator.com",
+      "tempmail.com",
+      "guerrillamail.com",
+      "10minutemail.com",
+      "yopmail.com",
+      "fakeemail.com",
+      "temp-mail.org",
+      "throwawayemail.com",
+      "dispostable.com",
+      "maildrop.cc"
+    ];
+
+    if (invalidDomains.includes(domain)) {
+      return "Disposable or invalid email domains are not allowed";
+    }
+
+    // 5️⃣ Dynamic typo detection for major providers
+    const providers = [
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "icloud.com"
+    ];
+
+    for (const provider of providers) {
+      const distance = levenshtein(domain, provider);
+
+      // distance 1–2 = very likely a typo
+      if (distance > 0 && distance <= 2) {
+        return `Did you mean ${localPart}@${provider}?`;
+      }
+    }
+
+    // 6️⃣ TLD sanity (not restrictive)
+    const tld = domain.split(".").pop();
+    if (tld.length < 2) {
+      return "Please use a valid domain extension";
+    }
+
+    return "";
+  };
+
+  // Real-time format validation functions
+  const validateFieldFormat = (field, value) => {
+    switch (field) {
+      case "full_name":
+        if (!value) return "";
+        if (!/^[A-Za-z\s]*$/.test(value)) {
+          return "Name can only contain letters and spaces";
+        }
+        return "";
+      
+      case "phone":
+        if (!value) return "";
+        if (!/^\d*$/.test(value)) {
+          return "Phone must contain only digits";
+        }
+        if (value.length > 10) {
+          return "Phone cannot exceed 10 digits";
+        }
+        // Show error while typing if less than 10 digits
+        if (value.length > 0 && value.length < 10) {
+          return "Phone must be exactly 10 digits";
+        }
+        return "";
+      
+      case "email":
+        return validateEmailFormat(value);
+      
+      default:
+        return "";
+    }
+  };
+
+  // Helper to determine which error to show
+  const getFieldError = (field) => {
+    // Show format errors in real-time
+    if (formatErrors[field]) {
+      return formatErrors[field];
+    }
+    
+    // Show required errors only on form submission
+    return errors[field] || "";
+  };
 
   // Fetch departments + prefill
   useEffect(() => {
@@ -60,11 +208,52 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
     }
   }, [profile]);
 
-  const handleUpdate = async () => {
-    if (!formData.full_name || !formData.email || !formData.phone) {
-      errorToast("Please fill all required fields");
-      return;
+  // Validate form on submission
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation - only letters and spaces
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = "Full name is required";
+    } else if (formData.full_name.trim().length < 2) {
+      newErrors.full_name = "Name must be at least 2 characters";
+    } else if (!/^[A-Za-z\s]+$/.test(formData.full_name)) {
+      newErrors.full_name = "Name can only contain letters and spaces";
     }
+
+    // Phone validation - EXACTLY 10 digits
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = "Phone must be exactly 10 digits";
+    }
+
+    // Email validation - REQUIRED
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required";
+    } else {
+      const emailError = validateEmailFormat(formData.email);
+      if (emailError) {
+        newErrors.email = emailError;
+      }
+    }
+
+    // Designation validation
+    if (!formData.designation) {
+      newErrors.designation = "Role is required";
+    }
+
+    // Department validation
+    if (!formData.department) {
+      newErrors.department = "Department is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleUpdate = async () => {
+    if (!validateForm()) return;
 
     if (!profile?.id) {
       errorToast("Invalid profile");
@@ -74,8 +263,8 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
     setLoading(true);
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append("full_name", formData.full_name);
-      formDataToSend.append("email", formData.email);
+      formDataToSend.append("full_name", formData.full_name.trim());
+      formDataToSend.append("email", formData.email.trim());
       formDataToSend.append("phone", formData.phone);
 
       const dept = departments.find(d => d.name === formData.department);
@@ -102,7 +291,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
       if (response.ok) {
         const updatedStaff = await response.json();
         successToast("Profile updated successfully");
-        onUpdate(updatedStaff); // Pass fresh data
+        onUpdate(updatedStaff);
         onClose();
       } else {
         let msg = "Failed to update profile";
@@ -120,10 +309,99 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
     }
   };
 
+  // Handle Full Name Change - Auto-capitalize
+  const handleFullNameChange = (e) => {
+    let value = e.target.value;
+    
+    // Auto-capitalize first letter of each word
+    if (value) {
+      value = value.replace(/\b\w/g, char => char.toUpperCase());
+    }
+    
+    setFormData({ ...formData, full_name: value });
+    
+    // Clear required error when user starts typing
+    if (errors.full_name) {
+      setErrors(prev => ({ ...prev, full_name: "" }));
+    }
+    
+    // Real-time format validation
+    const formatError = validateFieldFormat("full_name", value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, full_name: formatError }));
+    } else {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.full_name;
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle Phone Change
+  const handlePhoneChange = (e) => {
+    const value = e.target.value;
+    // Only allow numbers
+    if (/^\d*$/.test(value)) {
+      setFormData({ ...formData, phone: value });
+      
+      // Clear required error when user starts typing
+      if (errors.phone) {
+        setErrors(prev => ({ ...prev, phone: "" }));
+      }
+      
+      // Real-time format validation
+      const formatError = validateFieldFormat("phone", value);
+      if (formatError) {
+        setFormatErrors(prev => ({ ...prev, phone: formatError }));
+      } else {
+        setFormatErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.phone;
+          return newErrors;
+        });
+      }
+    }
+  };
+
+  // Handle Email Change
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, email: value });
+    
+    // Clear required error when user starts typing
+    if (errors.email) {
+      setErrors(prev => ({ ...prev, email: "" }));
+    }
+    
+    // Real-time format validation
+    const formatError = validateFieldFormat("email", value);
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, email: formatError }));
+    } else {
+      setFormatErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.email;
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle Blur - final validation
+  const handleBlur = (field) => {
+    // Perform final format validation on blur
+    const value = formData[field];
+    const formatError = validateFieldFormat(field, value);
+    
+    if (formatError) {
+      setFormatErrors(prev => ({ ...prev, [field]: formatError }));
+    }
+  };
+
   const roles = ["Doctor", "Nurse", "Staff"];
   const statuses = ["Available", "Unavailable", "On Leave"];
 
-  const Dropdown = ({ label, value, onChange, options }) => (
+  const Dropdown = ({ label, value, onChange, options, error }) => (
     <div>
       <label className="text-sm text-black dark:text-white">{label}</label>
       <Listbox value={value || "Select"} onChange={onChange}>
@@ -149,6 +427,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           </Listbox.Options>
         </div>
       </Listbox>
+      {error && <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{error}</p>}
     </div>
   );
 
@@ -176,20 +455,62 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
         </div>
 
         <div className="grid grid-cols-2 gap-6 relative z-10">
+          {/* Full Name */}
           <div>
-            <label className="text-sm">Full Name *</label>
+            <label className="text-sm">Full Name <span className="text-red-500">*</span></label>
             <input
               value={formData.full_name}
-              onChange={e => setFormData({ ...formData, full_name: e.target.value })}
+              onChange={handleFullNameChange}
+              onBlur={() => {
+                // Trim whitespace on blur
+                if (formData.full_name) {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    full_name: prev.full_name.trim() 
+                  }));
+                }
+                handleBlur("full_name");
+              }}
               placeholder="Enter full name"
               disabled={loading}
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
+            {getFieldError("full_name") && (
+              <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                {getFieldError("full_name")}
+              </p>
+            )}
           </div>
 
-          <Dropdown label="Role" value={formData.designation} onChange={v => setFormData({ ...formData, designation: v })} options={roles} />
-          <Dropdown label="Department" value={formData.department} onChange={v => setFormData({ ...formData, department: v })} options={departments.map(d => d.name)} />
+          {/* Role */}
+          <Dropdown 
+            label={<span>Role <span className="text-red-500">*</span></span>}
+            value={formData.designation} 
+            onChange={v => {
+              setFormData({ ...formData, designation: v });
+              if (errors.designation) {
+                setErrors(prev => ({ ...prev, designation: "" }));
+              }
+            }} 
+            options={roles} 
+            error={errors.designation}
+          />
+
+          {/* Department */}
+          <Dropdown 
+            label={<span>Department <span className="text-red-500">*</span></span>}
+            value={formData.department} 
+            onChange={v => {
+              setFormData({ ...formData, department: v });
+              if (errors.department) {
+                setErrors(prev => ({ ...prev, department: "" }));
+              }
+            }} 
+            options={departments.map(d => d.name)} 
+            error={errors.department}
+          />
           
+          {/* Specialization */}
           <div>
             <label className="text-sm">Specialization</label>
             <input
@@ -201,31 +522,55 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
             />
           </div>
 
+          {/* Phone */}
           <div>
-            <label className="text-sm">Phone Number *</label>
+            <label className="text-sm">Phone Number <span className="text-red-500">*</span></label>
             <input
               type="tel"
               value={formData.phone}
-              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+              onChange={handlePhoneChange}
+              onBlur={() => handleBlur("phone")}
               placeholder="Enter phone"
               maxLength="10"
               disabled={loading}
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
+            {getFieldError("phone") && (
+              <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                {getFieldError("phone")}
+              </p>
+            )}
           </div>
 
+          {/* Email */}
           <div>
-            <label className="text-sm">Email *</label>
+            <label className="text-sm">Email <span className="text-red-500">*</span></label>
             <input
               type="email"
               value={formData.email}
-              onChange={e => setFormData({ ...formData, email: e.target.value })}
+              onChange={handleEmailChange}
+              onBlur={() => {
+                // Trim whitespace on blur
+                if (formData.email) {
+                  setFormData(prev => ({ 
+                    ...prev, 
+                    email: prev.email.trim() 
+                  }));
+                }
+                handleBlur("email");
+              }}
               placeholder="Enter email"
               disabled={loading}
               className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50"
             />
+            {getFieldError("email") && (
+              <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                {getFieldError("email")}
+              </p>
+            )}
           </div>
 
+          {/* Joining Date */}
           <div>
             <label className="text-sm">Joining Date</label>
             <div className="relative">
@@ -253,10 +598,16 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
             </div>
           </div>
 
-          <Dropdown label="Status" value={formData.status} onChange={v => setFormData({ ...formData, status: v })} options={statuses} />
+          {/* Status */}
+          <Dropdown 
+            label="Status" 
+            value={formData.status} 
+            onChange={v => setFormData({ ...formData, status: v })} 
+            options={statuses} 
+          />
         </div>
 
-        <div className="flex justify-center gap-4 mt-8 relative ">
+        <div className="flex justify-center gap-4 mt-8 relative">
           <button onClick={onClose} disabled={loading} className="w-[104px] h-[33px] rounded-[8px] border border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] disabled:opacity-50">
             Cancel
           </button>

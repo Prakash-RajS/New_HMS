@@ -140,14 +140,6 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
     "Morning", "Afternoon", "Evening", "Night"
   ];
 
-  const durations = [
-    "3 days", "5 days", "7 days", "10 days", "14 days", "30 days", "As directed",
-  ];
-
-  const times = [
-    "8:00 AM", "12:00 PM", "6:00 PM", "8:00 PM", "Before meals", "After meals", "At bedtime",
-  ];
-
   // Single Select Dropdown
   const Dropdown = useCallback(({ label, value, onChange, options, error, placeholder = "Select" }) => {
     const handleChange = (selectedValue) => {
@@ -379,21 +371,51 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
                   error={errors.frequency}
                 />
 
-                <Dropdown
-                  label="Duration"
-                  value={formData.duration}
-                  onChange={(val) => handleInputChange("duration", val)}
-                  options={durations}
-                  error={errors.duration}
-                />
+                {/* Duration as Input Field */}
+                <div>
+                  <label className="text-sm text-black dark:text-white font-[Helvetica]">
+                    Duration
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.duration}
+                    onChange={(e) => handleInputChange("duration", e.target.value)}
+                    placeholder="e.g. 5 days"
+                    className={`w-full h-[32px] px-3 rounded-[8px] border ${
+                      errors.duration
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-[#3A3A3A]"
+                    } bg-gray-100 dark:bg-transparent text-black dark:text-white text-[14px] focus:outline-none`}
+                  />
+                  {errors.duration && (
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                      {errors.duration}
+                    </p>
+                  )}
+                </div>
 
-                <Dropdown
-                  label="Time"
-                  value={formData.time}
-                  onChange={(val) => handleInputChange("time", val)}
-                  options={times}
-                  error={errors.time}
-                />
+                {/* Time as Input Field */}
+                <div>
+                  <label className="text-sm text-black dark:text-white font-[Helvetica]">
+                    Time
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.time}
+                    onChange={(e) => handleInputChange("time", e.target.value)}
+                    placeholder="e.g. 8:00 AM"
+                    className={`w-full h-[32px] px-3 rounded-[8px] border ${
+                      errors.time
+                        ? "border-red-500"
+                        : "border-gray-300 dark:border-[#3A3A3A]"
+                    } bg-gray-100 dark:bg-transparent text-black dark:text-white text-[14px] focus:outline-none`}
+                  />
+                  {errors.time && (
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1">
+                      {errors.time}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* Stock Info */}

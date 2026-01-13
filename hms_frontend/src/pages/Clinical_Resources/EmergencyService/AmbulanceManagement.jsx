@@ -30,7 +30,7 @@ import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-const WS_URL = import.meta.env.VITE_WS_URL;
+const WS_URL = import.meta.env.VITE_API_BASE_URL;
 
 
 

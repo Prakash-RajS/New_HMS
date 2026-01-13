@@ -50,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #"HMS_backend.middleware.CloseDBConnectionsMiddleware",
 ]
 
 ROOT_URLCONF = 'my_project.urls'
@@ -75,17 +76,17 @@ WSGI_APPLICATION = 'my_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "HMS_project", 
-        "USER": "root",
-        "PASSWORD": "Welcome#1234",
-        "HOST": "127.0.0.1",
-        "PORT": "3306",
-        "OPTIONS": { "charset": "utf8mb4" },
-    }
-}
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "HMS_project", 
+#         "USER": "root",
+#         "PASSWORD": "Welcome#1234",
+#         "HOST": "127.0.0.1",
+#         "PORT": "3306",
+#         "OPTIONS": { "charset": "utf8mb4" },
+#     }
+# }
 # DATABASES = {
 #      "default": {
 #          "ENGINE": "django.db.backends.mysql",
@@ -94,9 +95,47 @@ DATABASES = {
 #          "PASSWORD": "StrongProdPass@123",
 #          "HOST": "hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com",
 #          "PORT": "3306",
-#          "OPTIONS": { "charset": "utf8mb4" },
+#          "CONN_MAX_AGE": 300,
+#          "OPTIONS": {
+#             "connect_timeout": 5,
+#             "read_timeout": 20,
+#             "write_timeout": 20,
+#             "charset": "utf8mb4",
+#         },
 #      }
 #  }
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "hms_project_prod_db",
+#         "USER": "hms_prod_user",
+#         "PASSWORD": "StrongProdPass@123",
+#         "HOST": "hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com",
+#         "PORT": "3306",
+#         "CONN_MAX_AGE": 60,  # 🔥 IMPORTANT
+#         "OPTIONS": {
+#             "connect_timeout": 10,
+#             "read_timeout": 30,
+#             "write_timeout": 30,
+#             "charset": "utf8mb4",
+#         },
+#     }
+#}
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'hms_database',
+        'USER': 'admin',
+        'PASSWORD': 'StacklyDB2026',
+        'HOST': 'hms-prod-database.c54840ii8psl.us-east-2.rds.amazonaws.com',
+        'PORT': '3306',
+        'CONN_MAX_AGE': 60,   # 🔥 VERY IMPORTANT
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
+    }
+}
+
 
 
 TIME_ZONE = "Asia/Kolkata"
@@ -126,8 +165,6 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
