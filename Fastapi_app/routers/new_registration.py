@@ -558,7 +558,7 @@ PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
 
 # Base URL for static files
-BASE_URL = "https://hms.stacklycloud.com/api"  # Change in production
+BASE_URL = "http://localhost:8000"  # Change in production
 
 def parse_date(date_str: Optional[str]):
     if not date_str:

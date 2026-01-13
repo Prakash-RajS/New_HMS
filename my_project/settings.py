@@ -76,17 +76,17 @@ WSGI_APPLICATION = 'my_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "HMS_project", 
-#         "USER": "root",
-#         "PASSWORD": "Welcome#1234",
-#         "HOST": "127.0.0.1",
-#         "PORT": "3306",
-#         "OPTIONS": { "charset": "utf8mb4" },
-#     }
-# }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "HMS_project", 
+        "USER": "root",
+        "PASSWORD": "Welcome#1234",
+        "HOST": "127.0.0.1",
+        "PORT": "3306",
+        "OPTIONS": { "charset": "utf8mb4" },
+    }
+}
 # DATABASES = {
 #      "default": {
 #          "ENGINE": "django.db.backends.mysql",
@@ -121,20 +121,20 @@ WSGI_APPLICATION = 'my_project.wsgi.application'
 #         },
 #     }
 #}
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'hms_database',
-        'USER': 'admin',
-        'PASSWORD': 'StacklyDB2026',
-        'HOST': 'hms-prod-database.c54840ii8psl.us-east-2.rds.amazonaws.com',
-        'PORT': '3306',
-        'CONN_MAX_AGE': 60,   # 🔥 VERY IMPORTANT
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        }
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'hms_database',
+#         'USER': 'admin',
+#         'PASSWORD': 'StacklyDB2026',
+#         'HOST': 'hms-prod-database.c54840ii8psl.us-east-2.rds.amazonaws.com',
+#         'PORT': '3306',
+#         'CONN_MAX_AGE': 60,   # 🔥 VERY IMPORTANT
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#         }
+#     }
+# }
 
 
 
