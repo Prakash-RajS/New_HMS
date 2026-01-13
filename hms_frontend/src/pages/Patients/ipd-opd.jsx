@@ -847,7 +847,7 @@ const AppointmentListIPD = () => {
     setDataLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API_BASE}/patients`);
+      const url = new URL(`${API_BASE}/patients/`);
       url.searchParams.set("limit", 100);
       
       console.log("Fetching patients from:", url.toString());
