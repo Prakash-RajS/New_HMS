@@ -51,17 +51,8 @@ export const WebSocketProvider = ({ children }) => {
       return;
     }
 
-    // ✅ Connect to FastAPI backend on port 8000
-    // const backendUrl =
-    //   import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
-    // const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
-
-
-    
-const API_BASE = import.meta.env.VITE_API_BASE_URL;    
-const backendUrl = API_BASE
-
-
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+    const backendUrl = API_BASE;
 const wsUrl = backendUrl.replace(/^http/, "ws") + "/ws";
 
     connectionAttemptsRef.current += 1;
