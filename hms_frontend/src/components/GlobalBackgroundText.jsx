@@ -1,4 +1,4 @@
-import React from "react"; // 👈 FIXED: "react" NOT "responsive"
+import React from "react";
 import { useLocation } from "react-router-dom";
 
 const GlobalBackgroundText = ({ isCollapsed }) => {
@@ -15,9 +15,9 @@ const GlobalBackgroundText = ({ isCollapsed }) => {
 
   return (
     <div
-      className="fixed top-1/2 text-center pointer-events-none select-none dark:hidden overflow-hidden"
+      className="fixed top-1/2 text-center pointer-events-none select-none overflow-hidden"
       style={{
-        width: "100vw", 
+        width: "100vw",
         left: isCollapsed ? "70px" : "110px",
         transform: "translateY(-50%)",
         zIndex: 40,
@@ -27,11 +27,13 @@ const GlobalBackgroundText = ({ isCollapsed }) => {
       }}
     >
       <h1
-        className="leading-none font-bold 
-          text-[60px] sm:text-[100px] md:text-[140px] lg:text-[180px]" // 👈 RESPONSIVE SIZES!
+        className="
+          leading-none font-bold
+          text-[60px] sm:text-[100px] md:text-[140px] lg:text-[180px]
+          text-black/10 dark:text-white/5
+        "
         style={{
           fontFamily: "Poppins, sans-serif",
-          color: "rgba(0, 0, 0, 0.1)",
           userSelect: "none",
           whiteSpace: "nowrap",
           lineHeight: 1,
@@ -42,5 +44,4 @@ const GlobalBackgroundText = ({ isCollapsed }) => {
     </div>
   );
 };
-
 export default GlobalBackgroundText;
