@@ -1,4 +1,5 @@
 # fastapi_app/routers/staff.py
+import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
@@ -9,6 +10,7 @@ from asgiref.sync import sync_to_async
 import os
 import traceback
 from Fastapi_app.routers.notifications import NotificationService
+from pathlib import Path as PathLib
 
 router = APIRouter(prefix="/staff", tags=["Staffs"])
 
@@ -257,13 +259,26 @@ async def add_staff(
             
         print(f"Staff created successfully with ID: {staff.id}")
 
-        # Handle file uploads
+        # Handle file uploads with new filename format
         cert_paths = []
         if certificates:
             os.makedirs("Fastapi_app/Staff_documents", exist_ok=True)
             for cert in certificates:
                 if cert.filename:  # Only process if filename exists
-                    cert_path = f"Fastapi_app/Staff_documents/{staff.id}_{cert.filename}"
+                    # Generate unique filename for certificate
+                    unique_id = str(uuid.uuid4().hex)[:4].upper()
+                    file_extension = PathLib(cert.filename).suffix.lower() if cert.filename else ".pdf"
+                    
+                    # Format: First4CharsXXXXDOC.ext
+                    name_part = full_name.upper()
+                    if len(name_part) >= 4:
+                        first_four = name_part[:4]
+                    else:
+                        first_four = name_part.ljust(4, '_')
+                    
+                    filename = f"{first_four}{unique_id}DOC{file_extension}"
+                    cert_path = f"Fastapi_app/Staff_documents/{filename}"
+                    
                     with open(cert_path, "wb") as f:
                         content = await cert.read()
                         f.write(content)
@@ -272,7 +287,20 @@ async def add_staff(
         pic_path = None
         if profile_picture and profile_picture.filename:
             os.makedirs("Fastapi_app/staffs_pictures", exist_ok=True)
-            pic_path = f"Fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
+            
+            # Generate filename with new format: First4CharsXXXXPIC.ext
+            name_part = full_name.upper()
+            if len(name_part) >= 4:
+                first_four = name_part[:4]
+            else:
+                first_four = name_part.ljust(4, '_')
+            
+            unique_id = str(uuid.uuid4().hex)[:4].upper()
+            file_extension = PathLib(profile_picture.filename).suffix.lower() if profile_picture.filename else ".jpg"
+            
+            filename = f"{first_four}{unique_id}PIC{file_extension}"
+            pic_path = f"Fastapi_app/staffs_pictures/{filename}"
+            
             with open(pic_path, "wb") as f:
                 content = await profile_picture.read()
                 f.write(content)
@@ -505,7 +533,37 @@ async def update_staff(
         pic_path = None
         if profile_picture and profile_picture.filename:
             os.makedirs("Fastapi_app/staffs_pictures", exist_ok=True)
-            pic_path = f"Fastapi_app/staffs_pictures/{staff.id}_{profile_picture.filename}"
+            
+            # Delete old profile picture if exists
+            if staff.profile_picture:
+                try:
+                    # staff.profile_picture is a string path, not an ImageFieldFile
+                    old_photo_path = staff.profile_picture
+                    if os.path.exists(old_photo_path):
+                        os.remove(old_photo_path)
+                except Exception:
+                    pass  # Don't fail if deletion fails
+            
+            # Generate new filename format: First4CharsXXXXPIC.ext
+            name_to_use = full_name.strip() if full_name and full_name.strip() else staff.full_name
+            
+            # Get first 4 characters of name, uppercase, pad if shorter
+            name_part = name_to_use.upper()
+            if len(name_part) >= 4:
+                first_four = name_part[:4]
+            else:
+                first_four = name_part.ljust(4, '_')
+            
+            # Generate 4-character unique ID (uppercase)
+            unique_id = str(uuid.uuid4().hex)[:4].upper()
+            
+            # Get file extension
+            file_extension = PathLib(profile_picture.filename).suffix.lower() if profile_picture.filename else ".jpg"
+            
+            # Format: First4CharsXXXXPIC.ext
+            filename = f"{first_four}{unique_id}PIC{file_extension}"
+            pic_path = f"Fastapi_app/staffs_pictures/{filename}"
+            
             with open(pic_path, "wb") as f:
                 f.write(await profile_picture.read())
 
@@ -523,7 +581,6 @@ async def update_staff(
             
             staff = await update_files_sync()
             await NotificationService.send_staff_updated(staff)
-            
 
         return StaffResponse(
             id=staff.id,
@@ -557,8 +614,7 @@ async def update_staff(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
+        
 # -----------------------------
 # Get Staff by ID
 # -----------------------------

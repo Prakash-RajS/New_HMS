@@ -20,50 +20,73 @@
   const safeStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
 
   /* ---------- Photo Upload ---------- */
-  const PhotoUploadBox = ({
-    photoPreview,
-    setPhotoPreview,
-    onFileSelect,
-    error = null,
-  }) => {
-    const handlePhotoUpload = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        setPhotoPreview(URL.createObjectURL(file));
-        onFileSelect(file);
+  /* ---------- Photo Upload ---------- */
+const PhotoUploadBox = ({
+  photoPreview,
+  setPhotoPreview,
+  onFileSelect,
+  error = null,
+}) => {
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      if (file.size > 5 * 1024 * 1024) {
+        errorToast("File size exceeds 5MB limit. Please choose a smaller file.");
+        e.target.value = ''; // Clear the input to allow re-selection
+        return;
       }
-    };
-    return (
-      <div className="flex justify-center md:justify-end">
-        <input
-          type="file"
-          id="photoUpload"
-          accept="image/*"
-          className="hidden"
-          onChange={handlePhotoUpload}
-        />
-        <label
-          htmlFor="photoUpload"
-          className="border border-dashed border-[#0EFF7B] mr-12 w-24 h-24 md:w-32 md:h-32
-                    flex items-center justify-center text-gray-600 cursor-pointer
-                    rounded-lg overflow-hidden bg-[#0EFF7B1A] hover:border-[#08994A] hover:text-[#08994A]"
-        >
-          {photoPreview ? (
-            <img
-              src={photoPreview}
-              alt="Preview"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-xs md:text-sm">+ Add Photo</span>
-          )}
-        </label>
-        {error && (
-          <p className="text-red-500 text-xs mt-1 w-32 text-center">{error}</p>
-        )}
-      </div>
-    );
+      
+      // Check file type
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        errorToast("Invalid file type. Please upload JPG, JPEG, or PNG files only.");
+        e.target.value = ''; // Clear the input to allow re-selection
+        return;
+      }
+      
+      setPhotoPreview(URL.createObjectURL(file));
+      onFileSelect(file);
+    }
   };
+  
+  return (
+    <div className="flex flex-col items-center md:items-end md:mr-12">
+      <input
+        type="file"
+        id="photoUpload"
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+        onChange={handlePhotoUpload}
+      />
+      <label
+        htmlFor="photoUpload"
+        className="border border-dashed border-[#0EFF7B] w-24 h-24 md:w-32 md:h-32
+                  flex items-center justify-center text-gray-600 cursor-pointer
+                  rounded-lg overflow-hidden bg-[#0EFF7B1A] hover:border-[#08994A] hover:text-[#08994A]"
+      >
+        {photoPreview ? (
+          <img
+            src={photoPreview}
+            alt="Preview"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-xs md:text-sm text-center px-1">+ Add Photo</span>
+        )}
+      </label>
+      
+      {/* Help text */}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center md:text-right w-full max-w-[150px]">
+        Supported formats: JPG, JPEG, PNG (Max 5MB)
+      </p>
+      
+      {error && (
+        <p className="text-red-500 text-xs mt-1 w-32 text-center">{error}</p>
+      )}
+    </div>
+  );
+};
 
   /* ---------- Dropdown ---------- */
   const Dropdown = ({

@@ -13,22 +13,37 @@ const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        errorToast("File size exceeds 5MB limit. Please choose a smaller file.");
+        e.target.value = ''; // Clear input to allow re-selection
+        return;
+      }
+      
+      // Check file type
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!validTypes.includes(file.type)) {
+        errorToast("Invalid file type. Please upload JPG, JPEG, or PNG files only.");
+        e.target.value = ''; // Clear input to allow re-selection
+        return;
+      }
+      
       setPhoto({ file, preview: URL.createObjectURL(file) });
     }
   };
 
   return (
-    <div className="flex justify-center md:justify-end">
+    <div className="flex flex-col items-center md:items-end">
       <input
         type="file"
         id="photoUpload"
-        accept="image/*"
+        accept="image/jpeg,image/jpg,image/png"
         className="hidden"
         onChange={handlePhotoUpload}
       />
       <label
         htmlFor="photoUpload"
-        className="border-2 mr-12 border-dashed bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border-[#0EFF7B] dark:border-[#0EFF7B] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-lg overflow-hidden hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
+        className="border-2 border-dashed bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border-[#0EFF7B] dark:border-[#0EFF7B] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-lg overflow-hidden hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
       >
         {photo?.preview ? (
           <img
@@ -43,6 +58,11 @@ const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
           </span>
         )}
       </label>
+      
+      {/* Help text displayed below */}
+      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center md:text-right w-32 mr-2">
+        Supported formats: JPG, JPEG, PNG<br />(Max 5MB)
+      </p>
     </div>
   );
 };
@@ -869,7 +889,7 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto font-[Helvetica]">
-      <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
+      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
         {/* Dark Overlay */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

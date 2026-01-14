@@ -1,44 +1,29 @@
-# Fastapi_app/routers/user_profile.py - COMPLETE FIXED FILE
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, status, Request
+import uuid
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, status, Body
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
 from datetime import date
-from django.db import IntegrityError, connection
+from django.db import IntegrityError
 from HMS_backend.models import Staff, Department, User
 from asgiref.sync import sync_to_async
 from django.contrib.auth.hashers import make_password
 from jose import JWTError, jwt
 import os
-from datetime import datetime
+from pathlib import Path as PathLib
 
 # ------------------- Router -------------------
 router = APIRouter(prefix="/api/profile", tags=["User_Profile"])
 
 # ------------------- JWT Settings -------------------
-SECRET_KEY = "super_secret_123"
+SECRET_KEY = "super_secret_123"  # Make sure this matches your auth endpoint
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
-# ------------------- Database Connection -------------------
-def ensure_db_connection():
-    """Ensure database connection is alive"""
-    try:
-        connection.ensure_connection()
-        return True
-    except Exception:
-        try:
-            connection.close()
-            connection.connect()
-            return True
-        except Exception:
-            return False
 
 # ------------------- Async Database Operations -------------------
 @sync_to_async
 def get_user_by_id(user_id):
     try:
-        ensure_db_connection()
         return User.objects.select_related("staff").get(id=user_id)
     except User.DoesNotExist:
         return None
@@ -46,7 +31,6 @@ def get_user_by_id(user_id):
 @sync_to_async
 def get_staff_with_department(staff_id):
     try:
-        ensure_db_connection()
         return Staff.objects.select_related("department").get(id=staff_id)
     except Staff.DoesNotExist:
         return None
@@ -54,24 +38,20 @@ def get_staff_with_department(staff_id):
 @sync_to_async
 def get_staff_with_user(staff_id):
     try:
-        ensure_db_connection()
         return Staff.objects.select_related("user").get(id=staff_id)
     except Staff.DoesNotExist:
         return None
 
 @sync_to_async
 def save_staff(staff):
-    ensure_db_connection()
     staff.save()
 
 @sync_to_async
 def save_user(user):
-    ensure_db_connection()
     user.save()
 
 @sync_to_async
 def update_staff_fields(staff, **fields):
-    ensure_db_connection()
     for field, value in fields.items():
         if value is not None:
             setattr(staff, field, value)
@@ -79,61 +59,49 @@ def update_staff_fields(staff, **fields):
     return staff
 
 # ------------------- JWT Dependency -------------------
-async def get_current_staff(request: Request, token: str = Depends(oauth2_scheme)):
+async def get_current_staff(token: str = Depends(oauth2_scheme)):
     try:
-        # Debug logging
-        print(f"[{datetime.now()}] Token validation started")
+        print(f"Received token: {token[:50]}...")  # Debug log
         
-        # Decode token
-        payload = jwt.decode(
-            token, 
-            SECRET_KEY, 
-            algorithms=[ALGORITHM],
-            options={"verify_exp": True}
-        )
-        
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: int = payload.get("user_id")
-        username: str = payload.get("sub")
         
-        print(f"[{datetime.now()}] Decoded token - User ID: {user_id}, Username: {username}")
+        print(f"Decoded payload - user_id: {user_id}")  # Debug log
         
-        if not user_id or not username:
-            print(f"[{datetime.now()}] Missing user_id or username in token")
+        if not user_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, 
-                detail="Invalid token format"
+                detail="Invalid token: No user_id found"
             )
 
-        # Get user with database health check
+        # Get user and their associated staff using async function
         user = await get_user_by_id(user_id)
         if not user:
-            print(f"[{datetime.now()}] User not found in database")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, 
                 detail="User not found"
             )
 
         if not user.staff:
-            print(f"[{datetime.now()}] No staff profile for user")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, 
-                detail="Staff profile not found"
+                detail="Staff profile not found for this user"
             )
 
-        print(f"[{datetime.now()}] Token validation successful for {user.staff.full_name}")
+        print(f"Found staff: {user.staff.full_name}")  # Debug log
         return user.staff
 
     except JWTError as e:
-        print(f"[{datetime.now()}] JWT Error: {str(e)}")
+        print(f"JWT Error: {str(e)}")  # Debug log
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, 
-            detail="Session expired. Please login again."
+            detail=f"Invalid or expired token: {str(e)}"
         )
     except Exception as e:
-        print(f"[{datetime.now()}] Unexpected error: {str(e)}")
+        print(f"Unexpected error in get_current_staff: {str(e)}")  # Debug log
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Authentication service error"
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail=f"Authentication failed: {str(e)}"
         )
 
 # ------------------- Pydantic Schemas -------------------
@@ -145,10 +113,12 @@ class ProfileResponse(BaseModel):
     phone: str
     designation: str
     department: str
+
     date_of_joining: Optional[date] = None
     address: Optional[str] = ""
     city: Optional[str] = ""
     country: Optional[str] = ""
+
     timezone: Optional[str] = None
     profile_picture: Optional[str] = None
 
@@ -156,7 +126,6 @@ class ProfileResponse(BaseModel):
         from_attributes = True
 
 class PasswordChange(BaseModel):
-    current_password: Optional[str] = None
     new_password: str
     confirm_password: str
 
@@ -169,44 +138,38 @@ class PasswordChange(BaseModel):
 # ==================== /me/ ENDPOINTS ====================
 
 @router.get("/me/", response_model=ProfileResponse)
-async def get_my_profile(request: Request, staff: Staff = Depends(get_current_staff)):
+async def get_my_profile(staff: Staff = Depends(get_current_staff)):
     try:
-        print(f"[{datetime.now()}] Fetching profile for staff ID: {staff.id}")
+        print(f"Fetching profile for staff ID: {staff.id}")  # Debug log
         
-        # Get fresh staff data
+        # Ensure we have the latest data with department using async function
         staff_with_dept = await get_staff_with_department(staff.id)
         if not staff_with_dept:
             raise HTTPException(status_code=404, detail="Staff profile not found")
-        
-        # Format phone number
-        phone = staff_with_dept.phone
-        if phone and not phone.startswith('+'):
-            phone = f"+{phone}"
         
         response_data = ProfileResponse(
             id=staff_with_dept.id,
             employee_id=staff_with_dept.employee_id or "",
             full_name=staff_with_dept.full_name,
             email=staff_with_dept.email,
-            phone=phone,
+            phone=staff_with_dept.phone,
             designation=staff_with_dept.designation,
-            department=staff_with_dept.department.name if staff_with_dept.department else "N/A",
+            department=staff_with_dept.department.name if staff_with_dept.department else "",
             date_of_joining=staff_with_dept.date_of_joining,
-            address=staff_with_dept.address or "",
-            city=staff_with_dept.city or "",
-            country=staff_with_dept.country or "",
-            timezone=staff_with_dept.timezone if hasattr(staff_with_dept, 'timezone') else None,
+            address=staff_with_dept.address,
+            city=staff_with_dept.city,
+            country=staff_with_dept.country,
+            timezone=getattr(staff_with_dept, 'timezone', None),
             profile_picture=staff_with_dept.profile_picture
         )
         
-        print(f"[{datetime.now()}] Profile fetched successfully")
+        print(f"Profile data prepared for: {staff_with_dept.full_name}")  # Debug log
         return response_data
         
-    except HTTPException:
-        raise
     except Exception as e:
-        print(f"[{datetime.now()}] Error in get_my_profile: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        print(f"Error in get_my_profile: {str(e)}")  # Debug log
+        raise HTTPException(status_code=500, detail=f"Error fetching profile: {str(e)}")
+
 
 @router.put("/update/me/", response_model=ProfileResponse)
 async def update_my_profile(
@@ -229,12 +192,38 @@ async def update_my_profile(
         if not current_staff:
             raise HTTPException(status_code=404, detail="Staff profile not found")
 
-        if profile_picture:
+        if profile_picture and profile_picture.filename:
+            # Delete old profile picture if exists
+            if current_staff.profile_picture:
+                try:
+                    old_photo_path = current_staff.profile_picture
+                    if os.path.exists(old_photo_path):
+                        os.remove(old_photo_path)
+                except Exception:
+                    pass
+            
+            # Generate new filename format: First4CharsXXXXPIC.ext
+            name_to_use = full_name.strip() if full_name and full_name.strip() else current_staff.full_name
+            
+            name_part = name_to_use.upper()
+            if len(name_part) >= 4:
+                first_four = name_part[:4]
+            else:
+                first_four = name_part.ljust(4, '_')
+            
+            unique_id = str(uuid.uuid4().hex)[:4].upper()
+            file_extension = PathLib(profile_picture.filename).suffix.lower() if profile_picture.filename else ".jpg"
+            
+            filename = f"{first_four}{unique_id}PIC{file_extension}"
+            
+            # Keep original directory
             os.makedirs("profile_pictures", exist_ok=True)
-            pic_path = f"profile_pictures/{profile_picture.filename}"
+            pic_path = f"profile_pictures/{filename}"
+            
             with open(pic_path, "wb") as f:
                 content = await profile_picture.read()
                 f.write(content)
+            
             current_staff.profile_picture = pic_path
 
         # Update fields using async function

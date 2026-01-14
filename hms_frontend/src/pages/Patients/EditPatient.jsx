@@ -377,33 +377,53 @@ const handlePhoneChange = (value) => {
           )}
 
           {/* Photo */}
-          <div className="flex justify-center mb-6">
-            <div className="relative group">
-              <img
-                src={previewUrl}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-[#0EFF7B] shadow-md"
-              />
-              <label
-                htmlFor="photo-upload"
-                className="absolute bottom-0 right-0 bg-gradient-to-r from-[#025126] to-[#0D7F41] p-2 rounded-full cursor-pointer shadow-lg hover:scale-110 transition"
-              >
-                <Upload size={16} className="text-white" />
-                <input
-                  id="photo-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setFormData((prev) => ({ ...prev, photo_file: file }));
-                    }
-                  }}
-                />
-              </label>
-            </div>
-          </div>
+<div className="flex flex-col items-center mb-6">
+  <div className="relative group">
+    <img
+      src={previewUrl}
+      alt="Profile"
+      className="w-24 h-24 rounded-full object-cover border-2 border-[#0EFF7B] shadow-md"
+    />
+    <label
+      htmlFor="photo-upload"
+      className="absolute bottom-0 right-0 bg-gradient-to-r from-[#025126] to-[#0D7F41] p-2 rounded-full cursor-pointer shadow-lg hover:scale-110 transition"
+    >
+      <Upload size={16} className="text-white" />
+      <input
+        id="photo-upload"
+        type="file"
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            // Clear the file input first to allow re-selection
+            e.target.value = '';
+            
+            // Check file size (5MB limit)
+            if (file.size > 5 * 1024 * 1024) {
+              errorToast("File size exceeds 5MB limit. Please choose a smaller file.");
+              return;
+            }
+            
+            // Check file type
+            const validTypes = ["image/jpeg", "image/jpg", "image/png"];
+            if (!validTypes.includes(file.type)) {
+              errorToast("Invalid file type. Please upload JPG, JPEG, or PNG files only.");
+              return;
+            }
+            
+            setFormData((prev) => ({ ...prev, photo_file: file }));
+          }
+        }}
+      />
+    </label>
+  </div>
+  {/* Help text for photo upload */}
+  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+    Supported formats: JPG, JPEG, PNG (Max 5MB)
+  </p>
+</div>
 
           {/* Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

@@ -542,6 +542,7 @@ import os
 import logging
 from datetime import datetime
 from typing import Optional
+import uuid
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path
 from fastapi.responses import JSONResponse
@@ -552,6 +553,7 @@ from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAl
 
 from django.db.models import Q, F  # ← ADDED F
 from Fastapi_app.routers.notifications import NotificationService
+from pathlib import Path as PathLib
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
 PHOTO_DIR = "Fastapi_app/Patient_photos"
@@ -684,12 +686,37 @@ async def register_patient(
     # History is automatically created in Patient.save() method when patient is registered
 
     if photo and photo.filename:
-        filename = f"{patient.patient_unique_id}_{photo.filename}"
+        # Generate new filename format: First4CharsXXXXPIC.ext
+        # Get first 4 characters of name, uppercase, pad if shorter
+        name_part = patient.full_name.upper()
+        if len(name_part) >= 4:
+            first_four = name_part[:4]
+        else:
+            # If name is shorter than 4 chars, pad with underscores
+            first_four = name_part.ljust(4, '_')
+        
+        # Generate 4-character unique ID (uppercase)
+        unique_id = str(uuid.uuid4().hex)[:4].upper()  # Using hex for cleaner output
+        
+        # Get file extension
+        original_filename = photo.filename
+        file_extension = PathLib(original_filename).suffix.lower() if original_filename else ".jpg"
+        
+        # Format: First4CharsXXXXPIC.ext
+        filename = f"{first_four}{unique_id}PIC{file_extension}"
+        
         path = os.path.join(PHOTO_DIR, filename)
+        
+        # Create directory if it doesn't exist
+        os.makedirs(PHOTO_DIR, exist_ok=True)
+        
         with open(path, "wb") as f:
-            f.write(await photo.read())
+            content = await photo.read()
+            f.write(content)
+        
         patient.photo = path.replace("\\", "/")
         await run_in_threadpool(patient.save)
+
     await NotificationService.send_patient_registered(patient)
 
     return JSONResponse({
@@ -946,7 +973,6 @@ async def edit_patient(
                 else:
                     patient.patient_type = "in-patient"
         
-
         if date_of_registration:
             parsed = parse_date(date_of_registration)
             if parsed:
@@ -962,10 +988,48 @@ async def edit_patient(
             patient.staff = staff
 
         if photo and photo.filename:
-            filename = f"{patient.patient_unique_id}_{photo.filename}"
+            # Delete old photo if exists
+            if patient.photo:
+                try:
+                    # Get the actual file path from the ImageFieldFile object
+                    old_photo_path = patient.photo.path  # Use .path attribute for Django FileField/ImageField
+                    if os.path.exists(old_photo_path):
+                        os.remove(old_photo_path)
+                except Exception as e:
+                    logging.warning(f"Failed to delete old photo: {e}")
+            
+            # Generate new filename format: First4CharsXXXXPIC.ext
+            # Use updated full_name if provided, otherwise existing name
+            name_to_use = full_name.strip() if full_name and full_name.strip() else patient.full_name
+            
+            # Get first 4 characters of name, uppercase, pad if shorter
+            name_part = name_to_use.upper()
+            if len(name_part) >= 4:
+                first_four = name_part[:4]
+            else:
+                # If name is shorter than 4 chars, pad with underscores
+                first_four = name_part.ljust(4, '_')
+            
+            # Generate 4-character unique ID (uppercase)
+            unique_id = str(uuid.uuid4().hex)[:4].upper()  # Using hex for cleaner output
+            
+            # Get file extension
+            original_filename = photo.filename
+            file_extension = PathLib(original_filename).suffix.lower() if original_filename else ".jpg"
+            
+            # Format: First4CharsXXXXPIC.ext
+            filename = f"{first_four}{unique_id}PIC{file_extension}"
+            
             path = os.path.join(PHOTO_DIR, filename)
+            
+            # Create directory if it doesn't exist
+            os.makedirs(PHOTO_DIR, exist_ok=True)
+            
             with open(path, "wb") as f:
-                f.write(await photo.read())
+                content = await photo.read()
+                f.write(content)
+            
+            # Save the new photo path to the patient object
             patient.photo = path.replace("\\", "/")
         
         await run_in_threadpool(patient.save)
@@ -976,39 +1040,6 @@ async def edit_patient(
     except Exception as e:
         logging.exception("edit_patient error")
         raise HTTPException(400, detail=str(e))
-
-
-# ---------- 7. DELETE Patient ----------
-@router.delete("/{patient_id}")
-async def delete_patient(patient_id: str = Path(...)):
-    try:
-        # Fetch patient
-        patient = await run_in_threadpool(Patient.objects.get, patient_unique_id=patient_id)
-        
-        # Store photo path
-        photo_path = getattr(patient, "photo", None)
-        
-        # Delete patient
-        await run_in_threadpool(patient.delete)
-        await NotificationService.send_patient_deleted({
-            'patient_unique_id': patient.patient_unique_id,
-            'full_name': patient.full_name
-        })  
-        # Delete photo if exists
-        if photo_path and isinstance(photo_path, str) and os.path.exists(photo_path):
-            try:
-                os.remove(photo_path)
-            except Exception as file_err:
-                logging.warning(f"Failed to delete photo {photo_path}: {file_err}")
-        
-        return {"success": True, "message": "Deleted"}
-        
-    except Patient.DoesNotExist:
-        raise HTTPException(status_code=404, detail="Patient not found")
-    except Exception as e:
-        logging.exception("delete_patient error")
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 # ---------- 8. GET Patient History ----------
 @router.get("/{patient_id}/history")
@@ -1162,8 +1193,11 @@ def get_patient_test_reports(patient_id: int):
                 "test_type",
                 "department",
                 "status",
+                "order_id",  # Add order_id
+                "file_path",  # Add file_path
             )
         )
+        print(reports.file_path)
         # Helper to get month name
         def month_name(dt):
             return dt.strftime("%B") if dt else "—"
@@ -1175,6 +1209,9 @@ def get_patient_test_reports(patient_id: int):
                 "testType": r["test_type"],
                 "department": r["department"] or "General",
                 "status": r["status"].capitalize(),
+                "orderId": r["order_id"],  # Include orderId
+                "hasReport": bool(r["file_path"]),  # Indicate if report exists
+                "reportPath": r["file_path"] if r["file_path"] else None,  # Include file path
             }
             for r in reports
         ]
