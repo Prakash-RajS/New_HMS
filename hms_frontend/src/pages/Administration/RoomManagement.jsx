@@ -192,7 +192,7 @@ const RoomManagement = () => {
     setDischargeRoom(null);
   };
 
-  const handleBedListClick = () => navigate("/Administration/RoomManagement/BedList");
+  const handleBedListClick = () => navigate("/Administration/BedList");
   const handleRoomManagementClick = () =>
     navigate("/Administration/RoomManagement");
 
@@ -343,7 +343,8 @@ const RoomManagement = () => {
     );
   };
 
-  const isBedListRoute = location.pathname === "/Administration/RoomManagement/BedList";
+  // const isBedListRoute = location.pathname === "/Administration/RoomManagement/BedList";
+  const isBedListRoute = location.pathname.includes("BedList");
 
   if (loading) {
     return (

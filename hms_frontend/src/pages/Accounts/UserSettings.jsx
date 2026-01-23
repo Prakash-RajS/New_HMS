@@ -176,7 +176,7 @@ const UserSettings = () => {
   const [roleFilterOptions, setRoleFilterOptions] = useState(["Select Role"]);
   const [departmentFilterOptions, setDepartmentFilterOptions] = useState(["Select Department"]);
 
-  // User permissions
+  // User permissions - UPDATED: Fetch from /profile/me/ endpoint
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [availableRoles, setAvailableRoles] = useState([
     "Select Role",
@@ -186,6 +186,7 @@ const UserSettings = () => {
     "Nurse"
   ]);
   const [canManageUsers, setCanManageUsers] = useState(false);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
 
   // Validation functions
   const validateUsername = (username) => {
@@ -215,9 +216,74 @@ const UserSettings = () => {
     return true;
   };
 
+  // Fetch current user permissions from /profile/me/ endpoint
+  const fetchUserPermissions = async () => {
+    try {
+      setIsLoadingPermissions(true);
+      const response = await api.get("/profile/me/");
+      
+      if (response.data) {
+        const userData = response.data;
+        const role = userData.role;
+        setCurrentUserRole(role);
+        
+        // Check if user can manage users (Admin or Superuser)
+        const canManage = role.toLowerCase() === "admin" || 
+                         role.toLowerCase() === "superuser" ||
+                         userData.is_superuser === true;
+        setCanManageUsers(canManage);
+        
+        // Set available roles based on permissions
+        if (canManage) {
+          setAvailableRoles([
+            "Select Role",
+            "Doctor",
+            "Staff",
+            "Receptionist",
+            "Nurse",
+            "Admin",
+          ]);
+        } else {
+          setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse"]);
+        }
+        
+        console.log("User permissions loaded:", {
+          role: role,
+          canManageUsers: canManage,
+          isSuperuser: userData.is_superuser
+        });
+      }
+    } catch (err) {
+      console.error("Failed to fetch user permissions:", err);
+      
+      // Fallback: check localStorage as backup
+      const fallbackRole = localStorage.getItem("role") || "";
+      setCurrentUserRole(fallbackRole);
+      
+      const canManageFallback = fallbackRole.toLowerCase() === "admin" || 
+                               fallbackRole.toLowerCase() === "superuser";
+      setCanManageUsers(canManageFallback);
+      
+      if (canManageFallback) {
+        setAvailableRoles([
+          "Select Role",
+          "Doctor",
+          "Staff",
+          "Receptionist",
+          "Nurse",
+          "Admin",
+        ]);
+      } else {
+        setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse"]);
+      }
+    } finally {
+      setIsLoadingPermissions(false);
+    }
+  };
+
   // Fetch Filter Options & Users on Mount
   useEffect(() => {
-    checkUserPermissions();
+    fetchUserPermissions();
     fetchFilterOptions();
     fetchUsers();
   }, []);
@@ -227,30 +293,6 @@ const UserSettings = () => {
     setUserPage(1); // Reset to first page when filters/search change
     fetchUsers();
   }, [filters, userSearch]);
-
-  const checkUserPermissions = () => {
-    // Note: For cookie-based auth, role might be in the JWT token or session
-    // You may need to adjust this based on your backend implementation
-    // For now, we'll check from localStorage as fallback
-    const role = localStorage.getItem("role") || "";
-    setCurrentUserRole(role);
-
-    const canManage =
-      role.toLowerCase() === "admin" || role.toLowerCase() === "superuser";
-    setCanManageUsers(canManage);
-    if (canManage) {
-      setAvailableRoles([
-        "Select Role",
-        "Doctor",
-        "Staff",
-        "Receptionist",
-        "Nurse",
-        "Admin",
-      ]);
-    } else {
-      setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist","Nurse"]);
-    }
-  };
 
   const fetchFilterOptions = async () => {
     try {
@@ -329,6 +371,8 @@ const UserSettings = () => {
       if (err.response) {
         if (err.response.status === 401) {
           errorMessage = "Session expired. Please login again.";
+          // Redirect to login if session expired
+          navigate("/login");
         } else if (err.response.status === 403) {
           errorMessage = "You don't have permission to view users.";
         } else {
@@ -409,6 +453,8 @@ const UserSettings = () => {
       if (err.response) {
         if (err.response.status === 401 || err.response.status === 403) {
           errorMessage = "Session expired or permission denied.";
+          // Redirect to login if session expired
+          navigate("/login");
         } else {
           errorMessage = err.response.data?.detail || errorMessage;
         }
@@ -434,6 +480,8 @@ const UserSettings = () => {
       if (err.response) {
         if (err.response.status === 401 || err.response.status === 403) {
           errorMessage = "Session expired or permission denied.";
+          // Redirect to login if session expired
+          navigate("/login");
         } else {
           errorMessage = err.response.data?.detail || errorMessage;
         }
@@ -541,6 +589,8 @@ const UserSettings = () => {
       if (err.response) {
         if (err.response.status === 401 || err.response.status === 403) {
           errorMessage = "Session expired or permission denied.";
+          // Redirect to login if session expired
+          navigate("/login");
         } else if (err.response.status === 400) {
           errorMessage = err.response.data?.detail || "Invalid user data.";
         } else if (err.response.status === 409) {
@@ -579,6 +629,18 @@ const UserSettings = () => {
         return "text-black dark:text-white";
     }
   };
+
+  // Show loading while checking permissions
+  if (isLoadingPermissions) {
+    return (
+      <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0EFF7B] mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading user permissions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
@@ -635,6 +697,9 @@ const UserSettings = () => {
           {canManageUsers
             ? "These settings help add or manage users"
             : "View user information (Admin users can manage users)"}
+          <span className="ml-2 text-xs text-[#08994A] dark:text-[#0EFF7B]">
+            (Your role: {currentUserRole})
+          </span>
         </p>
       </div>
 
@@ -1268,6 +1333,8 @@ const UserSettings = () => {
               if (err.response) {
                 if (err.response.status === 401 || err.response.status === 403) {
                   errorMessage = "Session expired or permission denied.";
+                  // Redirect to login if session expired
+                  navigate("/login");
                 } else if (err.response.status === 400) {
                   errorMessage = err.response.data?.detail || "Invalid user data.";
                 } else {
