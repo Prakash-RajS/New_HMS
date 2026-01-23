@@ -268,6 +268,7 @@
 //   );
 // }
 
+//hm
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
@@ -290,6 +291,7 @@ import {
   User,
   ShieldCheck,
   ChevronDown,
+  Stethoscope,
 } from "lucide-react";
 import { usePermissions } from "./PermissionContext";
 
@@ -339,6 +341,12 @@ const menuItems = [
       path: "/patients/treatment-charges",
       icon: DollarSign, // Using DollarSign icon for charges
       permission: "treatment_charges", // Add this permission key
+    },
+    {
+      name: "Surgeries",
+      path: "/patients/surgeries",
+      icon: Stethoscope,
+      permission: "surgeries", // Add this permission key
     },
     ],
   },

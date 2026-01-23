@@ -1,10 +1,10 @@
+// AdmitPatientPopup.jsx
 import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast";
-
- const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 /* -------------------------------------------------
    TypeAhead Dropdown Component
@@ -148,9 +148,8 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     const fetchData = async () => {
       try {
         // Fetch bed groups
-        const groupsRes = await fetch(`${API_BASE}/bedgroups/all`);
-        if (!groupsRes.ok) throw new Error("Failed to fetch bed groups");
-        const groups = await groupsRes.json();
+        const groupsRes = await api.get("/bedgroups/all");
+        const groups = groupsRes.data;
 
         const bedGroupOptions = groups.map((g) => ({
           value: g.bedGroup,
@@ -165,9 +164,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         }
 
         // Fetch patients - adjust endpoint based on your API
-        const patientsRes = await fetch(`${API_BASE}/medicine_allocation/edit`);
-        if (patientsRes.ok) {
-          const patientsData = await patientsRes.json();
+        try {
+          const patientsRes = await api.get("/medicine_allocation/edit");
+          const patientsData = patientsRes.data;
 
           // Check if response is array or has patients property
           let patientsList = [];
@@ -211,11 +210,25 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
 
           setPatientNameOptions(nameOptions);
           setPatientIdOptions(idOptions);
+        } catch (patientsError) {
+          console.warn("Could not fetch patients data:", patientsError);
+          // Continue without patient data - manual entry will be required
         }
       } catch (err) {
-        const msg = "Failed to load data";
-        setServerError(msg);
-        errorToast(msg);
+        let errorMessage = "Failed to load data";
+        
+        if (err.response) {
+          if (err.response.status === 401 || err.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else {
+            errorMessage = err.response.data?.detail || errorMessage;
+          }
+        } else if (err.request) {
+          errorMessage = "Network error. Please check your connection.";
+        }
+        
+        setServerError(errorMessage);
+        errorToast(errorMessage);
       }
     };
 
@@ -226,21 +239,20 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   useEffect(() => {
     if (!formData.bedGroup) return;
 
-    fetch(`${API_BASE}/bedgroups/all`)
-      .then((r) => r.json())
-      .then((groups) => {
+    api.get("/bedgroups/all")
+      .then((response) => {
+        const groups = response.data;
         const group = groups.find((g) => g.bedGroup === formData.bedGroup);
         if (group) {
           const freeBeds = group.beds
             .filter((b) => !b.is_occupied)
             .map((b) => ({
-              value: `Bed ${b.bed_number}`,
+              value: b.bed_number.toString(), // Changed to string value
               label: `Bed ${b.bed_number}`,
+              originalNumber: b.bed_number // Keep original number for API
             }))
             .sort(
-              (a, b) =>
-                parseInt(a.label.replace("Bed ", "")) -
-                parseInt(b.label.replace("Bed ", ""))
+              (a, b) => a.originalNumber - b.originalNumber
             );
 
           setAvailableBeds(freeBeds);
@@ -250,6 +262,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
             setFormData((prev) => ({ ...prev, bedNumber: "" }));
           }
         }
+      })
+      .catch((err) => {
+        console.error("Error fetching bed groups:", err);
       });
   }, [formData.bedGroup]);
 
@@ -299,6 +314,37 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Parse date string to MM/DD/YYYY format
+  const formatDateForAPI = (dateStr) => {
+    if (!dateStr) return "";
+    
+    // Check if it's already in MM/DD/YYYY format
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      return dateStr;
+    }
+    
+    // If it's in YYYY-MM-DD format (from date picker)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split("-");
+      return `${month}/${day}/${year}`;
+    }
+    
+    // Try to parse as Date object
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${month}/${day}/${year}`;
+      }
+    } catch (e) {
+      console.error("Date parsing error:", e);
+    }
+    
+    return dateStr; // Return as-is if can't parse
+  };
+
   const handleAdmit = async () => {
     if (!validateForm()) {
       errorToast("Please fill all required fields correctly");
@@ -308,50 +354,36 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     setLoading(true);
     setServerError("");
 
-    const bedNumberNum = parseInt(formData.bedNumber.replace("Bed ", ""));
+    // Extract just the bed number (remove "Bed " prefix if present)
+    const bedNumberNum = formData.bedNumber.replace("Bed ", "");
+    
+    // Format date properly for API
+    const formattedAdmitDate = formatDateForAPI(formData.admitDate);
 
     try {
-      const response = await fetch(`${API_BASE}/bedgroups/admit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          full_name: formData.name,
-          patient_unique_id: formData.patientId,
-          bed_group_name: formData.bedGroup,
-          bed_number: bedNumberNum.toString(),
-          admission_date: formData.admitDate,
-        }),
+      console.log("Sending admit request with data:", {
+        full_name: formData.name,
+        patient_unique_id: formData.patientId,
+        bed_group_name: formData.bedGroup,
+        bed_number: bedNumberNum,
+        admission_date: formattedAdmitDate,
       });
 
-      let errorMessage = "Failed to admit patient.";
-
-      if (!response.ok) {
-        if (response.status === 400) {
-          const err = await response.json();
-          errorMessage = err.detail || "Invalid data.";
-        } else if (response.status === 404) {
-          errorMessage = "Patient or bed not found.";
-        } else {
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-        }
-        setServerError(errorMessage);
-        errorToast(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const result = await response.json();
+      const response = await api.post("/bedgroups/admit", {
+        full_name: formData.name,
+        patient_unique_id: formData.patientId,
+        bed_group_name: formData.bedGroup,
+        bed_number: parseInt(bedNumberNum), // Send as integer
+        admission_date: formattedAdmitDate,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       // SUCCESS TOAST
       successToast(
-        `Patient "${formData.name}" admitted to ${formData.bedNumber}!`
+        `Patient "${formData.name}" admitted to ${formData.bedGroup} - Bed ${bedNumberNum}!`
       );
 
       // Notify parent to refresh
@@ -362,25 +394,84 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         onClose();
       }, 600);
     } catch (err) {
-      const networkError = "Network error. Please check your connection.";
-      setServerError(networkError);
-      errorToast(networkError);
+      let errorMessage = "Failed to admit patient.";
+      let detailedErrors = {};
+      
+      if (err.response) {
+        console.error("Error response:", err.response.data);
+        
+        if (err.response.status === 422) {
+          // Handle FastAPI validation errors
+          if (err.response.data.detail) {
+            if (Array.isArray(err.response.data.detail)) {
+              // Parse FastAPI validation errors
+              err.response.data.detail.forEach((error) => {
+                const field = error.loc?.[1] || error.loc?.[0] || 'general';
+                detailedErrors[field] = error.msg;
+              });
+              errorMessage = "Please fix the validation errors";
+            } else if (typeof err.response.data.detail === 'object') {
+              // Handle object type errors
+              errorMessage = err.response.data.detail.message || errorMessage;
+              detailedErrors = err.response.data.detail;
+            } else {
+              errorMessage = err.response.data.detail || errorMessage;
+            }
+          }
+          setErrors(detailedErrors);
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || "Invalid data.";
+        } else if (err.response.status === 404) {
+          errorMessage = "Patient or bed not found.";
+        } else if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (err.response.status === 409) {
+          errorMessage = err.response.data?.detail || "Bed is already occupied.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setServerError(errorMessage);
+      errorToast(errorMessage);
       console.error("Admit Patient Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const parseDate = (dateStr) => {
+  // Parse date string for DatePicker
+  const parseDateForPicker = (dateStr) => {
     if (!dateStr) return null;
-    const [m, d, y] = dateStr.split("/").map(Number);
-    if (!m || !d || !y) return null;
-    const date = new Date(y, m - 1, d);
-    return date.getFullYear() === y &&
-      date.getMonth() === m - 1 &&
-      date.getDate() === d
-      ? date
-      : null;
+    
+    // Try MM/DD/YYYY format
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const [month, day, year] = dateStr.split("/").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    // Try YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+    
+    // Try parsing as Date
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  };
+
+  // Format date for display
+  const formatDateForDisplay = (date) => {
+    if (!date) return "";
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
   };
 
   return (
@@ -424,7 +515,9 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         </div>
 
         {serverError && (
-          <p className="text-red-500 text-sm mb-4">{serverError}</p>
+          <div className="text-red-500 text-sm mb-4 p-2 bg-red-50 dark:bg-red-900/20 rounded">
+            {typeof serverError === 'object' ? JSON.stringify(serverError) : serverError}
+          </div>
         )}
 
         {/* Form Grid */}
@@ -439,7 +532,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
               value={formData.name}
               onChange={handlePatientNameSelect}
               options={patientNameOptions}
-              error={errors.name}
+              error={errors.name || errors.full_name}
               placeholder="Type patient name..."
             />
           </div>
@@ -454,7 +547,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
               value={formData.patientId}
               onChange={handlePatientIdSelect}
               options={patientIdOptions}
-              error={errors.patientId}
+              error={errors.patientId || errors.patient_unique_id}
               placeholder="Type patient ID..."
             />
           </div>
@@ -471,7 +564,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
                 setFormData({ ...formData, bedGroup: v, bedNumber: "" })
               }
               options={bedGroups}
-              error={errors.bedGroup}
+              error={errors.bedGroup || errors.bed_group_name}
               placeholder="Type bed group..."
             />
           </div>
@@ -483,8 +576,12 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
             </label>
             <TypeAheadDropdown
               label=""
-              value={formData.bedNumber}
-              onChange={(v) => setFormData({ ...formData, bedNumber: v })}
+              value={formData.bedNumber ? `Bed ${formData.bedNumber}` : ""}
+              onChange={(v) => {
+                // Extract just the bed number from "Bed X" format
+                const bedNum = v.replace("Bed ", "");
+                setFormData({ ...formData, bedNumber: bedNum });
+              }}
               options={availableBeds}
               error={errors.bedNumber}
               disabled={!availableBeds.length}
@@ -497,52 +594,51 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </div>
 
           {/* Admit Date */}
-<div>
-  <label className="text-sm">
-    Admit Date <span className="text-red-500">*</span>
-  </label>
-  <div className="relative">
-    <DatePicker
-      selected={parseDate(formData.admitDate)}
-      onChange={(date) => {
-        const formatted = date
-          ? `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
-              date.getDate()
-            ).padStart(2, "0")}/${date.getFullYear()}`
-          : "";
-        setFormData({ ...formData, admitDate: formatted });
-      }}
-      dateFormat="MM/dd/yyyy"
-      placeholderText="MM/DD/YYYY"
-      minDate={new Date()} // Add this line to prevent past dates
-      className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
-                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
-      wrapperClassName="w-full"
-      popperClassName="z-50"
-      popperPlacement="bottom-start"
-      showPopperArrow={false}
-      customInput={
-        <input
-          style={{
-            paddingRight: "2.5rem",
-            fontSize: "14px",
-            lineHeight: "16px",
-          }}
-        />
-      }
-    />
-    <div className="absolute right-3 top-3.5 pointer-events-none">
-      <Calendar
-        size={18}
-        className="text-[#08994A] dark:text-[#0EFF7B]"
-      />
-    </div>
-  </div>
-  {errors.admitDate && (
-    <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>
-  )}
-</div>
+          <div>
+            <label className="text-sm">
+              Admit Date <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <DatePicker
+                selected={parseDateForPicker(formData.admitDate)}
+                onChange={(date) => {
+                  const formatted = date ? formatDateForDisplay(date) : "";
+                  setFormData({ ...formData, admitDate: formatted });
+                }}
+                dateFormat="MM/dd/yyyy"
+                placeholderText="MM/DD/YYYY"
+                minDate={new Date()} // Prevent past dates
+                className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
+                           bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
+                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
+                wrapperClassName="w-full"
+                popperClassName="z-50"
+                popperPlacement="bottom-start"
+                showPopperArrow={false}
+                customInput={
+                  <input
+                    style={{
+                      paddingRight: "2.5rem",
+                      fontSize: "14px",
+                      lineHeight: "16px",
+                    }}
+                  />
+                }
+              />
+              <div className="absolute right-3 top-3.5 pointer-events-none">
+                <Calendar
+                  size={18}
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                />
+              </div>
+            </div>
+            {errors.admitDate && (
+              <p className="text-red-500 text-xs mt-1">{errors.admitDate}</p>
+            )}
+            {errors.admission_date && (
+              <p className="text-red-500 text-xs mt-1">{errors.admission_date}</p>
+            )}
+          </div>
         </div>
 
         {/* Buttons */}

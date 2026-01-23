@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,91 +8,77 @@ import {
   Building,
   Phone,
   DoorClosed,
-  UserCircle
+  UserCircle,
 } from 'lucide-react';
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const DoctorCalendar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [appointments, setAppointments] = useState([]);
+    const [calendarItems, setCalendarItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const timeSlotsRef = useRef(null);
 
-    // FastAPI endpoint
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-    // Fetch appointments for logged-in doctor/nurse
+    // Fetch calendar items for logged-in doctor/nurse
     useEffect(() => {
-        fetchAppointments();
+        fetchCalendarItems();
     }, [currentDate]);
 
-    const fetchAppointments = async () => {
+    const fetchCalendarItems = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem("token") || localStorage.getItem("access_token");
-            
-            if (!token) {
-                console.error("No authentication token found. Please login.");
-                setAppointments([]);
-                setLoading(false);
-                return;
-            }
             
             // Use the my-calendar endpoint (no staff_id needed)
-            const response = await axios.get(`${API_BASE}/appointments/my-calendar/`, {
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
+            const response = await api.get(`/appointments/my-calendar/`, {
                 params: {
                     year: currentDate.getFullYear(),
                     month: currentDate.getMonth() + 1
                 }
             });
             
-            console.log("Appointments received:", response.data);
+            console.log("Calendar items received:", response.data);
             
-            // Process appointments to ensure we have proper date/time objects
-            const processedAppointments = response.data.map(app => {
+            // Process calendar items to ensure we have proper date/time objects
+            const processedItems = response.data.map(item => {
                 // If appointment_datetime is provided, use it
-                if (app.appointment_datetime) {
+                if (item.appointment_datetime) {
                     return {
-                        ...app,
-                        appointment_datetime: new Date(app.appointment_datetime)
+                        ...item,
+                        appointment_datetime: new Date(item.appointment_datetime)
                     };
                 }
                 
                 // Otherwise, create datetime from appointment_date and appointment_time
-                if (app.appointment_date && app.appointment_time) {
+                if (item.appointment_date && item.appointment_time) {
                     // Parse date
-                    const [year, month, day] = app.appointment_date.split('-').map(Number);
+                    const [year, month, day] = item.appointment_date.split('-').map(Number);
                     
                     // Parse time (handle both string and object formats)
                     let hours = 0, minutes = 0;
-                    if (typeof app.appointment_time === 'string') {
-                        const [h, m] = app.appointment_time.split(':').map(Number);
+                    if (typeof item.appointment_time === 'string') {
+                        const [h, m] = item.appointment_time.split(':').map(Number);
                         hours = h || 0;
                         minutes = m || 0;
-                    } else if (app.appointment_time && typeof app.appointment_time === 'object') {
-                        hours = app.appointment_time.hours || 0;
-                        minutes = app.appointment_time.minutes || 0;
+                    } else if (item.appointment_time && typeof item.appointment_time === 'object') {
+                        hours = item.appointment_time.hours || 0;
+                        minutes = item.appointment_time.minutes || 0;
                     }
                     
                     const datetime = new Date(year, month - 1, day, hours, minutes);
                     return {
-                        ...app,
+                        ...item,
                         appointment_datetime: datetime
                     };
                 }
                 
-                return app;
+                return item;
             });
             
-            console.log("Processed appointments:", processedAppointments);
-            setAppointments(processedAppointments);
+            console.log("Processed calendar items:", processedItems);
+            setCalendarItems(processedItems);
         } catch (error) {
-            console.error('Error fetching appointments:', error);
-            setAppointments([]);
+            console.error('Error fetching calendar items:', error);
+            setCalendarItems([]);
         } finally {
             setLoading(false);
         }
@@ -140,45 +125,45 @@ const DoctorCalendar = () => {
         return hours;
     };
 
-    // Get appointments for specific date and hour - FIXED
-    const getAppointmentsForDateTime = (date, hourStr) => {
+    // Get calendar items for specific date and hour
+    const getCalendarItemsForDateTime = (date, hourStr) => {
         const hour = parseInt(hourStr.split(':')[0]);
         
-        return appointments.filter(app => {
-            if (!app.appointment_datetime || !(app.appointment_datetime instanceof Date)) {
+        return calendarItems.filter(item => {
+            if (!item.appointment_datetime || !(item.appointment_datetime instanceof Date)) {
                 return false;
             }
             
-            const appDate = app.appointment_datetime;
+            const itemDate = item.appointment_datetime;
             
-            // Check if appointment matches the specified date and hour
+            // Check if item matches the specified date and hour
             const matchesDate = 
-                appDate.getDate() === date.getDate() &&
-                appDate.getMonth() === date.getMonth() &&
-                appDate.getFullYear() === date.getFullYear();
+                itemDate.getDate() === date.getDate() &&
+                itemDate.getMonth() === date.getMonth() &&
+                itemDate.getFullYear() === date.getFullYear();
                 
-            const matchesHour = appDate.getHours() === hour;
+            const matchesHour = itemDate.getHours() === hour;
             
             return matchesDate && matchesHour;
         });
     };
 
-    // Get appointments for selected date - FIXED
-    const getAppointmentsForSelectedDate = () => {
-        return appointments.filter(app => {
-            if (!app.appointment_datetime || !(app.appointment_datetime instanceof Date)) {
+    // Get calendar items for selected date
+    const getCalendarItemsForSelectedDate = () => {
+        return calendarItems.filter(item => {
+            if (!item.appointment_datetime || !(item.appointment_datetime instanceof Date)) {
                 return false;
             }
             
-            const appDate = app.appointment_datetime;
+            const itemDate = item.appointment_datetime;
             
-            return appDate.getDate() === selectedDate.getDate() &&
-                   appDate.getMonth() === selectedDate.getMonth() &&
-                   appDate.getFullYear() === selectedDate.getFullYear();
+            return itemDate.getDate() === selectedDate.getDate() &&
+                   itemDate.getMonth() === selectedDate.getMonth() &&
+                   itemDate.getFullYear() === selectedDate.getFullYear();
         });
     };
 
-    // Format time - FIXED
+    // Format time
     const formatTime = (dateTime) => {
         if (!dateTime || !(dateTime instanceof Date)) return '';
         
@@ -198,23 +183,34 @@ const DoctorCalendar = () => {
             'cancelled': 'bg-gray-700 text-gray-300',
             'active': 'bg-green-900 text-green-300',
             'inactive': 'bg-gray-700 text-gray-300',
-            'emergency': 'bg-red-900 text-red-300'
+            'emergency': 'bg-red-900 text-red-300',
+            'pending': 'bg-yellow-900 text-yellow-300'
         };
         return colors[status] || 'bg-gray-700 text-gray-300';
     };
 
-    // Get appointment type color
-    const getTypeColor = (type) => {
+    // Get item type color
+    const getItemTypeColor = (item) => {
+        if (item.item_type === 'surgery') {
+            return 'border-l-orange-500 bg-orange-500/10';
+        }
+        
         const colors = {
             'checkup': 'border-l-purple-500 bg-purple-500/10',
             'followup': 'border-l-blue-500 bg-blue-500/10',
-            'emergency': 'border-l-red-500 bg-red-500/10'
+            'emergency': 'border-l-red-500 bg-red-500/10',
+            'surgery': 'border-l-orange-500 bg-orange-500/10'
         };
-        return colors[type] || 'border-l-gray-500 bg-gray-500/10';
+        return colors[item.appointment_type] || 'border-l-gray-500 bg-gray-500/10';
     };
 
     const weekDays = getWeekDays();
     const hours = getHours();
+
+    // Separate appointments and surgeries for the selected date
+    const selectedDateItems = getCalendarItemsForSelectedDate();
+    const selectedDateAppointments = selectedDateItems.filter(item => item.item_type === 'appointment');
+    const selectedDateSurgeries = selectedDateItems.filter(item => item.item_type === 'surgery');
 
     return (
         <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
@@ -248,11 +244,11 @@ const DoctorCalendar = () => {
             <div className="flex justify-between items-center mb-6 relative z-10">
                 <div>
                     <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-                        My Appointment Calendar
+                        My Schedule Calendar
                     </h2>
                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
                         <UserCircle size={16} />
-                        <span>Viewing your personal schedule</span>
+                        <span>Viewing your personal schedule - Appointments & Surgeries</span>
                     </div>
                 </div>
                 
@@ -338,8 +334,8 @@ const DoctorCalendar = () => {
                                 
                                 {/* Day columns - equal width matching header */}
                                 {weekDays.map((date, dayIndex) => {
-                                    const hourAppointments = getAppointmentsForDateTime(date, hour);
-                                    const hasMultipleAppointments = hourAppointments.length > 1;
+                                    const hourItems = getCalendarItemsForDateTime(date, hour);
+                                    const hasMultipleItems = hourItems.length > 1;
                                     
                                     return (
                                         <div 
@@ -352,21 +348,25 @@ const DoctorCalendar = () => {
                                             onClick={() => setSelectedDate(date)}
                                         >
                                             {/* Fixed height container with scroll only when needed */}
-                                            <div className={`h-full ${hasMultipleAppointments ? 'overflow-y-auto' : ''}`}>
-                                                {hourAppointments.map((appointment, appIndex) => (
+                                            <div className={`h-full ${hasMultipleItems ? 'overflow-y-auto' : ''}`}>
+                                                {hourItems.map((item, itemIndex) => (
                                                     <div 
-                                                        key={appIndex}
-                                                        className={`mb-1 p-1 rounded text-xs cursor-pointer ${getTypeColor(appointment.appointment_type)}`}
+                                                        key={itemIndex}
+                                                        className={`mb-1 p-1 rounded text-xs cursor-pointer ${getItemTypeColor(item)}`}
                                                     >
-                                                        <div className="font-medium truncate text-black dark:text-white">
-                                                            {appointment.patient_name}
+                                                        <div className="font-medium truncate text-black dark:text-white flex items-center gap-1">
+                                                            {item.item_type === 'surgery' && (
+                                                                <Stethoscope size={10} />
+                                                            )}
+                                                            {item.patient_name}
                                                         </div>
                                                         <div className="text-gray-600 dark:text-gray-400 truncate">
-                                                            {formatTime(appointment.appointment_datetime)}
+                                                            {formatTime(item.appointment_datetime)}
+                                                            {item.item_type === 'surgery' && ` • ${item.surgery_name}`}
                                                         </div>
                                                         <div className="mt-0.5">
-                                                            <span className={`px-1 py-0.5 rounded text-[10px] ${getStatusColor(appointment.status)}`}>
-                                                                {appointment.status}
+                                                            <span className={`px-1 py-0.5 rounded text-[10px] ${getStatusColor(item.status)}`}>
+                                                                {item.status} {item.item_type === 'surgery' ? '(Surgery)' : ''}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -459,9 +459,10 @@ const DoctorCalendar = () => {
                 </div>
             </div>
 
-            {/* Bottom Section - Selected Date Details (Original Style) */}
+            {/* Bottom Section - Selected Date Details */}
             <div className="mt-6 relative z-10">
-                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4">
+                {/* Appointments Section */}
+                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4 mb-4">
                     <h3 className="text-lg font-semibold mb-4 text-black dark:text-white flex items-center gap-2">
                         <CalendarIcon size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
                         Your Appointments for {selectedDate.toLocaleDateString('en-US', { 
@@ -476,13 +477,13 @@ const DoctorCalendar = () => {
                         <div className="text-center py-8">
                             <p className="text-gray-600 dark:text-gray-400">Loading appointments...</p>
                         </div>
-                    ) : getAppointmentsForSelectedDate().length === 0 ? (
+                    ) : selectedDateAppointments.length === 0 ? (
                         <div className="text-center py-8">
                             <p className="text-gray-600 dark:text-gray-400">No appointments scheduled for this day</p>
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {getAppointmentsForSelectedDate().map((appointment, index) => (
+                            {selectedDateAppointments.map((appointment, index) => (
                                 <div 
                                     key={index} 
                                     className="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#0D0D0D] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
@@ -540,44 +541,142 @@ const DoctorCalendar = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Surgeries Section - Same styling as Appointments */}
+                <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4">
+                    <h3 className="text-lg font-semibold mb-4 text-black dark:text-white flex items-center gap-2">
+                        <Stethoscope size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                        Your Surgeries for {selectedDate.toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        })}
+                    </h3>
+                    
+                    {loading ? (
+                        <div className="text-center py-8">
+                            <p className="text-gray-600 dark:text-gray-400">Loading surgeries...</p>
+                        </div>
+                    ) : selectedDateSurgeries.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-gray-600 dark:text-gray-400">No surgeries scheduled for this day</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {selectedDateSurgeries.map((surgery, index) => (
+                                <div 
+                                    key={index} 
+                                    className="p-4 rounded-lg border border-gray-200 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#0D0D0D] hover:bg-gray-50 dark:hover:bg-[#1A1A1A] transition-colors"
+                                >
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Stethoscope size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                                                <h4 className="font-medium text-black dark:text-white">
+                                                    {surgery.surgery_name}
+                                                </h4>
+                                            </div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400 ml-6">
+                                                Patient: {surgery.patient_name} • ID: {surgery.patient_id}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="px-2 py-1 bg-gray-100 dark:bg-[#2A2A2A] rounded text-xs text-black dark:text-white">
+                                                {formatTime(surgery.appointment_datetime)}
+                                            </div>
+                                            <span className={`px-2 py-1 rounded text-xs ${getStatusColor(surgery.status)}`}>
+                                                {surgery.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-3 mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <User size={14} className="text-gray-500" />
+                                            <span className="text-sm text-black dark:text-white">Patient:</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{surgery.patient_name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Building size={14} className="text-gray-500" />
+                                            <span className="text-sm text-black dark:text-white">Department:</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{surgery.department}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <DoorClosed size={14} className="text-gray-500" />
+                                            <span className="text-sm text-black dark:text-white">Room:</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{surgery.room_no}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Phone size={14} className="text-gray-500" />
+                                            <span className="text-sm text-black dark:text-white">Phone:</span>
+                                            <span className="text-sm text-gray-600 dark:text-gray-400">{surgery.phone_no}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {surgery.description && (
+                                        <div className="mb-3">
+                                            <div className="text-sm font-medium text-black dark:text-white mb-1">Description:</div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                {surgery.description}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="pt-3 border-t border-gray-200 dark:border-[#3A3A3A] text-xs text-gray-500">
+                                        Created: {surgery.created_at ? new Date(surgery.created_at).toLocaleDateString() : 'N/A'}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Legend - Original Style */}
             <div className="mt-6 relative z-10">
                 <div className="rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#1E1E1E] p-4">
                     <h4 className="font-medium mb-3 text-black dark:text-white">Legend</h4>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-5 gap-3">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                            <span className="text-sm text-black dark:text-white">New</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <span className="text-sm text-black dark:text-white">Normal</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            <span className="text-sm text-black dark:text-white">Severe</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                            <span className="text-sm text-black dark:text-white">Completed</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-purple-400"></div>
                             <span className="text-sm text-black dark:text-white">Check Up</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-blue-400"></div>
+                            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                             <span className="text-sm text-black dark:text-white">Follow Up</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
                             <span className="text-sm text-black dark:text-white">Emergency</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                            <span className="text-sm text-black dark:text-white">Surgery</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-gray-500"></div>
                             <span className="text-sm text-black dark:text-white">Cancelled</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-purple-900"></div>
+                            <span className="text-sm text-black dark:text-white">New</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-blue-900"></div>
+                            <span className="text-sm text-black dark:text-white">Normal</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-900"></div>
+                            <span className="text-sm text-black dark:text-white">Severe</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-green-900"></div>
+                            <span className="text-sm text-black dark:text-white">Completed</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-yellow-900"></div>
+                            <span className="text-sm text-black dark:text-white">Pending</span>
                         </div>
                     </div>
                 </div>
@@ -585,18 +684,34 @@ const DoctorCalendar = () => {
 
             {/* Summary - Original Style */}
             <div className="mt-6 p-4 bg-gradient-to-r from-[#0EFF7B1A] to-transparent dark:from-[#0EFF7B0A] dark:to-transparent rounded-lg">
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-5 gap-4">
                     <div className="text-center">
                         <div className="text-2xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
-                            {appointments.length}
+                            {calendarItems.length}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Total Appointments
+                            Total Schedule Items
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                            {calendarItems.filter(a => a.item_type === 'appointment').length}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Appointments
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-2xl font-bold text-orange-600">
+                            {calendarItems.filter(a => a.item_type === 'surgery').length}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                            Surgeries
                         </div>
                     </div>
                     <div className="text-center">
                         <div className="text-2xl font-bold text-blue-600">
-                            {appointments.filter(a => a.status === 'new').length}
+                            {calendarItems.filter(a => a.status === 'new').length}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             New
@@ -604,18 +719,10 @@ const DoctorCalendar = () => {
                     </div>
                     <div className="text-center">
                         <div className="text-2xl font-bold text-green-600">
-                            {appointments.filter(a => a.status === 'completed').length}
+                            {calendarItems.filter(a => a.status === 'completed').length}
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                             Completed
-                        </div>
-                    </div>
-                    <div className="text-center">
-                        <div className="text-2xl font-bold text-purple-600">
-                            {appointments.filter(a => a.appointment_type === 'checkup').length}
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400">
-                            Checkups
                         </div>
                     </div>
                 </div>

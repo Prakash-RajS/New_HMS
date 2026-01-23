@@ -223,8 +223,6 @@
 
 # main.py
 
-
-
 import Fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -237,6 +235,10 @@ from datetime import datetime
 import asyncio
 from django.db import close_old_connections
 from fastapi import FastAPI, Request
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Import WebSocket service
 from Fastapi_app.services.websocket_service import manager, notify_clients
@@ -250,7 +252,7 @@ from Fastapi_app.routers import (
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
     pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing, hospital_billing,
-    dashboard, treatment_charges, laboratory
+    dashboard, treatment_charges, laboratory, surgery
 )
 
 @asynccontextmanager
@@ -271,29 +273,27 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# ==================== CORS ====================
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=[
-#         "http://localhost:5173",      # Vite dev
-#         "http://127.0.0.1:5173",
-#         "https://hms.stacklycloud.com"  # Production frontend
-#     ],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://hms.stacklycloud.com",  # Your production domain
-        "http://localhost:5173",         # Local development
+    allow_origins=["http://localhost:5173"],  # Explicitly allow your frontend origin
+    allow_credentials=True,  # ✅ REQUIRED for cookies
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "X-CSRF-Token",
+        "Set-Cookie",  # ✅ Allow Set-Cookie header
     ],
-    allow_credentials=True,  # Important for cookies
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],    # Important for CORS
-    max_age=3600,            # Cache preflight requests for 1 hour
+    expose_headers=[
+        "Set-Cookie",  # ✅ Expose Set-Cookie header to frontend
+        "Authorization",
+        "Content-Type",
+    ],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # ==================== STATIC FILES ====================
@@ -436,6 +436,7 @@ app.include_router(hospital_billing.router)
 app.include_router(dashboard.router)
 app.include_router(treatment_charges.router)
 app.include_router(laboratory.router)
+app.include_router(surgery.router)
 
 # Make notify_clients available to routers
 app.state.notify_clients = notify_clients

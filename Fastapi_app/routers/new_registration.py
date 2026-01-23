@@ -18,7 +18,7 @@
 # os.makedirs(PHOTO_DIR, exist_ok=True)
 
 # # Base URL for static files
-# BASE_URL = "http://localhost:8000"  # Change in production
+# BACKEND_BASE_URL = "http://localhost:8000"  # Change in production
 
 # def parse_date(date_str: Optional[str]):
 #     if not date_str:
@@ -190,7 +190,7 @@
 #             p["discharge"] = "Done" if cs in ["completed", "discharged"] else "Pending"
 #             photo = p.get("photo")
 #             p["photo_url"] = (
-#                 f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
+#                 f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
 #                 if photo else None
 #             )
 
@@ -248,7 +248,7 @@
 #             p["discharge"] = "Done"
 #             photo = p.get("photo")
 #             p["photo_url"] = (
-#                 f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
+#                 f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
 #                 if photo else None
 #             )
         
@@ -327,7 +327,7 @@
 
 #         photo = p.get("photo")
 #         p["photo_url"] = (
-#             f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
+#             f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
 #             if photo else None
 #         )
 #         cs = (p.get("casualty_status") or "").strip().lower()
@@ -560,7 +560,7 @@ PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
 
 # Base URL for static files
-BASE_URL = "http://localhost:8000"  # Change in production
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000") 
 
 def parse_date(date_str: Optional[str]):
     if not date_str:
@@ -773,7 +773,7 @@ async def list_patients(
             p["discharge"] = "Done" if cs in ["completed", "discharged"] else "Pending"
             photo = p.get("photo")
             p["photo_url"] = (
-                f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
+                f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
             # If patient_type is None, set a default based on appointment_type
@@ -838,7 +838,7 @@ async def list_opd(
             p["discharge"] = "Done"
             photo = p.get("photo")
             p["photo_url"] = (
-                f"{BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
+                f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
             # If patient_type is None, set a default
@@ -925,7 +925,7 @@ async def get_patient(patient_id: str = Path(...)):
                 p[f] = d.strftime("%m/%d/%Y")
 
         if p["photo"]:
-            p["photo_url"] = f"{BASE_URL}/static/patient_photos/{os.path.basename(p['photo'])}"
+            p["photo_url"] = f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(p['photo'])}"
         else:
             p["photo_url"] = None
 

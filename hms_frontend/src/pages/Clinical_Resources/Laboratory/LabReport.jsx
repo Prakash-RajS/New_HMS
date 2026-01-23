@@ -20,6 +20,7 @@ import {
   Eye,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import api from "../../../utils/axiosConfig"; // Import axios
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -122,12 +123,14 @@ const LabReport = () => {
   const fetchTestTypes = async () => {
     try {
       setTestTypesLoading(true);
-      const res = await fetch(`${API_BASE}/labreports/test-types`);
-      if (!res.ok) {
-        console.error("Failed to fetch test types:", res.status);
+      const response = await api.get("/labreports/test-types");
+      
+      if (response.status !== 200) {
+        console.error("Failed to fetch test types:", response.status);
         return;
       }
-      const data = await res.json();
+      
+      const data = response.data;
       setTestTypes(data.test_types || []);
     } catch (err) {
       console.error("Error loading test types:", err);
@@ -142,12 +145,14 @@ const LabReport = () => {
   const fetchLabReports = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch(`${API_BASE}/labreports/list`);
-      if (!res.ok) {
-        console.error("Failed to fetch lab reports:", res.status);
+      const response = await api.get("/labreports/list");
+      
+      if (response.status !== 200) {
+        console.error("Failed to fetch lab reports:", response.status);
         return;
       }
-      const data = await res.json();
+      
+      const data = response.data;
       const mapped = data.map((item) => ({
         id: item.id,
         orderId: item.order_id,
@@ -183,17 +188,16 @@ const LabReport = () => {
         department: formData.department,
         test_type: formData.testType,
       };
-      const res = await fetch(`${API_BASE}/labreports/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
+      
+      const response = await api.post("/labreports/create", payload);
+      
+      if (response.status !== 200 && response.status !== 201) {
+        const errorData = response.data;
         throw new Error(errorData.detail || "Failed to create lab report");
       }
+      
       await fetchLabReports();
-      return await res.json();
+      return response.data;
     } catch (err) {
       console.error("Create lab report failed:", err);
       throw err;
@@ -214,23 +218,17 @@ const LabReport = () => {
         formDataToSend.append("lab_report_file", formData.labReportFile);
       }
 
-      const res = await fetch(`${API_BASE}/labreports/${id}`, {
-        method: "PUT",
-        body: formDataToSend, // Note: Don't set Content-Type header for FormData, browser will set it with boundary
+      const response = await api.put(`/labreports/${id}`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      if (!res.ok) {
-        let errorMsg = "Failed to update lab report";
-        try {
-          const errorData = await res.json();
-          errorMsg = errorData.detail || errorData.message || errorMsg;
-        } catch {
-          errorMsg = await res.text();
-        }
-        throw new Error(errorMsg);
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || "Failed to update lab report");
       }
 
-      const result = await res.json();
+      const result = response.data;
       // Refresh list
       await fetchLabReports();
       // Success toast
@@ -238,28 +236,39 @@ const LabReport = () => {
       return result;
     } catch (err) {
       // Only show error toast — no console.error in production
-      errorToast(err.message || "Failed to update lab report");
+      errorToast(err.response?.data?.detail || err.message || "Failed to update lab report");
       // Re-throw so caller can handle (e.g. keep modal open)
       throw err;
     }
   };
 
-  const handleDeleteReport = async (id) => {
+  const handleDeleteReport = async (id, orderId) => {
     try {
-      const res = await fetch(`${API_BASE}/labreports/${id}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        if (res.status === 404) {
-          throw new Error("Lab report not found");
-        }
+      const response = await api.delete(`/labreports/${id}`);
+
+      // Accept both 200 (OK) and 204 (No Content) as success statuses
+      if (response.status !== 200 && response.status !== 204) {
         throw new Error("Failed to delete lab report");
       }
+
       // Refresh the list after successful deletion
       await fetchLabReports();
+      
+      // Show success toast
+      successToast(`Lab report #${orderId} deleted successfully!`);
       return true;
     } catch (err) {
       console.error("Error deleting lab report:", err);
+      
+      // Show error toast
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          "Failed to delete lab report. Please try again.";
+      
+      errorToast(errorMessage);
+      
       throw err;
     }
   };
@@ -271,8 +280,24 @@ const LabReport = () => {
       return;
     }
     try {
-      const fullUrl = `${API_BASE}${filePath}`; // e.g. http://localhost:8000/uploads/lab_reports/xxx.pdf
-      window.open(fullUrl, "_blank", "noopener,noreferrer");
+      // If the filePath already starts with http or https, use it directly
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        window.open(filePath, "_blank", "noopener,noreferrer");
+        return;
+      }
+      
+      // If filePath starts with /, we need to combine it with API_BASE
+      if (filePath.startsWith('/')) {
+        // Remove leading slash if API_BASE already ends with /
+        const apiBase = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE;
+        const fullUrl = `${apiBase}${filePath}`;
+        window.open(fullUrl, "_blank", "noopener,noreferrer");
+      } else {
+        // If filePath doesn't start with /, assume it's relative to API_BASE
+        const apiBase = API_BASE.endsWith('/') ? API_BASE : `${API_BASE}/`;
+        const fullUrl = `${apiBase}${filePath}`;
+        window.open(fullUrl, "_blank", "noopener,noreferrer");
+      }
     } catch (error) {
       console.error("Error viewing report:", error);
       errorToast("Failed to open lab report");
@@ -280,32 +305,29 @@ const LabReport = () => {
   };
 
   // Download the lab report
-  // Download the lab report
-// Download the lab report - now forces real download
-const handleDownloadReport = (filePath, orderId) => {
-  if (!filePath) {
-    errorToast("No lab report file available to download.");
-    return;
-  }
+  const handleDownloadReport = (filePath, orderId) => {
+    if (!filePath) {
+      errorToast("No lab report file available to download.");
+      return;
+    }
 
-  try {
-    // Extract just the filename from /uploads/lab_reports/xxx.pdf
-    const filename = filePath.split("/").pop();
-    
-    // Use the new dedicated download endpoint
-    const downloadUrl = `${API_BASE}/labreports/download/${filename}`;
-    
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `Lab_Report_${orderId}.pdf`;  // Suggested filename
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error("Error triggering download:", error);
-    errorToast("Failed to download lab report");
-  }
-};
+    try {
+      // Extract just the filename from /uploads/lab_reports/xxx.pdf
+      const filename = filePath.split("/").pop();
+      
+      // Use the dedicated download endpoint
+      const downloadUrl = `/labreports/download/${filename}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `Lab_Report_${orderId}.pdf`;  // Suggested filename
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error triggering download:", error);
+      errorToast("Failed to download lab report");
+    }
+  };
 
   // === Status Counts ===
   const statusCounts = {
@@ -1120,11 +1142,11 @@ const handleDownloadReport = (filePath, orderId) => {
           }}
           onConfirm={async (id) => {
             try {
-              await handleDeleteReport(id);
+              await handleDeleteReport(id, selectedOrderForDelete.orderId);
               setShowDeletePopup(false);
               setSelectedOrderForDelete(null);
             } catch (error) {
-              // Error is handled in the delete function
+              // Error is already handled in the delete function with toast
               console.error("Delete failed:", error);
             }
           }}

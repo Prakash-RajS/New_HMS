@@ -18,8 +18,7 @@ import { useNavigate } from "react-router-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../components/Toast";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 // InputField Component
 const InputField = ({
@@ -188,17 +187,6 @@ const UserSettings = () => {
   ]);
   const [canManageUsers, setCanManageUsers] = useState(false);
 
-  // Get auth token and user info
-  const getAuthToken = () => {
-    return localStorage.getItem("token") || sessionStorage.getItem("token");
-  };
-
-  const getCurrentUserRole = () => {
-    return (
-      localStorage.getItem("role") || sessionStorage.getItem("role") || ""
-    );
-  };
-
   // Validation functions
   const validateUsername = (username) => {
     if (!username.trim()) return "Username is required";
@@ -240,13 +228,11 @@ const UserSettings = () => {
     fetchUsers();
   }, [filters, userSearch]);
 
-  // Re-fetch users when filters change
-  useEffect(() => {
-    fetchUsers();
-  }, [filters, userSearch]);
-
   const checkUserPermissions = () => {
-    const role = getCurrentUserRole();
+    // Note: For cookie-based auth, role might be in the JWT token or session
+    // You may need to adjust this based on your backend implementation
+    // For now, we'll check from localStorage as fallback
+    const role = localStorage.getItem("role") || "";
     setCurrentUserRole(role);
 
     const canManage =
@@ -268,20 +254,14 @@ const UserSettings = () => {
 
   const fetchFilterOptions = async () => {
     try {
-      const token = getAuthToken();
-      
       // Fetch all data in parallel
       const [staffRes, usersRes] = await Promise.all([
-        fetch(`${API_BASE}/staff/all/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_BASE}/users/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        api.get("/staff/all/"),
+        api.get("/users/")
       ]);
 
-      const staffList = await staffRes.json();
-      const usersData = await usersRes.json();
+      const staffList = staffRes.data;
+      const usersData = usersRes.data;
 
       // Set staff options for Add User popup
       const staffIds = staffList.map(staff => staff.employee_id);
@@ -328,7 +308,6 @@ const UserSettings = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = getAuthToken();
       const params = new URLSearchParams();
       
       // Only append if not the default "Select..." value
@@ -338,34 +317,33 @@ const UserSettings = () => {
         params.append("department", filters.department);
       if (userSearch) params.append("search", userSearch);
 
-      const url = `${API_BASE}/users/`;
       const queryString = params.toString();
-      const fullUrl = queryString ? `${url}?${queryString}` : url;
+      const url = queryString ? `/users/?${queryString}` : '/users/';
 
-      const res = await fetch(fullUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        if (res.status === 401) {
-          errorToast("Authentication failed. Please login again.");
-          return;
-        }
-        throw new Error("Failed to load users");
-      }
-
-      const data = await res.json();
-      setAllUsers(data);
+      const response = await api.get(url);
+      setAllUsers(response.data);
       setError("");
     } catch (err) {
-      setError(err.message || "Failed to load users");
-      errorToast(err.message || "Failed to load users");
+      let errorMessage = "Failed to load users";
+      
+      if (err.response) {
+        if (err.response.status === 401) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (err.response.status === 403) {
+          errorMessage = "You don't have permission to view users.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      setError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
-  // REMOVED: Auto-fill effect when Staff ID is selected
 
   // Filter & Sort Users
   const filteredUsers = allUsers.filter((u) => {
@@ -418,54 +396,52 @@ const UserSettings = () => {
 
   const confirmDeleteUsers = async () => {
     try {
-      const token = getAuthToken();
       for (const user of selectedUsers) {
-        const response = await fetch(`${API_BASE}/users/${user.id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!response.ok) {
-          if (response.status === 403) throw new Error("Permission denied.");
-          if (response.status === 401)
-            throw new Error("Authentication failed.");
-          const errorData = await response.json();
-          throw new Error(errorData.detail || `Failed to delete ${user.name}`);
-        }
+        await api.delete(`/users/${user.id}`);
       }
       await fetchUsers();
       setSelectedUsers([]);
       setShowDeleteUserPopup(false);
       successToast("Selected users deleted successfully.");
     } catch (err) {
-      errorToast(err.message || "Failed to delete users");
+      let errorMessage = "Failed to delete users";
+      
+      if (err.response) {
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired or permission denied.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      errorToast(errorMessage);
     }
   };
 
   // Delete single user
   const confirmDeleteUserUser = async () => {
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE}/users/${deleteUser.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) throw new Error("Permission denied.");
-        if (response.status === 401) throw new Error("Authentication failed.");
-        const errorData = await response.json();
-        throw new Error(
-          errorData.detail || `Failed to delete ${deleteUser.name}`
-        );
-      }
-
+      await api.delete(`/users/${deleteUser.id}`);
       await fetchUsers();
       setShowDeleteUserPopup(false);
       setDeleteUser(null);
       successToast("User deleted successfully.");
     } catch (err) {
-      errorToast(err.message || "Failed to delete user");
+      let errorMessage = "Failed to delete user";
+      
+      if (err.response) {
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired or permission denied.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      errorToast(errorMessage);
     }
   };
 
@@ -543,32 +519,40 @@ const UserSettings = () => {
     }
 
     try {
-      const token = getAuthToken();
       const formData = new FormData();
       formData.append("username", newUser.username);
       formData.append("password", newUser.password);
       formData.append("staff_id", newUser.staffId);
       formData.append("role", newUser.role);
 
-      const res = await fetch(`${API_BASE}/users/create_user`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
+      await api.post("/users/create_user", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
-
-      if (!res.ok) {
-        if (res.status === 403) throw new Error("Permission denied.");
-        if (res.status === 401) throw new Error("Authentication failed.");
-        const errorData = await res.json();
-        throw new Error(errorData.detail || "Failed to create user");
-      }
 
       setShowAddUserPopup(false);
       resetAddUserForm();
       await fetchUsers();
       successToast("User created successfully!");
     } catch (err) {
-      errorToast(err.message || "Failed to add user");
+      let errorMessage = "Failed to add user";
+      
+      if (err.response) {
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired or permission denied.";
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || "Invalid user data.";
+        } else if (err.response.status === 409) {
+          errorMessage = err.response.data?.detail || "Username already exists.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      errorToast(errorMessage);
     }
   };
 
@@ -1255,7 +1239,6 @@ const UserSettings = () => {
           }}
           onSave={async (updatedUser) => {
             try {
-              const token = getAuthToken();
               const formData = new FormData();
 
               if (updatedUser.username)
@@ -1269,23 +1252,32 @@ const UserSettings = () => {
                   updatedUser.confirmPassword
                 );
 
-              const res = await fetch(`${API_BASE}/users/${updatedUser.id}`, {
-                method: "PUT",
-                headers: { Authorization: `Bearer ${token}` },
-                body: formData,
+              await api.put(`/users/${updatedUser.id}`, formData, {
+                headers: {
+                  'Content-Type': 'multipart/form-data',
+                },
               });
-
-              if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.detail || "Failed to update user");
-              }
 
               await fetchUsers();
               setShowEditUserPopup(false);
               setEditUser(null);
               successToast("User updated successfully!");
             } catch (err) {
-              errorToast(err.message || "Failed to update user");
+              let errorMessage = "Failed to update user";
+              
+              if (err.response) {
+                if (err.response.status === 401 || err.response.status === 403) {
+                  errorMessage = "Session expired or permission denied.";
+                } else if (err.response.status === 400) {
+                  errorMessage = err.response.data?.detail || "Invalid user data.";
+                } else {
+                  errorMessage = err.response.data?.detail || errorMessage;
+                }
+              } else if (err.request) {
+                errorMessage = "Network error. Please check your connection.";
+              }
+              
+              errorToast(errorMessage);
             }
           }}
         />

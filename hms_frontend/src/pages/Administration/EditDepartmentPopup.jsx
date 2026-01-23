@@ -1,9 +1,8 @@
-// src/pages/Administration/EditDepartmentPopup.jsx
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
-
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const EditDepartmentPopup = ({ onClose, onSave, department }) => {
   const [formData, setFormData] = useState({
@@ -11,7 +10,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     status: "",
     description: "",
   });
- const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,7 +18,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     if (department) {
       setFormData({
         name: department.name || "",
-        status: department.status || "Active",
+        status: department.status ? department.status.charAt(0).toUpperCase() + department.status.slice(1).toLowerCase() : "Active",
         description: department.description || "",
       });
     }
@@ -49,39 +48,41 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/departments/${department.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        const msg = err.detail || "Failed to update department.";
-        setError(msg);
-        errorToast(msg);
-        setLoading(false);
-        return;
-      }
-
-      const updatedDepartment = await response.json();
+      const response = await api.put(`/departments/${department.id}`, payload);
 
       // Success Toast
-      successToast(`"${updatedDepartment.name}" updated successfully!`);
+      successToast(`"${response.data.name}" updated successfully!`);
 
       // Trigger parent refresh
-      if (onSave) onSave(updatedDepartment);
+      if (onSave) onSave(response.data);
 
       // Close popup after short delay
       setTimeout(() => {
         onClose();
       }, 800);
     } catch (err) {
-      const msg = "Network error. Please check your connection.";
-      setError(msg);
-      errorToast(msg);
+      let errorMessage = "Failed to update department.";
+      
+      if (err.response) {
+        if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || "Invalid data.";
+        } else if (err.response.status === 404) {
+          errorMessage = "Department not found.";
+        } else if (err.response.status === 409) {
+          errorMessage = err.response.data?.detail || "Department with this name already exists.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
+      errorToast(errorMessage);
       console.error("Update failed:", err);
     } finally {
       setLoading(false);
@@ -116,7 +117,7 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
                 key={option}
                 value={option}
                 className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-3 text-sm ${
+                  `cursor-pointer select-none py-2 px-3 text-sm rounded-md ${
                     active
                       ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
                       : selected

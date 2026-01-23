@@ -3,6 +3,8 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Listbox } from "@headlessui/react";
 import { useWebSocket } from "../../components/WebSocketContext";
 import { ThemeContext } from "../../components/ThemeContext";
+import { usePermissions } from "../../components/PermissionContext";
+import api from "../../utils/axiosConfig";
 
 const DashboardComponents = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -23,10 +25,12 @@ const DashboardComponents = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   const { theme } = useContext(ThemeContext);
   const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } =
     useWebSocket();
+  const { isAuthenticated: isUserAuthenticated, loading: permissionsLoading } = usePermissions();
 
   const periods = ["Last Week", "This Week", "This Month", "Last Month"];
 
@@ -48,61 +52,100 @@ const DashboardComponents = () => {
     return value !== null && value !== undefined ? value : defaultValue;
   };
 
+  // Function to verify authentication - Rely on server, not client-side cookie read
+  const verifyAuthentication = async () => {
+    try {
+      console.log("🔐 Verifying authentication...");
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      // Always try to call /profile/me - browser will send HttpOnly cookies if withCredentials: true in axiosConfig
+      const response = await api.get("/profile/me");
+      console.log("✅ Authentication verified:", response.data);
+      return true;
+    } catch (error) {
+      console.error("❌ Authentication verification failed:", error);
+
+      // If it's a 401 error, try to refresh the token
+      if (error.response?.status === 401) {
+        console.log("🔄 Attempting token refresh...");
+        try {
+          const refreshResponse = await api.post("/auth/refresh");
+          if (refreshResponse.data.access_token) {
+            console.log("✅ Token refreshed successfully");
+            return true;
+          }
+        } catch (refreshError) {
+          console.error("❌ Token refresh failed:", refreshError);
+          return false;
+        }
+      }
+      return false;
+    }
+  };
+
   // Fetch dashboard data
   const fetchDashboardData = async () => {
     try {
       setError(null);
-      const response = await fetch(`${API_BASE}/api/dashboard/stats`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setDashboardData(data);
+      console.log("📊 Fetching dashboard data...");
+      
+      const response = await api.get("/api/dashboard/stats");
+      setDashboardData(response.data);
       setLastUpdated(new Date().toLocaleTimeString());
+      
+      console.log("✅ Dashboard data loaded:", response.data);
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setError("Failed to load dashboard data");
-      // Set empty data structure to prevent crashes
-      setDashboardData({
-        patient_stats: {
-          total_patients: 0,
-          active_patients: 0,
-          weekly_admissions: 0,
-          priority_care: 0,
-          today_admissions: 0,
-        },
-        appointment_stats: {
-          total_appointments: 0,
-          today_appointments: 0,
-          emergency_cases: 0,
-          consultation_today: 0,
-        },
-        financial_stats: {
-          total_revenue: 0,
-          today_revenue: 0,
-          pharmacy_revenue_today: 0,
-          outstanding_payments: 0,
-        },
-        department_distribution: [],
-      });
+      console.error("❌ Error fetching dashboard data:", error);
+      
+      if (error.response?.status === 401) {
+        setError("Session expired. Please login again.");
+        
+        // Redirect to login
+        if (window.location.pathname !== '/') {
+          window.location.href = '/';
+        }
+      } else {
+        setError("Failed to load dashboard data");
+        // Set fallback data
+        setDashboardData({
+          patient_stats: {
+            total_patients: 0,
+            active_patients: 0,
+            weekly_admissions: 0,
+            priority_care: 0,
+            today_admissions: 0,
+          },
+          appointment_stats: {
+            total_appointments: 0,
+            today_appointments: 0,
+            emergency_cases: 0,
+            consultation_today: 0,
+          },
+          financial_stats: {
+            total_revenue: 0,
+            today_revenue: 0,
+            pharmacy_revenue_today: 0,
+            outstanding_payments: 0,
+          },
+          surgery_stats: {
+            total_surgeries: 0,
+            today_surgeries: 0,
+            emergency_surgeries: 0,
+            success_rate: 0,
+          },
+          department_distribution: [],
+        });
+      }
     }
   };
 
   // Fetch recent activities
   const fetchRecentActivities = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/dashboard/recent-activities`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setRecentActivities(data);
-      }
+      console.log("📝 Fetching recent activities...");
+      const response = await api.get("/api/dashboard/recent-activities");
+      setRecentActivities(response.data);
     } catch (error) {
-      console.error("Error fetching recent activities:", error);
+      console.error("❌ Error fetching recent activities:", error);
       setRecentActivities([]);
     }
   };
@@ -110,15 +153,11 @@ const DashboardComponents = () => {
   // Test connection on mount
   const testConnection = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/dashboard/test-connection`);
-      // const response = await fetch(
-      //   "http://localhost:8000/api/dashboard/test-connection"
-      // );
-      if (response.ok) {
-        console.log("Dashboard API connection successful");
-      }
+      console.log("🔗 Testing dashboard API connection...");
+      await api.get("/api/dashboard/test-connection");
+      console.log("✅ Dashboard API connection successful");
     } catch (error) {
-      console.error("Dashboard API connection failed:", error);
+      console.error("❌ Dashboard API connection failed:", error);
     }
   };
 
@@ -126,26 +165,70 @@ const DashboardComponents = () => {
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
-      await testConnection();
-      await fetchDashboardData();
-      await fetchRecentActivities();
-      setLoading(false);
+      
+      try {
+        console.log("🚀 Initializing dashboard...");
+        
+        // First check authentication via PermissionContext
+        if (permissionsLoading) {
+          console.log("⏳ Waiting for permission context to load...");
+          // Wait a bit for permission context to load
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        if (!isUserAuthenticated()) {
+          console.log("❌ User not authenticated via PermissionContext");
+          setError("Please login to access dashboard");
+          setLoading(false);
+          
+          // Redirect to login if not already there
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/' && currentPath !== '/login') {
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          }
+          return;
+        }
+        
+        // Verify authentication with backend
+        const isAuth = await verifyAuthentication();
+        if (!isAuth) {
+          setError("Authentication failed. Please login again.");
+          setLoading(false);
+          return;
+        }
+        
+        // All checks passed, fetch data
+        await testConnection();
+        await fetchDashboardData();
+        await fetchRecentActivities();
+        
+        setAuthChecked(true);
+        
+      } catch (error) {
+        console.error("❌ Error initializing dashboard data:", error);
+        setError("Failed to initialize dashboard");
+      } finally {
+        setLoading(false);
+      }
     };
 
     initializeData();
-  }, []);
+  }, [permissionsLoading, isUserAuthenticated]);
 
   // Set up real-time updates every 30 seconds
   useEffect(() => {
+    if (!authChecked || loading || !isUserAuthenticated()) return;
+    
     const interval = setInterval(() => {
-      if (!loading) {
-        fetchDashboardData();
-        fetchRecentActivities();
-      }
+      console.log("🔄 Refreshing dashboard data...");
+      fetchDashboardData();
+      fetchRecentActivities();
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [authChecked, loading, isUserAuthenticated]);
 
   // Notification functions
   const getNotificationColor = (type) => {
@@ -191,6 +274,46 @@ const DashboardComponents = () => {
 
           {/* Loading Text */}
           <p className="text-sm text-[#0EFF7B] opacity-90">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check authentication on render
+  if (error && (error.includes("Please login") || error.includes("Authentication failed"))) {
+    return (
+      <div className="mt-[80px] mb-4 rounded-xl p-6 w-full max-w-[2500px] mx-auto flex justify-center items-center">
+        <div className="flex flex-col items-center gap-3 max-w-md text-center">
+          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+            <span className="text-2xl">🔒</span>
+          </div>
+          <p className="text-red-500 font-medium">{error}</p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
+            Please login to access the dashboard.
+          </p>
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="mt-4 px-6 py-2 bg-gradient-to-r from-[#025126] to-[#0D7F41] text-white rounded-lg hover:opacity-90 transition-opacity"
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no error but also no data
+  if (!dashboardData && !loading) {
+    return (
+      <div className="mt-[80px] mb-4 rounded-xl p-6 w-full max-w-[2500px] mx-auto flex justify-center items-center">
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-gray-500">No dashboard data available</p>
+          <button 
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -432,39 +555,35 @@ const DashboardComponents = () => {
 
                 {activeSubTab === "Surgery Record" && (
                   <div className="grid grid-cols-4 gap-[43px] responsive-grid">
-                    {/* Total Surgeries Card */}
+                    {/* Total Surgeries */}
                     <DashboardCard
                       title="Total Surgeries"
                       change="This month"
-                      value={getSafeData(
-                        "appointment_stats.total_appointments"
-                      )}
+                      value={getSafeData("surgery_stats.total_surgeries")}
                       subTab="Surgery Record"
                     />
 
-                    {/* Today's Surgeries Card */}
+                    {/* Today's Surgeries */}
                     <DashboardCard
                       title="Today's Surgeries"
                       change="Scheduled procedures"
-                      value={getSafeData(
-                        "appointment_stats.today_appointments"
-                      )}
+                      value={getSafeData("surgery_stats.today_surgeries")}
                       subTab="Surgery Record"
                     />
 
-                    {/* Emergency Surgeries Card */}
+                    {/* Emergency Surgeries */}
                     <DashboardCard
                       title="Emergency Cases"
-                      change="immediate attention"
-                      value={getSafeData("appointment_stats.emergency_cases")}
+                      change="Immediate attention"
+                      value={getSafeData("surgery_stats.emergency_surgeries")}
                       subTab="Surgery Record"
                     />
 
-                    {/* Surgery Success Rate Card */}
+                    {/* Success Rate */}
                     <DashboardCard
                       title="Success Rate"
                       change="Monthly average"
-                      value="98.2%"
+                      value={`${getSafeData("surgery_stats.success_rate")}%`}
                       subTab="Surgery Record"
                     />
                   </div>
@@ -519,8 +638,9 @@ const DashboardCard = ({ title, change, value, subTab }) => {
   const handleButtonClick = () => {
     if (subTab === "Revenue Summary") {
       navigate("/Billing");
-    } else {
-      // For Patient Record and Surgery Record
+    } else if (subTab === "Surgery Record"){
+      navigate("/patients/surgeries");
+    } else{
       navigate("/patients/ipd-opd");
     }
   };

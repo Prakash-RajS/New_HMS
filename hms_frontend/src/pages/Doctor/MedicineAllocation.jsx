@@ -1401,12 +1401,11 @@ import { successToast, errorToast } from "../../components/Toast.jsx";
 import EditMedicineAllocationPopup from "./EditMedicineAllocationPopup";
 import DeleteMedicinePopup from "./DeleteMedicinePopup";
 import { useNavigate } from "react-router-dom";
+import api from "../../utils/axiosConfig"; // Import axios config
 
 export default function ViewPatientProfile() {
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
   const [medicineData, setMedicineData] = useState([
     {
       id: Date.now(),
@@ -1462,28 +1461,21 @@ export default function ViewPatientProfile() {
   const fetchTestTypes = async () => {
     try {
       setLoadingTestTypes(true);
-      const res = await fetch(`${API_BASE}/labreports/test-types/`);
-      const text = await res.text();
-      
-      if (!res.ok) {
-        console.error("Test types raw response (non-OK):", text);
-        throw new Error("Failed to fetch test types");
-      }
-      
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Failed to parse test types JSON:", parseError);
-        console.error("Raw response:", text);
-        throw new Error("Invalid JSON response from test types API");
-      }
+      const response = await api.get("/labreports/test-types/");
+      const data = response.data;
       
       const testTypesArray = data.test_types || data || [];
       setTestTypes(testTypesArray);
     } catch (error) {
       console.error("Error fetching test types:", error);
       setTestTypes([]);
+      
+      // Handle axios error response
+      if (error.response) {
+        errorToast(`Failed to fetch test types: ${error.response.data?.detail || error.message}`);
+      } else {
+        errorToast("Failed to load test types. Please try again.");
+      }
     } finally {
       setLoadingTestTypes(false);
     }
@@ -1614,42 +1606,21 @@ export default function ViewPatientProfile() {
 
   const fetchDepartments = async () => {
     try {
-      const res = await fetch(`${API_BASE}/departments/`);
-      const text = await res.text();
-      if (!res.ok) {
-        console.error("Departments raw response (non-OK):", text);
-        throw new Error("Failed to fetch departments");
-      }
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Failed to parse departments JSON:", parseError);
-        console.error("Raw response:", text);
-        throw new Error("Invalid JSON response from departments API");
-      }
-      setDepartments(data);
+      const response = await api.get("/departments/");
+      setDepartments(response.data);
     } catch (error) {
       console.error("Error fetching departments:", error);
+      if (error.response) {
+        errorToast(`Failed to fetch departments: ${error.response.data?.detail || error.message}`);
+      }
     }
   };
 
   const fetchPatients = async () => {
     try {
-      const res = await fetch(`${API_BASE}/medicine_allocation/edit`);
-      const text = await res.text();
-      if (!res.ok) {
-        console.error("Patients raw response (non-OK):", text);
-        throw new Error("Failed to fetch patients");
-      }
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Failed to parse patients JSON:", parseError);
-        console.error("Raw response:", text);
-        throw new Error("Invalid JSON response from patients API");
-      }
+      const response = await api.get("/medicine_allocation/edit");
+      let data = response.data;
+      
       let patientsList = [];
       if (Array.isArray(data)) {
         patientsList = data;
@@ -1658,22 +1629,21 @@ export default function ViewPatientProfile() {
       } else if (data && typeof data === "object") {
         patientsList = [data];
       }
+      
       setPatients(patientsList);
       setFilteredPatients(patientsList);
     } catch (error) {
       console.error("Error fetching patients:", error);
+      if (error.response) {
+        errorToast(`Failed to fetch patients: ${error.response.data?.detail || error.message}`);
+      }
     }
   };
 
   const fetchStock = async () => {
     try {
-      const res = await fetch(`${API_BASE}/stock/list`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch stock: ${res.status}`);
-      }
-      const data = await res.json();
-      setStockData(data);
-      console.log("Stock data loaded:", data);
+      const response = await api.get("/stock/list");
+      setStockData(response.data);
     } catch (error) {
       console.error("Error fetching stock:", error);
       errorToast("Failed to load stock data");
@@ -1682,22 +1652,9 @@ export default function ViewPatientProfile() {
 
   const fetchPatientFull = async (patientUniqueId) => {
     try {
-      const res = await fetch(`${API_BASE}/patients/${patientUniqueId}`);
-      const text = await res.text();
-      if (!res.ok) {
-        console.error("Full patient raw response (non-OK):", text);
-        throw new Error("Failed to fetch patient details");
-      }
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Failed to parse full patient JSON:", parseError);
-        console.error("Raw response:", text);
-        throw new Error("Invalid JSON response from patient details API");
-      }
-      setFullPatient(data);
-      return data;
+      const response = await api.get(`/patients/${patientUniqueId}`);
+      setFullPatient(response.data);
+      return response.data;
     } catch (error) {
       console.error("Error fetching patient details:", error);
       return null;
@@ -1707,27 +1664,11 @@ export default function ViewPatientProfile() {
   const fetchMedicineHistory = async (patientDbId) => {
     if (!patientDbId) return;
     try {
-      const res = await fetch(
-        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/`
+      const response = await api.get(
+        `/medicine_allocation/${patientDbId}/medicine-allocations/`
       );
-      const text = await res.text();
-      if (!res.ok) {
-        if (res.status === 404) {
-          setMedicineHistory([]);
-          return;
-        }
-        console.error("Medicine history raw response (non-OK):", text);
-        throw new Error("Failed to fetch medicine history");
-      }
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Failed to parse medicine history JSON:", parseError);
-        console.error("Raw response:", text);
-        throw new Error("Invalid JSON response from medicine history API");
-      }
       
+      const data = response.data;
       const processedData = (data || []).map(item => ({
         ...item,
         frequency: toNames(item.frequency || "")
@@ -1736,7 +1677,11 @@ export default function ViewPatientProfile() {
       setMedicineHistory(processedData);
     } catch (error) {
       console.error("Error fetching medicine history:", error);
-      setMedicineHistory([]);
+      if (error.response?.status === 404) {
+        setMedicineHistory([]);
+      } else {
+        errorToast("Failed to fetch medicine history");
+      }
     }
   };
 
@@ -1890,42 +1835,24 @@ export default function ViewPatientProfile() {
     
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE}/medicine_allocation/${patientDbId}/allocations/`,
+      const response = await api.post(
+        `/medicine_allocation/${patientDbId}/allocations/`,
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            medicines: medicineData.map((med) => ({
-              medicine_name: med.medicineName,
-              dosage: med.dosage,
-              quantity: med.quantity,
-              frequency: toBinary(med.frequency),
-              duration: med.duration,
-              time: med.time,
-            })).filter(med => med.medicine_name.trim() !== ""),
-            lab_test_types: labTests
-              .map((test) => test.labTest)
-              .filter((test) => test && test.trim() !== ""),
-          }),
+          medicines: medicineData.map((med) => ({
+            medicine_name: med.medicineName,
+            dosage: med.dosage,
+            quantity: med.quantity,
+            frequency: toBinary(med.frequency),
+            duration: med.duration,
+            time: med.time,
+          })).filter(med => med.medicine_name.trim() !== ""),
+          lab_test_types: labTests
+            .map((test) => test.labTest)
+            .filter((test) => test && test.trim() !== ""),
         }
       );
-      const text = await res.text();
-      if (!res.ok) {
-        console.error("Submit raw response (non-OK):", text);
-        let errorData;
-        try {
-          errorData = JSON.parse(text);
-        } catch {
-          errorData = { detail: text };
-        }
-        throw new Error(errorData.detail || "Failed to allocate medicines");
-      }
-      const result = JSON.parse(text);
+      
+      const result = response.data;
       const newHistoryEntries = result.medicines.map((med) => ({
         id: med.id,
         patient_name: med.patient_name,
@@ -1948,7 +1875,11 @@ export default function ViewPatientProfile() {
       successToast("Medicines allocated successfully!");
     } catch (error) {
       console.error("Error allocating medicines:", error);
-      errorToast(`Failed to allocate medicines: ${error.message}`);
+      if (error.response) {
+        errorToast(`Failed to allocate medicines: ${error.response.data?.detail || error.message}`);
+      } else {
+        errorToast("Failed to allocate medicines. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -1993,56 +1924,45 @@ export default function ViewPatientProfile() {
 
   const handleUpdateMedicine = async (updatedData) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/${editingMedicine.id}/`,
+      const response = await api.put(
+        `/medicine_allocation/${patientDbId}/medicine-allocations/${editingMedicine.id}/`,
         {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            medicine_name: updatedData.medicineName,
-            dosage: updatedData.dosage,
-            quantity: updatedData.quantity,
-            frequency: toBinary(updatedData.frequency),
-            duration: updatedData.duration,
-            time: updatedData.time,
-          }),
+          medicine_name: updatedData.medicineName,
+          dosage: updatedData.dosage,
+          quantity: updatedData.quantity,
+          frequency: toBinary(updatedData.frequency),
+          duration: updatedData.duration,
+          time: updatedData.time,
         }
       );
-      if (!res.ok) {
-        throw new Error("Failed to update medicine allocation");
-      }
+      
       await fetchMedicineHistory(patientDbId);
       successToast("Medicine allocation updated successfully!");
     } catch (error) {
       console.error("Error updating medicine:", error);
-      errorToast("Failed to update medicine allocation");
+      if (error.response) {
+        errorToast(`Failed to update medicine: ${error.response.data?.detail || error.message}`);
+      } else {
+        errorToast("Failed to update medicine allocation");
+      }
     }
   };
 
   const handleConfirmDelete = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${API_BASE}/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      await api.delete(
+        `/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`
       );
-      if (!res.ok) {
-        throw new Error("Failed to delete medicine allocation");
-      }
+      
       await fetchMedicineHistory(patientDbId);
       successToast("Medicine allocation deleted successfully!");
     } catch (error) {
       console.error("Error deleting medicine:", error);
-      errorToast("Failed to delete medicine allocation");
+      if (error.response) {
+        errorToast(`Failed to delete medicine: ${error.response.data?.detail || error.message}`);
+      } else {
+        errorToast("Failed to delete medicine allocation");
+      }
     } finally {
       setIsDeletePopupOpen(false);
       setDeletingMedicine(null);
@@ -2849,7 +2769,7 @@ export default function ViewPatientProfile() {
             ))}
           </div>
 
-          {/* Lab Tests Section (unchanged) */}
+          {/* Lab Tests Section */}
           <div className="mt-6">
             <h4 className="font-medium text-[#0EFF7B] mb-2">Lab Tests</h4>
             {labTests.map((test, index) => (
@@ -2983,7 +2903,7 @@ export default function ViewPatientProfile() {
         </form>
       </div>
 
-      {/* Medicine Allocation History (unchanged) */}
+      {/* Medicine Allocation History */}
       <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine allocation history

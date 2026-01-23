@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -15,8 +16,6 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [fieldErrors, setFieldErrors] = useState({}); // Required validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
-    const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateDepartmentNameFormat = (value) => {
@@ -141,41 +140,13 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/departments/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let errorMessage = "Failed to create department.";
-
-        if (response.status === 409) {
-          const err = await response.json();
-          errorMessage = err.detail || "Department with this name already exists.";
-        } else {
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-        }
-
-        errorToast(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const newDepartment = await response.json();
+      const response = await api.post("/departments/create", payload);
 
       // SUCCESS TOAST
-      successToast(`"${newDepartment.name}" created successfully!`);
+      successToast(`"${response.data.name}" created successfully!`);
 
       // Notify parent to refresh list
-      if (onSave) onSave(newDepartment);
+      if (onSave) onSave(response.data);
 
       // Close popup with a tiny delay for toast visibility
       setTimeout(() => {
@@ -183,8 +154,28 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
       }, 600);
 
     } catch (err) {
-      const networkError = "Network error. Please check your connection.";
-      errorToast(networkError);
+      let errorMessage = "Failed to create department.";
+      
+      if (err.response) {
+        // Server responded with error status
+        if (err.response.status === 409) {
+          errorMessage = err.response.data?.detail || "Department with this name already exists.";
+        } else if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || "Invalid data.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        // Request was made but no response
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        // Something else happened
+        errorMessage = err.message || errorMessage;
+      }
+      
+      errorToast(errorMessage);
       console.error("Create Department Error:", err);
     } finally {
       setLoading(false);

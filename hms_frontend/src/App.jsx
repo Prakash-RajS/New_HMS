@@ -1,10 +1,11 @@
-import { useRef, useState, useContext, useEffect } from "react";
+import React, { useRef, useState, useContext, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
   useNavigate,
+  Navigate,
 } from "react-router-dom";
 import { ThemeProvider, ThemeContext } from "./components/ThemeContext.jsx";
 import Sidebar from "./components/LeftSideBar.jsx";
@@ -15,7 +16,6 @@ import NotFound from "./pages/NotFound.jsx";
 
 import Login from "./pages/Login.jsx";
 import { ToastProvider } from "./components/Toast.jsx";
-import { startTokenRefresh } from "./utils/axiosConfig";
 
 // Pages
 import DashboardComponents from "./pages/Home/DashboardComponents.jsx";
@@ -57,6 +57,31 @@ import {
   PermissionContext,
 } from "./components/PermissionContext";
 import TreatmentCharges from "./pages/Patients/TreatmentCharges.jsx";
+import SurgeryList from "./pages/Patients/SurgeryList.jsx";
+import { UserProvider } from "./contexts/UserContext";
+
+// -------------------- Cookie Helper Functions --------------------
+const getCookie = (name) => {
+  try {
+    const cookies = document.cookie;
+    
+    const cookieArray = cookies.split(';');
+    
+    for (let cookie of cookieArray) {
+      const trimmedCookie = cookie.trim();
+      
+      if (trimmedCookie.startsWith(`${name}=`)) {
+        const value = trimmedCookie.substring(name.length + 1);
+        return value;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error reading cookie:", error);
+    return null;
+  }
+};
 
 // -------------------- Permission Gate for Access Denied --------------------
 const PermissionGate = ({ moduleKey, children }) => {
@@ -66,7 +91,7 @@ const PermissionGate = ({ moduleKey, children }) => {
   if (!hasPermission(moduleKey)) {
     return (
       <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[1400px] mx-auto flex flex-col items-center justify-center min-h-[600px]">
-        <div className="text-center">
+        {/* <div className="text-center">
           <h2 className="text-3xl font-bold mb-6 text-red-500">
             Access Denied
           </h2>
@@ -74,12 +99,12 @@ const PermissionGate = ({ moduleKey, children }) => {
             You do not have permission to access this module.
           </p>
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/dashboard")}
             className="px-8 py-3 bg-[#08994A] text-white rounded-full hover:bg-[#0cd968] transition text-lg font-medium"
           >
             Go to Profile
           </button>
-        </div>
+        </div> */}
       </div>
     );
   }
@@ -87,96 +112,73 @@ const PermissionGate = ({ moduleKey, children }) => {
   return children;
 };
 
-// -------------------- First Permitted Page Redirect --------------------
-const FirstPermittedPage = () => {
-  const { hasPermission } = useContext(PermissionContext);
+// -------------------- Dashboard Redirect Component --------------------
+const DashboardRedirect = () => {
+  const { hasPermission, currentUser, loading } = useContext(PermissionContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const modulePriority = [
-      "dashboard",
-      "appointments",
-      "patients_view",
-      "patients_create",
-      "patients_profile",
-      "treatment_charges",
-      "medicine_allocation",
-      "bed_management",
-      "room_management",
-      "staff_management",
-      "pharmacy_inventory",
-      "pharmacy_billing",
-      "doctors_manage",
-      "laboratory_manage",
-      "lab_reports",
-      "blood_bank",
-      "ambulance",
-      "billing",
-      "user_settings",
-      "security_settings",
-    ];
+    if (loading) return;
 
-    const pathMap = {
-      dashboard: "/dashboard",
-      appointments: "/appointments",
-      patients_view: "/patients/ipd-opd",
-      patients_create: "/patients/new-registration",
-      treatment_charges : "/patients/treatment-charges",
-      patients_profile: "/patients/profile",
-      medicine_allocation: "/Doctors-Nurse/MedicineAllocation",
-      bed_management: "/Administration/BedList",
-      room_management: "/Administration/RoomManagement",
-      staff_management: "/Administration/StaffManagement",
-      pharmacy_inventory: "/Pharmacy/Stock-Inventory",
-      pharmacy_billing: "/Pharmacy/Bill",
-      doctors_manage: "/Doctors-Nurse/DoctorNurseProfile",
-      lab_reports: "/ClinicalResources/Laboratory/LaboratoryReports",
-      laboratory_manage: "/ClinicalResources/Laboratory/Laboratory",  
-      blood_bank: "/ClinicalResources/ClinicalReports/BloodBank",
-      ambulance: "/ClinicalResources/EmergencyServices/Ambulance",
-      billing: "/Billing",
-      user_settings: "/UserSettings",
-      security_settings: "/security",
-    };
+    console.log("📍 DashboardRedirect - Checking permissions...");
+    console.log("📍 Current User:", currentUser);
+    console.log("📍 Is Superuser:", currentUser?.is_superuser);
+    console.log("📍 Role:", currentUser?.role);
 
-    for (const module of modulePriority) {
-      if (hasPermission(module)) {
-        navigate(pathMap[module] || "/profile", { replace: true });
-        return;
-      }
+    // If user is admin/superuser, stay on dashboard
+    const isSuperuserOrAdmin = currentUser?.is_superuser === true || 
+                               currentUser?.role?.toLowerCase() === "admin";
+    
+    if (isSuperuserOrAdmin) {
+      console.log("✅ DashboardRedirect - Admin/Superuser detected, staying on dashboard");
+      return; // Stay on dashboard
     }
 
-    navigate("/profile", { replace: true });
-  }, [hasPermission, navigate]);
+    // For regular users without dashboard permission, go to profile
+    if (!hasPermission("dashboard")) {
+      console.log("⚠️ DashboardRedirect - No dashboard permission, redirecting to profile");
+      navigate("/dashboard", { replace: true });
+      return;
+    }
 
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-pulse">
-          <div className="w-20 h-20 bg-[#0EFF7B] rounded-full mx-auto mb-6"></div>
-          <p className="text-white text-xl font-medium">
-            Loading your workspace...
-          </p>
+    // User has dashboard permission, stay on dashboard
+    console.log("✅ DashboardRedirect - User has dashboard permission, staying on dashboard");
+  }, [hasPermission, navigate, loading, currentUser]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <div className="w-20 h-20 bg-[#0EFF7B] rounded-full mx-auto mb-6"></div>
+            <p className="text-white text-xl font-medium">
+              Loading your workspace...
+            </p>
+            <p className="text-gray-400 text-sm mt-2">
+              Checking permissions...
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  // If we get here, show the actual dashboard
+  return (
+    <ProtectedRoute>
+      <PermissionGate moduleKey="dashboard">
+        <DashboardComponents />
+      </PermissionGate>
+    </ProtectedRoute>
   );
 };
-// Update your AppContent component structure
 
 // -------------------- App Content --------------------
 function AppContent({ contentRef }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useContext(ThemeContext);
   const location = useLocation();
-  useEffect(() => {
-    const interval = startTokenRefresh();
-    return () => clearInterval(interval);
-  }, []);
-
-  const token = localStorage.getItem("token");
   const isLoginPage = location.pathname === "/";
-  const isAuthenticated = !!token;
 
   // Different layout for login page vs authenticated pages
   if (isLoginPage) {
@@ -219,20 +221,13 @@ function AppContent({ contentRef }) {
         >
           <div className="p-4 min-h-full">
             <Routes>
-              <Route path="/home" element={<FirstPermittedPage />} />
+              {/* Redirect root to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Dashboard - with redirect logic */}
+              <Route path="/dashboard" element={<DashboardRedirect />} />
 
-              {/* Dashboard */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <PermissionGate moduleKey="dashboard">
-                      <DashboardComponents />
-                    </PermissionGate>
-                  </ProtectedRoute>
-                }
-              />
-
+              {/* Profile */}
               <Route
                 path="/profile"
                 element={
@@ -321,6 +316,16 @@ function AppContent({ contentRef }) {
                   <ProtectedRoute>
                     <PermissionGate moduleKey="treatment_charges">
                       <TreatmentCharges />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patients/surgeries"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="surgeries">
+                      <SurgeryList />
                     </PermissionGate>
                   </ProtectedRoute>
                 }
@@ -566,13 +571,16 @@ export default function App() {
     <ThemeProvider>
       <PermissionProvider>
         <WebSocketProvider>
-          <Router>
-            <ScrollToTop contentRef={contentRef} />
-            <AppContent contentRef={contentRef} />
-          </Router>
+        <UserProvider> 
+          
+            <Router>
+              <ScrollToTop contentRef={contentRef} />
+              <AppContent contentRef={contentRef} />
+            </Router>
+          
+        </UserProvider> 
         </WebSocketProvider>
       </PermissionProvider>
     </ThemeProvider>
   );
 }
-

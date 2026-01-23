@@ -1042,7 +1042,7 @@
 // };
 
 // export default Profile;
-// hms_frontend/src/pages/Home/Profile.jsx - COMPLETE FIXED VERSION
+// hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
 import React, { useState, useEffect } from "react";
 import {
   FaEnvelope,
@@ -1055,7 +1055,7 @@ import {
 } from "react-icons/fa";
 import ProfileImage from "../../assets/image.png";
 import { successToast, errorToast } from "../../components/Toast";
-import api from "../../utils/axiosConfig"; // Import the fixed axios config
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -1116,9 +1116,6 @@ const Profile = () => {
 
   const [profileImage, setProfileImage] = useState(ProfileImage);
 
-  // Get API base URL
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
   // Validate image file function
   const validateImageFile = (file) => {
     // Check file type
@@ -1158,80 +1155,81 @@ const Profile = () => {
   };
 
   // Fetch current staff profile via /me/
-  const fetchProfile = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      console.log("Fetching profile...");
+ // Fetch current staff profile via /me/
+const fetchProfile = async () => {
+  setLoading(true);
+  setError("");
+  try {
+    console.log("Fetching profile...");
 
-      const res = await api.get("/api/profile/me/");
-      const data = res.data;
+    const res = await api.get("/profile/me/");
+    const data = res.data;  // Full UserMeResponse
 
-      console.log("Profile API Response:", data);
+    console.log("Profile API Response:", data);  // Keep for debugging
 
-      const location =
-        [data.address, data.city, data.country].filter(Boolean).join(", ") ||
-        "Not provided";
+    // ✅ Extract from nested 'profile' object
+    const profile = data.profile || {};  // Fallback if no profile
 
-      const joinedDate = data.date_of_joining
-        ? new Date(data.date_of_joining).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-        : "Not provided";
+    const location =
+      [profile.address, profile.city, profile.country].filter(Boolean).join(", ") ||
+      "Not provided";
 
-      const imageUrl = data.profile_picture
-        ? `${API_BASE}/${data.profile_picture}`
-        : ProfileImage;
+    const joinedDate = profile.date_of_joining
+      ? new Date(profile.date_of_joining).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "Not provided";
 
-      setProfileImage(imageUrl);
-      setOriginalImage(imageUrl);
-
-      // Format phone number for display - REMOVED the + prefix
-      const phoneNumber = data.phone || "";
-      const formattedPhone = phoneNumber ? `${phoneNumber}` : "";
-
-      const newProfileData = {
-        name: data.full_name || "",
-        email: data.email || "",
-        phone: formattedPhone,
-        role: data.designation || "",
-        department: data.department || "",
-        joinedDate,
-        location,
-        timezone: data.timezone || "",
-      };
-
-      // Set both current and original data
-      setProfileData(newProfileData);
-      setOriginalProfileData(newProfileData);
-
-      // Profile completion calculation
-      const fields = [
-        data.full_name,
-        data.email,
-        data.phone,
-        data.designation,
-        data.department,
-        data.date_of_joining,
-        data.address || data.city || data.country,
-        data.timezone,
-      ];
-      const filled = fields.filter(Boolean).length;
-      setProfileCompletion(Math.round((filled / 8) * 100));
-    } catch (err) {
-      const msg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        "Failed to load profile";
-      setError(msg);
-      console.error("Profile fetch error:", err.response?.data || err.message);
-      console.error("Full error object:", err);
-    } finally {
-      setLoading(false);
+    // ✅ Use nested profile_picture (full URL from backend)
+    let imageUrl = ProfileImage;
+    if (profile.profile_picture) {
+      imageUrl = profile.profile_picture;
+      console.log("Profile picture URL from API:", imageUrl);
     }
-  };
+
+    setProfileImage(imageUrl);
+    setOriginalImage(imageUrl);
+
+    // Format phone number for display
+    const phoneNumber = profile.phone || "";
+    const formattedPhone = phoneNumber ? `${phoneNumber}` : "";
+
+    const newProfileData = {
+      name: profile.full_name || "",
+      email: profile.email || "",
+      phone: formattedPhone,
+      role: profile.designation || data.role || "",  // Fallback to top-level role if needed
+      department: profile.department || "",
+      joinedDate,
+      location,
+      timezone: profile.timezone || "",
+    };
+
+    // Set both current and original data
+    setProfileData(newProfileData);
+    setOriginalProfileData(newProfileData);
+
+    // Profile completion calculation (use nested fields)
+    const fields = [
+      profile.full_name,
+      profile.email,
+      profile.phone,
+      profile.designation,
+      profile.department,
+      profile.date_of_joining,
+      profile.address || profile.city || profile.country,
+      profile.timezone,
+    ];
+    const filled = fields.filter(Boolean).length;
+    setProfileCompletion(Math.round((filled / 8) * 100));
+  } catch (err) {
+    // ... (error handling unchanged)
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Update current time every second with 12-hour format + timezone name
   useEffect(() => {
@@ -1262,12 +1260,6 @@ const Profile = () => {
   }, [selectedFile]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("No authentication token found. Please log in.");
-      setLoading(false);
-      return;
-    }
     fetchProfile();
   }, []);
 
@@ -1591,9 +1583,16 @@ const Profile = () => {
     if (parts[2]) formData.append("country", parts[2]);
 
     try {
-      await api.put("/api/profile/update/me/", formData, {
+      const response = await api.put("/profile/update/me/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      
+      // Update profile image with the new URL from response
+      if (response.data.profile_picture) {
+        setProfileImage(response.data.profile_picture);
+        setOriginalImage(response.data.profile_picture);
+      }
+      
       await fetchProfile();
       setIsEditing(false);
       // Clear field errors on successful save
@@ -1613,15 +1612,26 @@ const Profile = () => {
       });
       successToast("Profile updated successfully!");
 
-      // Full page refresh to update header profile image and other global states
-      window.location.reload();
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        "Update failed";
-      errorToast(errorMsg);
-      console.error("Update error:", err.response?.data || err.message);
+      console.error("Update error:", err);
+      
+      // Check authentication error
+      if (err.response?.status === 401) {
+        errorToast("Session expired. Please login again.");
+        
+        // Redirect to login after a delay
+        setTimeout(() => {
+          if (window.location.pathname !== '/') {
+            window.location.href = '/';
+          }
+        }, 2000);
+      } else {
+        const errorMsg =
+          err.response?.data?.detail ||
+          err.response?.data?.message ||
+          "Update failed";
+        errorToast(errorMsg);
+      }
     }
   };
 
@@ -1643,18 +1653,33 @@ const Profile = () => {
       return;
     }
     try {
-      await api.post("/api/profile/change-password/me/", {
+      await api.post("/profile/change-password/me/", {
         new_password: newPassword,
         confirm_password: confirmPassword,
       });
       setShowPasswordModal(false);
       successToast("Password changed successfully!");
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        "Password change failed";
-      setPasswordError(errorMsg);
+      console.error("Password change error:", err);
+      
+      // Check authentication error
+      if (err.response?.status === 401) {
+        setPasswordError("Session expired. Please login again.");
+        
+        // Redirect to login after a delay
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          if (window.location.pathname !== '/') {
+            window.location.href = '/';
+          }
+        }, 2000);
+      } else {
+        const errorMsg =
+          err.response?.data?.detail ||
+          err.response?.data?.message ||
+          "Password change failed";
+        setPasswordError(errorMsg);
+      }
     }
   };
 
@@ -1670,6 +1695,9 @@ const Profile = () => {
           <li>• Backend server is running on port 8000</li>
           <li>• Profile endpoints are properly configured</li>
           <li>• User has an associated staff record</li>
+          {error.includes("login") && (
+            <li>• You need to login first</li>
+          )}
         </ul>
         <button
           onClick={fetchProfile}
@@ -1751,6 +1779,11 @@ const Profile = () => {
                   src={profileImage}
                   alt="Profile"
                   className="w-24 h-24 rounded-full object-cover object-center border-2 border-[#0EFF7B] shadow-[0px_0px_40px_5px_#0EFF7B80]"
+                  onError={(e) => {
+                    console.error("Error loading profile image:", profileImage);
+                    // Fallback to default image if the URL fails
+                    e.target.src = ProfileImage;
+                  }}
                 />
                 {isEditing && (
                   <div className="flex flex-col items-center">

@@ -773,8 +773,7 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -811,29 +810,28 @@ const AppointmentListOPD = () => {
     setLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API_BASE}/patients/opd`);
-      url.searchParams.set("page", p);
-      url.searchParams.set("limit", perPage);
-      if (s) url.searchParams.set("search", s);
+      const params = {
+        page: p,
+        limit: perPage,
+        search: s || undefined,
+      };
       
       // Add filter parameters to API call
-      if (filterParams.patientName) url.searchParams.set("patient_name", filterParams.patientName);
-      if (filterParams.patientId) url.searchParams.set("patient_id", filterParams.patientId);
-      if (filterParams.department) url.searchParams.set("department", filterParams.department);
-      if (filterParams.doctor) url.searchParams.set("doctor", filterParams.doctor);
+      if (filterParams.patientName) params.patient_name = filterParams.patientName;
+      if (filterParams.patientId) params.patient_id = filterParams.patientId;
+      if (filterParams.department) params.department = filterParams.department;
+      if (filterParams.doctor) params.doctor = filterParams.doctor;
       if (filterParams.date) {
         const dateObj = new Date(filterParams.date);
         const formattedDate = dateObj.toISOString().split('T')[0];
-        url.searchParams.set("date", formattedDate);
+        params.date = formattedDate;
       }
-      if (activeFilter !== "All") url.searchParams.set("casualty_status", activeFilter);
+      if (activeFilter !== "All") params.casualty_status = activeFilter;
 
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const response = await api.get("/patients/opd", { params });
+      const data = response.data;
 
-      const json = await res.json();
-
-      const mapped = (json.patients || []).map((p) => ({
+      const mapped = (data.patients || []).map((p) => ({
         id: p.id,
         patient: p.full_name || "Unknown",
         date: p.date_of_registration
@@ -849,9 +847,9 @@ const AppointmentListOPD = () => {
       }));
 
       setAppointments(mapped);
-      setTotal(json.total || 0);
-      setPages(json.pages || 1);
-      setPage(json.page || p);
+      setTotal(data.total || 0);
+      setPages(data.pages || 1);
+      setPage(data.page || p);
     } catch (e) {
       console.error(e);
       setErr("Failed to load discharged patients");
@@ -917,8 +915,7 @@ const AppointmentListOPD = () => {
   const onDelete = async () => {
     try {
       const pid = selAppt?.patientId;
-      const r = await fetch(`${API_BASE}/patients/${pid}`, { method: "DELETE" });
-      if (!r.ok) throw new Error(await r.text());
+      await api.delete(`/patients/${pid}`);
       await refreshData();
       setShowDel(false);
       setSelAppt(null);

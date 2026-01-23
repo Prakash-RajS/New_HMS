@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -17,13 +18,8 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-// API Base URL configuration
-//const API_BASE = "http://localhost:8000";
+import api from "../../utils/axiosConfig";
 
 const Dropdown = ({ label, value, onChange, options, error }) => (
   <div>
@@ -136,11 +132,11 @@ const BillingManagement = () => {
 
   const downloadExcel = async () => {
     try {
-      const response = await fetch(`${API_BASE}/billing/export/excel`);
-      if (!response.ok) throw new Error("Failed to download Excel");
+      const response = await api.get("/billing/export/excel", {
+        responseType: "blob"
+      });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", "invoices.xlsx");
@@ -152,17 +148,17 @@ const BillingManagement = () => {
       successToast("Excel file downloaded successfully");
       setShowExportPopup(false);
     } catch (err) {
-      errorToast("Failed to download Excel file");
+      errorToast(err.response?.data?.detail || "Failed to download Excel file");
     }
   };
 
   const downloadCSV = async () => {
     try {
-      const response = await fetch(`${API_BASE}/billing/export/csv`);
-      if (!response.ok) throw new Error("Failed to download CSV");
+      const response = await api.get("/billing/export/csv", {
+        responseType: "blob"
+      });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", "invoices.csv");
@@ -174,7 +170,7 @@ const BillingManagement = () => {
       successToast("CSV file downloaded successfully");
       setShowExportPopup(false);
     } catch (err) {
-      errorToast("Failed to download CSV file");
+      errorToast(err.response?.data?.detail || "Failed to download CSV file");
     }
   };
 
@@ -185,11 +181,11 @@ const BillingManagement = () => {
 
   const downloadHospitalExcel = async () => {
     try {
-      const response = await fetch(`${API_BASE}/hospital-billing/export/excel`);
-      if (!response.ok) throw new Error("Failed to download Excel");
+      const response = await api.get("/hospital-billing/export/excel", {
+        responseType: "blob"
+      });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", "hospital_invoices.xlsx");
@@ -201,17 +197,17 @@ const BillingManagement = () => {
       successToast("Excel file downloaded successfully");
       setShowHospitalExportPopup(false);
     } catch (err) {
-      errorToast("Failed to download Excel file");
+      errorToast(err.response?.data?.detail || "Failed to download Excel file");
     }
   };
 
   const downloadHospitalCSV = async () => {
     try {
-      const response = await fetch(`${API_BASE}/hospital-billing/export/csv`);
-      if (!response.ok) throw new Error("Failed to download CSV");
+      const response = await api.get("/hospital-billing/export/csv", {
+        responseType: "blob"
+      });
       
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", "hospital_invoices.csv");
@@ -223,7 +219,7 @@ const BillingManagement = () => {
       successToast("CSV file downloaded successfully");
       setShowHospitalExportPopup(false);
     } catch (err) {
-      errorToast("Failed to download CSV file");
+      errorToast(err.response?.data?.detail || "Failed to download CSV file");
     }
   };
 
@@ -231,22 +227,18 @@ const BillingManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await axios.get(`${API_BASE}/billing/`, { 
-        headers: { 
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        } 
-      });
-      console.log("Full Response Object:", res);
-      console.log("Content-Type:", res.headers['content-type']);
-      console.log("Raw res.data:", res.data);
-      console.log("Type of res.data:", typeof res.data);
+      const response = await api.get("/billing/");
+      
+      console.log("Full Response Object:", response);
+      console.log("Content-Type:", response.headers['content-type']);
+      console.log("Raw response.data:", response.data);
+      console.log("Type of response.data:", typeof response.data);
 
       let data = [];
-      if (typeof res.data === 'string') {
-        console.warn("res.data is a string, attempting to parse as JSON");
+      if (typeof response.data === 'string') {
+        console.warn("response.data is a string, attempting to parse as JSON");
         try {
-          const parsed = JSON.parse(res.data);
+          const parsed = JSON.parse(response.data);
           if (Array.isArray(parsed)) {
             data = parsed;
           } else {
@@ -257,10 +249,10 @@ const BillingManagement = () => {
           console.error("Failed to parse string as JSON:", parseErr);
           throw new Error("Response is not valid JSON");
         }
-      } else if (Array.isArray(res.data)) {
-        data = res.data;
+      } else if (Array.isArray(response.data)) {
+        data = response.data;
       } else {
-        console.error("Expected array, got:", typeof res.data, res.data);
+        console.error("Expected array, got:", typeof response.data, response.data);
         throw new Error("Invalid response format");
       }
 
@@ -281,7 +273,7 @@ const BillingManagement = () => {
       setInsuranceClaims(mappedData.filter((d) => d.paymentMethod === "Insurance").length);
     } catch (err) {
       console.error("Error fetching invoices:", err.response?.data || err.message);
-      setError(`Failed to fetch invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${API_BASE} and proxy is configured.`);
+      setError(`Failed to fetch invoices: ${err.response?.data?.detail || err.message}. Check console for details.`);
       setInvoiceData([]);
     } finally {
       setLoading(false);
@@ -292,18 +284,13 @@ const BillingManagement = () => {
     try {
       setHospitalLoading(true);
       setHospitalError(null);
-      const res = await axios.get(`${API_BASE}/hospital-billing/`, { 
-        headers: { 
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        } 
-      });
+      const response = await api.get("/hospital-billing/");
 
       let data = [];
-      if (typeof res.data === 'string') {
-        console.warn("res.data is a string, attempting to parse as JSON");
+      if (typeof response.data === 'string') {
+        console.warn("response.data is a string, attempting to parse as JSON");
         try {
-          const parsed = JSON.parse(res.data);
+          const parsed = JSON.parse(response.data);
           if (Array.isArray(parsed)) {
             data = parsed;
           } else {
@@ -314,10 +301,10 @@ const BillingManagement = () => {
           console.error("Failed to parse string as JSON:", parseErr);
           throw new Error("Response is not valid JSON");
         }
-      } else if (Array.isArray(res.data)) {
-        data = res.data;
+      } else if (Array.isArray(response.data)) {
+        data = response.data;
       } else {
-        console.error("Expected array, got:", typeof res.data, res.data);
+        console.error("Expected array, got:", typeof response.data, response.data);
         throw new Error("Invalid response format");
       }
 
@@ -334,7 +321,7 @@ const BillingManagement = () => {
       setHospitalInvoiceData(mappedData);
     } catch (err) {
       console.error("Error fetching hospital invoices:", err.response?.data || err.message);
-      setHospitalError(`Failed to fetch hospital invoices: ${err.response?.data?.detail || err.message}. Check console for details. Ensure backend is running on ${API_BASE} and proxy is configured.`);
+      setHospitalError(`Failed to fetch hospital invoices: ${err.response?.data?.detail || err.message}.`);
       setHospitalInvoiceData([]);
     } finally {
       setHospitalLoading(false);
@@ -485,42 +472,41 @@ const BillingManagement = () => {
   };
 
   const handleViewInvoice = (invoiceId) => {
-    window.open(`${API_BASE}/invoices/${invoiceId}.pdf`, "_blank");
+    window.open(`${api.defaults.baseURL}/invoices/${invoiceId}.pdf`, "_blank");
   };
 
   const handleHospitalViewInvoice = (invoiceId) => {
-    window.open(`${API_BASE}/invoices_generator/${invoiceId}.pdf`, "_blank");
+    window.open(`${api.defaults.baseURL}/invoices_generator/${invoiceId}.pdf`, "_blank");
   };
 
   const handlePDFDownload = async () => {
-  if (selectedRows.length === 0) {
-    errorToast("Please select at least one invoice to download.");
-    return;
-  }
-  try {
-    console.log("Downloading PDFs for IDs:", selectedRows);  // Log IDs
-    const res = await axios.post(`${API_BASE}/billing/download-selected`, 
-      { ids: selectedRows }, 
-      { 
-        responseType: "blob",
-        headers: { "Content-Type": "application/json" }
-      }
-    );
-    
-    const url = window.URL.createObjectURL(new Blob([res.data]));
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "selected_invoices.zip");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    successToast(`Successfully downloaded ${selectedRows.length} invoice(s)`);
-  } catch (err) {
-    console.error("Error downloading PDFs:", err.response?.data || err.message);
-    errorToast(err.response?.data?.detail || "Failed to download PDFs. Please check if the files exist on the server.");
-  }
-};
+    if (selectedRows.length === 0) {
+      errorToast("Please select at least one invoice to download.");
+      return;
+    }
+    try {
+      console.log("Downloading PDFs for IDs:", selectedRows);
+      const response = await api.post("/billing/download-selected", 
+        { ids: selectedRows }, 
+        { 
+          responseType: "blob"
+        }
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "selected_invoices.zip");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      successToast(`Successfully downloaded ${selectedRows.length} invoice(s)`);
+    } catch (err) {
+      console.error("Error downloading PDFs:", err.response?.data || err.message);
+      errorToast(err.response?.data?.detail || "Failed to download PDFs. Please check if the files exist on the server.");
+    }
+  };
 
   const handleHospitalPDFDownload = async () => {
     if (selectedHospitalRows.length === 0) {
@@ -529,15 +515,14 @@ const BillingManagement = () => {
     }
     try {
       console.log("Downloading hospital PDFs for IDs:", selectedHospitalRows);
-      const res = await axios.post(`${API_BASE}/hospital-billing/download-selected`, 
+      const response = await api.post("/hospital-billing/download-selected", 
         { ids: selectedHospitalRows }, 
         { 
-          responseType: "blob",
-          headers: { "Content-Type": "application/json" }
+          responseType: "blob"
         }
       );
       
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", "selected_hospital_invoices.zip");
@@ -564,24 +549,18 @@ const BillingManagement = () => {
 
     const invoiceId = selectedRows[0];
     try {
-      // First, try to get the PDF as blob
-      const response = await fetch(`${API_BASE}/invoices/${invoiceId}.pdf`);
-      if (!response.ok) {
-        throw new Error('PDF not found');
-      }
+      const response = await api.get(`/invoices/${invoiceId}.pdf`, {
+        responseType: "blob"
+      });
       
-      const blob = await response.blob();
+      const blob = response.data;
       const pdfUrl = URL.createObjectURL(blob);
       
-      // Open print dialog directly
       const printWindow = window.open(pdfUrl, '_blank');
       
-      // Wait for the PDF to load and then trigger print
       printWindow.onload = function() {
         setTimeout(() => {
           printWindow.print();
-          // Optional: close after print dialog appears
-          // Note: We don't close immediately as user might cancel print
         }, 500);
       };
       
@@ -591,39 +570,60 @@ const BillingManagement = () => {
     }
   };
 
-  const handleHospitalPDFPrint = async () => {
-    if (selectedHospitalRows.length === 0) {
-      errorToast("Please select an invoice to print.");
-      return;
-    }
-    if (selectedHospitalRows.length > 1) {
-      errorToast("Please select only one invoice to print.");
-      return;
+const handleHospitalPDFPrint = async () => {
+  if (selectedHospitalRows.length === 0) {
+    errorToast("Please select an invoice to print.");
+    return;
+  }
+  if (selectedHospitalRows.length > 1) {
+    errorToast("Please select only one invoice to print.");
+    return;
+  }
+
+  const invoiceId = selectedHospitalRows[0];
+
+  try {
+    // Use the same URL that works for view
+    const pdfUrl = `${api.defaults.baseURL}/invoices_generator/${invoiceId}.pdf`;
+
+    // Optional: You can fetch it first to check if it exists
+    const response = await api.get(`/invoices_generator/${invoiceId}.pdf`, {
+      responseType: "blob",
+    });
+
+    const blob = response.data;
+    const url = URL.createObjectURL(blob);
+
+    const printWindow = window.open(url, "_blank");
+
+    if (printWindow) {
+      printWindow.onload = () => {
+        setTimeout(() => {
+          try {
+            printWindow.print();
+          } catch (e) {
+            console.error("Print failed:", e);
+          }
+        }, 800); // slightly longer delay is often more reliable
+      };
+    } else {
+      // Fallback - direct open
+      window.open(pdfUrl, "_blank");
+      setTimeout(() => {
+        alert("Please use browser print (Ctrl+P) if print dialog didn't open.");
+      }, 1500);
     }
 
-    const invoiceId = selectedHospitalRows[0];
-    try {
-      const response = await fetch(`${API_BASE}/hospital-billing/pdf/${invoiceId}`);
-      if (!response.ok) {
-        throw new Error('PDF not found');
-      }
-      
-      const blob = await response.blob();
-      const pdfUrl = URL.createObjectURL(blob);
-      
-      const printWindow = window.open(pdfUrl, '_blank');
-      
-      printWindow.onload = function() {
-        setTimeout(() => {
-          printWindow.print();
-        }, 500);
-      };
-      
-    } catch (err) {
-      console.error("Error loading hospital PDF for printing:", err);
-      errorToast("Failed to load PDF for printing. The file might not exist.");
-    }
-  };
+    successToast("Opening invoice for printing...");
+  } catch (err) {
+    console.error("Error preparing hospital invoice for print:", err);
+    errorToast(
+      err.response?.status === 404
+        ? "PDF file not found on server"
+        : "Failed to load invoice for printing"
+    );
+  }
+};
 
   const handleFilter = () => {
     setShowFilterPopup(true);
@@ -652,9 +652,7 @@ const BillingManagement = () => {
   const confirmDelete = async () => {
     try {
       for (const id of selectedRows) {
-        await axios.delete(`${API_BASE}/billing/${id}`, {
-          headers: { "Accept": "application/json" }
-        });
+        await api.delete(`/billing/${id}`);
       }
       setSelectedRows([]);
       setSelectAll(false);
@@ -663,16 +661,14 @@ const BillingManagement = () => {
       successToast(`Successfully deleted ${selectedRows.length} invoice(s)`);
     } catch (err) {
       console.error("Error deleting invoices:", err);
-      errorToast("Failed to delete some invoices.");
+      errorToast(err.response?.data?.detail || "Failed to delete some invoices.");
     }
   };
 
   const confirmHospitalDelete = async () => {
     try {
       for (const id of selectedHospitalRows) {
-        await axios.delete(`${API_BASE}/hospital-billing/${id}`, {
-          headers: { "Accept": "application/json" }
-        });
+        await api.delete(`/hospital-billing/${id}`);
       }
       setSelectedHospitalRows([]);
       setHospitalSelectAll(false);
@@ -681,7 +677,7 @@ const BillingManagement = () => {
       successToast(`Successfully deleted ${selectedHospitalRows.length} invoice(s)`);
     } catch (err) {
       console.error("Error deleting hospital invoices:", err);
-      errorToast("Failed to delete some invoices.");
+      errorToast(err.response?.data?.detail || "Failed to delete some invoices.");
     }
   };
 
@@ -819,20 +815,6 @@ const BillingManagement = () => {
       </div>
     <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-3">
             <h2 className="text-black dark:text-white text-lg font-semibold">All Invoices</h2>
-            {/* <div className="flex flex-wrap gap-2">
-              <button
-                onClick={handlePDFPrint}
-                className="bg-gray-100 dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
-              >
-                <Printer size={16} /> Print
-              </button>
-              <button
-  onClick={handleExport}
-  className="bg-gray-100 dark:bg-[#000000] border border-[#0EFF7B] dark:border-[#3C3C3C] shadow-[0px_0px_4px_0px_#0EFF7B] text-[#08994A] dark:text-white px-4 py-2 rounded-[8px] flex items-center gap-2 hover:bg-[#08994A1A] dark:hover:bg-[#0EFF7B1A] transition"
->
-  <Download size={16} /> Export
-</button>
-            </div> */}
           </div>
       <div className="w-full bg-gray-100 dark:bg-transparent rounded-xl p-4 md:p-6 overflow-x-auto border border-[#0EFF7B] dark:border-[#3C3C3C]">
         {error && (
@@ -901,7 +883,7 @@ const BillingManagement = () => {
                   </span>
                 </div>
                 <div
-                title=""
+                  title=""
                   className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handlePDFDownload}
                 >
@@ -914,7 +896,7 @@ const BillingManagement = () => {
                   </span>
                 </div>
                 <div
-                title=""
+                  title=""
                   className="relative group flex items-center justify-center bg-[#08994A1A] dark:bg-[#0EFF7B1A] px-3 py-2 rounded-full cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"
                   onClick={handleExport}
                 >
@@ -1744,5 +1726,5 @@ const BillingManagement = () => {
     </div>
   );
 };
-
 export default BillingManagement;
+

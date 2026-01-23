@@ -4,9 +4,10 @@ from typing import Optional, List
 from decimal import Decimal
 from fastapi import APIRouter, HTTPException, status, Query, Depends
 from django.db import transaction
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, Prefetch
 from asgiref.sync import sync_to_async
 import json
+from Fastapi_app.routers.user_profile import get_current_user
 
 # ---------- TreatmentCharge Schemas ----------
 class TreatmentChargeCreate(BaseModel):
@@ -110,7 +111,7 @@ class StatusUpdate(BaseModel):
 
 # Import models and schemas
 from HMS_backend.models import TreatmentCharge, Patient, Staff, Department, User, Bed
-from .auth import get_current_user
+
 
 router = APIRouter(prefix="/treatment-charges", tags=["Treatment Charges"])
 
@@ -120,10 +121,14 @@ async def get_or_404(model, **kwargs):
     @sync_to_async
     def _get():
         try:
-            select_related = kwargs.pop('select_related', [])
-            if select_related:
-                return model.objects.select_related(*select_related).get(**kwargs)
-            return model.objects.get(**kwargs)
+            select_rel = kwargs.pop('select_related', [])
+            prefetch_rel = kwargs.pop('prefetch_related', [])
+            qs = model.objects.all()
+            if select_rel:
+                qs = qs.select_related(*select_rel)
+            if prefetch_rel:
+                qs = qs.prefetch_related(*prefetch_rel)
+            return qs.get(**kwargs)
         except model.DoesNotExist:
             return None
     
@@ -229,7 +234,6 @@ async def list_treatment_charges(
     start_date: Optional[date] = Query(None, description="Filter by start date"),
     end_date: Optional[date] = Query(None, description="Filter by end date"),
     search: Optional[str] = Query(None, description="Search in description or patient name"),
-    current_user: User = Depends(get_current_user)
 ):
     """
     Get all treatment charges with optional filters
@@ -272,7 +276,6 @@ async def list_treatment_charges(
 @router.get("/patient/{patient_id}", response_model=List[TreatmentChargeOut])
 async def get_patient_treatment_charges(
     patient_id: int,
-    current_user: User = Depends(get_current_user)
 ):
     """
     Get all treatment charges for a specific patient
@@ -303,7 +306,6 @@ async def get_patient_treatment_charges(
 @router.get("/summary/{patient_id}", response_model=TreatmentChargeSummary)
 async def get_treatment_charges_summary(
     patient_id: int,
-    current_user: User = Depends(get_current_user)
 ):
     """
     Get summary of treatment charges for a patient
@@ -347,7 +349,6 @@ async def get_treatment_charges_summary(
 @router.get("/{charge_id}", response_model=TreatmentChargeDetail)
 async def get_treatment_charge(
     charge_id: int,
-    current_user: User = Depends(get_current_user)
 ):
     """
     Get a specific treatment charge by ID
@@ -514,7 +515,6 @@ async def update_charge_status(
 @router.get("/patients/search", response_model=List[PatientDropdown])
 async def search_patients(
     query: str = Query("", description="Search by name or ID"),
-    current_user: User = Depends(get_current_user)
 ):
     """
     Search patients for dropdown selection
@@ -566,7 +566,6 @@ async def search_patients(
 @router.get("/patients/{patient_id}/details", response_model=PatientDetailsResponse)
 async def get_patient_details(
     patient_id: int,
-    current_user: User = Depends(get_current_user)
 ):
     """
     Get detailed patient information for billing
@@ -575,7 +574,8 @@ async def get_patient_details(
         patient = await get_or_404(
             Patient, 
             id=patient_id,
-            select_related=['department', 'staff', 'bed']
+            select_related=['department', 'staff'],
+            prefetch_related=['bed']
         )
         
         # Get bed information if exists

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from HMS_backend.models import Staff, Department, User, Permission
 from django.contrib.auth.hashers import make_password
-from .auth import get_current_user  # Import from your existing auth.py
+from Fastapi_app.routers.user_profile import get_current_user   
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 

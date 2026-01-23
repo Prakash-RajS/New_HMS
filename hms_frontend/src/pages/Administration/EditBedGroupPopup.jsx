@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast"; // adjust path if needed
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   const [formData, setFormData] = useState({
@@ -34,65 +35,66 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
   const handleUpdate = async () => {
     if (!validateForm()) return;
 
     setLoading(true);
     setServerError("");
 
-    const capacity = parseInt(formData.bedTo) - parseInt(formData.bedFrom) + 1;
     const payload = {
       bedGroup: formData.bedGroupName.trim(),
-      capacity: capacity,
+      bedFrom: parseInt(formData.bedFrom),
+      bedTo: parseInt(formData.bedTo),
     };
 
     try {
-      const response = await fetch(`${API_BASE}/bedgroups/${data.id}/`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        let errorMessage = "Failed to update bed group.";
-        if (response.status === 400) {
-          const err = await response.json();
-          errorMessage = err.detail || "Invalid data.";
-        } else if (response.status === 404) {
-          errorMessage = "Bed group not found.";
-        } else {
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-        }
-        setServerError(errorMessage);
-        errorToast(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const updatedGroup = await response.json();
+      const response = await api.put(`/bedgroups/${data.id}/`, payload);
 
       // SUCCESS TOAST
-      successToast(`"${updatedGroup.bedGroup}" updated successfully!`);
+      successToast(`"${response.data.bedGroup}" updated successfully!`);
 
       // Notify parent to refresh the list
-      if (onUpdate) onUpdate(updatedGroup);
+      if (onUpdate) onUpdate(response.data);
 
       // Close popup after short delay
       setTimeout(() => {
         onClose();
       }, 600);
     } catch (err) {
-      const networkError = "Network error. Please check your connection.";
-      setServerError(networkError);
-      errorToast(networkError);
+      let errorMessage = "Failed to update bed group.";
+      
+      if (err.response) {
+        // Server responded with error status
+        if (err.response.status === 409) {
+          // Handle duplicate bed number conflict
+          const conflictData = err.response.data;
+          errorMessage = conflictData.message || "Bed numbers already exist in the requested range.";
+          
+          // Show the suggested alternative range
+          if (conflictData.suggested_range) {
+            errorMessage += ` Suggested range: ${conflictData.suggested_range}`;
+          }
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || "Invalid data.";
+        } else if (err.response.status === 404) {
+          errorMessage = "Bed group not found.";
+        } else if (err.response.status === 401 || err.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+          // Optionally redirect to login page here
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        // Request was made but no response
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        // Something else happened
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setServerError(errorMessage);
+      errorToast(errorMessage);
       console.error("Update BedGroup Error:", err);
     } finally {
       setLoading(false);
@@ -155,7 +157,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
           {/* Bed Numbers (From - To) */}
           <div>
-            <label className="text-sm text-black dark:text-white">Bed No’s</label>
+            <label className="text-sm text-black dark:text-white">Bed No's</label>
             <div className="flex items-center gap-2 mt-1">
               <input
                 type="number"

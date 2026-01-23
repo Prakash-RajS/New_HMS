@@ -4,6 +4,7 @@ import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
 
 const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -18,6 +19,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
   const [formatErrors, setFormatErrors] = useState({});
   const [bloodTypes, setBloodTypes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -25,8 +27,6 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     if (isNaN(date.getTime())) return "";
     return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}/${date.getFullYear()}`;
   };
-
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     console.log("🟡 EditBloodTypePopup received bloodData:", bloodData);
@@ -45,14 +45,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     const fetchBloodTypes = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE}/api/blood-types/`);
-        if (response.ok) {
-          const data = await response.json();
-          setBloodTypes(data.blood_types || []);
-        } else {
-          setBloodTypes(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
-        }
+        const response = await api.get("/api/blood-types/");
+        setBloodTypes(response.data.blood_types || []);
       } catch (error) {
+        console.warn("Could not fetch blood types from API, using default list");
         setBloodTypes(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]);
       } finally {
         setLoading(false);
@@ -91,7 +87,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     return formatErrors;
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);
 
@@ -101,18 +97,57 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     if (Object.keys(requiredErrors).length === 0 && 
         !Object.values(formatErrors).some(error => error !== '')) {
       
-      const updateData = {
-        id: formData.id,
-        type: formData.type,
-        units: formData.units,
-        status: formData.status,
-        lastUpdated: formData.lastUpdated,
-      };
-      
-      console.log("🟡 Sending update data:", updateData);
-      if (onUpdate) onUpdate(updateData);
-      successToast("Blood group updated successfully!");
-      onClose();
+      setUpdating(true);
+      try {
+        // Convert date to ISO format for API
+        let lastUpdatedISO = null;
+        if (formData.lastUpdated) {
+          const [month, day, year] = formData.lastUpdated.split("/");
+          if (month && day && year) {
+            lastUpdatedISO = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          }
+        }
+
+        const payload = {
+          blood_type: formData.type,
+          available_units: parseInt(formData.units, 10),
+          status: formData.status,
+          last_updated: lastUpdatedISO,
+        };
+
+        console.log("🟡 Sending update data:", payload);
+        
+        // Update via API
+        const response = await api.put(`/blood-groups/${formData.id}/edit`, payload);
+        
+        console.log("🟢 Update successful:", response.data);
+        
+        // Call the parent update handler with the API response
+        if (onUpdate) onUpdate(response.data);
+        successToast("Blood group updated successfully!");
+        onClose();
+      } catch (error) {
+        console.error("🔴 Update error:", error);
+        let errorMessage = "Failed to update blood group";
+        
+        if (error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else if (error.response.status === 400) {
+            errorMessage = error.response.data?.detail || "Invalid data. Please check all fields.";
+          } else if (error.response.status === 404) {
+            errorMessage = "Blood group not found.";
+          } else {
+            errorMessage = error.response.data?.detail || errorMessage;
+          }
+        } else if (error.request) {
+          errorMessage = "Network error. Please check your connection.";
+        }
+        
+        errorToast(errorMessage);
+      } finally {
+        setUpdating(false);
+      }
     } else {
       errorToast("Please fix all validation errors before saving.");
     }
@@ -155,13 +190,13 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
       >
         {label}<span className="text-red-500 ml-1">*</span>
       </label>
-      <Listbox value={value} onChange={onChange} disabled={disabled}>
+      <Listbox value={value} onChange={onChange} disabled={disabled || updating}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button
             className={`w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
             focus:outline-none ${
-              disabled ? "opacity-50 cursor-not-allowed" : ""
+              disabled || updating ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
             {value || (disabled ? "Loading..." : "Select")}
@@ -169,7 +204,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
               <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
-          {!disabled && (
+          {!disabled && !updating && (
             <Listbox.Options
               className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black
               shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] no-scrollbar"
@@ -233,7 +268,8 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
             </h2>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+              disabled={updating}
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center disabled:opacity-50"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -270,8 +306,9 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
                 value={formData.units}
                 onChange={handleUnitsChange}
                 placeholder="Enter units"
+                disabled={updating}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none disabled:opacity-50"
               />
               {formatErrors.units && (
                 <p className="text-red-500 text-xs mt-1">{formatErrors.units}</p>
@@ -325,9 +362,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
                   }}
                   dateFormat="MM/dd/yyyy"
                   placeholderText="MM/DD/YYYY"
+                  disabled={updating}
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                              bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                             focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                             focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
                 />
@@ -361,17 +399,27 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
           <div className="flex justify-center gap-4 mt-8">
             <button
               onClick={onClose}
+              disabled={updating}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]"
+              bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]
+              disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
+              disabled={updating}
               className="w-[144px] h-[32px] border-b-[2px] border-[#0EFF7B] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
+              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
-              Update
+              {updating ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Updating...
+                </>
+              ) : (
+                "Update"
+              )}
             </button>
           </div>
         </div>

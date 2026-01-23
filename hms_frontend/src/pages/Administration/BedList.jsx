@@ -17,7 +17,8 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import DeleteAppointmentPopup from "./DeleteRoomListPopup";
 import AddBedGroupPopup from "./AddBedGroupPopup";
 import EditBedGroupPopup from "./EditBedGroupPopup";
-import { successToast, errorToast } from "../../components/Toast"; // adjust path if needed
+import { successToast, errorToast } from "../../components/Toast";
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const BedList = () => {
   const [showAddPopup, setShowAddPopup] = useState(false);
@@ -40,37 +41,16 @@ const BedList = () => {
   const itemsPerPage = 9;
 
   const [roomsData, setRoomsData] = useState([]);
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
-  // Fetch bed groups on mount
-  // First, let's update the fetchBedGroups function in your useEffect:
 
+  // Fetch bed groups on mount
   useEffect(() => {
     const fetchBedGroups = async () => {
       try {
         setLoading(true);
         setError("");
-        const response = await fetch(`${API_BASE}/bedgroups/all`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        const response = await api.get("/bedgroups/all");
 
-        if (!response.ok) {
-          let errorMessage = "Failed to fetch bed groups.";
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-          setError(errorMessage);
-          errorToast(errorMessage);
-          setLoading(false);
-          return;
-        }
-
-        const data = await response.json();
+        const data = response.data;
 
         // Better transformation with error handling
         const transformedData = data.map((group) => {
@@ -88,9 +68,8 @@ const BedList = () => {
               .sort((a, b) => a - b);
 
             if (bedNumbers.length > 0) {
-              bedRange = `${bedNumbers[0]}-${
-                bedNumbers[bedNumbers.length - 1]
-              }`;
+              bedRange = `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]
+                }`;
             }
           }
 
@@ -109,9 +88,24 @@ const BedList = () => {
         setRoomsData(transformedData);
         successToast("Bed groups loaded successfully!");
       } catch (err) {
-        const networkError = "Network error. Please check your connection.";
-        setError(networkError);
-        errorToast(networkError);
+        let errorMessage = "Failed to fetch bed groups.";
+
+        if (err.response) {
+          if (err.response.status === 401 || err.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else if (err.response.status === 400) {
+            errorMessage = err.response.data?.detail || errorMessage;
+          } else {
+            errorMessage = err.response.data?.detail || errorMessage;
+          }
+        } else if (err.request) {
+          errorMessage = "Network error. Please check your connection.";
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+
+        setError(errorMessage);
+        errorToast(errorMessage);
         console.error("Fetch BedGroups Error:", err);
       } finally {
         setLoading(false);
@@ -180,32 +174,32 @@ const BedList = () => {
     if (roomToDelete !== null) {
       const roomId = roomsData[roomToDelete].id;
       try {
-        const response = await fetch(`${API_BASE}/bedgroups/${roomId}/`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          let errorMessage = "Failed to delete bed group.";
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-          errorToast(errorMessage);
-          return;
-        }
+        await api.delete(`/bedgroups/${roomId}/`);
 
         // Remove from local state
         setRoomsData((prev) => prev.filter((_, i) => i !== roomToDelete));
         setSelectedRooms((prev) => prev.filter((r) => r !== roomToDelete));
         successToast("Bed group deleted successfully!");
       } catch (err) {
-        const networkError = "Network error. Please check your connection.";
-        errorToast(networkError);
+        let errorMessage = "Failed to delete bed group.";
+
+        if (err.response) {
+          if (err.response.status === 401 || err.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else if (err.response.status === 404) {
+            errorMessage = "Bed group not found.";
+          } else if (err.response.status === 400) {
+            errorMessage = err.response.data?.detail || errorMessage;
+          } else {
+            errorMessage = err.response.data?.detail || errorMessage;
+          }
+        } else if (err.request) {
+          errorMessage = "Network error. Please check your connection.";
+        } else {
+          errorMessage = err.message || errorMessage;
+        }
+
+        errorToast(errorMessage);
         console.error("Delete BedGroup Error:", err);
       }
     }
@@ -232,51 +226,136 @@ const BedList = () => {
     return `${start} to ${end}`;
   };
 
-  const handleUpdateBedGroup = (updatedData) => {
-    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } =
-      updatedData;
-    // Find index by ID (since list may change)
-    const index = roomsData.findIndex((room) => room.id === id);
-    if (index !== -1) {
-      const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
-      const bedRange = numbers.length
-        ? `${numbers[0]} - ${numbers[numbers.length - 1]}`
-        : `1 - ${capacity}`;
-      setRoomsData((prev) => {
-        const newData = [...prev];
-        newData[index] = {
-          ...newData[index],
-          bedGroup,
-          capacity,
-          occupied,
-          unoccupied,
-          status,
-          bedRange,
-          beds,
-        };
-        return newData;
+  const handleUpdateBedGroup = async (updatedData) => {
+    const { id, bedGroup, bedFrom, bedTo } = updatedData;
+
+    try {
+      // Send update request to backend
+      const response = await api.put(`/bedgroups/${id}/`, {
+        bedGroup: bedGroup,
+        bedFrom: parseInt(bedFrom),
+        bedTo: parseInt(bedTo),
       });
+
+      // Update local state with the response data
+      const updatedGroup = response.data;
+
+      // Calculate bed range from updated beds
+      const beds = updatedGroup.beds || [];
+      const bedNumbers = beds.map(b => b.bed_number).sort((a, b) => a - b);
+      const bedRange = bedNumbers.length > 0
+        ? `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]}`
+        : "1-1";
+
+      setRoomsData((prev) =>
+        prev.map((room) =>
+          room.id === id
+            ? {
+              ...room,
+              bedGroup: updatedGroup.bedGroup,
+              capacity: updatedGroup.capacity,
+              occupied: updatedGroup.occupied,
+              unoccupied: updatedGroup.unoccupied,
+              status: updatedGroup.status,
+              bedRange: bedRange,
+              beds: beds,
+            }
+            : room
+        )
+      );
+
+      successToast("Bed group updated successfully!");
+    } catch (err) {
+      let errorMessage = "Failed to update bed group.";
+
+      if (err.response) {
+        if (err.response.status === 409) {
+          // Handle duplicate bed number conflict
+          const conflictData = err.response.data;
+          errorMessage = conflictData.message || "Bed numbers already exist in the requested range.";
+          
+          // Show the suggested alternative range
+          if (conflictData.suggested_range) {
+            errorMessage += ` Suggested range: ${conflictData.suggested_range}`;
+          }
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || errorMessage;
+        } else if (err.response.status === 404) {
+          errorMessage = "Bed group not found.";
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+
+      errorToast(errorMessage);
+      console.error("Update BedGroup Error:", err);
     }
   };
 
-  const handleAddBedGroup = (newGroup) => {
-    const { id, bedGroup, capacity, occupied, unoccupied, status, beds } =
-      newGroup;
-    const numbers = beds.map((b) => b.bed_number).sort((a, b) => a - b);
-    const bedRange = numbers.length
-      ? `${numbers[0]} - ${numbers[numbers.length - 1]}`
-      : `1 - ${capacity}`;
-    const newEntry = {
-      id,
-      bedGroup,
-      capacity,
-      occupied,
-      unoccupied,
-      status,
-      bedRange,
-      beds,
-    };
-    setRoomsData((prev) => [...prev, newEntry]);
+  const handleAddBedGroup = async (newGroup) => {
+    const { bedGroup, bedFrom, bedTo } = newGroup;
+
+    try {
+      // Send request to create new bed group with range
+      const response = await api.post("/bedgroups/add-with-range", {
+        bedGroup: bedGroup,
+        bedFrom: parseInt(bedFrom),
+        bedTo: parseInt(bedTo),
+      });
+
+      const createdGroup = response.data;
+
+      // Calculate bed range from created beds
+      const beds = createdGroup.beds || [];
+      const bedNumbers = beds.map(b => b.bed_number).sort((a, b) => a - b);
+      const bedRange = bedNumbers.length > 0
+        ? `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]}`
+        : "1-1";
+
+      const newEntry = {
+        id: createdGroup.id,
+        bedGroup: createdGroup.bedGroup,
+        capacity: createdGroup.capacity,
+        occupied: createdGroup.occupied,
+        unoccupied: createdGroup.unoccupied,
+        status: createdGroup.status,
+        bedRange: bedRange,
+        beds: beds,
+      };
+
+      setRoomsData((prev) => [...prev, newEntry]);
+      successToast("Bed group added successfully!");
+    } catch (err) {
+      let errorMessage = "Failed to add bed group.";
+
+      if (err.response) {
+        if (err.response.status === 409) {
+          // Handle duplicate bed number conflict
+          const conflictData = err.response.data;
+          errorMessage = conflictData.message || "Bed numbers already exist in the requested range.";
+          
+          // Show the suggested alternative range
+          if (conflictData.suggested_range) {
+            errorMessage += ` Suggested range: ${conflictData.suggested_range}`;
+          }
+        } else if (err.response.status === 400) {
+          errorMessage = err.response.data?.detail || errorMessage;
+        } else {
+          errorMessage = err.response.data?.detail || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+
+      errorToast(errorMessage);
+      console.error("Add BedGroup Error:", err);
+    }
   };
 
   const FilterPopover = ({ isOpen, onClose }) => {
@@ -607,156 +686,149 @@ const BedList = () => {
         />
 
         {/* Table */}
-        <Routes>
-          <Route
-            index
-            element={
-              <div className="flex-1 overflow-hidden">
-                <div
-                  style={{
-                    height: "auto",
-                  }}
-                >
-                  <table className="w-full text-left text-sm mt-5 mb-3 border-collapse">
-                    <thead className="bg-gray-200 dark:bg-[#091810] border border-[#0EFF7B] dark:border-[#3C3C3C] text-[#08994A] dark:text-white text-[15px] sticky top-0 z-10">
-                      <tr>
-                        <th className="px-4 py-3 w-[50px] h-[52px]">
+        <div className="flex-1 overflow-hidden">
+          <div
+            style={{
+              height: "auto",
+            }}
+          >
+            <table className="w-full text-left text-sm mt-5 mb-3 border-collapse">
+              <thead className="bg-gray-200 dark:bg-[#091810] border border-[#0EFF7B] dark:border-[#3C3C3C] text-[#08994A] dark:text-white text-[15px] sticky top-0 z-10">
+                <tr>
+                  <th className="px-4 py-3 w-[50px] h-[52px]">
+                    <input
+                      type="checkbox"
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
+                      checked={
+                        selectedRooms.length === currentRooms.length &&
+                        currentRooms.length > 0
+                      }
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                  <th className="px-4 py-3">Bed Group</th>
+                  <th className="px-4 py-3">Bed No's</th>
+                  <th className="px-4 py-3">Capacity</th>
+                  <th className="px-4 py-3">Occupied Bed</th>
+                  <th className="px-4 py-3">Unoccupied Bed</th>
+                  <th className="px-4 py-3 w-[80px] text-center">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
+                {currentRooms.length > 0 ? (
+                  currentRooms.map((room, index) => {
+                    const isLastFewRows =
+                      index >= currentRooms.length - 2;
+                    return (
+                      <tr
+                        key={room.id}
+                        className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+                      >
+                        <td className="px-4 py-3 h-[60px] ">
                           <input
                             type="checkbox"
                             className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
-                            checked={
-                              selectedRooms.length === currentRooms.length &&
-                              currentRooms.length > 0
-                            }
-                            onChange={handleSelectAll}
+                            checked={selectedRooms.includes(index)}
+                            onChange={() => handleCheckboxChange(index)}
                           />
-                        </th>
-                        <th className="px-4 py-3">Bed Group</th>
-                        <th className="px-4 py-3">Bed No's</th>
-                        <th className="px-4 py-3">Capacity</th>
-                        <th className="px-4 py-3">Occupied Bed</th>
-                        <th className="px-4 py-3">Unoccupied Bed</th>
-                        <th className="px-4 py-3 w-[80px] text-center">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
-                      {currentRooms.length > 0 ? (
-                        currentRooms.map((room, index) => {
-                          const isLastFewRows =
-                            index >= currentRooms.length - 2;
-                          return (
-                            <tr
-                              key={room.id} // Use ID for key
-                              className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
-                            >
-                              <td className="px-4 py-3 h-[60px] ">
-                                <input
-                                  type="checkbox"
-                                  className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-green-400 rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-white checked:before:text-sm"
-                                  checked={selectedRooms.includes(index)}
-                                  onChange={() => handleCheckboxChange(index)}
-                                />
-                              </td>
-                              <td className="px-4 py-3 text-black dark:text-white">
-                                {room.bedGroup}
-                              </td>
-                              <td className="px-4 py-3 text-black dark:text-white">
-                                {room.bedRange}
-                              </td>
-                              <td className="px-4 py-3 text-black dark:text-white">
-                                {room.capacity}
-                              </td>
-                              <td className="px-4 py-3 text-black dark:text-white">
-                                {room.occupied}
-                              </td>
-                              <td className="px-4 py-3 text-black dark:text-white">
-                                {room.unoccupied}
-                              </td>
-                              <td className="px-4 py-3 text-center relative">
-                                <Menu
-                                  as="div"
-                                  className="relative inline-block text-left"
-                                >
-                                  <Menu.Button className="text-gray-600  dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
-                                    <MoreHorizontal size={18} />
-                                  </Menu.Button>
-                                  <Transition
-                                    as={Fragment}
-                                    enter="transition ease-out duration-100"
-                                    enterFrom="transform opacity-0 scale-95"
-                                    enterTo="transform opacity-100 scale-100"
-                                    leave="transition ease-in duration-75"
-                                    leaveFrom="transform opacity-100 scale-100"
-                                    leaveTo="transform opacity-0 scale-95"
-                                  >
-                                    <Menu.Items
-                                      className={`absolute ${
-                                        isLastFewRows
-                                          ? "bottom-full mb-2"
-                                          : "mt-2"
-                                      } right-0 w-36 bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg z-50`}
-                                    >
-                                      <Menu.Item>
-                                        {({ active }) => (
-                                          <button
-                                            onClick={() => {
-                                              setEditingRoomIndex(index);
-                                              setShowEditPopup(true);
-                                            }}
-                                            className={`${
-                                              active
-                                                ? "bg-[#0EFF7B1A] dark:bg-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-                                                : ""
-                                            } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                                          >
-                                            <Edit className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                                            Edit
-                                          </button>
-                                        )}
-                                      </Menu.Item>
-                                      <Menu.Item>
-                                        {({ active }) => (
-                                          <button
-                                            onClick={() =>
-                                              handleDeleteClick(index)
-                                            }
-                                            className={`${
-                                              active
-                                                ? "bg-[#0EFF7B1A] dark:bg-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-                                                : ""
-                                            } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
-                                          >
-                                            <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
-                                            Delete
-                                          </button>
-                                        )}
-                                      </Menu.Item>
-                                    </Menu.Items>
-                                  </Transition>
-                                </Menu>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr className="h-[60px] bg-gray-100 dark:bg-black">
-                          <td
-                            colSpan="7"
-                            className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                        </td>
+                        <td className="px-4 py-3 text-black dark:text-white">
+                          {room.bedGroup}
+                        </td>
+                        <td className="px-4 py-3 text-black dark:text-white">
+                          {room.bedRange}
+                        </td>
+                        <td className="px-4 py-3 text-black dark:text-white">
+                          {room.capacity}
+                        </td>
+                        <td className="px-4 py-3 text-black dark:text-white">
+                          {room.occupied}
+                        </td>
+                        <td className="px-4 py-3 text-black dark:text-white">
+                          {room.unoccupied}
+                        </td>
+                        <td className="px-4 py-3 text-center relative">
+                          <Menu
+                            as="div"
+                            className="relative inline-block text-left"
                           >
-                            No rooms found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            }
-          />
-        </Routes>
+                            <Menu.Button className="text-gray-600  dark:text-gray-400 hover:text-[#08994A] dark:hover:text-white">
+                              <MoreHorizontal size={18} />
+                            </Menu.Button>
+                            <Transition
+                              as={Fragment}
+                              enter="transition ease-out duration-100"
+                              enterFrom="transform opacity-0 scale-95"
+                              enterTo="transform opacity-100 scale-100"
+                              leave="transition ease-in duration-75"
+                              leaveFrom="transform opacity-100 scale-100"
+                              leaveTo="transform opacity-0 scale-95"
+                            >
+                              <Menu.Items
+                                className={`absolute ${
+                                  isLastFewRows
+                                    ? "bottom-full mb-2"
+                                    : "mt-2"
+                                } right-0 w-36 bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-gray-700 rounded-md shadow-lg z-50`}
+                              >
+                                <Menu.Item>
+                                  {({ active }) => (
+                                    <button
+                                      onClick={() => {
+                                        setEditingRoomIndex(index);
+                                        setShowEditPopup(true);
+                                      }}
+                                      className={`${
+                                        active
+                                          ? "bg-[#0EFF7B1A] dark:bg-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                          : ""
+                                      } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
+                                    >
+                                      <Edit className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                                      Edit
+                                    </button>
+                                  )}
+                                </Menu.Item>
+                                <Menu.Item>
+                                  {({ active }) => (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteClick(index)
+                                      }
+                                      className={`${
+                                        active
+                                          ? "bg-[#0EFF7B1A] dark:bg-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+                                          : ""
+                                      } flex items-center px-4 py-2 text-sm w-full text-black dark:text-white gap-2`}
+                                    >
+                                      <Trash2 className="w-5 h-5 text-red-500 dark:text-red-400" />
+                                      Delete
+                                    </button>
+                                  )}
+                                </Menu.Item>
+                              </Menu.Items>
+                            </Transition>
+                          </Menu>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr className="h-[60px] bg-gray-100 dark:bg-black">
+                    <td
+                      colSpan="7"
+                      className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                    >
+                      No rooms found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Delete Confirmation Popup */}
         {showDeletePopup && (

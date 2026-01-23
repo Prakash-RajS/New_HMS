@@ -1,11 +1,21 @@
 import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
-import { Moon, Sun, Bell, Settings, LogOut, User } from "lucide-react";
+import { Moon, Sun, Bell, Settings, LogOut } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
 import { useNavigate } from "react-router-dom";
 import { successToast, errorToast } from "./Toast.jsx";
 import { menuItems } from "./SearchMenu";
 import { useWebSocket } from "./WebSocketContext";
 import { usePermissions } from "./PermissionContext";
+import api from "../utils/axiosConfig";
+
+// Helper to clear all cookies (used for client-side cleanup during logout)
+const clearAllCookies = () => {
+  document.cookie.split(";").forEach(cookie => {
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+  });
+};
 
 const Header = ({ isCollapsed }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -23,14 +33,67 @@ const Header = ({ isCollapsed }) => {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } =
     useWebSocket();
-  const { hasPermission } = usePermissions(); // ← Use permission check
+  const { hasPermission, getUserName, getUserRole, currentUser } = usePermissions();
   const navigate = useNavigate();
 
-  const [userProfile, setUserProfile] = useState({
-    full_name: "Loading...",
-    role: "User",
+  // Local state for user data (replacing UserContext)
+  const [userData, setUserData] = useState({
+    full_name: '',
+    designation: '',
     profile_picture: null,
+    email: '',
+    phone: '',
+    department: '',
   });
+
+  const [userLoading, setUserLoading] = useState(true);
+
+  // Fetch user data directly
+  const fetchUserData = async () => {
+    try {
+      console.log("🔍 Fetching user data from API...");
+      const response = await api.get("/profile/me/");
+      
+      const data = response.data;
+      const profile = data.profile || {};   // Nested profile
+
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+      // Use the full URL already provided by backend
+      let profilePic = profile.profile_picture || null;
+
+      // Only rebuild if it's a relative path
+      if (profilePic && !profilePic.startsWith('http')) {
+        const cleanedPath = profilePic.startsWith('/') ? profilePic : `/${profilePic}`;
+        profilePic = `${API_BASE}${cleanedPath}`;
+      }
+
+      const user = {
+        full_name:    profile.full_name    || '',
+        designation:  profile.designation  || '',
+        profile_picture: profilePic,
+        email:        profile.email        || '',
+        phone:        profile.phone        || '',
+        department:   profile.department   || '',
+      };
+
+      console.log("✅ User data fetched:", user);
+      setUserData(user);
+      return user;
+    } catch (error) {
+      console.error("❌ Error fetching user data:", error);
+      return null;
+    } finally {
+      setUserLoading(false);
+    }
+  };
+
+  // Use userData as the source of truth
+  const userProfile = useMemo(() => ({
+    full_name: userData.full_name || getUserName() || "Loading...",
+    role: userData.designation || getUserRole() || "User",
+    profile_picture: userData.profile_picture || null,
+  }), [userData, getUserName, getUserRole]);
 
   const initials = userProfile.full_name
     .split(" ")
@@ -39,9 +102,7 @@ const Header = ({ isCollapsed }) => {
     .toUpperCase()
     .slice(0, 2);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-  // === SEARCH LOGIC (unchanged) ===
+  // === SEARCH LOGIC ===
   const getModulePermissionKey = (item) => {
     const mapping = {
       Dashboard: "dashboard",
@@ -141,7 +202,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     return results.slice(0, 10);
   }, [searchQuery, hasPermission]);
 
-  // === REST OF YOUR FUNCTIONS (unchanged) ===
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
     setIsNotificationOpen(false);
@@ -164,25 +224,63 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     setIsNotificationOpen(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsDropdownOpen(false);
     try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("role");
-      localStorage.removeItem("userData");
+      // Call logout endpoint to clear cookies server-side
+      await api.post("/auth/logout", {}, { withCredentials: true });
+      
+      // Clear all cookies client-side
+      clearAllCookies();
+      
+      // Trigger storage event for multi-tab sync
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new Event("userDataUpdated")); // Also trigger user data update
+      
       successToast("Logged out successfully!");
-      navigate("/");
+      
+      // Redirect to login
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
+      
     } catch (err) {
-      console.error(err);
+      console.error("Logout error:", err);
+      
+      // Even if API call fails, clear local data
+      clearAllCookies();
+      
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+      
       errorToast("Logout failed. Please try again.");
     }
   };
 
-  // === Settings Button — Now allows read-only access ===
   const handleSettingsClick = () => {
     navigate("/security");
   };
+
+  // Listen for profile updates and fetch directly
+  useEffect(() => {
+    const handleUserDataUpdate = () => {
+      console.log("📢 Header: User data update event received");
+      // Fetch fresh user data when updated from Profile page
+      fetchUserData();
+    };
+    
+    window.addEventListener("userDataUpdated", handleUserDataUpdate);
+    
+    return () => {
+      window.removeEventListener("userDataUpdated", handleUserDataUpdate);
+    };
+  }, []);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -226,53 +324,6 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       setShowSearchResults(false);
     }
   };
-
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/");
-        return;
-      }
-      try {
-        const response = await fetch(`${API_BASE}/api/profile/me/`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          if (response.status === 401) {
-            localStorage.clear();
-            successToast("Session expired. Please login again.");
-            navigate("/");
-          }
-          throw new Error("Failed to fetch profile");
-        }
-        const data = await response.json();
-        const profilePic = data.profile_picture
-          ? `${API_BASE}${data.profile_picture.startsWith("/") ? "" : "/"}${
-              data.profile_picture
-            }`
-          : null;
-
-        setUserProfile({
-          full_name: data.full_name || "User",
-          role: data.designation || "Staff",
-          profile_picture: profilePic,
-        });
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-        setUserProfile({
-          full_name: "User",
-          role: "Staff",
-          profile_picture: null,
-        });
-      }
-    };
-    fetchUserProfile();
-  }, [navigate, API_BASE]);
 
   const getNotificationColor = (type) => {
     switch (type) {
@@ -402,7 +453,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
           )}
         </div>
 
-        {/* RIGHT SIDE ICONS - unchanged */}
+        {/* RIGHT SIDE ICONS */}
         <div className="flex items-center gap-[20px]">
           <button
             onClick={toggleTheme}
@@ -443,7 +494,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
                 </span>
               )}
             </button>
-            {/* Notification dropdown - keep your existing code */}
+            {/* Notification dropdown */}
             {isNotificationOpen && (
               <div className="absolute right-0 top-full mt-3 w-96 bg-gray-100 dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
@@ -536,8 +587,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
                     alt={userProfile.full_name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
+                      console.error("Error loading profile image:", e);
                       e.target.style.display = "none";
-                      e.target.nextElementSibling.style.display = "flex";
                     }}
                   />
                 ) : null}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import api from "../../utils/axiosConfig"; // Import axios config
 
 const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
   const [stockData, setStockData] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -35,16 +35,19 @@ const EditMedicineAllocationPopup = ({ onClose, medicineData, onUpdate }) => {
 
   // Fetch stock data once
   useEffect(() => {
-    fetch(`${API_BASE}/stock/list`)
-      .then((res) => res.json())
-      .then((data) => {
-        setStockData(data);
+    const fetchStockData = async () => {
+      try {
+        const response = await api.get("/stock/list");
+        setStockData(response.data);
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load stock:", err);
+      } catch (error) {
+        console.error("Failed to load stock:", error);
         setLoading(false);
-      });
+        // You could show an error toast here if needed
+      }
+    };
+
+    fetchStockData();
   }, []);
 
   // Calculate quantity based on frequency and duration

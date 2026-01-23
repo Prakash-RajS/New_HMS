@@ -16,8 +16,7 @@ import {
   X,
   Edit2,
 } from "lucide-react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
@@ -328,16 +327,13 @@ const StockInventory = () => {
     return "";
   };
 
-  // === API Functions ===
+  // === API Functions (Updated to use axios) ===
   const fetchStocks = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE}/stock/list`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch stocks: ${response.status}`);
-      }
-      const data = await response.json();
+      const response = await api.get("/stock/list");
+      const data = response.data;
       const transformedData = data.map((item) => ({
         id: item.id,
         name: item.product_name,
@@ -357,8 +353,9 @@ const StockInventory = () => {
       setInventoryData(transformedData);
     } catch (err) {
       console.error("Error fetching stocks:", err);
-      setError(err.message);
-      errorToast("Failed to fetch stocks");
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to fetch stocks";
+      setError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -366,62 +363,40 @@ const StockInventory = () => {
 
   const addStock = async (stockData) => {
     try {
-      const response = await fetch(`${API_BASE}/stock/add`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(stockData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to add stock");
-      }
+      const response = await api.post("/stock/add", stockData);
       successToast("Stock added successfully!");
-      return await response.json();
+      return response.data;
     } catch (err) {
       console.error("Error adding stock:", err);
-      errorToast(err.message || "Failed to add stock");
-      throw err;
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to add stock";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
   const updateStock = async (stockId, stockData) => {
     try {
-      const response = await fetch(`${API_BASE}/stock/edit/${stockId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(stockData),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to update stock");
-      }
+      const response = await api.put(`/stock/edit/${stockId}`, stockData);
       successToast("Stock updated successfully!");
-      return await response.json();
+      return response.data;
     } catch (err) {
       console.error("Error updating stock:", err);
-      errorToast(err.message || "Failed to update stock");
-      throw err;
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to update stock";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
   const deleteStock = async (stockId) => {
     try {
-      const response = await fetch(`${API_BASE}/stock/delete/${stockId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to delete stock: ${response.status}`);
-      }
+      await api.delete(`/stock/delete/${stockId}`);
       successToast("Stock deleted successfully!");
       return true;
     } catch (err) {
       console.error("Error deleting stock:", err);
-      errorToast(err.message || "Failed to delete stock");
-      throw err;
+      const errorMessage = err.response?.data?.detail || err.message || "Failed to delete stock";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
     }
   };
 
@@ -776,7 +751,7 @@ const StockInventory = () => {
       setSingleDeleteId(null);
     } catch (err) {
       console.error("Error deleting stock:", err);
-      setError("Failed to delete stock");
+      setError(err.message || "Failed to delete stock");
     }
   };
 
@@ -2794,7 +2769,6 @@ const StockInventory = () => {
                   </button>
                   <button
                     type="submit"
-                    
                     className="w-[160px] h-[40px] rounded-[10px] bg-gradient-to-r from-[#14DC6F] to-[#09753A] text-white font-medium text-[15px] transition shadow-lg hover:scale-105"
                   >
                     Update Stock

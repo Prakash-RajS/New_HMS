@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, status, Form, Body
-from pydantic import BaseModel, ConfigDict, validator
+from fastapi import APIRouter, HTTPException, status, Form, Body, Depends
+from pydantic import BaseModel, ConfigDict, validator, Field
 from typing import List, Optional, Dict, Any
 from HMS_backend.models import BedGroup, Bed, Patient
 import django.db.models as models
@@ -113,6 +113,24 @@ class BedGroupResponse(BedGroupBase):
             bed_range=bed_range,
             beds=beds,
         )
+
+# ---------------------------
+# Admit Patient Pydantic Model (NEW)
+# ---------------------------
+class AdmitPatientRequest(BaseModel):
+    full_name: str = Field(..., description="Patient full name")
+    patient_unique_id: str = Field(..., description="Patient unique ID")
+    bed_group_name: str = Field(..., description="Bed group name")
+    bed_number: int = Field(..., description="Bed number")
+    admission_date: str = Field(..., description="Admission date in MM/DD/YYYY format")
+    
+    @validator('admission_date')
+    def validate_admission_date(cls, v):
+        try:
+            datetime.strptime(v, "%m/%d/%Y").date()
+            return v
+        except ValueError:
+            raise ValueError("Invalid date format. Use MM/DD/YYYY")
 
 # ---------------------------
 # Helper Functions
@@ -549,31 +567,31 @@ async def get_next_available_range(capacity: int):
         "adjusted": alternative['adjusted']
     }
     
-# ADMIT PATIENT
+# ADMIT PATIENT (UPDATED - Now accepts JSON instead of Form)
 @router.post("/admit", response_model=Dict[str, Any])
-async def admit_patient(
-    full_name: str = Form(...),
-    patient_unique_id: str = Form(...),
-    bed_group_name: str = Form(...),
-    bed_number: int = Form(...),
-    admission_date: str = Form(...),
-):
+async def admit_patient(admit_request: AdmitPatientRequest):
+    """Admit a patient to a bed (now accepts JSON)"""
     # ---------------------------
-    # Validate date
+    # Validate and parse date
     # ---------------------------
     try:
-        admit_date = datetime.strptime(admission_date, "%m/%d/%Y").date()
+        admit_date = datetime.strptime(admit_request.admission_date, "%m/%d/%Y").date()
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use MM/DD/YYYY")
+    
     # ---------------------------
     # Fetch Patient
     # ---------------------------
     try:
-        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=patient_unique_id)
-        if patient.full_name != full_name:
-            raise HTTPException(status_code=400, detail="Patient ID exists with different name")
+        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=admit_request.patient_unique_id)
+        if patient.full_name != admit_request.full_name:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Patient ID exists with different name: '{patient.full_name}'"
+            )
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found. Register first.")
+    
     # ---------------------------
     # Prevent Double Admission
     # ---------------------------
@@ -591,53 +609,63 @@ async def admit_patient(
                 f"({current_bed.bed_group.bedGroup}). Discharge first."
             ),
         )
+    
     # ---------------------------
     # Fetch Bed Group & Bed
     # ---------------------------
     try:
-        bed_group = await sync_to_async(BedGroup.objects.get)(bedGroup=bed_group_name)
+        bed_group = await sync_to_async(BedGroup.objects.get)(bedGroup=admit_request.bed_group_name)
         bed = await sync_to_async(
             lambda: Bed.objects.select_related('bed_group', 'patient').get(
-                bed_group=bed_group, bed_number=bed_number
+                bed_group=bed_group, bed_number=admit_request.bed_number
             )
         )()
     except BedGroup.DoesNotExist:
         raise HTTPException(status_code=404, detail="Bed group not found")
     except Bed.DoesNotExist:
         raise HTTPException(status_code=404, detail="Bed not found")
+    
     # ---------------------------
     # Check bed occupancy
     # ---------------------------
     if bed.is_occupied:
         raise HTTPException(status_code=400, detail="Bed is already occupied")
-    old_occupied = bed_group.occupied # for notification trigger
+    
+    old_occupied = bed_group.occupied  # for notification trigger
+    
     # ---------------------------
     # Update Patient Admission Details
     # ---------------------------
-    formatted_room = f"{bed_group.bedGroup} - {bed_number}" # <<<< IMPORTANT LINE
+    formatted_room = f"{bed_group.bedGroup} - {admit_request.bed_number}"
     patient.admission_date = admit_date
     patient.room_number = formatted_room
-    # 🚀 Save only these fields
+    
+    # Save only these fields
     await sync_to_async(patient.save)(
         update_fields=["admission_date", "room_number"]
     )
+    
     # ---------------------------
     # Allocate Bed
     # ---------------------------
     bed.is_occupied = True
     bed.patient = patient
     await sync_to_async(bed.save)()
+    
     # Refresh counts
     await sync_to_async(bed_group.refresh_counts)()
+    
     # Reload bed with relations
     bed_with_relations = await sync_to_async(
         lambda: Bed.objects.select_related('bed_group', 'patient').get(id=bed.id)
     )()
+    
     # ---------------------------
     # Send Notifications
     # ---------------------------
     await safe_send_bed_notification("bed_allocated", bed_with_relations, patient=patient)
     await safe_send_bed_notification("bed_updated", bed_with_relations)
+    
     if old_occupied != bed_group.occupied:
         await safe_send_bed_notification(
             "room_occupancy_changed",
@@ -645,6 +673,7 @@ async def admit_patient(
             old_occupied,
             bed_group.occupied
         )
+    
     # ---------------------------
     # Response
     # ---------------------------
@@ -655,7 +684,7 @@ async def admit_patient(
             "id": patient.patient_unique_id,
             "name": patient.full_name,
             "admission_date": admit_date.strftime("%m/%d/%Y"),
-            "room_number": formatted_room, # ICU - 1 format
+            "room_number": formatted_room,
         },
         "bed": {
             "number": bed.bed_number,

@@ -4,6 +4,7 @@ import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
 
 const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -18,8 +19,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   const [errors, setErrors] = useState({});
   const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
-
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   // Levenshtein distance for typo detection
   const levenshtein = (a, b) => {
@@ -268,34 +267,46 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
         last_donation_date: formatDateForAPI(formData.last_donation_date),
       };
       console.log("🟡 Sending update data:", updateData);
-      const response = await fetch(`${API_BASE}/api/donors/${donor.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        let errorMessage = "Failed to update donor";
-        if (result.detail) {
-          errorMessage = Array.isArray(result.detail)
-            ? result.detail
-                .map((e) => `${e.loc.join(" → ")}: ${e.msg}`)
-                .join("\n")
-            : result.detail;
-        }
-        throw new Error(errorMessage);
-      }
+      
+      const response = await api.put(`/api/donors/${donor.id}`, updateData);
+      
       successToast("Donor updated successfully!");
      
       if (onUpdate) {
-        onUpdate(result);
+        onUpdate(response.data);
       }
      
       onClose();
     } catch (error) {
       console.error("Update error:", error);
-      errorToast(error.message || "Failed to update donor");
-      alert(`Error updating donor:\n${error.message}`);
+      let errorMessage = "Failed to update donor";
+      
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (error.response.status === 400) {
+          const result = error.response.data;
+          if (result.detail) {
+            errorMessage = Array.isArray(result.detail)
+              ? result.detail
+                  .map((e) => `${e.loc?.join(" → ")}: ${e.msg}`)
+                  .join("\n")
+              : result.detail;
+          } else {
+            errorMessage = "Invalid donor data. Please check all fields.";
+          }
+        } else if (error.response.status === 404) {
+          errorMessage = "Donor not found.";
+        } else if (error.response.status === 409) {
+          errorMessage = error.response.data?.detail || "Email already exists";
+        } else {
+          errorMessage = error.response.data?.detail || errorMessage;
+        }
+      } else if (error.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      errorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -409,7 +420,8 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-            focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+            focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+            disabled={loading}
           >
             <span className="block truncate">{value || "Select"}</span>
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -435,6 +447,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                       : "text-black dark:text-white"
                   } ${selected ? "font-medium" : ""}`
                 }
+                disabled={loading}
               >
                 {({ selected }) => (
                   <span className={selected ? "text-[#0EFF7B] dark:text-[#0EFF7B]" : ""}>
@@ -452,8 +465,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     </div>
   );
 
-  // Get the selected date for DatePicker
-  const selectedDate = formData.last_donation_date;
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
@@ -523,9 +534,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   }
                   handleBlur("donor_name");
                 }}
+                disabled={loading}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 placeholder="Enter donor name"
               />
               {getFieldError("donor_name") && (
@@ -546,9 +558,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                 maxLength={10}
                 onChange={handlePhoneChange}
                 onBlur={() => handleBlur("phone")}
+                disabled={loading}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 placeholder="Enter phone number"
               />
               {getFieldError("phone") && (
@@ -577,9 +590,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   }
                   handleBlur("email");
                 }}
+                disabled={loading}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 placeholder="Enter email address"
               />
               {getFieldError("email") && (
@@ -631,9 +645,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   dateFormat="MM/dd/yyyy"
                   placeholderText="Select date"
                   maxDate={new Date()}
+                  disabled={loading}
                   className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
-                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                           focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
                   showYearDropdown
@@ -676,7 +691,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               disabled={loading}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
               bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium
-              hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50"
+              hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -685,14 +700,11 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               disabled={loading}
               className="w-[144px] h-[32px] border-b-[2px] border-[#0EFF7B] rounded-[8px]
               bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium
-              hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center"
+              hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Updating...
                 </>
               ) : (

@@ -10,12 +10,8 @@ import {
 import { Listbox, Switch } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-
-// API Base URL configuration
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
 const BillingPreview = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const originalPatients = [
@@ -84,12 +80,10 @@ const BillingPreview = () => {
     "Credit",
   ];
   const paymentStatuses = ["Paid", "Pending", "Overdue", "Refunded", "Unpaid"];
-
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
   }, []);
-
   useEffect(() => {
     if (staffInfo.staffName) {
       setPatientInfo((prev) => ({
@@ -99,14 +93,12 @@ const BillingPreview = () => {
       }));
     }
   }, [staffInfo]);
-
   useEffect(() => {
     if (fullPatient) {
       const ageGender = `${fullPatient.age || ""}/${fullPatient.gender || ""}`;
       const startDate = fullPatient.admission_date || "";
       const endDate = fullPatient.discharge_date || "";
       const dob = fullPatient.date_of_birth || "";
-
       setPatientInfo((prev) => ({
         ...prev,
         patientName: fullPatient.full_name || prev.patientName,
@@ -122,13 +114,11 @@ const BillingPreview = () => {
         bedGroup: fullPatient.bed_group || prev.bedGroup,
         bedNumber: fullPatient.bed_number || prev.bedNumber,
       }));
-
       if (fullPatient.patient_unique_id) {
         fetchInsurances(fullPatient.patient_unique_id);
       }
     }
   }, [fullPatient]);
-
   useEffect(() => {
     const lowerQuery = searchQuery.toLowerCase();
     setFilteredPatients(
@@ -139,18 +129,11 @@ const BillingPreview = () => {
       )
     );
   }, [searchQuery, patients]);
-
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem("token");
-
       let patientsData = [];
-
       try {
-        const res = await axios.get(`${API_BASE}/patients/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        const res = await api.get("/patients/");
         if (Array.isArray(res.data)) {
           patientsData = res.data;
         } else if (res.data && Array.isArray(res.data.results)) {
@@ -164,38 +147,30 @@ const BillingPreview = () => {
         }
       } catch (listError) {
         console.log("List endpoint failed, trying alternatives...");
-
         const testPatientIds = ["SAH027/384", "SA123456", "SA789012"];
-
         for (const patientId of testPatientIds) {
           try {
-            const patientRes = await axios.get(
-              `${API_BASE}/patients/${patientId}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
+            const patientRes = await api.get(`/patients/${patientId}`);
             patientsData.push(patientRes.data);
           } catch (patientError) {
             console.log(`Could not fetch patient ${patientId}`);
           }
         }
       }
-      
+    
       if (patientsData.length === 0) {
         setPatients(originalPatients);
         setFilteredPatients(originalPatients);
         return;
       }
-      
+    
       const mappedPatients = patientsData.map((p) => ({
         id: p.patient_unique_id || p.unique_id || p.id || "N/A",
         name: p.full_name || p.name || p.patient_name || "Unknown Patient",
       }));
-      
+    
       setPatients(mappedPatients);
       setFilteredPatients(mappedPatients);
-
     } catch (err) {
       console.error("Failed to load patients:", err);
       errorToast("Failed to load patients list. Using demo data.");
@@ -203,37 +178,25 @@ const BillingPreview = () => {
       setFilteredPatients(originalPatients);
     }
   };
-
   const fetchStaffInfo = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_BASE}/api/profile/me/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/profile/me/");
       setStaffInfo({
-        staffName: res.data.full_name || "Unknown Staff",
-        staffID: res.data.employee_id || "N/A",
+        staffName: res.data.profile.full_name || "Unknown Staff",
+        staffID: res.data.profile.employee_id || "N/A",
       });
     } catch (err) {
       console.error("Failed to load staff info:", err);
       setStaffInfo({ staffName: "Unknown Staff", staffID: "N/A" });
     }
   };
-
   const fetchPatientDetails = async (uniqueId) => {
     try {
-      const token = localStorage.getItem("token");
-      
-      const res = await axios.get(`${API_BASE}/patients/${uniqueId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
+      const res = await api.get(`/patients/${uniqueId}`);
       const patientData = res.data.data || res.data.patient || res.data;
-
       setFullPatient(patientData);
-      
+    
       await fetchTreatmentCharges(uniqueId);
-
       successToast(
         `Patient ${
           patientData.full_name || patientData.name
@@ -244,20 +207,14 @@ const BillingPreview = () => {
       errorToast("Failed to load patient details");
     }
   };
-
   const fetchTreatmentCharges = async (patientId) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${API_BASE}/hospital-billing/patient/${patientId}/treatment-charges`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const res = await api.get(
+        `/hospital-billing/patient/${patientId}/treatment-charges`
       );
-
       if (res.data && res.data.charges && res.data.charges.length > 0) {
         setTreatmentCharges(res.data.charges);
-        
+      
         const treatmentChargesItems = res.data.charges.map((charge, idx) => ({
           chargeId: charge.id,
           sNo: (idx + 1).toString().padStart(2, "0"),
@@ -267,44 +224,35 @@ const BillingPreview = () => {
           amount: charge.amount.toString(),
           isFromTreatmentCharge: true,
         }));
-        
+      
         setBillingItems(treatmentChargesItems);
-        
+      
         successToast(
           `Loaded ${res.data.charges.length} pending treatment charges`
         );
       } else {
         setTreatmentCharges([]);
         setBillingItems([]);
-        
+      
         successToast("No pending treatment charges found");
       }
     } catch (err) {
       console.error("Failed to load treatment charges:", err);
-      
+    
       if (err.response?.status === 404) {
         setTreatmentCharges([]);
         setBillingItems([]);
-        
+      
         successToast("No pending treatment charges found");
       } else {
         errorToast("Failed to load treatment charges");
       }
     }
   };
-
   const fetchInsurances = async (uniqueId) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(
-        `${API_BASE}/patients/${uniqueId}/insurances`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
+      const res = await api.get(`/patients/${uniqueId}/insurances`);
       let insuranceData = [];
-
       if (Array.isArray(res.data)) {
         insuranceData = res.data;
       } else if (res.data && Array.isArray(res.data.results)) {
@@ -316,7 +264,6 @@ const BillingPreview = () => {
       } else {
         return;
       }
-
       setInsurances(
         insuranceData.map((ins) => ({
           id: ins.id,
@@ -331,7 +278,6 @@ const BillingPreview = () => {
       console.error("Failed to load insurances:", err);
     }
   };
-
   const handlePatientNameChange = (value) => {
     const patient = filteredPatients.find((p) => p.name === value);
     if (patient) {
@@ -344,7 +290,6 @@ const BillingPreview = () => {
       setSearchQuery("");
     }
   };
-
   const handlePatientIDChange = (value) => {
     const patient = filteredPatients.find((p) => p.id === value);
     if (patient) {
@@ -356,18 +301,25 @@ const BillingPreview = () => {
       fetchPatientDetails(value);
     }
   };
-
   const handleInputChange = (value, field) => {
     setPatientInfo({ ...patientInfo, [field]: value });
   };
-
+  const handleEditInsurance = (index) => {
+    const insurance = insurances[index];
+    setModalData({
+      provider: insurance.provider,
+      policyNum: insurance.policyNum,
+      validFrom: insurance.validFrom,
+      validTo: insurance.validTo,
+      policyCard: insurance.policyCard,
+    });
+    setEditingIndex(index);
+    setShowModal(true);
+  };
   const handleDeleteInsurance = async (index) => {
     const insId = insurances[index].id;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`${API_BASE}/insurances/${insId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/insurances/${insId}`);
       fetchInsurances(patientInfo.patientID);
       successToast("Insurance deleted successfully");
     } catch (err) {
@@ -375,10 +327,8 @@ const BillingPreview = () => {
       errorToast("Failed to delete insurance");
     }
   };
-
   const handleAddOrUpdateInsurance = async () => {
     try {
-      const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("provider", modalData.provider);
       formData.append("policy_number", modalData.policyNum);
@@ -390,18 +340,16 @@ const BillingPreview = () => {
       let res;
       if (editingIndex !== null) {
         const insId = insurances[editingIndex].id;
-        res = await axios.put(`${API_BASE}/insurances/${insId}`, formData, {
+        res = await api.put(`/insurances/${insId}`, formData, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
         });
         successToast("Insurance updated successfully");
       } else {
         formData.append("patient_id", patientInfo.patientID);
-        res = await axios.post(`${API_BASE}/insurances/`, formData, {
+        res = await api.post("/insurances/", formData, {
           headers: {
-            Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
           },
         });
@@ -416,24 +364,21 @@ const BillingPreview = () => {
       errorToast("Failed to add/update insurance");
     }
   };
-
   const handleMarkInvoiceAsPaid = async (invoiceId) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post(
-        `${API_BASE}/hospital-billing/invoice/${invoiceId}/mark-paid`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        `/hospital-billing/invoice/${invoiceId}/mark-paid`,
+        {}
       );
-      
+    
       successToast(
         `Invoice ${invoiceId} marked as Paid. ${res.data.treatment_charges_updated} treatment charges updated to BILLED.`
       );
-      
+    
       if (patientInfo.patientID) {
         await fetchTreatmentCharges(patientInfo.patientID);
       }
-      
+    
       return res.data;
     } catch (err) {
       console.error("Failed to mark invoice as paid:", err);
@@ -441,7 +386,6 @@ const BillingPreview = () => {
       throw err;
     }
   };
-
   const subtotal = billingItems
     .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
     .toFixed(2);
@@ -451,244 +395,219 @@ const BillingPreview = () => {
   const formattedSubtotal = parseFloat(subtotal).toLocaleString();
   const formattedTax = parseFloat(tax).toLocaleString();
   const formattedGrand = parseFloat(grand).toLocaleString();
-
   const handleGenerateBill = async () => {
-
-  if (!patientInfo.patientID) {
-    errorToast("Please select a patient first");
-    return;
-  }
-  
-  if (
-    billingItems.length === 0 ||
-    billingItems.some(
-      (item) => !item.description || !item.quantity || !item.unitPrice
-    )
-  ) {
-    errorToast("Please add valid billing items");
-    return;
-  }
-
-  try {
-    setGeneratingBill(true);
-    const token = localStorage.getItem("token");
-    const today = new Date().toISOString().split("T")[0];
-
-    // Robust date formatting function from second function
-    const formatDateForBackend = (dateString) => {
-      if (!dateString) return null;
-
-      // Remove any time portion if present
-      dateString = dateString.split("T")[0];
-
-      // Try different date formats
-      let date;
-
-      // Try parsing as ISO string first
-      date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split("T")[0];
-      }
-
-      // Try MM/DD/YYYY format
-      if (dateString.includes("/")) {
-        const parts = dateString.split("/");
-        if (parts.length === 3) {
-          // Check if it's MM/DD/YYYY or DD/MM/YYYY
-          if (
-            parts[0].length === 2 &&
-            parts[1].length === 2 &&
-            parts[2].length === 4
-          ) {
-            const [month, day, year] = parts;
-            date = new Date(`${year}-${month}-${day}`);
-            if (!isNaN(date.getTime())) {
-              return date.toISOString().split("T")[0];
-            }
-          }
-        }
-      }
-
-      // Try DD-MM-YYYY format
-      if (dateString.includes("-")) {
-        const parts = dateString.split("-");
-        if (parts.length === 3) {
-          if (
-            parts[0].length === 2 &&
-            parts[1].length === 2 &&
-            parts[2].length === 4
-          ) {
-            const [day, month, year] = parts;
-            date = new Date(`${year}-${month}-${day}`);
-            if (!isNaN(date.getTime())) {
-              return date.toISOString().split("T")[0];
-            }
-          }
-        }
-      }
-
-      console.warn(`Could not parse date: ${dateString}`);
-      return null;
-    };
-
-    // Validate required dates - improved from second function
-    const admissionDate = formatDateForBackend(patientInfo.startDate);
-    if (!admissionDate) {
-      errorToast(
-        "Please provide a valid admission date in YYYY-MM-DD format"
-      );
-      setGeneratingBill(false);
+    if (!patientInfo.patientID) {
+      errorToast("Please select a patient first");
       return;
     }
-
-    // Build payload with improvements from first function
-    const invoiceData = {
-      date: today,
-      patient_name: patientInfo.patientName,
-      patient_id: patientInfo.patientID,
-      department: patientInfo.department || "General Ward",
-      payment_method: patientInfo.paymentMode || "Cash",
-      status: patientInfo.paymentStatus || "Pending", // Changed from second function's "Paid" default
-      admission_date: admissionDate,
-      discharge_date: formatDateForBackend(patientInfo.endDate),
-      doctor: patientInfo.doctorName || "N/A",
-      phone: fullPatient?.phone_number || "N/A",
-      email: fullPatient?.email || null, // Changed from hardcoded email
-      address: patientInfo.address || "",
-      invoice_items: billingItems.map((item) => ({
-        description: item.description,
-        quantity: parseInt(item.quantity) || 1,
-        unit_price: parseFloat(item.unitPrice) || 0,
-      })),
-      tax_percent: 18.0,
-      transaction_id: null,
-      payment_date: patientInfo.paymentStatus === "Paid" ? today : null, // Conditional payment date
-    };
-
-    // Include treatment_charge_ids if available (from first function)
-    const treatmentChargeIds = billingItems
-      .filter(item => item.chargeId && item.isFromTreatmentCharge)
-      .map(item => item.chargeId);
-    
-    if (treatmentChargeIds.length > 0) {
-      invoiceData.treatment_charge_ids = treatmentChargeIds;
+  
+    if (
+      billingItems.length === 0 ||
+      billingItems.some(
+        (item) => !item.description || !item.quantity || !item.unitPrice
+      )
+    ) {
+      errorToast("Please add valid billing items");
+      return;
     }
-
-    console.log("Sending invoice data:", JSON.stringify(invoiceData, null, 2));
-
-    const res = await axios.post(
-      `${API_BASE}/hospital-billing/generate-invoice`,
-      invoiceData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        responseType: "blob",
-      }
-    );
-
-    // ✅ Open PDF
-    const pdfBlob = new Blob([res.data], { type: "application/pdf" });
-    const pdfUrl = window.URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl, "_blank");
-    successToast("Invoice generated successfully");
-
-    // Try to extract invoice ID from response (from first function)
     try {
-      const text = await new Response(res.data).text();
-      if (text && text.trim().startsWith('{')) {
-        const jsonResponse = JSON.parse(text);
-        
-        if (jsonResponse.success && jsonResponse.invoice_id) {
-          const invoiceId = jsonResponse.invoice_id;
-          
-          // If status is "Paid", mark invoice as paid (from first function)
-          if (patientInfo.paymentStatus === "Paid") {
-            try {
-              const paidResult = await handleMarkInvoiceAsPaid(invoiceId);
-              successToast(
-                `Invoice marked as Paid. ${paidResult.treatment_charges_updated} treatment charges updated to BILLED.`
-              );
-            } catch (paidError) {
-              console.error("Failed to mark as paid:", paidError);
-              errorToast("Invoice created but failed to update payment status");
+      setGeneratingBill(true);
+      const today = new Date().toISOString().split("T")[0];
+      // Robust date formatting function
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return null;
+        // Remove any time portion if present
+        dateString = dateString.split("T")[0];
+        // Try different date formats
+        let date;
+        // Try parsing as ISO string first
+        date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split("T")[0];
+        }
+        // Try MM/DD/YYYY format
+        if (dateString.includes("/")) {
+          const parts = dateString.split("/");
+          if (parts.length === 3) {
+            // Check if it's MM/DD/YYYY or DD/MM/YYYY
+            if (
+              parts[0].length === 2 &&
+              parts[1].length === 2 &&
+              parts[2].length === 4
+            ) {
+              const [month, day, year] = parts;
+              date = new Date(`${year}-${month}-${day}`);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString().split("T")[0];
+              }
             }
           }
         }
-      }
-    } catch (parseError) {
-      console.log("PDF generated successfully, moving to reset");
-    }
-
-    // Reset form after successful generation (enhanced from first function)
-    setTimeout(() => {
-      setPatientInfo({
-        patientName: "",
-        patientID: "",
-        ageGender: "",
-        startDate: "",
-        endDate: "",
-        dateOfBirth: "",
-        address: "",
-        roomType: "",
-        doctorName: "",
-        department: "",
-        billingStaff: staffInfo.staffName,
-        billingStaffID: staffInfo.staffID,
-        paymentMode: "",
-        paymentType: "",
-        paymentStatus: "",
-        bedGroup: "",
-        bedNumber: "",
-      });
-      setBillingItems([]);
-      setTreatmentCharges([]);
-      setFullPatient(null);
-      successToast("Form reset. Ready for next patient.");
-      
-      // Auto refresh the page (from second function)
-      window.location.reload();
-    }, 2000);
-
-  } catch (err) {
-    console.error("Failed to generate invoice:", err);
-    
-    // Enhanced error handling from first function
-    if (err.response) {
-      console.error("Response data:", err.response.data);
-      console.error("Response status:", err.response.status);
-      
-      if (err.response.status === 422) {
-        const validationErrors = err.response.data.detail;
-        // Check if it's a date validation error (from second function)
-        const isDateError = Array.isArray(validationErrors) && 
-          validationErrors.some(error => 
-            error.loc?.includes("admission_date") || 
-            error.loc?.includes("discharge_date")
-          );
-        
-        if (isDateError) {
-          errorToast("Invalid date format. Please use YYYY-MM-DD format for dates.");
-        } else if (err.response.data?.detail) {
-          errorToast(err.response.data.detail);
-        } else {
-          errorToast("Validation error. Please check all required fields.");
+        // Try DD-MM-YYYY format
+        if (dateString.includes("-")) {
+          const parts = dateString.split("-");
+          if (parts.length === 3) {
+            if (
+              parts[0].length === 2 &&
+              parts[1].length === 2 &&
+              parts[2].length === 4
+            ) {
+              const [day, month, year] = parts;
+              date = new Date(`${year}-${month}-${day}`);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString().split("T")[0];
+              }
+            }
+          }
         }
-      } else {
-        errorToast(`Server error: ${err.response.status}`);
+        console.warn(`Could not parse date: ${dateString}`);
+        return null;
+      };
+      // Validate required dates
+      const admissionDate = formatDateForBackend(patientInfo.startDate);
+      if (!admissionDate) {
+        errorToast(
+          "Please provide a valid admission date in YYYY-MM-DD format"
+        );
+        setGeneratingBill(false);
+        return;
       }
-    } else if (err.request) {
-      console.error("Request data:", err.request);
-      errorToast("No response from server. Please check your connection.");
-    } else {
-      errorToast("Failed to generate invoice. Please try again.");
+      // Build payload
+      const invoiceData = {
+        date: today,
+        patient_name: patientInfo.patientName,
+        patient_id: patientInfo.patientID,
+        department: patientInfo.department || "General Ward",
+        payment_method: patientInfo.paymentMode || "Cash",
+        status: patientInfo.paymentStatus || "Pending",
+        admission_date: admissionDate,
+        discharge_date: formatDateForBackend(patientInfo.endDate),
+        doctor: patientInfo.doctorName || "N/A",
+        phone: fullPatient?.phone_number || "N/A",
+        email: fullPatient?.email || null,
+        address: patientInfo.address || "",
+        invoice_items: billingItems.map((item) => ({
+          description: item.description,
+          quantity: parseInt(item.quantity) || 1,
+          unit_price: parseFloat(item.unitPrice) || 0,
+        })),
+        tax_percent: 18.0,
+        transaction_id: null,
+        payment_date: patientInfo.paymentStatus === "Paid" ? today : null,
+      };
+      // Include treatment_charge_ids if available
+      const treatmentChargeIds = billingItems
+        .filter(item => item.chargeId && item.isFromTreatmentCharge)
+        .map(item => item.chargeId);
+    
+      if (treatmentChargeIds.length > 0) {
+        invoiceData.treatment_charge_ids = treatmentChargeIds;
+      }
+      console.log("Sending invoice data:", JSON.stringify(invoiceData, null, 2));
+      const res = await api.post(
+        "/hospital-billing/generate-invoice",
+        invoiceData,
+        {
+          responseType: "blob",
+        }
+      );
+      // ✅ Open PDF
+      const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, "_blank");
+      successToast("Invoice generated successfully");
+      // Try to extract invoice ID from response
+      try {
+        const text = await new Response(res.data).text();
+        if (text && text.trim().startsWith('{')) {
+          const jsonResponse = JSON.parse(text);
+        
+          if (jsonResponse.success && jsonResponse.invoice_id) {
+            const invoiceId = jsonResponse.invoice_id;
+          
+            // If status is "Paid", mark invoice as paid
+            if (patientInfo.paymentStatus === "Paid") {
+              try {
+                const paidResult = await handleMarkInvoiceAsPaid(invoiceId);
+                successToast(
+                  `Invoice marked as Paid. ${paidResult.treatment_charges_updated} treatment charges updated to BILLED.`
+                );
+              } catch (paidError) {
+                console.error("Failed to mark as paid:", paidError);
+                errorToast("Invoice created but failed to update payment status");
+              }
+            }
+          }
+        }
+      } catch (parseError) {
+        console.log("PDF generated successfully, moving to reset");
+      }
+      // Reset form after successful generation
+      setTimeout(() => {
+        setPatientInfo({
+          patientName: "",
+          patientID: "",
+          ageGender: "",
+          startDate: "",
+          endDate: "",
+          dateOfBirth: "",
+          address: "",
+          roomType: "",
+          doctorName: "",
+          department: "",
+          billingStaff: staffInfo.staffName,
+          billingStaffID: staffInfo.staffID,
+          paymentMode: "",
+          paymentType: "",
+          paymentStatus: "",
+          bedGroup: "",
+          bedNumber: "",
+        });
+        setBillingItems([]);
+        setTreatmentCharges([]);
+        setFullPatient(null);
+        successToast("Form reset. Ready for next patient.");
+      
+        // Auto refresh the page
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to generate invoice:", err);
+    
+      // Enhanced error handling
+      if (err.response) {
+        console.error("Response data:", err.response.data);
+        console.error("Response status:", err.response.status);
+      
+        if (err.response.status === 422) {
+          const validationErrors = err.response.data.detail;
+          // Check if it's a date validation error
+          const isDateError = Array.isArray(validationErrors) &&
+            validationErrors.some(error =>
+              error.loc?.includes("admission_date") ||
+              error.loc?.includes("discharge_date")
+            );
+        
+          if (isDateError) {
+            errorToast("Invalid date format. Please use YYYY-MM-DD format for dates.");
+          } else if (err.response.data?.detail) {
+            errorToast(err.response.data.detail);
+          } else {
+            errorToast("Validation error. Please check all required fields.");
+          }
+        } else {
+          errorToast(`Server error: ${err.response.status}`);
+        }
+      } else if (err.request) {
+        console.error("Request data:", err.request);
+        errorToast("No response from server. Please check your connection.");
+      } else {
+        errorToast("Failed to generate invoice. Please try again.");
+      }
+    } finally {
+      setGeneratingBill(false);
     }
-  } finally {
-    setGeneratingBill(false);
-  }
-};
-
+  };
   // Function to render proper table messages
   const renderBillingTableContent = () => {
     if (!patientInfo.patientID) {
@@ -700,7 +619,7 @@ const BillingPreview = () => {
         </tr>
       );
     }
-    
+  
     if (billingItems.length === 0) {
       return (
         <tr>
@@ -710,7 +629,7 @@ const BillingPreview = () => {
         </tr>
       );
     }
-    
+  
     return billingItems.map((item, index) => (
       <tr
         key={index}
@@ -779,7 +698,6 @@ const BillingPreview = () => {
       </tr>
     ));
   };
-
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
       <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
@@ -813,7 +731,6 @@ const BillingPreview = () => {
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
           This is the information for generation of patient bill
         </p>
-
         {/* Search and Patient Selection */}
         <div className="mb-6 flex flex-row justify-end items-center gap-2 flex-wrap max-w-full">
           {/* Search Input with Dropdown Results */}
@@ -1131,7 +1048,6 @@ const BillingPreview = () => {
                 value={patientInfo.department}
                 readOnly
               />
-
               <label className="text-sm text-gray-600 dark:text-gray-300">
                 Payment mode
               </label>
@@ -1486,14 +1402,13 @@ const BillingPreview = () => {
                 <th className="p-2">Quantity</th>
                 <th className="p-2">Unit price ($)</th>
                 <th className="p-2">Amount ($)</th>
-                {/* Action column removed */}
               </tr>
             </thead>
             <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
               {renderBillingTableContent()}
             </tbody>
           </table>
-          
+        
           {/* Total and Action Buttons */}
           <div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
             <div
@@ -1532,26 +1447,6 @@ const BillingPreview = () => {
               </div>
             </div>
             <div className="flex items-center gap-3 flex-nowrap">
-              {/* Optional: Connection test button for debugging */}
-              {/* <button
-                onClick={async () => {
-                  try {
-                    const token = localStorage.getItem("token");
-                    const testRes = await axios.get(`${API_BASE}/hospital-billing/`, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-                    console.log("Connection test successful:", testRes.data);
-                    successToast("Connected to server successfully");
-                  } catch (err) {
-                    console.error("Connection test failed:", err);
-                    errorToast("Cannot connect to server");
-                  }
-                }}
-                className="text-sm px-3 py-1 border border-gray-300 rounded"
-              >
-                Test Connection
-              </button> */}
-              
               <button
                 className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
                 style={{
@@ -1771,5 +1666,4 @@ const BillingPreview = () => {
     </div>
   );
 };
-
 export default BillingPreview;

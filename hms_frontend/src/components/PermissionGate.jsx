@@ -1,8 +1,9 @@
+// hms_frontend/src/components/PermissionGate.jsx
 import React, { useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { PermissionContext } from "./PermissionContext";
 
-const PermissionGate = ({ moduleKey, children, fallbackPath = "/profile" }) => {
+const PermissionGate = ({ moduleKey, children, fallbackPath = "/dashboard" }) => {
   const { hasPermission } = useContext(PermissionContext);
   const navigate = useNavigate();
 

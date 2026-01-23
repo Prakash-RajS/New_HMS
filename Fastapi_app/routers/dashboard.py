@@ -4,7 +4,7 @@ from django.db.models import Count, Q, Sum
 from django.db import models
 from datetime import datetime, timedelta
 from django.utils import timezone
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 import json
 from asgiref.sync import sync_to_async
@@ -13,7 +13,7 @@ import asyncio
 from HMS_backend.models import (
     Patient, Staff, Appointment, Department, 
     LabReport, Bed, BedGroup, HospitalInvoiceHistory,
-    MedicineAllocation, Dispatch, Trip, Stock, BloodGroup
+    MedicineAllocation, Dispatch, Trip, Stock, BloodGroup, Surgery
 )
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -118,6 +118,86 @@ def normalize_timestamp(ts):
 
     return timezone.now()
 
+from django.utils import timezone
+from datetime import timedelta
+
+@sync_to_async
+def get_total_surgeries():
+    now = timezone.now()
+
+    # First day of current month
+    start_of_month = now.replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+
+    # First day of next month
+    if now.month == 12:
+        start_of_next_month = start_of_month.replace(
+            year=now.year + 1, month=1
+        )
+    else:
+        start_of_next_month = start_of_month.replace(
+            month=now.month + 1
+        )
+
+    return Surgery.objects.filter(
+        scheduled_date__gte=start_of_month,
+        scheduled_date__lt=start_of_next_month
+    ).count()
+
+
+@sync_to_async
+def get_today_surgeries():
+    today = timezone.localdate()
+
+    start = datetime.combine(today, time.min)
+    end = datetime.combine(today, time.max)
+
+    start = timezone.make_aware(start)
+    end = timezone.make_aware(end)
+
+    return Surgery.objects.filter(
+        scheduled_date__range=(start, end)
+    ).count()
+
+# @sync_to_async
+# def get_pending_surgeries():
+#     return Surgery.objects.filter(status="pending").count()
+
+@sync_to_async
+def get_success_rate():
+    today = timezone.now()
+    start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    success_count = Surgery.objects.filter(
+        created_at__gte=start_of_month,
+        status="success"
+    ).count()
+
+    failed_count = Surgery.objects.filter(
+        created_at__gte=start_of_month,
+        status="failed"
+    ).count()
+
+    total_completed = success_count + failed_count
+
+    if total_completed == 0:
+        return 0
+
+    return round((success_count / total_completed) * 100, 1)
+
+    
+@sync_to_async
+def get_emergency_surgeries():
+    emergency_patient_ids = Appointment.objects.filter(
+        appointment_type="emergency"
+    ).values_list("patient_id", flat=True)
+
+    return Surgery.objects.filter(
+        patient_id__in=emergency_patient_ids
+    ).count()
+
+
 
 @router.get("/stats")
 async def get_dashboard_stats():
@@ -177,7 +257,15 @@ async def get_dashboard_stats():
             get_pharmacy_revenue_today(today),
             get_outstanding_payments()
         )
-        
+        total_surgeries, today_surgeries, emergency_surgeries, success_rate = await asyncio.gather(
+    get_total_surgeries(),
+    get_today_surgeries(),
+    get_emergency_surgeries(),
+    get_success_rate()
+)
+
+
+
         return {
             "patient_stats": {
                 "total_patients": total_patients,
@@ -198,6 +286,14 @@ async def get_dashboard_stats():
                 "pharmacy_revenue_today": pharmacy_revenue_today,
                 "outstanding_payments": outstanding_payments
             },
+            "surgery_stats": {
+    "total_surgeries": total_surgeries,
+    "today_surgeries": today_surgeries,
+    "emergency_surgeries": emergency_surgeries,
+    "success_rate": success_rate
+},
+
+
             "department_distribution": department_stats,
             "timestamp": datetime.now().isoformat(),
             "data_status": "REAL_DATA"

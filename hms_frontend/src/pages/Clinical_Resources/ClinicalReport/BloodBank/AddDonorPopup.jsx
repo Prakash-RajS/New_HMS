@@ -4,6 +4,7 @@ import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
 
 const AddDonorPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -25,8 +26,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     return date.toISOString().split("T")[0];
   };
 
-  
-// Levenshtein distance for typo detection
+  // Levenshtein distance for typo detection
   const levenshtein = (a, b) => {
     const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
       Array.from({ length: a.length + 1 }, (_, j) =>
@@ -48,6 +48,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     }
     return matrix[b.length][a.length];
   };
+  
   // Real-time format validation functions (for typing)
   const validateNameFormat = (value) => {
     if (/[0-9]/.test(value)) return "Name should not contain numbers";
@@ -56,83 +57,83 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
   };
 
   const validateEmailFormat = (value) => {
-  const email = value.trim();
-  if (!email) return "";
+    const email = value.trim();
+    if (!email) return "";
 
-  // 1️⃣ Basic structure check
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return "Please enter a valid email address (e.g., user@domain.com)";
-  }
-
-  // 2️⃣ Suspicious formatting
-  if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
-    return "Invalid email format";
-  }
-
-  const [localPart, domain] = email.toLowerCase().split("@");
-
-  // 3️⃣ Local-part sanity
-  if (localPart.length < 2) {
-    return "Email username is too short";
-  }
-
-  if (/(.)\1{5,}/.test(localPart)) {
-    return "Email appears to be invalid";
-  }
-
-  if (/(\.\.|__|--|\+\+)/.test(localPart)) {
-    return "Email contains invalid characters";
-  }
-
-  // 4️⃣ Disposable / fake domains (hard block)
-  const invalidDomains = [
-    "email.com",
-    "example.com",
-    "test.com",
-    "domain.com",
-    "mailinator.com",
-    "tempmail.com",
-    "guerrillamail.com",
-    "10minutemail.com",
-    "yopmail.com",
-    "fakeemail.com",
-    "temp-mail.org",
-    "throwawayemail.com",
-    "dispostable.com",
-    "maildrop.cc"
-  ];
-
-  if (invalidDomains.includes(domain)) {
-    return "Disposable or invalid email domains are not allowed";
-  }
-
-  // 5️⃣ Dynamic typo detection for major providers
-  const providers = [
-    "gmail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com"
-  ];
-
-  for (const provider of providers) {
-    const distance = levenshtein(domain, provider);
-
-    // distance 1–2 = very likely a typo
-    if (distance > 0 && distance <= 2) {
-      return `Did you mean ${localPart}@${provider}?`;
+    // 1️⃣ Basic structure check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address (e.g., user@domain.com)";
     }
-  }
 
-  // 6️⃣ TLD sanity (not restrictive)
-  const tld = domain.split(".").pop();
-  if (tld.length < 2) {
-    return "Please use a valid domain extension";
-  }
+    // 2️⃣ Suspicious formatting
+    if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
+      return "Invalid email format";
+    }
 
-  return "";
-};
+    const [localPart, domain] = email.toLowerCase().split("@");
+
+    // 3️⃣ Local-part sanity
+    if (localPart.length < 2) {
+      return "Email username is too short";
+    }
+
+    if (/(.)\1{5,}/.test(localPart)) {
+      return "Email appears to be invalid";
+    }
+
+    if (/(\.\.|__|--|\+\+)/.test(localPart)) {
+      return "Email contains invalid characters";
+    }
+
+    // 4️⃣ Disposable / fake domains (hard block)
+    const invalidDomains = [
+      "email.com",
+      "example.com",
+      "test.com",
+      "domain.com",
+      "mailinator.com",
+      "tempmail.com",
+      "guerrillamail.com",
+      "10minutemail.com",
+      "yopmail.com",
+      "fakeemail.com",
+      "temp-mail.org",
+      "throwawayemail.com",
+      "dispostable.com",
+      "maildrop.cc"
+    ];
+
+    if (invalidDomains.includes(domain)) {
+      return "Disposable or invalid email domains are not allowed";
+    }
+
+    // 5️⃣ Dynamic typo detection for major providers
+    const providers = [
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "icloud.com"
+    ];
+
+    for (const provider of providers) {
+      const distance = levenshtein(domain, provider);
+
+      // distance 1–2 = very likely a typo
+      if (distance > 0 && distance <= 2) {
+        return `Did you mean ${localPart}@${provider}?`;
+      }
+    }
+
+    // 6️⃣ TLD sanity (not restrictive)
+    const tld = domain.split(".").pop();
+    if (tld.length < 2) {
+      return "Please use a valid domain extension";
+    }
+
+    return "";
+  };
 
   /* Real-time format validation functions */
   const validateFieldFormat = (field, value) => {
@@ -190,11 +191,11 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
     } else {
-  const emailError = validateEmailFormat(formData.email);
-  if (emailError) {
-    newErrors.email = emailError;
-  }
-}
+      const emailError = validateEmailFormat(formData.email);
+      if (emailError) {
+        newErrors.email = emailError;
+      }
+    }
 
     // Gender validation
     if (!formData.gender) {
@@ -209,7 +210,6 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   /* Submit Handler */
   const handleSubmit = async (e) => {
@@ -228,30 +228,37 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/api/donors/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        let errorMessage = "Failed to add donor";
-        if (result.detail) {
-          errorMessage = Array.isArray(result.detail)
-            ? result.detail.map((e) => `${e.loc.join(" → ")}: ${e.msg}`).join("\n")
-            : result.detail;
-        }
-        throw new Error(errorMessage);
-      }
+      const response = await api.post("/api/donors/add", payload);
 
       successToast("Donor added successfully!");
       onClose();
       if (typeof onAdd === "function") onAdd();
-    } catch (err) {
-      console.error("Add donor error:", err);
-      errorToast(err.message || "Failed to add donor");
+    } catch (error) {
+      console.error("Add donor error:", error);
+      let errorMessage = "Failed to add donor";
+      
+      if (error.response) {
+        if (error.response.status === 401 || error.response.status === 403) {
+          errorMessage = "Session expired. Please login again.";
+        } else if (error.response.status === 400) {
+          const result = error.response.data;
+          if (result.detail) {
+            errorMessage = Array.isArray(result.detail)
+              ? result.detail.map((e) => `${e.loc?.join(" → ")}: ${e.msg}`).join("\n")
+              : result.detail;
+          } else {
+            errorMessage = "Invalid donor data. Please check all fields.";
+          }
+        } else if (error.response.status === 409) {
+          errorMessage = error.response.data?.detail || "Donor with this email already exists";
+        } else {
+          errorMessage = error.response.data?.detail || errorMessage;
+        }
+      } else if (error.request) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      errorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -349,7 +356,10 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
       <label className="text-sm text-black dark:text-white">{label}</label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]">
+          <Listbox.Button 
+            className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+            disabled={loading}
+          >
             <span className="block truncate">{value || "Select"}</span>
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
@@ -436,7 +446,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                     handleBlur("donor_name");
                   }}
                   placeholder="Enter full name"
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  disabled={loading}
+                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
                 {getFieldError("donor_name") && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("donor_name")}</p>
@@ -454,7 +465,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   onChange={handlePhoneChange}
                   onBlur={() => handleBlur("phone")}
                   placeholder="e.g. 9876543210"
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  disabled={loading}
+                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
                 {getFieldError("phone") && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("phone")}</p>
@@ -481,7 +493,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                     handleBlur("email");
                   }}
                   placeholder="example@domain.com"
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  disabled={loading}
+                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
                 {getFieldError("email") && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("email")}</p>
@@ -531,7 +544,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   scrollableYearDropdown
                   yearDropdownItemNumber={15}
                   isClearable
-                  className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B]"
+                  disabled={loading}
+                  className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
                 />
@@ -567,14 +581,11 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition disabled:opacity-50 flex items-center justify-center"
+                className="w-[144px] h-[32px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loading ? (
                   <>
-                    <svg className="animate-spin h-4 w-4 mr-2 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Adding...
                   </>
                 ) : (

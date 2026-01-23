@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, AlertTriangle, Check } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast";
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -23,8 +24,6 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [suggestedRange, setSuggestedRange] = useState("");
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [rangeAvailable, setRangeAvailable] = useState(true);
-
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateBedGroupNameFormat = (value) => {
@@ -100,21 +99,13 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
 
     setCheckingDuplicates(true);
     try {
-      const response = await fetch(`${API_BASE}/bedgroups/check-range`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bedFrom: fromNum,
-          bedTo: toNum,
-        }),
+      const response = await api.post("/bedgroups/check-range", {
+        bedFrom: fromNum,
+        bedTo: toNum,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        setRangeAvailable(result.available);
-        return result;
-      }
-      return { available: false };
+      setRangeAvailable(response.data.available);
+      return response.data;
     } catch (error) {
       console.error("Error checking duplicates:", error);
       return { available: false };
@@ -252,7 +243,6 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
 
     const fromNum = parseInt(formData.bedFrom);
     const toNum = parseInt(formData.bedTo);
-    const capacity = toNum - fromNum + 1;
 
     const payload = {
       bedGroup: formData.bedGroupName.trim(),
@@ -261,46 +251,9 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
     };
 
     try {
-      const response = await fetch(`${API_BASE}/bedgroups/add-with-range`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await api.post("/bedgroups/add-with-range", payload);
 
-      if (!response.ok) {
-        // Handle duplicate error even after check (race condition)
-        if (response.status === 409) {
-          const errorData = await response.json();
-          setDuplicateBeds(errorData.detail?.duplicates || []);
-          setSuggestedRange(errorData.detail?.suggested_range || "");
-          setShowDuplicateWarning(true);
-          setLoading(false);
-          return;
-        }
-
-        let errorMessage = "Failed to create bed group.";
-
-        if (response.status === 400) {
-          const err = await response.json();
-          errorMessage = err.detail || "Bed group already exists.";
-        } else {
-          try {
-            const err = await response.json();
-            errorMessage = err.detail || errorMessage;
-          } catch {
-            errorMessage = `Server error: ${response.status}`;
-          }
-        }
-
-        setServerError(errorMessage);
-        errorToast(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      const newGroup = await response.json();
+      const newGroup = response.data;
       successToast(`"${newGroup.bedGroup}" created successfully!`);
 
       if (onAdd) onAdd(newGroup);
@@ -308,11 +261,32 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
       setTimeout(() => {
         onClose();
       }, 600);
-    } catch (err) {
-      const networkError = "Network error. Please check your connection.";
-      setServerError(networkError);
-      errorToast(networkError);
-      console.error("Create BedGroup Error:", err);
+    } catch (error) {
+      console.error("Create BedGroup Error:", error);
+      
+      // Handle duplicate error even after check (race condition)
+      if (error.response?.status === 409) {
+        const errorData = error.response.data;
+        setDuplicateBeds(errorData.detail?.duplicates || []);
+        setSuggestedRange(errorData.detail?.suggested_range || "");
+        setShowDuplicateWarning(true);
+        setLoading(false);
+        return;
+      }
+
+      // Handle other errors
+      let errorMessage = "Failed to create bed group.";
+      
+      if (error.response?.status === 400) {
+        errorMessage = error.response.data?.detail || "Bed group already exists.";
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setServerError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       setLoading(false);
     }

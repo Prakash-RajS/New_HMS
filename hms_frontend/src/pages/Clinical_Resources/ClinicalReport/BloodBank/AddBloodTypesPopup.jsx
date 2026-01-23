@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
 
 const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -14,7 +15,6 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   const [errors, setErrors] = useState({}); // Required errors (show only after submission)
   const [formatErrors, setFormatErrors] = useState({}); // Format errors (show while typing)
   const [loading, setLoading] = useState(false);
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const statuses = ["Available", "Low Stock", "Out of Stock"];
@@ -78,32 +78,30 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
           status: formData.status,
         };
 
-        const response = await fetch(`${API_BASE}/api/blood-groups/add`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          let errorMsg = "Failed to add blood group";
-          try {
-            const errorData = await response.json();
-            errorMsg = errorData.detail || errorData.message || errorMsg;
-          } catch {
-            errorMsg = await response.text();
-          }
-          throw new Error(`HTTP ${response.status}: ${errorMsg}`);
-        }
-
-        const result = await response.json();
-        onAdd?.(result);
+        const response = await api.post("/api/blood-groups/add", payload);
+        
+        onAdd?.(response.data);
         successToast("Blood group added successfully!");
         onClose();
       } catch (error) {
         console.error("Error in handleSubmit:", error);
-        errorToast(error.message || "Failed to add blood group");
+        let errorMessage = "Failed to add blood group";
+        
+        if (error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else if (error.response.status === 400) {
+            errorMessage = error.response.data?.detail || "Invalid blood group data";
+          } else if (error.response.status === 409) {
+            errorMessage = error.response.data?.detail || "Blood type already exists";
+          } else {
+            errorMessage = error.response.data?.detail || error.response.data?.message || errorMessage;
+          }
+        } else if (error.request) {
+          errorMessage = "Network error. Please check your connection.";
+        }
+        
+        errorToast(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -129,33 +127,39 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
       try {
         const payload = {
           blood_type: formData.blood_type,
-          available_units: parseInt(formData.available_units),
+          available_units: parseInt(formData.available_units, 10),
           status: formData.status,
         };
 
-        const response = await fetch(
-          `${API_BASE}/blood-groups/${bloodData.id}/edit`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
+        const response = await api.put(
+          `/blood-groups/${bloodData.id}/edit`,
+          payload
         );
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Failed to update blood group");
-        }
-
-        const result = await response.json();
+        const result = response.data;
         if (onUpdate) {
           onUpdate(result);
         }
+        successToast("Blood group updated successfully!");
         onClose();
       } catch (error) {
-        errorToast(error.message || "Failed to update blood group");
+        let errorMessage = "Failed to update blood group";
+        
+        if (error.response) {
+          if (error.response.status === 401 || error.response.status === 403) {
+            errorMessage = "Session expired. Please login again.";
+          } else if (error.response.status === 400) {
+            errorMessage = error.response.data?.detail || "Invalid blood group data";
+          } else if (error.response.status === 404) {
+            errorMessage = "Blood group not found";
+          } else {
+            errorMessage = error.response.data?.detail || errorMessage;
+          }
+        } else if (error.request) {
+          errorMessage = "Network error. Please check your connection.";
+        }
+        
+        errorToast(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -205,7 +209,8 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
-            focus:outline-none"
+            focus:outline-none disabled:opacity-50"
+            disabled={loading}
           >
             {value || "Select"}
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -260,7 +265,8 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
             </h2>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+              disabled={loading}
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center disabled:opacity-50"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
@@ -292,8 +298,10 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
                 value={formData.available_units}
                 onChange={handleUnitsChange}
                 placeholder="e.g. 1 or 2 or 3"
+                disabled={loading}
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
-                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 
+                outline-none disabled:opacity-50"
               />
               {/* Format validation error - shows while typing */}
               {formatErrors.available_units && (
@@ -331,7 +339,7 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
               disabled={loading}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
               bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium text-[14px] leading-[16px]
-              disabled:opacity-50"
+              disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-800 transition"
             >
               Cancel
             </button>
@@ -339,9 +347,17 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
               onClick={bloodData ? handleUpdate : handleSubmit}
               disabled={loading}
               className="w-[144px] h-[32px] border-b-[2px] border-[#0EFF7B] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition disabled:opacity-50 disabled:hover:scale-100"
+              text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition disabled:opacity-50 disabled:hover:scale-100 
+              disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? "Processing..." : bloodData ? "Update" : "Add"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  {bloodData ? "Updating..." : "Adding..."}
+                </>
+              ) : (
+                bloodData ? "Update" : "Add"
+              )}
             </button>
           </div>
         </div>

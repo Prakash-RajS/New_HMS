@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import { PermissionContext } from "../../components/PermissionContext";
 
 const SecuritySettingsPage = () => {
@@ -17,16 +17,6 @@ const SecuritySettingsPage = () => {
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState({});
   const [initialized, setInitialized] = useState(false);
-
- const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-  const api = axios.create({ baseURL: API_BASE });
-
-  api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  });
 
   const modules = [
     { key: "dashboard", label: "View Dashboard" },

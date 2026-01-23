@@ -499,7 +499,7 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const DoctorProfile = () => {
   const navigate = useNavigate();
@@ -511,11 +511,11 @@ const DoctorProfile = () => {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [certificates, setCertificates] = useState([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
-  
+ 
   // ADDED: Validation states
   const [errors, setErrors] = useState({});
   const [formatErrors, setFormatErrors] = useState({});
-  
+ 
   // Form state for editing
   const [formData, setFormData] = useState({
     name: "",
@@ -541,7 +541,6 @@ const DoctorProfile = () => {
     aboutPhysician: "",
     shiftTiming: "",
   });
-
   // ADDED: Levenshtein function from example
   const levenshtein = (a, b) => {
     const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
@@ -549,7 +548,6 @@ const DoctorProfile = () => {
         i === 0 ? j : j === 0 ? i : 0
       )
     );
-
     for (let i = 1; i <= b.length; i++) {
       for (let j = 1; j <= a.length; j++) {
         matrix[i][j] =
@@ -564,35 +562,27 @@ const DoctorProfile = () => {
     }
     return matrix[b.length][a.length];
   };
-
   // ADDED: Email validation from example
   const validateEmailFormat = (value) => {
     const email = value.trim();
     if (!email) return "";
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return "Please enter a valid email address (e.g., user@domain.com)";
     }
-
     if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
       return "Invalid email format";
     }
-
     const [localPart, domain] = email.toLowerCase().split("@");
-
     if (localPart.length < 2) {
       return "Email username is too short";
     }
-
     if (/(.)\1{5,}/.test(localPart)) {
       return "Email appears to be invalid";
     }
-
     if (/(\.\.|__|--|\+\+)/.test(localPart)) {
       return "Email contains invalid characters";
     }
-
     const invalidDomains = [
       "email.com",
       "example.com",
@@ -609,11 +599,9 @@ const DoctorProfile = () => {
       "dispostable.com",
       "maildrop.cc"
     ];
-
     if (invalidDomains.includes(domain)) {
       return "Disposable or invalid email domains are not allowed";
     }
-
     const providers = [
       "gmail.com",
       "yahoo.com",
@@ -621,22 +609,18 @@ const DoctorProfile = () => {
       "hotmail.com",
       "icloud.com"
     ];
-
     for (const provider of providers) {
       const distance = levenshtein(domain, provider);
       if (distance > 0 && distance <= 2) {
         return `Did you mean ${localPart}@${provider}?`;
       }
     }
-
     const tld = domain.split(".").pop();
     if (tld.length < 2) {
       return "Please use a valid domain extension";
     }
-
     return "";
   };
-
   // ADDED: Field format validation
   const validateFieldFormat = (field, value) => {
     switch (field) {
@@ -646,7 +630,7 @@ const DoctorProfile = () => {
           return "Name can only contain letters and spaces";
         }
         return "";
-      
+     
       case "contact":
         if (!value) return "";
         if (!/^\d*$/.test(value)) {
@@ -659,10 +643,10 @@ const DoctorProfile = () => {
           return "Phone must be exactly 10 digits";
         }
         return "";
-      
+     
       case "email":
         return validateEmailFormat(value);
-      
+     
       case "age":
         if (!value) return "";
         if (!/^\d*$/.test(value)) {
@@ -673,12 +657,11 @@ const DoctorProfile = () => {
           return "Age must be between 18 and 100";
         }
         return "";
-      
+     
       default:
         return "";
     }
   };
-
   // ADDED: Get field error
   const getFieldError = (field) => {
     if (formatErrors[field]) {
@@ -686,11 +669,9 @@ const DoctorProfile = () => {
     }
     return errors[field] || "";
   };
-
   // ADDED: Validate form
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.name.trim()) {
       newErrors.name = "Full name is required";
     } else if (formData.name.trim().length < 2) {
@@ -698,13 +679,11 @@ const DoctorProfile = () => {
     } else if (!/^[A-Za-z\s]+$/.test(formData.name)) {
       newErrors.name = "Name can only contain letters and spaces";
     }
-
     if (!formData.contact.trim()) {
       newErrors.contact = "Phone number is required";
     } else if (!/^\d{10}$/.test(formData.contact)) {
       newErrors.contact = "Phone must be exactly 10 digits";
     }
-
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
     } else {
@@ -713,7 +692,6 @@ const DoctorProfile = () => {
         newErrors.email = emailError;
       }
     }
-
     if (!formData.age.trim()) {
       newErrors.age = "Age is required";
     } else {
@@ -722,29 +700,26 @@ const DoctorProfile = () => {
         newErrors.age = "Age must be between 18 and 100";
       }
     }
-
     if (!formData.gender) {
       newErrors.gender = "Gender is required";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   // ADDED: Name change handler
   const handleFullNameChange = (e) => {
     let value = e.target.value;
-    
+   
     if (value) {
       value = value.replace(/\b\w/g, char => char.toUpperCase());
     }
-    
+   
     setFormData(prev => ({ ...prev, name: value }));
-    
+   
     if (errors.name) {
       setErrors(prev => ({ ...prev, name: "" }));
     }
-    
+   
     const formatError = validateFieldFormat("name", value);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, name: formatError }));
@@ -756,17 +731,16 @@ const DoctorProfile = () => {
       });
     }
   };
-
   // ADDED: Phone change handler
   const handlePhoneChange = (e) => {
     const value = e.target.value;
     if (/^\d*$/.test(value)) {
       setFormData(prev => ({ ...prev, contact: value }));
-      
+     
       if (errors.contact) {
         setErrors(prev => ({ ...prev, contact: "" }));
       }
-      
+     
       const formatError = validateFieldFormat("contact", value);
       if (formatError) {
         setFormatErrors(prev => ({ ...prev, contact: formatError }));
@@ -779,16 +753,15 @@ const DoctorProfile = () => {
       }
     }
   };
-
   // ADDED: Email change handler
   const handleEmailChange = (e) => {
     const value = e.target.value;
     setFormData(prev => ({ ...prev, email: value }));
-    
+   
     if (errors.email) {
       setErrors(prev => ({ ...prev, email: "" }));
     }
-    
+   
     const formatError = validateFieldFormat("email", value);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, email: formatError }));
@@ -800,17 +773,16 @@ const DoctorProfile = () => {
       });
     }
   };
-
   // ADDED: Age change handler
   const handleAgeChange = (e) => {
     const value = e.target.value;
     if (/^\d*$/.test(value)) {
       setFormData(prev => ({ ...prev, age: value }));
-      
+     
       if (errors.age) {
         setErrors(prev => ({ ...prev, age: "" }));
       }
-      
+     
       const formatError = validateFieldFormat("age", value);
       if (formatError) {
         setFormatErrors(prev => ({ ...prev, age: formatError }));
@@ -823,28 +795,26 @@ const DoctorProfile = () => {
       }
     }
   };
-
   // ADDED: Blur handler
   const handleBlur = (field) => {
     const value = formData[field];
     const formatError = validateFieldFormat(field, value);
-    
+   
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, [field]: formatError }));
     }
   };
-
   // Parse certificates from comma-separated string
   const parseCertificates = (certificatesString) => {
     if (!certificatesString || certificatesString.trim() === '') {
       return [];
     }
-    
+   
     const certificatePaths = certificatesString.split(',').map(path => path.trim());
-    
+   
     return certificatePaths.map((path, index) => {
       const fileName = getFileNameFromPath(path);
-      
+     
       return {
         id: index + 1,
         name: fileName,
@@ -853,22 +823,21 @@ const DoctorProfile = () => {
       };
     });
   };
-  
+ 
   const handleViewCertificate = (certificate) => {
     const filePath = certificate.originalPath;
-    const fileUrl = `${API_BASE}/${filePath}`;
+    const fileUrl = `${import.meta.env.VITE_API_BASE_URL}/${filePath}`;
     console.log("Viewing certificate URL:", fileUrl);
     window.open(fileUrl, "_blank");
   };
-
   // Handle download certificate
   const handleDownloadCertificate = (certificate) => {
     // Use the original path from backend directly
     const filePath = certificate.originalPath;
-    
+   
     // Construct the URL - Directly use the path from backend
-    const fileUrl = `${API_BASE}/${filePath}`;
-    
+    const fileUrl = `${import.meta.env.VITE_API_BASE_URL}/${filePath}`;
+   
     console.log("Downloading certificate URL:", fileUrl);
     const link = document.createElement("a");
     link.href = fileUrl;
@@ -877,8 +846,7 @@ const DoctorProfile = () => {
     link.click();
     document.body.removeChild(link);
   };
-  
-
+ 
   // UPDATED: Dropdown component with error support
   const Dropdown = ({
     label,
@@ -965,18 +933,16 @@ const DoctorProfile = () => {
       </div>
     );
   };
-  
+ 
   const getFileNameFromPath = (path) => {
     if (!path) return '';
     return path.split('/').pop();
   };
-
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/patients/departments`);
-      if (!response.ok) throw new Error("Failed to fetch departments");
-      const data = await response.json();
+      const response = await api.get("/patients/departments");
+      const data = response.data;
       const formattedDepartments = Array.isArray(data.departments)
         ? data.departments.map((dept) => ({
             id: dept.id || dept.department_id || dept.value,
@@ -996,135 +962,131 @@ const DoctorProfile = () => {
       setDepartmentsLoading(false);
     }
   };
-  
-  useEffect(() => {
-      fetchDepartments();
-  
-      const fetchProfileData = async () => {
-        try {
-          setLoading(true);
-          const profileId = location.state?.profile?.id;
-  
-          if (!profileId) {
-            errorToast("No profile ID provided");
-            navigate(-1);
-            return;
-          }
-  
-          const response = await fetch(`${API_BASE}/staff/${profileId}/`);
-          if (!response.ok) throw new Error("Failed to fetch profile data");
-  
-          const data = await response.json();
-          setProfileData(data);
-  
-          if (data.certificates) {
-            const parsedCertificates = parseCertificates(data.certificates);
-            setCertificates(parsedCertificates);
-          } else {
-            setCertificates([]);
-          }
-  
-          const departmentName = data.department || "";
-  
-          setFormData({
-            name: data.full_name || "",
-            gender: data.gender || "",
-            age: data.age ? String(data.age) : "",
-            bloodGroup: "A+",
-            contact: data.phone || "",
-            email: data.email || "",
-            education: data.education || data.specialization || "",
-            quote:
-              data.about_physician ||
-              "Dedicated to providing compassionate, patient-centered care.",
-            experience: data.experience || "10+ years",
-            department_id: data.department_id || "",
-            department: departmentName,
-            licenseNumber: data.license_number || data.national_id || "",
-            specialization: data.specialization || "",
-            boardCertifications:
-              data.board_certifications || "American Board of Orthopedic Surgery",
-            professionalMemberships:
-              data.professional_memberships ||
-              "American Medical Association (AMA)",
-            languagesSpoken: data.languages_spoken || "English",
-            awards:
-              data.awards_recognitions || "Top Doctor awards, hospital honors",
-            status: data.status || "active",
-            profilePictureFile: null,
-            profilePicturePreview: null,
-            aboutPhysician: data.about_physician || "",
-            shiftTiming: data.shift_timing || "",
-          });
-        } catch (error) {
-          console.error("Error fetching profile:", error);
-          errorToast("Failed to load profile data");
-          navigate(-1);
-        } finally {
-          setLoading(false);
-        }
-      };
-  
-      fetchProfileData();
-    }, [location, navigate]);
-  
+ 
+// Move the fetchProfileData function definition outside useEffect
+const fetchProfileData = async () => {
+  try {
+    setLoading(true);
+    const profileId = location.state?.profile?.id || profileData?.id;
+
+    if (!profileId) {
+      errorToast("No profile ID provided");
+      navigate(-1);
+      return;
+    }
+
+    const response = await api.get(`/staff/${profileId}/`);
+    const data = response.data;
+    setProfileData(data);
+
+    if (data.certificates) {
+      const parsedCertificates = parseCertificates(data.certificates);
+      setCertificates(parsedCertificates);
+    } else {
+      setCertificates([]);
+    }
+
+    // Update formData with fresh data
+    const departmentName = data.department || "";
+
+    setFormData({
+      name: data.full_name || "",
+      gender: data.gender || "",
+      age: data.age ? String(data.age) : "",
+      bloodGroup: formData.bloodGroup || "A+",
+      contact: data.phone || "",
+      email: data.email || "",
+      education: data.education || data.specialization || "",
+      quote: data.about_physician || "Dedicated to providing compassionate, patient-centered care.",
+      experience: data.experience || "10+ years",
+      department_id: data.department_id || "",
+      department: departmentName,
+      licenseNumber: data.license_number || data.national_id || "",
+      specialization: data.specialization || "",
+      boardCertifications: data.board_certifications || "American Board of Orthopedic Surgery",
+      professionalMemberships: data.professional_memberships || "American Medical Association (AMA)",
+      languagesSpoken: data.languages_spoken || "English",
+      awards: data.awards_recognitions || "Top Doctor awards, hospital honors",
+      status: data.status?.toLowerCase() || "active",
+      profilePictureFile: null,
+      profilePicturePreview: null,
+      aboutPhysician: data.about_physician || "",
+      shiftTiming: data.shift_timing || "",
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    errorToast("Failed to load profile data");
+    navigate(-1);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Then update your useEffect to use it:
+useEffect(() => {
+  fetchDepartments();
+  fetchProfileData();
+}, [location, navigate]);
+ 
   // UPDATED: handleEditClick
   const handleEditClick = () => {
     setErrors({});
     setFormatErrors({});
     setShowEditModal(true);
   };
-  
+ 
   const getProfilePictureUrl = (profilePicturePath) => {
     if (!profilePicturePath) return null;
     if (profilePicturePath.startsWith("http")) return profilePicturePath;
     const filename = profilePicturePath.split("/").pop();
-    return filename ? `${API_BASE}/static/staffs_pictures/${filename}` : null;
+    return filename ? `${import.meta.env.VITE_API_BASE_URL}/static/staffs_pictures/${filename}` : null;
   };
-  
+ 
   // UPDATED: handleCloseModal
-  const handleCloseModal = () => {
-    setShowEditModal(false);
-    setErrors({});
-    setFormatErrors({});
-    if (profileData) {
-      const departmentName = profileData.department || "";
-      setFormData((prev) => ({
-        ...prev,
-        name: profileData.full_name || "",
-        gender: profileData.gender || "",
-        age: profileData.age?.toString() || "",
-        contact: profileData.phone || "",
-        email: profileData.email || "",
-        specialization: profileData.specialization || "",
-        licenseNumber:
-          profileData.license_number || profileData.national_id || "",
-        status: profileData.status?.toLowerCase() || "active",
-        education: profileData.education || "",
-        aboutPhysician: profileData.about_physician || "",
-        experience: profileData.experience || "",
-        boardCertifications: profileData.board_certifications || "",
-        professionalMemberships: profileData.professional_memberships || "",
-        languagesSpoken: profileData.languages_spoken || "",
-        awards: profileData.awards_recognitions || "",
-        shiftTiming: profileData.shift_timing || "",
-        department_id: profileData.department_id || "",
-        department: departmentName,
-        profilePictureFile: null,
-        profilePicturePreview: null,
-      }));
-    }
-  };
+  // UPDATED: handleCloseModal
+const handleCloseModal = () => {
+  setShowEditModal(false);
+  setErrors({});
+  setFormatErrors({});
   
+  // Reset formData to current profileData values
+  if (profileData) {
+    setFormData({
+      name: profileData.full_name || "",
+      gender: profileData.gender || "",
+      age: profileData.age ? String(profileData.age) : "",
+      bloodGroup: formData.bloodGroup || "A+", // Keep existing or default
+      contact: profileData.phone || "",
+      email: profileData.email || "",
+      education: profileData.education || "",
+      quote: profileData.about_physician || "Dedicated to providing compassionate, patient-centered care.",
+      experience: profileData.experience || "",
+      department_id: profileData.department_id || "",
+      department: profileData.department || "",
+      licenseNumber: profileData.license_number || profileData.national_id || "",
+      specialization: profileData.specialization || "",
+      boardCertifications: profileData.board_certifications || "",
+      professionalMemberships: profileData.professional_memberships || "",
+      languagesSpoken: profileData.languages_spoken || "",
+      awards: profileData.awards_recognitions || "",
+      status: profileData.status || "active",
+      profilePictureFile: null,
+      profilePicturePreview: null,
+      aboutPhysician: profileData.about_physician || "",
+      shiftTiming: profileData.shift_timing || "",
+    });
+  }
+};
+ 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    
+   
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
   };
-  
+ 
   // UPDATED: handleDepartmentChange
   const handleDepartmentChange = (deptId) => {
     const selectedDept = departments.find(
@@ -1135,30 +1097,21 @@ const DoctorProfile = () => {
       department_id: deptId,
       department: selectedDept?.name || "",
     }));
-    
+   
     if (errors.department_id) {
       setErrors(prev => ({ ...prev, department_id: "" }));
     }
   };
-  
+ 
   const refreshPatientCount = async () => {
     try {
       if (!profileData?.id) return;
-      const response = await fetch(
-        `${API_BASE}/staff/${profileData.id}/update-statistics/`,
-        {
-          method: "POST",
-        }
-      );
-      if (response.ok) {
-        const result = await response.json();
-        console.log("Statistics updated:", result);
-        const profileResponse = await fetch(
-          `${API_BASE}/staff/${profileData.id}/`
-        );
-        if (profileResponse.ok) {
-          const updatedData = await profileResponse.json();
-          setProfileData(updatedData);
+      const response = await api.post(`/staff/${profileData.id}/update-statistics/`);
+      if (response.status.toString().startsWith('2')) {
+        console.log("Statistics updated:", response.data);
+        const profileResponse = await api.get(`/staff/${profileData.id}/`);
+        if (profileResponse.status.toString().startsWith('2')) {
+          setProfileData(profileResponse.data);
           successToast("Patient count updated successfully");
         }
       } else {
@@ -1169,95 +1122,105 @@ const DoctorProfile = () => {
       errorToast("Failed to update patient count");
     }
   };
-  
+ 
   // UPDATED: handleSubmit with validation
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      errorToast("Please fix the errors in the form");
+  // UPDATED: handleSubmit with validation and proper state update
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!validateForm()) {
+    errorToast("Please fix the errors in the form");
+    return;
+  }
+
+  try {
+    if (!profileData?.id) {
+      errorToast("No profile ID available for update");
       return;
     }
 
-    try {
-      if (!profileData?.id) {
-        errorToast("No profile ID available for update");
-        return;
+    const updateData = new FormData();
+    
+    // Map formData to match backend field names
+    updateData.append("full_name", formData.name.trim());
+    updateData.append("gender", formData.gender);
+    updateData.append("age", parseInt(formData.age) || 0);
+    updateData.append("phone", formData.contact);
+    updateData.append("email", formData.email.trim());
+    updateData.append("specialization", formData.specialization || "");
+    updateData.append("national_id", formData.licenseNumber || "");
+    updateData.append("status", formData.status.toLowerCase());
+    
+    // Make sure department_id is included
+    if (formData.department_id) {
+      updateData.append("department_id", formData.department_id);
+    } else if (profileData.department_id) {
+      updateData.append("department_id", profileData.department_id);
+    }
+    
+    updateData.append("education", formData.education || "");
+    updateData.append("about_physician", formData.aboutPhysician || "");
+    updateData.append("experience", formData.experience || "");
+    updateData.append("license_number", formData.licenseNumber || "");
+    updateData.append("board_certifications", formData.boardCertifications || "");
+    updateData.append("professional_memberships", formData.professionalMemberships || "");
+    updateData.append("languages_spoken", formData.languagesSpoken || "");
+    updateData.append("awards_recognitions", formData.awards || "");
+    updateData.append("shift_timing", formData.shiftTiming || "");
+    
+    if (formData.profilePictureFile) {
+      updateData.append("profile_picture", formData.profilePictureFile);
+    }
+
+    console.log("Updating staff with data:", {
+      id: profileData.id,
+      full_name: formData.name,
+      department_id: formData.department_id
+    });
+
+    // Add proper headers for FormData
+    const response = await api.put(`/staff/update/${profileData.id}/`, updateData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
-      const updateData = new FormData();
-      updateData.append("full_name", formData.name.trim());
-      updateData.append("gender", formData.gender);
-      updateData.append("age", parseInt(formData.age) || 0);
-      updateData.append("phone", formData.contact);
-      updateData.append("email", formData.email.trim());
-      updateData.append("specialization", formData.specialization);
-      updateData.append("national_id", formData.licenseNumber);
-      updateData.append("status", formData.status);
-      if (formData.department_id) {
-        updateData.append("department_id", formData.department_id);
-      }
-      updateData.append("education", formData.education);
-      updateData.append("about_physician", formData.aboutPhysician);
-      updateData.append("experience", formData.experience);
-      updateData.append("license_number", formData.licenseNumber);
-      updateData.append("board_certifications", formData.boardCertifications);
-      updateData.append(
-        "professional_memberships",
-        formData.professionalMemberships
-      );
-      updateData.append("languages_spoken", formData.languagesSpoken);
-      updateData.append("awards_recognitions", formData.awards);
-      updateData.append("shift_timing", formData.shiftTiming);
-      if (formData.profilePictureFile) {
-        updateData.append("profile_picture", formData.profilePictureFile);
-      }
-      const response = await fetch(
-        `${API_BASE}/staff/update/${profileData.id}/`,
-        {
-          method: "PUT",
-          body: updateData,
-        }
-      );
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update profile: ${response.status}`);
-      }
-      const updatedData = await response.json();
-      setProfileData(updatedData);
-      setFormData((prev) => ({
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      const updatedData = response.data;
+      console.log("Update successful:", updatedData);
+
+      // Update profileData with the response
+      setProfileData(prev => ({
         ...prev,
-        name: updatedData.full_name || "",
-        gender: updatedData.gender || "",
-        age: updatedData.age?.toString() || "",
-        contact: updatedData.phone || "",
-        email: updatedData.email || "",
-        specialization: updatedData.specialization || "",
-        licenseNumber:
-          updatedData.license_number || updatedData.national_id || "",
-        status: updatedData.status?.toLowerCase() || "active",
-        education: updatedData.education || "",
-        aboutPhysician: updatedData.about_physician || "",
-        experience: updatedData.experience || "",
-        boardCertifications: updatedData.board_certifications || "",
-        professionalMemberships: updatedData.professional_memberships || "",
-        languagesSpoken: updatedData.languages_spoken || "",
-        awards: updatedData.awards_recognitions || "",
-        shiftTiming: updatedData.shift_timing || "",
-        department_id: updatedData.department_id || "",
-        department: updatedData.department || "",
-        profilePictureFile: null,
-        profilePicturePreview: null,
+        ...updatedData,
+        full_name: updatedData.full_name || formData.name.trim(),
+        department: updatedData.department || formData.department,
+        department_id: updatedData.department_id || formData.department_id
       }));
+
       successToast("Profile updated successfully");
       setShowEditModal(false);
       setErrors({});
       setFormatErrors({});
-    } catch (error) {
-      console.error("Error updating profile:", error);
+
+      // Optionally refresh the data
+      setTimeout(() => {
+        fetchProfileData(); // You'll need to extract this function
+      }, 1000);
+
+    } else {
+      throw new Error(`Failed to update: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    if (error.response) {
+      console.error("Error details:", error.response.data);
+      errorToast(error.response.data?.detail || error.response.data?.message || "Failed to update profile");
+    } else {
       errorToast(error.message || "Failed to update profile");
     }
-  };
-  
+  }
+};
   if (loading) {
     return (
       <div className="min-h-screen mt-[80px] flex items-center justify-center bg-gray-100 dark:bg-black">
@@ -1265,7 +1228,7 @@ const DoctorProfile = () => {
       </div>
     );
   }
-  
+ 
   if (!profileData) {
     return (
       <div className="min-h-screen mt-[80px] flex items-center justify-center bg-gray-100 dark:bg-black">
@@ -1281,7 +1244,7 @@ const DoctorProfile = () => {
       </div>
     );
   }
-  
+ 
   const normalizedStatus = profileData.status?.toLowerCase() || "active";
   const statusOptions = [
     { id: "active", name: "Available" },
@@ -1303,7 +1266,7 @@ const DoctorProfile = () => {
     { id: "Female", name: "Female" },
     { id: "Other", name: "Other" },
   ];
-  
+ 
   return (
     <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       {/* YOUR ORIGINAL JSX STARTS HERE - I'M NOT MODIFYING IT */}
@@ -1590,26 +1553,27 @@ const DoctorProfile = () => {
                 </span>
               </p>
             </div>
-            <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
-              <p className="text-black dark:text-white text-[18px]">
-                Surgeries
-              </p>
-              <div className="flex justify-center items-center gap-2">
-                <Activity
-                  size={26}
-                  className="text-[#08994A] dark:text-[#0EFF7B]"
-                />
-                <p className="text-2xl font-medium text-black dark:text-white">
-                  90
-                </p>
-              </div>
-              <p className="text-green-500 text-xs">
-                95%{" "}
-                <span className="text-black dark:text-white text-[12px]">
-                  success rate
-                </span>
-              </p>
-            </div>
+            {/* Surgeries */}
+<div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
+  <p className="text-black dark:text-white text-[18px]">
+    Surgeries
+  </p>
+  <div className="flex justify-center items-center gap-2">
+    <Activity
+      size={26}
+      className="text-[#08994A] dark:text-[#0EFF7B]"
+    />
+    <p className="text-2xl font-medium text-black dark:text-white">
+      {profileData.total_surgeries || 0}
+    </p>
+  </div>
+  <p className="text-green-500 text-xs">
+    {profileData.success_rate || 0}%{" "}
+    <span className="text-black dark:text-white text-[12px]">
+      success rate
+    </span>
+  </p>
+</div>
             <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
               <p className="text-black dark:text-white text-[18px]">Reviews</p>
               <div className="flex justify-center items-center gap-2">
@@ -1750,7 +1714,6 @@ const DoctorProfile = () => {
       size={16}
       className="text-[#08994A] dark:text-[#0EFF7B]"
     />
-
     <span
       className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                  px-3 py-1 text-xs rounded-md shadow-md
@@ -1761,7 +1724,6 @@ const DoctorProfile = () => {
       View
     </span>
   </div>
-
   {/* DOWNLOAD */}
   <div
     className="relative group w-8 h-8 rounded-[6px]
@@ -1775,7 +1737,6 @@ const DoctorProfile = () => {
       size={16}
       className="text-white"
     />
-
     <span
       className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                  px-3 py-1 text-xs rounded-md shadow-md
@@ -1798,7 +1759,7 @@ const DoctorProfile = () => {
                   </div>
         </div>
       </div>
-      
+     
       {/* MODAL UPDATED WITH VALIDATION */}
       {showEditModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
@@ -1939,16 +1900,16 @@ const DoctorProfile = () => {
                     onChange={handleFullNameChange}
                     onBlur={() => {
                       if (formData.name) {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          name: prev.name.trim() 
+                        setFormData(prev => ({
+                          ...prev,
+                          name: prev.name.trim()
                         }));
                       }
                       handleBlur("name");
                     }}
                     className={`w-full h-[42px] border rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black ${
-                      getFieldError("name") 
-                        ? "border-red-500" 
+                      getFieldError("name")
+                        ? "border-red-500"
                         : "border-[#0EFF7B] dark:border-[#3C3C3C]"
                     }`}
                   />
@@ -1958,11 +1919,11 @@ const DoctorProfile = () => {
                     </p>
                   )}
                 </div>
-                
+               
                 {/* Gender Dropdown with Validation */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
-                    Gender 
+                    Gender
                   </label>
                   <Dropdown
                     value={formData.gender}
@@ -1978,7 +1939,7 @@ const DoctorProfile = () => {
                     required
                   />
                 </div>
-                
+               
                 {/* Age Field with Validation */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -1991,8 +1952,8 @@ const DoctorProfile = () => {
                     onChange={handleAgeChange}
                     onBlur={() => handleBlur("age")}
                     className={`w-full h-[42px] border rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black ${
-                      getFieldError("age") 
-                        ? "border-red-500" 
+                      getFieldError("age")
+                        ? "border-red-500"
                         : "border-[#0EFF7B] dark:border-[#3C3C3C]"
                     }`}
                   />
@@ -2002,7 +1963,7 @@ const DoctorProfile = () => {
                     </p>
                   )}
                 </div>
-                
+               
                 {/* Blood Group Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2017,7 +1978,7 @@ const DoctorProfile = () => {
                     placeholder="Select Blood Group"
                   />
                 </div>
-                
+               
                 {/* Contact Field with Validation */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2031,8 +1992,8 @@ const DoctorProfile = () => {
                     onBlur={() => handleBlur("contact")}
                     maxLength="10"
                     className={`w-full h-[42px] border rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black ${
-                      getFieldError("contact") 
-                        ? "border-red-500" 
+                      getFieldError("contact")
+                        ? "border-red-500"
                         : "border-[#0EFF7B] dark:border-[#3C3C3C]"
                     }`}
                   />
@@ -2042,7 +2003,7 @@ const DoctorProfile = () => {
                     </p>
                   )}
                 </div>
-                
+               
                 {/* Email Field with Validation */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2055,16 +2016,16 @@ const DoctorProfile = () => {
                     onChange={handleEmailChange}
                     onBlur={() => {
                       if (formData.email) {
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          email: prev.email.trim() 
+                        setFormData(prev => ({
+                          ...prev,
+                          email: prev.email.trim()
                         }));
                       }
                       handleBlur("email");
                     }}
                     className={`w-full h-[42px] border rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black ${
-                      getFieldError("email") 
-                        ? "border-red-500" 
+                      getFieldError("email")
+                        ? "border-red-500"
                         : "border-[#0EFF7B] dark:border-[#3C3C3C]"
                     }`}
                   />
@@ -2074,7 +2035,7 @@ const DoctorProfile = () => {
                     </p>
                   )}
                 </div>
-                
+               
                 {/* Education Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2088,7 +2049,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Experience Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2102,11 +2063,11 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Department Dropdown with Validation */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
-                    Department 
+                    Department
                   </label>
                   <Dropdown
                     value={formData.department_id}
@@ -2120,10 +2081,10 @@ const DoctorProfile = () => {
                     disabled={departmentsLoading}
                     loading={departmentsLoading}
                     error={errors.department_id}
-                  
+                 
                   />
                 </div>
-                
+               
                 {/* License Number Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2137,7 +2098,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Specialization Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2151,7 +2112,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Board Certifications Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2165,7 +2126,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Professional Memberships Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2179,7 +2140,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Languages Spoken Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2193,7 +2154,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Awards & Recognitions Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2207,7 +2168,7 @@ const DoctorProfile = () => {
                     className="w-full h-[42px] border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[8px] px-[12px] py-[8px] text-sm text-black dark:text-white bg-[#F5F6F5] dark:bg-black"
                   />
                 </div>
-                
+               
                 {/* Shift Timing Field */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2222,7 +2183,7 @@ const DoctorProfile = () => {
                     placeholder="e.g., 09:00 AM - 05:00 PM"
                   />
                 </div>
-                
+               
                 {/* About Physician Textarea */}
                 <div className="col-span-3">
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2236,7 +2197,7 @@ const DoctorProfile = () => {
                     placeholder="Dedicated to providing compassionate, patient-centered care."
                   />
                 </div>
-                
+               
                 {/* Status Dropdown */}
                 <div>
                   <label className="text-sm text-black dark:text-white mb-1 block">
@@ -2287,5 +2248,4 @@ const DoctorProfile = () => {
     </div>
   );
 };
-
 export default DoctorProfile;

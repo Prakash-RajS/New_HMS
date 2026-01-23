@@ -1286,7 +1286,7 @@ class NotificationService:
                     "billing_staff": invoice_data.get("billing_staff", "Unknown"),
                     "patient_type": invoice_data.get("patient_type", "Outpatient"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('bill_no')}"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Pharmacy bill generated notification broadcasted successfully")
@@ -1311,7 +1311,7 @@ class NotificationService:
                     "payment_mode": invoice_data.get("payment_mode", "Unknown"),
                     "payment_type": invoice_data.get("payment_type", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('bill_no')}"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Pharmacy payment notification broadcasted successfully")
@@ -1338,7 +1338,7 @@ class NotificationService:
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "status": invoice_data.get("status", "Pending"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Hospital bill generated notification broadcasted successfully")
@@ -1363,7 +1363,7 @@ class NotificationService:
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "status": "Paid",
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Hospital payment notification broadcasted successfully")
@@ -1433,7 +1433,7 @@ class NotificationService:
                 data={
                     "invoice_id": invoice_id,
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/invoices"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Invoice not found notification broadcasted successfully")
@@ -1460,7 +1460,7 @@ class NotificationService:
                     "department": invoice_data.get("department", "Pharmacy"),
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/invoices"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Invoice deleted notification broadcasted successfully")
@@ -1488,7 +1488,7 @@ class NotificationService:
                     "department": invoice_data.get("department", "Pharmacy"),
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": f"/pharmacy/invoice/{invoice_data.get('invoice_id')}"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Invoice status changed notification broadcasted successfully")
@@ -1510,7 +1510,7 @@ class NotificationService:
                     "export_type": export_data.get("export_type"),
                     "invoice_count": export_data.get("invoice_count", 0),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/invoices"
+                    "redirect_to": "/billing"
                 }
             )
             print("✅ Pharmacy bulk export notification broadcasted successfully")
@@ -1534,7 +1534,7 @@ class NotificationService:
                     "today_invoices": stats_data.get("today_invoices", 0),
                     "today_amount": stats_data.get("today_amount", 0),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/pharmacy/dashboard"
+                    "redirect_to": "/dashboard"
                 }
             )
             print("✅ Statistics updated notification broadcasted successfully")

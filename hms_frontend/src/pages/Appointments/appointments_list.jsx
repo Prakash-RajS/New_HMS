@@ -15,8 +15,8 @@ import { Listbox } from "@headlessui/react";
 import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
+import api from "../../utils/axiosConfig"; // Add this import at the top
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const AppointmentList = () => {
   // === State ===
@@ -92,82 +92,106 @@ const AppointmentList = () => {
     return appointmentDate < today;
   };
 
-  // === Fetch data ===
-  const fetchAppointments = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/appointments/list_appointments`);
-      if (!res.ok) {
-        return;
-      }
-      const data = await res.json();
+ 
+
+// === Fetch data ===
+const fetchAppointments = async () => {
+  try {
+    const res = await api.get("/appointments/list_appointments");
+    const data = res.data;
+    
+    const mapped = data.map((item) => {
+      const appointmentDate = item.appointment_date || "";
+      let appointmentTime = "";
       
-      const mapped = data.map((item) => {
-        const appointmentDate = item.appointment_date || "";
-        let appointmentTime = "";
-        
-        if (item.appointment_time) {
-          try {
-            const timeStr = item.appointment_time;
-            const timeParts = timeStr.split(':');
-            if (timeParts.length >= 2) {
-              const hours = parseInt(timeParts[0]);
-              const minutes = parseInt(timeParts[1]);
-              const period = hours >= 12 ? 'PM' : 'AM';
-              const displayHours = hours % 12 || 12;
-              appointmentTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-            }
-          } catch (err) {
-            appointmentTime = "N/A";
+      if (item.appointment_time) {
+        try {
+          const timeStr = item.appointment_time;
+          const timeParts = timeStr.split(':');
+          if (timeParts.length >= 2) {
+            const hours = parseInt(timeParts[0]);
+            const minutes = parseInt(timeParts[1]);
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const displayHours = hours % 12 || 12;
+            appointmentTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
           }
+        } catch (err) {
+          appointmentTime = "N/A";
         }
-        
-        return {
-          id: item.id,
-          patient: item.patient_name,
-          date: appointmentDate,
-          appointmentDate: appointmentDate,
-          appointmentTime: appointmentTime,
-          patientId: item.patient_id,
-          department: item.department,
-          doctor: item.doctor,
-          room: item.room_no,
-          type: item.appointment_type,
-          status: item.status,
-          raw: item,
-        };
-      });
+      }
       
-      setAppointments(mapped);
-    } catch (err) {
-    }
-  };
+      return {
+        id: item.id,
+        patient: item.patient_name,
+        date: appointmentDate,
+        appointmentDate: appointmentDate,
+        appointmentTime: appointmentTime,
+        patientId: item.patient_id,
+        department: item.department,
+        doctor: item.doctor,
+        room: item.room_no,
+        type: item.appointment_type,
+        status: item.status,
+        raw: item,
+      };
+    });
+    
+    setAppointments(mapped);
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
+  }
+};
 
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/appointments/departments`);
-      if (res.ok) {
-        const data = await res.json();
-        setDepartments(data);
-      }
-    } catch (err) {
-    }
-  };
+const fetchDepartments = async () => {
+  try {
+    const res = await api.get("/appointments/departments");
+    setDepartments(res.data);
+  } catch (err) {
+    console.error("Error fetching departments:", err);
+  }
+};
 
-  const fetchDoctors = async (deptId) => {
-    if (!deptId) {
-      setDoctors([]);
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE}/appointments/staff?department_id=${deptId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setDoctors(data);
-      }
-    } catch (err) {
-    }
-  };
+const fetchDoctors = async (deptId) => {
+  if (!deptId) {
+    setDoctors([]);
+    return;
+  }
+  try {
+    const res = await api.get(`/appointments/staff?department_id=${deptId}`);
+    setDoctors(res.data);
+  } catch (err) {
+    console.error("Error fetching doctors:", err);
+  }
+};
 
+// === API handlers ===
+const handleAddAppointment = async (form) => {
+  try {
+    await api.post("/appointments/create_appointment", form);
+  } catch (err) {
+    console.error("Error adding appointment:", err);
+    throw err;
+  }
+};
+
+const handleEditAppointment = async (id, form) => {
+  try {
+    await api.put(`/appointments/${id}`, form);
+  } catch (err) {
+    console.error("Error editing appointment:", err);
+    throw err;
+  }
+};
+
+const handleDelete = async (id) => {
+  try {
+    await api.delete(`/appointments/${id}`);
+    await fetchAppointments(); // Refresh the list after delete
+  } catch (err) {
+    console.error("Error deleting appointment:", err);
+    throw err;
+  }
+};
   useEffect(() => {
     fetchAppointments();
     fetchDepartments();
@@ -190,40 +214,7 @@ const AppointmentList = () => {
     }
   }, [showAddPopup, showEditPopup, showDeletePopup]);
 
-  // === API handlers ===
-  const handleAddAppointment = async (form) => {
-    try {
-      await fetch(`${API_BASE}/appointments/create_appointment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-    } catch (err) {
-      throw err;
-    }
-  };
 
-  const handleEditAppointment = async (id, form) => {
-    try {
-      await fetch(`${API_BASE}/appointments/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-    } catch (err) {
-      throw err;
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      const res = await fetch(`${API_BASE}/appointments/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Delete failed");
-      await fetchAppointments();
-    } catch (err) {
-      throw err;
-    }
-  };
 
   // === Status colors ===
   const statusColors = {

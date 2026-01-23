@@ -1,6 +1,5 @@
-// src/context/PermissionContext.jsx  (or wherever you keep it)
-
 import React, { createContext, useContext, useState, useEffect } from "react";
+import api from "../utils/axiosConfig";
 
 const PermissionContext = createContext();
 
@@ -16,81 +15,150 @@ export const PermissionProvider = ({ children }) => {
   const [permissions, setPermissions] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadUserData = () => {
-      try {
-        const userData = localStorage.getItem("userData");
-
-        if (!userData) {
-          console.log("No user data in localStorage");
-          setLoading(false);
-          return;
-        }
-
-        const user = JSON.parse(userData);
-
-        // CRITICAL FIX: Convert Django integer booleans → real booleans
-        user.is_superuser = !!user.is_superuser; // 1 → true, 0 → false
-
-        setCurrentUser(user);
-
-        // Convert permissions array → object { "patients_view": true }
-        const permissionsObj = {};
-        user.permissions?.forEach((perm) => {
-          permissionsObj[perm.module] = !!perm.enabled; // also ensure boolean
-        });
-
-        setPermissions(permissionsObj);
-
-        console.log("Permissions loaded:", permissionsObj);
-        console.log("User role:", user.role);
-        console.log("Is superuser:", user.is_superuser); // now correct!
-      } catch (error) {
-        console.error("Failed to load user data:", error);
-      } finally {
-        setLoading(false);
+  // Fetch user data and permissions from backend
+  const fetchUserData = async () => {
+    try {
+      console.log("🔐 Fetching user data and permissions...");
+      
+      // Try to get user data from /profile/me
+      const response = await api.get("/profile/me");
+      
+      if (!response.data) {
+        throw new Error("No user data received");
       }
-    };
+      
+      const userData = response.data;
+      console.log("✅ User data from /profile/me:", userData);
+      
+      // Store user data
+      const user = {
+        id: userData.id,
+        username: userData.username,
+        role: userData.role,
+        is_superuser: userData.is_superuser || false, // Ensure boolean
+        permissions: userData.permissions || [],
+        staff_details: userData.staff_details || {}
+      };
+      
+      setCurrentUser(user);
+      
+      // Convert permissions array → object { "patients_view": true }
+      const permissionsObj = {};
+      user.permissions?.forEach((perm) => {
+        if (perm.module && perm.enabled !== undefined) {
+          permissionsObj[perm.module] = !!perm.enabled; // Ensure boolean
+        }
+      });
+      
+      setPermissions(permissionsObj);
+      
+      console.log("✅ Permissions loaded:", permissionsObj);
+      console.log("✅ User role:", user.role);
+      console.log("✅ Is superuser:", user.is_superuser);
+      
+    } catch (error) {
+      console.error("❌ Failed to fetch user data:", error);
+      
+      // Check if it's an authentication error
+      if (error.response?.status === 401) {
+        console.log("⚠️ User not authenticated (401)");
+        // Don't redirect here, let ProtectedRoute handle it
+      } else {
+        setError("Failed to load user permissions");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadUserData();
-    window.addEventListener("storage", loadUserData);
-    window.addEventListener("loginEvent", loadUserData);
+  // Initial data fetch
+  useEffect(() => {
+    // Only fetch if we're on a protected page (not login page)
+    const currentPath = window.location.pathname;
+    const isAuthPage = currentPath === '/' || currentPath === '/login';
+    
+    if (!isAuthPage) {
+      fetchUserData();
+    } else {
+      setLoading(false);
+    }
+    
+    // Listen for login success
+    const handleLoginSuccess = () => {
+      console.log("🔑 Login success event received");
+      setTimeout(() => {
+        fetchUserData();
+      }, 500);
+    };
+    
+    window.addEventListener("loginSuccess", handleLoginSuccess);
+    
     return () => {
-      window.removeEventListener("storage", loadUserData);
-      window.removeEventListener("loginEvent", loadUserData);
+      window.removeEventListener("loginSuccess", handleLoginSuccess);
     };
   }, []);
 
   const hasPermission = (module) => {
-    if (loading) return false;
-
+    if (loading) {
+      // While loading, we can't determine permissions
+      return false;
+    }
+    
+    // If no user data, return false
+    if (!currentUser) {
+      return false;
+    }
+    
+    // DEBUG LOG - REMOVE LATER
+    // console.log(`🔍 Checking permission for ${module}:`, {
+    //   module,
+    //   currentUser,
+    //   isSuperuser: currentUser.is_superuser,
+    //   role: currentUser.role,
+    //   permissions: permissions
+    // });
+    
     // Superuser & Admin get FULL access
-    const isSuperuser = !!currentUser?.is_superuser;
-    const isAdmin = currentUser?.role?.toLowerCase() === "admin";
-
+    const isSuperuser = currentUser.is_superuser === true;
+    const isAdmin = currentUser.role?.toLowerCase() === "admin";
+    
     if (isSuperuser || isAdmin) {
+      // console.log(`✅ Admin/Superuser access granted to: ${module}`);
       return true;
     }
-
+    
     // Regular user: check specific permission
-    return permissions[module] === true;
+    const hasPerm = permissions[module] === true;
+    console.log(`📊 Regular user permission for ${module}: ${hasPerm}`);
+    return hasPerm;
   };
 
+  // Get user role (for UI display)
+  const getUserRole = () => {
+    if (currentUser?.staff_details?.designation) {
+      return currentUser.staff_details.designation;
+    }
+    return currentUser?.role || "User";
+  };
+
+  // Get user name (for UI display)
+  const getUserName = () => {
+    if (currentUser?.staff_details?.full_name) {
+      return currentUser.staff_details.full_name;
+    }
+    return currentUser?.username || "User";
+  };
+
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!currentUser;
+  };
+
+  // Refresh permissions
   const refreshPermissions = () => {
-    const userData = localStorage.getItem("userData");
-    if (!userData) return;
-
-    const user = JSON.parse(userData);
-    user.is_superuser = !!user.is_superuser; // keep it boolean
-
-    const permissionsObj = {};
-    user.permissions?.forEach((perm) => {
-      permissionsObj[perm.module] = !!perm.enabled;
-    });
-
-    setPermissions(permissionsObj);
-    setCurrentUser(user); // optional: update user too
+    fetchUserData();
   };
 
   return (
@@ -100,7 +168,12 @@ export const PermissionProvider = ({ children }) => {
         permissions,
         hasPermission,
         loading,
+        error,
         refreshPermissions,
+        getUserRole,
+        getUserName,
+        isAuthenticated,
+        fetchUserData // Expose for manual refresh
       }}
     >
       {children}

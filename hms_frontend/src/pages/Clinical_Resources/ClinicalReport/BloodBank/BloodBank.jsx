@@ -20,6 +20,7 @@ import EditDonorPopup from "./EditDonorPopup.jsx";
 import AddBloodTypePopup from "./AddBloodTypesPopup.jsx";
 import AddDonorPopup from "./AddDonorPopup.jsx";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
+import api from "../../../../utils/axiosConfig"; // Import axios
 
 const BloodBank = () => {
   /* ---------- Pop-up states ---------- */
@@ -37,8 +38,6 @@ const BloodBank = () => {
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
   const [sendingEmails, setSendingEmails] = useState({}); // Track email sending per donor
   const [checkingEligibility, setCheckingEligibility] = useState(false);
-
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
@@ -77,9 +76,9 @@ const BloodBank = () => {
   const fetchBloodGroups = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE}/api/blood-groups/`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.get("/api/blood-groups/");
+      if (response.status === 200) {
+        const data = response.data;
         setAllBloodTypes(data.blood_groups || []);
       } else {
         throw new Error(`Failed to fetch blood groups: ${response.status}`);
@@ -95,9 +94,9 @@ const BloodBank = () => {
   const fetchDonors = async () => {
     try {
       setDonorLoading(true);
-      const response = await fetch(`${API_BASE}/api/donors/list`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.get("/api/donors/list");
+      if (response.status === 200) {
+        const data = response.data;
         const transformedDonors = data.map((donor) => ({
           id: donor.id,
           name: donor.donor_name,
@@ -148,18 +147,14 @@ const BloodBank = () => {
         status: updatedBloodGroup.status,
       };
       console.log("🟡 Sending payload to backend:", payload);
-      const response = await fetch(
-        `${API_BASE}/api/blood-groups/${bloodId}/edit`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
+      const response = await api.put(
+        `/api/blood-groups/${bloodId}/edit`,
+        payload
       );
-      const result = await response.json();
+      const result = response.data;
       console.log("🟡 Update response status:", response.status);
       console.log("🟡 Update response data:", result);
-      if (!response.ok) {
+      if (response.status !== 200) {
         const errorMsg = result.detail || "Failed to update blood group";
         throw new Error(errorMsg);
       }
@@ -174,11 +169,8 @@ const BloodBank = () => {
 
   const handleDeleteBloodGroup = async (bloodGroup) => {
     try {
-      const response = await fetch(
-        `${API_BASE}/api/blood-groups/${bloodGroup.id}/delete`,
-        { method: "DELETE" }
-      );
-      if (response.ok) {
+      const response = await api.delete(`/api/blood-groups/${bloodGroup.id}/delete`);
+      if (response.status === 200) {
         // Remove from state
         setAllBloodTypes((prev) =>
           prev.filter((bg) => bg.id !== bloodGroup.id)
@@ -243,10 +235,8 @@ const BloodBank = () => {
 
   const handleDeleteDonor = async (donor) => {
     try {
-      const response = await fetch(`${API_BASE}/api/donors/${donor.id}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
+      const response = await api.delete(`/api/donors/${donor.id}`);
+      if (response.status === 200) {
         setAllDonors((prev) => prev.filter((d) => d.id !== donor.id));
         setSelectedDonors((prev) => prev.filter((d) => d.id !== donor.id));
         successToast("Donor Deleted successfully!");
@@ -292,23 +282,17 @@ const BloodBank = () => {
       // Set loading state for this specific donor
       setSendingEmails((prev) => ({ ...prev, [donor.id]: true }));
       console.log(`🟡 Sending urgent blood request to: ${donor.email}`);
-      const response = await fetch(
-        `${API_BASE}/api/donors/send-urgent-request`,
+      const response = await api.post(
+        "/api/donors/send-urgent-request",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            donor_id: donor.id,
-            donor_email: donor.email,
-            donor_name: donor.name,
-            blood_type: donor.blood,
-          }),
+          donor_id: donor.id,
+          donor_email: donor.email,
+          donor_name: donor.name,
+          blood_type: donor.blood,
         }
       );
-      const result = await response.json();
-      if (response.ok) {
+      const result = response.data;
+      if (response.status === 200) {
         successToast(
           `Urgent blood request sent to ${donor.name} at ${donor.email}`
         );
@@ -327,11 +311,9 @@ const BloodBank = () => {
   const handleManualEligibilityCheck = async () => {
     try {
       setCheckingEligibility(true);
-      const response = await fetch(`${API_BASE}/api/donors/check-eligibility`, {
-        method: "POST",
-      });
-      const result = await response.json();
-      if (response.ok) {
+      const response = await api.post("/api/donors/check-eligibility");
+      const result = response.data;
+      if (response.status === 200) {
         successToast(result.message);
         // Refresh donors list
         await fetchDonors();

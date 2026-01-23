@@ -1,3 +1,4 @@
+
 //src/pages/Administration/DepartmentList.jsx
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
@@ -31,8 +32,8 @@ import AddDepartmentPopup from "./AddDepartment";
 import EditDepartmentPopup from "./EditDepartmentPopup";
 import DeleteDepartmentPopup from "./DeleteDepartmentPopup";
 import { successToast, errorToast } from "../../components/Toast";
-// const API_BASE = "http://127.0.0.1:8000";
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
+
 const DepartmentList = () => {
   const [selectedDepartments, setSelectedDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -54,16 +55,15 @@ const DepartmentList = () => {
     status: "",
   });
   const [departments, setDepartments] = useState([]);
+
   // API Functions
   const fetchDepartments = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${API_BASE}/departments/`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch departments");
-      }
-      const data = await response.json();
+      const response = await api.get("/departments/");
+      const data = response.data;
+      
       // Transform backend data to frontend format
       const transformed = data.map((dept) => ({
         id: dept.id,
@@ -73,57 +73,46 @@ const DepartmentList = () => {
       }));
       setDepartments(transformed);
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || "Failed to fetch departments");
     } finally {
       setLoading(false);
     }
   }, []);
+
   const updateDepartmentStatus = useCallback(async (departmentId, newStatus) => {
     try {
-      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: newStatus.toLowerCase(),
-        }),
+      await api.put(`/departments/${departmentId}`, {
+        status: newStatus.toLowerCase(),
       });
-      if (!response.ok) {
-        throw new Error("Failed to update status");
-      }
       await fetchDepartments(); // Refresh list
     } catch (err) {
       console.error("Update error:", err);
+      errorToast(err.response?.data?.message || "Failed to update status");
     }
   }, [fetchDepartments]);
+
   const deleteDepartment = useCallback(async (departmentId, departmentName = "Department") => {
     try {
-      const response = await fetch(`${API_BASE}/departments/${departmentId}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        if (response.status === 404) {
-          errorToast("Department not found.");
-          throw new Error("Department not found");
-        }
-        errorToast("Failed to delete department.");
-        throw new Error("Failed to delete department");
-      }
+      await api.delete(`/departments/${departmentId}`);
       // SUCCESS TOAST
       successToast(`"${departmentName}" deleted successfully!`);
       // Refresh list
       await fetchDepartments();
     } catch (err) {
-      // Only show toast if not already shown above
-      if (!err.message.includes("not found") && !err.message.includes("delete")) {
-        errorToast("Network error. Please try again.");
+      if (err.response?.status === 404) {
+        errorToast("Department not found.");
+      } else {
+        errorToast(err.response?.data?.message || "Failed to delete department.");
       }
       console.error("Delete error:", err);
     }
   }, [fetchDepartments]);
+
   // Initial fetch
   useEffect(() => {
     fetchDepartments();
   }, [fetchDepartments]);
+
   // Add Department callback
   const handleAddDepartment = useCallback((newDept) => {
     setDepartments((prev) => [...prev, {
@@ -133,6 +122,7 @@ const DepartmentList = () => {
       status: newDept.status.charAt(0).toUpperCase() + newDept.status.slice(1),
     }]);
   }, []);
+
   // Bulk Status Change
   const handleBulkStatusChange = useCallback((newStatus) => {
     if (selectedDepartments.length === 0) {
@@ -147,10 +137,12 @@ const DepartmentList = () => {
       setBulkStatus(null);
     });
   }, [selectedDepartments, updateDepartmentStatus]);
+
   const statusColors = {
     Active: "bg-[#08994A] dark:bg-[#08994A] text-white dark:text-white",
     Inactive: "bg-gray-300 dark:bg-gray-700 text-black dark:text-white",
   };
+
   const departmentIcons = {
     Cardiology: Heart,
     Anesthesiology: Syringe,
@@ -165,6 +157,7 @@ const DepartmentList = () => {
     Pulmonology: Wind,
     Endocrinology: Zap,
   };
+
   const filteredAndSortedDepartments = useMemo(() => {
     let result = departments.filter((dept) => {
       if (
@@ -187,6 +180,7 @@ const DepartmentList = () => {
       }
       return true;
     });
+
     if (sortOrder === "A-to-Z") {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortOrder === "Z-to-A") {
@@ -194,15 +188,18 @@ const DepartmentList = () => {
     }
     return result;
   }, [departments, searchTerm, filtersData, sortOrder]);
+
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentDepartments = filteredAndSortedDepartments.slice(
     indexOfFirst,
     indexOfLast
   );
+
   const totalPages = Math.ceil(
     filteredAndSortedDepartments.length / itemsPerPage
   );
+
   const handleCheckboxChange = (id) => {
     if (selectedDepartments.includes(id)) {
       setSelectedDepartments(selectedDepartments.filter((sid) => sid !== id));
@@ -210,6 +207,7 @@ const DepartmentList = () => {
       setSelectedDepartments([...selectedDepartments, id]);
     }
   };
+
   const handleSelectAll = () => {
     if (selectedDepartments.length === currentDepartments.length) {
       setSelectedDepartments([]);
@@ -217,11 +215,13 @@ const DepartmentList = () => {
       setSelectedDepartments(currentDepartments.map((dept) => dept.id));
     }
   };
+
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFiltersData({ ...filtersData, [name]: value });
     setCurrentPage(1);
   };
+
   const handleClearFilters = () => {
     setFiltersData({ name: "", status: "" });
     setSortOrder("A-to-Z");
@@ -229,6 +229,7 @@ const DepartmentList = () => {
     setSearchTerm("");
     setCurrentPage(1);
   };
+
   const Dropdown = ({ value, onChange, options }) => (
     <Listbox value={value} onChange={onChange}>
       <div className="relative w-full">
@@ -273,16 +274,19 @@ const DepartmentList = () => {
       </div>
     </Listbox>
   );
+
   const applySettings = () => {
     setCurrentPage(1);
     setShowSettingsPopup(false);
   };
+
   // Function to determine dropdown position
   const getDropdownPosition = (index) => {
     // For the last 3-4 rows, show dropdown above the button
     // Since we have 10 rows per page, show above for last 4 rows (index 6,7,8,9)
     return index >= 6 ? "top" : "bottom";
   };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -290,6 +294,7 @@ const DepartmentList = () => {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="text-center py-8">
@@ -303,6 +308,7 @@ const DepartmentList = () => {
       </div>
     );
   }
+
   return (
     <div className="w-full max-w-[2500px] mx-auto">
       <div
@@ -854,4 +860,6 @@ const DepartmentList = () => {
     </div>
   );
 };
+
 export default DepartmentList;
+

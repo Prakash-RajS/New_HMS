@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, Trash2, Plus, Calendar } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import { successToast, errorToast } from "../../components/Toast";
 
 const Bill = () => {
@@ -45,8 +45,6 @@ const Bill = () => {
     "Insurance Claim",
   ];
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
@@ -70,39 +68,59 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
   const fetchPatients = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/medicine_allocation/edit`);
+      const res = await api.get("/medicine_allocation/edit");
       let list = [];
       if (Array.isArray(res.data)) list = res.data;
       else if (res.data.patients) list = res.data.patients;
       setPatients(list);
     } catch (err) {
       console.error("Failed to load patients:", err);
-      errorToast("Failed to load patients");
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 404) {
+        errorToast("Patients data not found.");
+      } else if (err.response?.status === 500) {
+        errorToast("Server error. Please try again later.");
+      } else {
+        errorToast("Failed to load patients");
+      }
     }
   };
 
   const fetchStaffInfo = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API_BASE}/api/profile/me/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/profile/me/");
       setStaffInfo({
-        staffName: res.data.full_name || "Unknown Staff",
-        staffID: res.data.employee_id || "N/A",
+        staffName: res.data.profile.full_name || "Unknown Staff",
+        staffID: res.data.profile.employee_id || "N/A",
       });
     } catch (err) {
       console.error("Failed to load staff info:", err);
-      setStaffInfo({ staffName: "Unknown Staff", staffID: "N/A" });
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 404) {
+        errorToast("Profile not found.");
+      } else if (err.response?.status === 500) {
+        errorToast("Server error. Please try again later.");
+      } else {
+        setStaffInfo({ staffName: "Unknown Staff", staffID: "N/A" });
+      }
     }
   };
 
   const fetchPatientDetails = async (uniqueId) => {
     try {
-      const res = await axios.get(`${API_BASE}/patients/${uniqueId}`);
+      const res = await api.get(`/patients/${uniqueId}`);
       setFullPatient(res.data);
     } catch (err) {
       console.error("Failed to load patient details:", err);
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 404) {
+        errorToast("Patient not found.");
+      } else if (err.response?.status === 500) {
+        errorToast("Server error. Please try again later.");
+      }
     }
   };
 
@@ -127,7 +145,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     if (!patientId) return;
     setLoading(true);
     try {
-      let url = `${API_BASE}/pharmacy-billing/${patientId}/`;
+      let url = `/pharmacy-billing/${patientId}/`;
       const params = new URLSearchParams();
 
       if (fromDate) params.append("date_from", fromDate);
@@ -137,7 +155,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
         url += `?${params.toString()}`;
       }
 
-      const res = await axios.get(url);
+      const res = await api.get(url);
 
       const medicineItems = (res.data.items || [])
         .filter(
@@ -179,7 +197,9 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
       console.error("Error loading medicines:", err);
       setBillingItems([]);
 
-      if (err.response?.status === 404) {
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 404) {
         if (fromDate || toDate) {
           errorToast(
             "No medicine allocations found for the selected date range"
@@ -297,15 +317,25 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     if (medicineLookup[itemCode]) return medicineLookup[itemCode];
 
     try {
-      const res = await axios.get(
-        `${API_BASE}/medicine_allocation/medicine-by-code/${itemCode.trim()}`
+      const res = await api.get(
+        `/medicine_allocation/medicine-by-code/${itemCode.trim()}`
       );
       const data = res.data;
       setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
       return data;
     } catch (err) {
-      if (itemCode.trim().length > 0) {
-        errorToast(`No medicine found with item code: ${itemCode}`);
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 404) {
+        if (itemCode.trim().length > 0) {
+          errorToast(`No medicine found with item code: ${itemCode}`);
+        }
+      } else if (err.response?.status === 500) {
+        errorToast("Server error. Please try again later.");
+      } else {
+        if (itemCode.trim().length > 0) {
+          errorToast(`No medicine found with item code: ${itemCode}`);
+        }
       }
       return null;
     }
@@ -543,8 +573,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
     setGeneratingBill(true);
     try {
-      const stockCheckResponse = await axios.get(
-        `${API_BASE}/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
+      const stockCheckResponse = await api.get(
+        `/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
         {
           params: {
             date_from: dateFrom || undefined,
@@ -570,8 +600,8 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
         return;
       }
 
-      const response = await axios.post(
-        `${API_BASE}/pharmacy/create-invoice`,
+      const response = await api.post(
+        `/pharmacy/create-invoice`,
         invoiceData,
         {
           responseType: "blob",
@@ -602,7 +632,9 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     } catch (err) {
       console.error("Error generating bill:", err);
 
-      if (err.response?.status === 422) {
+      if (err.response?.status === 401) {
+        errorToast("Unauthorized access. Please log in again.");
+      } else if (err.response?.status === 422) {
         if (err.response.data instanceof Blob) {
           const errorText = await err.response.data.text();
           try {

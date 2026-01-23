@@ -1,7 +1,7 @@
 // src/components/ProfileSection.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import {
   Search,
   Filter,
@@ -14,8 +14,6 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const ProfileSection = () => {
   /* ==================== STATE ==================== */
@@ -37,66 +35,52 @@ const ProfileSection = () => {
   const navigate = useNavigate();
   const itemsPerPage = 10;
 
-  /* ==================== API SERVICE ==================== */
-  const api = {
-    getPatients: async ({ page = 1, search = "", type = "All" }) => {
-      const limit = itemsPerPage;
-      const params = new URLSearchParams();
-      
-      if (search) params.append("search", search);
-      params.append("page", page);
-      params.append("limit", limit);
-      
-      // Add type parameter for backend filtering
-      if (type === "In-patients") {
-        params.append("type", "In-patient");
-      } else if (type === "Out-patients") {
-        params.append("type", "Out-patient");
-      }
-      
-      const endpoint = "/patients/";
-      const { data } = await axios.get(`${API_BASE}${endpoint}?${params}`);
-      
-      return {
-        patients: (data.patients || []).map((p) => ({
-          pk: p.id,
-          id: p.patient_unique_id,
-          name: p.full_name,
-          room: p.room_number || "—",
-          status: p.casualty_status,
-          type: p.patient_type || "Unknown", // Use patient_type from backend
-          photo_url: p.photo_url,
-          phone_number: p.phone_number || "",
-          appointment_type: p.appointment_type || "",
-          date_of_registration: p.date_of_registration || "",
-          department_id: p.department_id,
-          staff_id: p.staff_id,
-          department: p.department__name,
-          staff: p.staff__full_name,
-        })),
-        total: data.total || 0,
-      };
-    },
-  };
-
   /* ==================== FETCH ==================== */
   const fetchPatients = async () => {
     setLoading(true);
     try {
-      const res = await api.getPatients({
+      const params = {
         page: currentPage,
-        search: searchTerm,
-        type: activeMainTab,
-      });
+        limit: itemsPerPage,
+        search: searchTerm || undefined
+      };
+      
+      // Add type parameter for backend filtering
+      if (activeMainTab === "In-patients") {
+        params.type = "In-patient";
+      } else if (activeMainTab === "Out-patients") {
+        params.type = "Out-patient";
+      }
+      
+      const response = await api.get("/patients/", { params });
+      const data = response.data;
+      
+      // Map backend response to frontend format
+      const mappedPatients = (data.patients || []).map((p) => ({
+        pk: p.id,
+        id: p.patient_unique_id,
+        name: p.full_name,
+        room: p.room_number || "—",
+        status: p.casualty_status,
+        type: p.patient_type || "Unknown",
+        photo_url: p.photo_url,
+        phone_number: p.phone_number || "",
+        appointment_type: p.appointment_type || "",
+        date_of_registration: p.date_of_registration || "",
+        department_id: p.department_id,
+        staff_id: p.staff_id,
+        department: p.department__name,
+        staff: p.staff__full_name,
+      }));
       
       // Filter out completed patients from In-patients tab (client-side)
-      let filteredPatients = res.patients;
+      let filteredPatients = mappedPatients;
       if (activeMainTab === "In-patients") {
         filteredPatients = filteredPatients.filter(p => p.status !== "Completed");
       }
       
       setPatients(filteredPatients);
-      setTotal(res.total);
+      setTotal(data.total || 0);
     } catch (e) {
       console.error("Fetch failed:", e);
     } finally {

@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import AddTestPopup from "./AddTestPopup";
 import EditTestPopup from "./EditTestPopup";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../../utils/axiosConfig";
+import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 const Laboratory = () => {
   // === State ===
@@ -57,12 +57,13 @@ const Laboratory = () => {
   const fetchTests = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE}/laboratory/tests`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+      const response = await api.get("/laboratory/tests");
+      
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      const data = await res.json();
-      setTests(data);
+      
+      setTests(response.data);
       setError(null);
     } catch (err) {
       setError("Failed to fetch tests. Please try again.");
@@ -85,18 +86,33 @@ const Laboratory = () => {
   // === API handlers ===
   const handleDeleteTest = async () => {
     try {
-      const res = await fetch(`${API_BASE}/laboratory/tests/${selectedTest.id}`, {
-        method: "DELETE",
-      });
+      const response = await api.delete(`/laboratory/tests/${selectedTest.id}`);
 
-      if (!res.ok) {
+      // Accept both 200 (OK) and 204 (No Content) as success statuses
+      if (response.status !== 200 && response.status !== 204) {
         throw new Error("Failed to delete test");
       }
 
+      // Show success toast
+      successToast(`Test "${selectedTest.test_type}" deleted successfully!`);
+      
+      // Refresh the tests list
       await fetchTests();
+      
+      // Close popup and clear selection
       setShowDeletePopup(false);
       setSelectedTest(null);
     } catch (err) {
+      // Show error toast
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          "Failed to delete test. Please try again.";
+      
+      errorToast(errorMessage);
+      
+      // Set local error state
       setError("Failed to delete test. Please try again.");
       console.error("Error deleting test:", err);
     }
@@ -289,99 +305,99 @@ const Laboratory = () => {
       ) : (
         <>
           {/* Table */}
-<div className="overflow-x-auto relative z-10">
-  <table className="w-full text-left text-sm">
-    <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
-      <tr>
-        <th className="py-3 pl-4 pr-2">Test Type</th>
-        <th className="py-3 px-2">Description</th>
-        <th className="py-3 px-2">Price</th>
-        <th className="py-3 px-2">Duration</th>
-        <th className="py-3 px-2">Status</th>
-        <th className="py-3 px-2 text-center">Actions</th>
-      </tr>
-    </thead>
+          <div className="overflow-x-auto relative z-10">
+            <table className="w-full text-left text-sm">
+              <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+                <tr>
+                  <th className="py-3 pl-4 pr-2">Test Type</th>
+                  <th className="py-3 px-2">Description</th>
+                  <th className="py-3 px-2">Price</th>
+                  <th className="py-3 px-2">Duration</th>
+                  <th className="py-3 px-2">Status</th>
+                  <th className="py-3 px-2 text-center">Actions</th>
+                </tr>
+              </thead>
 
-    <tbody>
-      {currentTests.length > 0 ? (
-        currentTests.map((test) => (
-          <tr
-            key={test.id}
-            className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
-          >
-            <td className="py-3 pl-4 pr-2 text-black dark:text-white">
-              <div className="font-medium">{test.test_type}</div>
-            </td>
+              <tbody>
+                {currentTests.length > 0 ? (
+                  currentTests.map((test) => (
+                    <tr
+                      key={test.id}
+                      className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
+                    >
+                      <td className="py-3 pl-4 pr-2 text-black dark:text-white">
+                        <div className="font-medium">{test.test_type}</div>
+                      </td>
 
-            <td className="py-3 px-2 text-black dark:text-white max-w-xs truncate" title={test.description}>
-              {test.description || "N/A"}
-            </td>
+                      <td className="py-3 px-2 text-black dark:text-white max-w-xs truncate" title={test.description}>
+                        {test.description || "N/A"}
+                      </td>
 
-            <td className="py-3 px-2 text-black dark:text-white">
-              ${test.price ? parseFloat(test.price).toFixed(2) : "N/A"}
-            </td>
+                      <td className="py-3 px-2 text-black dark:text-white">
+                        ${test.price ? parseFloat(test.price).toFixed(2) : "N/A"}
+                      </td>
 
-            <td className="py-3 px-2 text-black dark:text-white">
-              {test.duration_minutes ? `${test.duration_minutes} mins` : "N/A"}
-            </td>
+                      <td className="py-3 px-2 text-black dark:text-white">
+                        {test.duration_minutes ? `${test.duration_minutes} mins` : "N/A"}
+                      </td>
 
-            <td className="py-3 px-2">
-              <span
-                className={`px-2 py-1 rounded-full text-xs ${statusColors[test.status] || "bg-gray-700 text-gray-300"
-                  }`}
-              >
-                {statusDisplayMap[test.status] || test.status}
-              </span>
-            </td>
+                      <td className="py-3 px-2">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${statusColors[test.status] || "bg-gray-700 text-gray-300"
+                            }`}
+                        >
+                          {statusDisplayMap[test.status] || test.status}
+                        </span>
+                      </td>
 
-            <td className="py-3 px-2 text-center">
-              <div className="flex justify-center gap-4 relative overflow-visible">
-                <div className="relative group">
-                  <Edit2
-                    size={16}
-                    onClick={() => {
-                      setSelectedTest(test);
-                      setShowEditPopup(true);
-                    }}
-                    className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
-                  />
-                  <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                    Edit
-                  </span>
-                </div>
+                      <td className="py-3 px-2 text-center">
+                        <div className="flex justify-center gap-4 relative overflow-visible">
+                          <div className="relative group">
+                            <Edit2
+                              size={16}
+                              onClick={() => {
+                                setSelectedTest(test);
+                                setShowEditPopup(true);
+                              }}
+                              className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              Edit
+                            </span>
+                          </div>
 
-                <div className="relative group">
-                  <Trash2
-                    size={16}
-                    onClick={() => {
-                      setSelectedTest(test);
-                      setShowDeletePopup(true);
-                    }}
-                    className="cursor-pointer text-red-500 hover:scale-110"
-                  />
-                  <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                    Delete
-                  </span>
-                </div>
-              </div>
-            </td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td
-            colSpan="6"
-            className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
-          >
-            {searchTerm || activeFilter !== "All" 
-              ? "No tests match your search/filter" 
-              : "No tests found"}
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
+                          <div className="relative group">
+                            <Trash2
+                              size={16}
+                              onClick={() => {
+                                setSelectedTest(test);
+                                setShowDeletePopup(true);
+                              }}
+                              className="cursor-pointer text-red-500 hover:scale-110"
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              Delete
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
+                    >
+                      {searchTerm || activeFilter !== "All" 
+                        ? "No tests match your search/filter" 
+                        : "No tests found"}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination */}
           {totalPages > 0 && (

@@ -3,11 +3,9 @@ import { Listbox } from "@headlessui/react";
 import { ChevronDown, Upload, ArrowLeft, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { successToast, errorToast } from "../../components/Toast";
-
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig"; // Import axios
 
 const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
@@ -377,11 +375,12 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   // Fetch departments
   useEffect(() => {
-    fetch(`${API_BASE}/departments/`)
-      .then((res) =>
-        res.ok ? res.json() : Promise.reject("Failed to load departments")
-      )
-      .then((data) => {
+    api.get("/departments/")
+      .then((response) => {
+        if (response.status !== 200) {
+          throw new Error("Failed to load departments");
+        }
+        const data = response.data;
         setDepartments(data.map((d) => d.name));
         // Store department mapping for ID lookup
         setDepartmentId(
@@ -824,14 +823,16 @@ export default function NewRegistration({ isSidebarOpen }) {
         }
       }
 
-      const response = await fetch(`${API_BASE}/staff/add/`, {
-        method: "POST",
-        body: form,
+      // Use axios for form submission with FormData
+      const response = await api.post("/staff/add/", form, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      const responseData = await response.json();
+      const responseData = response.data;
 
-      if (!response.ok) {
+      if (response.status !== 200 && response.status !== 201) {
         console.error("Server response error:", responseData);
         throw new Error(
           responseData.detail || `HTTP error! status: ${response.status}`
@@ -844,7 +845,7 @@ export default function NewRegistration({ isSidebarOpen }) {
       navigate(-1);
     } catch (err) {
       console.error("Submission error:", err);
-      errorToast(err.message || "Network error. Please try again.");
+      errorToast(err.response?.data?.detail || err.message || "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -889,7 +890,7 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto font-[Helvetica]">
-      <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
+      <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[1400px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative">
         {/* Dark Overlay */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"

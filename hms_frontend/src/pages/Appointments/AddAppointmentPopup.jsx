@@ -1,12 +1,11 @@
 // src/components/AddAppointmentPopup.jsx
 import React, { useState, useEffect } from "react";
-import { X,Calendar, ChevronDown } from "lucide-react";
+import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
+import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-// ── Get tomorrow's date for default (MOVE THIS UP) ────────────────────────────────
+// ── Get tomorrow's date for default ────────────────────────────────
 const getTomorrowDate = () => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -16,7 +15,7 @@ const getTomorrowDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// ── Also create a function to get default time ───────────────────────────────────
+// ── Get default time ───────────────────────────────────
 const getDefaultTime = () => {
   const now = new Date();
   const hour = String(now.getHours()).padStart(2, '0');
@@ -233,25 +232,26 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     return requiredValid && formatValid;
   };
 
-  // ── Load departments (once) ───────────────────────────────────────
+  // ── Load departments (once) ─────────────────────────────────────
   useEffect(() => {
     let mounted = true;
     setLoadingDept(true);
-    fetch(`${API_BASE}/appointments/departments`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load departments");
-        return r.json();
+    
+    api.get("/appointments/departments")
+      .then((response) => {
+        if (mounted) {
+          const data = response.data;
+          setDepartments(Array.isArray(data) ? data : []);
+        }
       })
-      .then((data) => {
-        if (mounted) setDepartments(Array.isArray(data) ? data : []);
-      })
-      .catch((e) => {
-        console.error(e);
+      .catch((error) => {
+        console.error("Failed to load departments:", error);
         errorToast("Failed to load departments");
       })
       .finally(() => {
         if (mounted) setLoadingDept(false);
       });
+    
     return () => (mounted = false);
   }, []);
 
@@ -259,64 +259,61 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   useEffect(() => {
     let mounted = true;
     setLoadingBeds(true);
-    fetch(`${API_BASE}/bedgroups/all`)
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load beds");
-        return r.json();
-      })
-      .then((data) => {
+    
+    api.get("/bedgroups/all")
+      .then((response) => {
         if (mounted) {
+          const data = response.data;
           const beds = data.flatMap((group) =>
             group.beds
               .filter((bed) => !bed.is_occupied)
               .map((bed) => ({
-                id: `${group.bedGroup}-${bed.bed_number}`, // 👈 STORE STRING
+                id: `${group.bedGroup}-${bed.bed_number}`,
                 name: `${group.bedGroup}-${bed.bed_number}`,
               }))
           );
           setAvailableBeds(beds);
         }
       })
-      .catch((e) => {
-        console.error(e);
+      .catch((error) => {
+        console.error("Failed to load beds:", error);
         errorToast("Failed to load beds");
       })
       .finally(() => {
         if (mounted) setLoadingBeds(false);
       });
+    
     return () => (mounted = false);
   }, []);
 
   // ── Load doctors when department changes ───────────────────────────
-// ── Load doctors when department changes ───────────────────────────
-useEffect(() => {
-  if (!formData.department_id) {
-    setDoctors([]);
-    return;
-  }
-  let mounted = true;
-  setLoadingDoc(true);
-  fetch(`${API_BASE}/appointments/staff?department_id=${formData.department_id}`)
-    .then((r) => {
-      if (!r.ok) throw new Error("Failed to load doctors");
-      return r.json();
-    })
-    .then((data) => {
-      if (mounted) {
-        // Backend now filters by designation, so just set the data
-        console.log("Doctors from backend:", data);
-        setDoctors(Array.isArray(data) ? data : []);
-      }
-    })
-    .catch((e) => {
-      console.error(e);
-      errorToast("Failed to load doctors");
-    })
-    .finally(() => {
-      if (mounted) setLoadingDoc(false);
-    });
-  return () => (mounted = false);
-}, [formData.department_id]);
+  useEffect(() => {
+    if (!formData.department_id) {
+      setDoctors([]);
+      return;
+    }
+    
+    let mounted = true;
+    setLoadingDoc(true);
+    
+    api.get(`/appointments/staff?department_id=${formData.department_id}`)
+      .then((response) => {
+        if (mounted) {
+          const data = response.data;
+          console.log("Doctors from backend:", data);
+          setDoctors(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load doctors:", error);
+        errorToast("Failed to load doctors");
+      })
+      .finally(() => {
+        if (mounted) setLoadingDoc(false);
+      });
+    
+    return () => (mounted = false);
+  }, [formData.department_id]);
 
   // ── Save handler with validation ───────────────────────────────────
   const handleSave = async () => {
@@ -328,23 +325,21 @@ useEffect(() => {
     setSaving(true);
     try {
       // Duplicate check
-      const duplicateCheck = await fetch(`${API_BASE}/appointments/check_duplicate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      try {
+        const duplicateCheck = await api.post("/appointments/check_duplicate", {
           patient_name: formData.patient_name.trim(),
           phone_no: formData.phone_no,
           appointment_date: formData.appointment_date,
-        }),
-      });
-
-      if (duplicateCheck.ok) {
-        const duplicateResult = await duplicateCheck.json();
-        if (duplicateResult.exists) {
+        });
+        
+        if (duplicateCheck.data.exists) {
           errorToast("An appointment already exists for this patient with the same phone number and date");
           setSaving(false);
           return;
         }
+      } catch (duplicateError) {
+        console.warn("Duplicate check failed, proceeding anyway:", duplicateError);
+        // Continue with creation even if duplicate check fails
       }
 
       // ✅ CORRECTED PAYLOAD - Match backend expectations
@@ -362,15 +357,18 @@ useEffect(() => {
 
       console.log("Sending payload:", payload);
 
-      const res = await fetch(`${API_BASE}/appointments/create_appointment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await api.post("/appointments/create_appointment", payload);
 
+      successToast("Appointment added successfully!");
+      onSuccess?.();
+      onClose?.();
+      
+    } catch (error) {
+      console.error("Save error:", error);
+      
       // Check for validation errors
-      if (res.status === 422) {
-        const errorData = await res.json();
+      if (error.response?.status === 422) {
+        const errorData = error.response.data;
         console.error("Validation errors:", errorData);
         
         // Display validation errors from backend
@@ -378,9 +376,9 @@ useEffect(() => {
           if (Array.isArray(errorData.detail)) {
             // Handle Pydantic validation errors
             const errors = {};
-            errorData.detail.forEach(error => {
-              const field = error.loc?.[1] || 'general';
-              errors[field] = error.msg;
+            errorData.detail.forEach(err => {
+              const field = err.loc?.[1] || 'general';
+              errors[field] = err.msg;
             });
             setValidationErrors(errors);
             errorToast("Please fix the validation errors");
@@ -390,21 +388,9 @@ useEffect(() => {
         } else {
           errorToast("Validation failed. Please check your inputs.");
         }
-        setSaving(false);
-        return;
+      } else {
+        errorToast(error.response?.data?.detail || error.message || "Something went wrong. Please try again.");
       }
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Failed to create appointment");
-      }
-
-      successToast("Appointment added successfully!");
-      onSuccess?.();
-      onClose?.();
-    } catch (e) {
-      errorToast(e.message || "Something went wrong. Please try again.");
-      console.error("Save error:", e);
     } finally {
       setSaving(false);
     }
@@ -589,26 +575,26 @@ useEffect(() => {
                     style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
                   >
                     {doctors.map((opt) => {
-  const label = opt.full_name ? `${opt.full_name} - Doctor` : String(opt.id);
-  return (
-    <Listbox.Option
-      key={opt.id}
-      value={opt.id}
-      className={({ active, selected }) =>
-        `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-         ${
-           active
-             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-             : "text-black dark:text-white"
-         }
-         ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-      }
-      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-    >
-      {label}
-    </Listbox.Option>
-  );
-})}
+                      const label = opt.full_name ? `${opt.full_name} - Doctor` : String(opt.id);
+                      return (
+                        <Listbox.Option
+                          key={opt.id}
+                          value={opt.id}
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                        >
+                          {label}
+                        </Listbox.Option>
+                      );
+                    })}
                   </Listbox.Options>
                 </div>
               </Listbox>
@@ -813,54 +799,52 @@ useEffect(() => {
             </div>
             {/* Appointment Date */}
             <div>
-  <label className="text-sm text-black dark:text-white">
-    Appointment Date <span className="text-red-700">*</span>
-  </label>
+              <label className="text-sm text-black dark:text-white">
+                Appointment Date <span className="text-red-700">*</span>
+              </label>
 
-  <div className="relative mt-1">
-    <input
-      type="date"
-      id="appointment_date"
-      value={formData.appointment_date}
-      onChange={(e) =>
-        handleInputChange("appointment_date", e.target.value)
-      }
-      onFocus={() => setFocusedField("appointment_date")}
-      onBlur={() => setFocusedField(null)}
-      min={new Date().toISOString().split("T")[0]} // ✅ upcoming dates only
-      className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
-                  bg-gray-100 dark:bg-transparent outline-none
-                  text-black dark:text-[#0EFF7B] cursor-pointer
-                  appearance-none
-                  [&::-webkit-calendar-picker-indicator]:opacity-0
-                  [&::-webkit-calendar-picker-indicator]:hidden
-                  ${
-                    focusedField === "appointment_date"
-                      ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                  }`}
-    />
+              <div className="relative mt-1">
+                <input
+                  type="date"
+                  id="appointment_date"
+                  value={formData.appointment_date}
+                  onChange={(e) =>
+                    handleInputChange("appointment_date", e.target.value)
+                  }
+                  onFocus={() => setFocusedField("appointment_date")}
+                  onBlur={() => setFocusedField(null)}
+                  min={new Date().toISOString().split("T")[0]} // ✅ upcoming dates only
+                  className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
+                            bg-gray-100 dark:bg-transparent outline-none
+                            text-black dark:text-[#0EFF7B] cursor-pointer
+                            appearance-none
+                            [&::-webkit-calendar-picker-indicator]:opacity-0
+                            [&::-webkit-calendar-picker-indicator]:hidden
+                            ${
+                              focusedField === "appointment_date"
+                                ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                            }`}
+                />
 
-    {/* Custom calendar icon */}
-    <Calendar
-      size={18}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer"
-      onClick={() =>
-        document.getElementById("appointment_date")?.showPicker()
-      }
-    />
-  </div>
+                {/* Custom calendar icon */}
+                <Calendar
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer"
+                  onClick={() =>
+                    document.getElementById("appointment_date")?.showPicker()
+                  }
+                />
+              </div>
 
-  {fieldErrors.appointment_date && (
-    <div className="mt-1">
-      <span className="text-red-700 dark:text-red-500 text-xs">
-        {fieldErrors.appointment_date}
-      </span>
-    </div>
-  )}
-</div>
-
-
+              {fieldErrors.appointment_date && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">
+                    {fieldErrors.appointment_date}
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* Appointment Time */}
             <div>

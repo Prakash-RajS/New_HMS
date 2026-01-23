@@ -1,11 +1,13 @@
+from datetime import datetime
+from django.utils.timezone import make_aware
 from fastapi import APIRouter, HTTPException, status, Query, Depends
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Union
 from pydantic import BaseModel, validator, Field
 from datetime import datetime, date, time, timezone
 from django.db import transaction
 from django.db.models import Q
-from Fastapi_app.routers.auth import get_current_user
-from HMS_backend.models import Appointment, Department, Staff, User
+from Fastapi_app.routers.user_profile import get_current_user
+from HMS_backend.models import Appointment, Department, Staff, User, Surgery
 from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
 from Fastapi_app.routers.notifications import NotificationService
@@ -68,7 +70,7 @@ class AppointmentUpdate(BaseModel):
                 raise ValueError("Appointment time cannot be in the past for today")
         return v
 
-class AppointmentOut(BaseModel):
+class CalendarItemOut(BaseModel):
     id: int
     patient_name: str
     patient_id: str
@@ -76,13 +78,16 @@ class AppointmentOut(BaseModel):
     doctor: str
     room_no: str
     phone_no: str
-    appointment_type: str
+    item_type: str  # "appointment" or "surgery"
+    appointment_type: str  # For appointments: "checkup", "followup", "emergency"; For surgeries: "surgery"
     status: str
     appointment_date: date
     appointment_time: time
-    appointment_datetime: Optional[datetime] = None  # Combined for backward compatibility
+    appointment_datetime: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    description: Optional[str] = None  # For surgeries
+    surgery_type: Optional[str] = None  # For surgeries
 
     class Config:
         arbitrary_types_allowed = True
@@ -96,28 +101,59 @@ class StaffOut(BaseModel):
     id: int
     full_name: str
 
-# ---------- Helper ----------
-def appointment_to_out(appt: Appointment) -> AppointmentOut:
-    
-    return AppointmentOut(
-        id=appt.id,
-        patient_name=appt.patient_name,
-        patient_id=appt.patient_id,
-        department=appt.department.name if appt.department else '',
-        doctor=appt.staff.full_name if appt.staff else '',
-        room_no=appt.room_no,
-        phone_no=appt.phone_no,
-        appointment_type=appt.appointment_type,
-        status=appt.status,
-        appointment_date=appt.appointment_date,
-        appointment_time=appt.appointment_time,
-        created_at=appt.created_at,
-        updated_at=appt.updated_at,
+def calendar_item_to_out(item) -> CalendarItemOut:
+
+    # ===== SURGERY =====
+    if isinstance(item, Surgery):
+        return CalendarItemOut(
+            id=item.id,
+            patient_name=item.patient.full_name if item.patient else "",
+            patient_id=item.patient.patient_unique_id if item.patient else "",
+            department=item.doctor.department.name if item.doctor and item.doctor.department else "",
+            doctor=item.doctor.full_name if item.doctor else "",
+            room_no="Surgery Room",
+            phone_no=item.patient.phone_number if item.patient else "",
+            item_type="surgery",
+            appointment_type="surgery",
+            status=item.status,
+            appointment_date=item.scheduled_date.date(),
+            appointment_time=item.scheduled_date.time(),
+            appointment_datetime=item.scheduled_date,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+            description=item.description,
+            surgery_type=item.surgery_type,
+        )
+
+    # ===== APPOINTMENT =====
+    return CalendarItemOut(
+        id=item.id,
+        patient_name=item.patient_name,
+        patient_id=item.patient_id,
+        department=item.department.name if item.department else "",
+        doctor=item.staff.full_name if item.staff else "",
+        room_no=item.room_no,
+        phone_no=item.phone_no,
+        item_type="appointment",
+        appointment_type=item.appointment_type,
+        status=item.status,
+        appointment_date=item.appointment_date,
+        appointment_time=item.appointment_time,
+        appointment_datetime=(
+            datetime.combine(item.appointment_date, item.appointment_time)
+            if item.appointment_date and item.appointment_time
+            else None
+        ),
+        created_at=item.created_at,
+        updated_at=item.updated_at,
+        description=None,
+        surgery_type=None,
     )
+
 
 # ---------- Routes ----------
 
-@router.post("/create_appointment", response_model=AppointmentOut, status_code=status.HTTP_201_CREATED)
+@router.post("/create_appointment", status_code=status.HTTP_201_CREATED)
 async def create_appointment(payload: AppointmentCreate):
     try:
         department = await sync_to_async(Department.objects.get)(id=payload.department_id)
@@ -146,22 +182,22 @@ async def create_appointment(payload: AppointmentCreate):
     try:
         appointment = await create_appointment_with_transaction()
         await NotificationService.send_appointment_created(appointment, staff, department)
-        return appointment_to_out(appointment)
+        return calendar_item_to_out(appointment)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create appointment: {str(e)}")
 
 
-@router.get("/list_appointments", response_model=List[AppointmentOut])
+@router.get("/list_appointments")
 async def list_appointments():
     @sync_to_async
     def get_appointments():
         return list(Appointment.objects.select_related('department', 'staff').all().order_by("-created_at"))
     
     appointments = await get_appointments()
-    return [appointment_to_out(appt) for appt in appointments]
+    return [calendar_item_to_out(appt) for appt in appointments]
 
 
-@router.put("/{appointment_id}", response_model=AppointmentOut)
+@router.put("/{appointment_id}")
 async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     @sync_to_async
     def get_appointment():
@@ -211,7 +247,7 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     try:
         updated_appt = await save_appointment()
         await NotificationService.send_appointment_updated(updated_appt, updated_appt.staff, updated_appt.department)
-        return appointment_to_out(updated_appt)
+        return calendar_item_to_out(updated_appt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update: {str(e)}")
 
@@ -282,22 +318,22 @@ async def get_staff_by_department(department_id: int = Query(..., gt=0)):
     return staff
 
 # ---------- My Calendar Endpoint (For Logged-in Users) ----------
-@router.get("/my-calendar/", response_model=List[AppointmentOut])
+@router.get("/my-calendar/", response_model=List[CalendarItemOut])
 async def get_my_calendar_appointments(
     year: Optional[int] = Query(None, description="Year filter"),
     month: Optional[int] = Query(None, description="Month filter (1-12)"),
-    current_user: User = Depends(get_current_user),  # Your auth dependency
+    current_user: User = Depends(get_current_user),
 ):
     """
-    Get appointments for the currently logged-in doctor/nurse
+    Get appointments AND surgeries for the currently logged-in doctor/nurse
     """
     try:
         @sync_to_async
-        def get_my_appointments():
+        def get_my_calendar_data():
             # Get staff profile for current user
             try:
                 staff = Staff.objects.get(user=current_user)
-                print(f"📅 Fetching appointments for logged-in user: {current_user.username}")
+                print(f"📅 Fetching calendar data for logged-in user: {current_user.username}")
                 print(f"👨‍⚕️ Staff: {staff.full_name} (ID: {staff.id})")
             except Staff.DoesNotExist:
                 raise HTTPException(
@@ -305,34 +341,58 @@ async def get_my_calendar_appointments(
                     detail="No staff profile found for your account. Please contact administrator."
                 )
             
-            # Get appointments for this staff
-            queryset = Appointment.objects.select_related('department', 'staff').filter(staff_id=staff.id)
+            calendar_items = []
             
-            # Apply year/month filter if provided - using appointment_date field
+            # Get appointments for this staff
+            appointments_queryset = Appointment.objects.select_related('department', 'staff').filter(staff_id=staff.id)
+            
+            # Apply year/month filter if provided
             if year and month:
-                print(f"🔍 Filtering by: {year}-{month}")
-                # Start of month
                 start_date = date(year, month, 1)
-                # End of month
-                if month == 12:
-                    end_date = date(year + 1, 1, 1)
-                else:
-                    end_date = date(year, month + 1, 1)
+                end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
                 
-                # Filter by appointment_date field
-                queryset = queryset.filter(
+                appointments_queryset = appointments_queryset.filter(
                     Q(appointment_date__gte=start_date, appointment_date__lt=end_date)
                 )
             
-            appointments_list = list(queryset.order_by('appointment_date', 'appointment_time', 'created_at'))
-            print(f"✅ Found {len(appointments_list)} appointments")
-            return appointments_list
+            appointments_list = list(appointments_queryset.order_by('appointment_date', 'appointment_time', 'created_at'))
+            calendar_items.extend(appointments_list)
+            
+            # Get surgeries for this staff
+            surgeries_queryset = Surgery.objects.select_related('patient', 'doctor', 'doctor__department').filter(doctor_id=staff.id)
+            
+            # Apply same year/month filter to surgeries
+            if year and month:
+
+                start_datetime = make_aware(datetime(year, month, 1))
+
+                if month == 12:
+                    end_datetime = make_aware(datetime(year + 1, 1, 1))
+                else:
+                    end_datetime = make_aware(datetime(year, month + 1, 1))
+
+                surgeries_queryset = surgeries_queryset.filter(
+                    scheduled_date__gte=start_datetime,
+                    scheduled_date__lt=end_datetime
+                )
+            
+            surgeries_list = list(surgeries_queryset.order_by('scheduled_date', 'created_at'))
+            calendar_items.extend(surgeries_list)
+            
+            # Sort by date and time
+            calendar_items.sort(key=lambda x: (
+                x.appointment_date if hasattr(x, 'appointment_date') else (x.scheduled_date.date() if hasattr(x, 'scheduled_date') else date.today()),
+                x.appointment_time if hasattr(x, 'appointment_time') else (x.scheduled_date.time() if hasattr(x, 'scheduled_date') else time(0, 0))
+            ))
+            
+            print(f"✅ Found {len(appointments_list)} appointments and {len(surgeries_list)} surgeries")
+            return calendar_items
         
-        appointments = await get_my_appointments()
-        return [appointment_to_out(appt) for appt in appointments]
+        calendar_items = await get_my_calendar_data()
+        return [calendar_item_to_out(item) for item in calendar_items]
         
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch appointments: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch calendar data: {str(e)}")

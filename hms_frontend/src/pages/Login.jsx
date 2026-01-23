@@ -1,4 +1,3 @@
-// Login.jsx
 import React, { useState, useEffect } from "react";
 import {
   Microscope,
@@ -17,7 +16,7 @@ import Logo from "../assets/logo_1.png";
 import Eclipse from "../assets/eclipse.png";
 import LightEclipse from "../assets/eclipse_1.png";
 import { successToast, errorToast } from "../components/Toast.jsx";
-import axios from "axios";
+import api, { startSessionMonitor } from "../utils/axiosConfig";
 
 const icons = [
   Microscope,
@@ -29,6 +28,32 @@ const icons = [
   Activity,
 ];
 
+// 🔹 Add getCookie function here
+const getCookie = (name) => {
+  try {
+    const cookies = document.cookie;
+    console.log(`🍪 Looking for cookie: ${name}`);
+    
+    const cookieArray = cookies.split(';');
+    
+    for (let cookie of cookieArray) {
+      const trimmedCookie = cookie.trim();
+      
+      if (trimmedCookie.startsWith(`${name}=`)) {
+        const value = trimmedCookie.substring(name.length + 1);
+        console.log(`✅ Found cookie ${name}: ${value.substring(0, 30)}...`);
+        return value;
+      }
+    }
+    
+    console.log(`❌ Cookie ${name} not found in document.cookie`);
+    return null;
+  } catch (error) {
+    console.error("Error reading cookie:", error);
+    return null;
+  }
+};
+
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -38,11 +63,9 @@ const LoginPage = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionMonitor, setSessionMonitor] = useState(null);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-    
-    // 🔹 Auto-detect system theme
+  // 🔹 Auto-detect system theme
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     setIsLightMode(mediaQuery.matches);
@@ -61,119 +84,149 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
     }
   }, []);
 
-  // 🔹 Check for existing auth token on mount (no auto-login, just redirect if valid)
+  // 🔹 Clean up session monitor on unmount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("userData");
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        successToast(`Welcome back, ${parsedUser.username}!`);
-        navigate("/dashboard");
-      } catch (err) {
-        // Clear invalid data
-        localStorage.removeItem("token");
-        localStorage.removeItem("userData");
-        localStorage.removeItem("user_id");
-        localStorage.removeItem("role");
-        localStorage.removeItem("permissions");
-        localStorage.removeItem("allowedModules");
-        window.dispatchEvent(new Event("storage"));
+    return () => {
+      if (sessionMonitor) {
+        clearInterval(sessionMonitor);
       }
+    };
+  }, [sessionMonitor]);
+
+  // 🔹 Cookie test function
+  const testCookieAfterLogin = async () => {
+    console.log("🧪 Testing cookie access after login...");
+    
+    try {
+      // Try to call /auth/check-cookies to see if cookies are being sent
+      const checkResponse = await api.get("/auth/check-cookies");
+      console.log("🧪 Cookie check response:", checkResponse.data);
+      
+      // Also try to get user info
+      const meResponse = await api.get("/profile/me");
+      console.log("🧪 User info response:", meResponse.data);
+      
+      return true;
+    } catch (error) {
+      console.error("🧪 Cookie test failed:", error);
+      return false;
     }
-  }, [navigate]);
+  };
 
-  // Login.jsx - UPDATED (just the handleLogin function)
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setError("");
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
 
-  if (!username && !password) {
-    errorToast("Please enter username and password");
-    return;
-  }
-  if (!username) {
-    errorToast("Username is required");
-    return;
-  }
-  if (!password) {
-    errorToast("Password is required");
-    return;
-  }
+    if (!username && !password) {
+      errorToast("Please enter username and password");
+      return;
+    }
+    if (!username) {
+      errorToast("Username is required");
+      return;
+    }
+    if (!password) {
+      errorToast("Password is required");
+      return;
+    }
 
-  setIsLoading(true);
+    setIsLoading(true);
 
-  try {
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("password", password);
+    try {
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("password", password);
 
-    console.log("🔄 Attempting login...");
+      console.log("🔄 Attempting login...");
 
-    const res = await axios.post(
-      `${API_BASE}/auth/login`,
-      formData,
-      {
-        timeout: 10000,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        withCredentials: true // IMPORTANT: For cookies
+      const res = await api.post(
+        "/auth/login",
+        formData,
+        {
+          timeout: 10000,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      console.log("🔑 Login Response:", res.data);
+      console.log("🍪 Response headers:", res.headers);
+      
+      // Check if cookies were set in the response
+      const setCookieHeader = res.headers['set-cookie'];
+      if (setCookieHeader) {
+        console.log("✅ Set-Cookie header received:", setCookieHeader);
+        
+        // Wait a moment for cookies to be processed by browser
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if cookies are now accessible
+        console.log("🍪 Document cookies after login:", document.cookie);
+        
+        // Try to read the cookie
+        const token = getCookie('access_token');
+        if (token) {
+          console.log("✅ Successfully read access_token cookie:", token.substring(0, 30) + "...");
+        } else {
+          console.log("⚠️ Cookie might be HttpOnly (not accessible to JavaScript)");
+          console.log("🔍 This is OK - HttpOnly cookies are more secure");
+        }
       }
-    );
 
-    console.log("🔑 Login Response:", res.data);
+      // Handle "Remember Me" - only username (non-sensitive)
+      if (rememberMe) {
+        localStorage.setItem("rememberedUsername", username);
+      } else {
+        localStorage.removeItem("rememberedUsername");
+      }
 
-    // Store authentication data
-    localStorage.setItem("token", res.data.access_token);
-    localStorage.setItem("userData", JSON.stringify(res.data.user));
-    localStorage.setItem("user_id", res.data.user.id);
-    localStorage.setItem("role", res.data.user.role);
-    localStorage.setItem(
-      "permissions",
-      JSON.stringify(res.data.user.permissions || [])
-    );
-    
-    window.dispatchEvent(new Event("storage"));
-    
-    const enabledModules = (res.data.user.permissions || [])
-      .filter((p) => p.enabled)
-      .map((p) => p.module);
-    localStorage.setItem("allowedModules", JSON.stringify(enabledModules));
-
-    // Handle "Remember Me"
-    if (rememberMe) {
-      localStorage.setItem("rememberedUsername", username);
-    } else {
-      localStorage.removeItem("rememberedUsername");
+      // Test if cookies are working by making an API call
+      console.log("🧪 Testing cookie functionality...");
+      const cookieTest = await testCookieAfterLogin();
+      
+      if (cookieTest) {
+        console.log("✅ Cookies are working correctly!");
+        
+        // Wait a moment before triggering the login event
+        setTimeout(() => {
+          // Trigger login event for PermissionContext
+          window.dispatchEvent(new CustomEvent("loginSuccess", { 
+            detail: { username: username } 
+          }));
+          
+          successToast(`Welcome back, ${username}!`);
+          
+          // Start session monitor
+          const monitor = startSessionMonitor();
+          setSessionMonitor(monitor);
+          
+          // Navigate to dashboard
+          navigate("/dashboard");
+        }, 1000);
+      } else {
+        console.error("❌ Cookies not working properly");
+        errorToast("Login successful but cookies not working. Please refresh.");
+        setIsLoading(false);
+      }
+      
+    } catch (err) {
+      console.error("❌ Login Error:", err);
+      
+      if (err.code === "ERR_NETWORK") {
+        errorToast("Cannot connect to server. Please check if backend is running.");
+      } else if (err.response?.status === 401) {
+        errorToast("Invalid username or password");
+      } else if (err.response?.data?.detail) {
+        errorToast(err.response.data.detail);
+      } else {
+        errorToast("Login failed. Please try again.");
+      }
+      setIsLoading(false);
     }
+  };
 
-    successToast(`Welcome back, ${username}!`);
-    
-    // Start token auto-refresh
-    if (window.startTokenRefresh) {
-      window.startTokenRefresh();
-    }
-    
-    navigate("/dashboard");
-  } catch (err) {
-    console.error("❌ Login Error:", err);
-
-    if (err.code === "ERR_NETWORK") {
-      errorToast("Cannot connect to server. Please check if backend is running.");
-    } else if (err.response?.status === 401) {
-      errorToast("Invalid username or password");
-    } else if (err.response?.data?.detail) {
-      errorToast(err.response.data.detail);
-    } else {
-      errorToast("Login failed. Please try again.");
-    }
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  // Rest of your component remains the same...
   return (
     <>
       {/* 🔹 FIXED: Dots Background Layer - BEFORE Main Container */}
@@ -261,26 +314,26 @@ const handleLogin = async (e) => {
               return (
                 <motion.div
                   key={index}
-                  initial={{ scale: 0.3, opacity: 0.3 }} // 🔹 START: Small + Faint
+                  initial={{ scale: 0.3, opacity: 0.3 }}
                   animate={{
                     scale: 1,
-                    opacity: 1, // 🔹 END: Full size + FULLY VISIBLE
+                    opacity: 1,
                   }}
                   transition={{
-                    duration: 0.8, // 🔹 FASTER: 0.8s (was 0.5s)
-                    delay: index * 0.15, // 🔹 QUICKER stagger
+                    duration: 0.8,
+                    delay: index * 0.15,
                     ease: "easeOut",
                   }}
                 >
                   <Icon
                     className={`absolute drop-shadow-md ${
                       isLightMode
-                        ? "text-[#0EFF7B]" // 🔹 LIGHT: BOLD #08994A
-                        : "text-[#0EFF7B]" // 🔹 DARK: BOLD #0EFF7B
+                        ? "text-[#0EFF7B]"
+                        : "text-[#0EFF7B]"
                     }`}
                     style={{
-                      width: "28px", // 🔹 BIGGER: 36px (was 28px)
-                      height: "28px", // 🔹 BIGGER: 36px (was 28px)
+                      width: "28px",
+                      height: "28px",
                       transform: `translate(${x}px, ${y}px)`,
                     }}
                   />
@@ -448,7 +501,7 @@ const handleLogin = async (e) => {
                 }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
                 whileHover={
                   !isLoading ? { scale: 1.05, backgroundColor: "#0EFF7B" } : {}
                 }

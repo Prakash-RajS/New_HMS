@@ -988,7 +988,7 @@ import os
 import logging
 from datetime import datetime
 from typing import Optional, Union
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path, Depends, status
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path, Depends, status, Request
 from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from fastapi.security import OAuth2PasswordBearer
@@ -996,9 +996,11 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import date
 from jose import JWTError, jwt
-from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport, Stock
+from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport, Stock, User
 from HMS_backend.models import Patient, Department, Staff
 from Fastapi_app.routers.notifications import NotificationService
+from asgiref.sync import sync_to_async
+
 
 router = APIRouter(prefix="/medicine_allocation", tags=["Medicine Allocation"])
 
@@ -1056,21 +1058,61 @@ class AllocationResponse(BaseModel):
     medicines: List[MedicineAllocationResponse]
 
 # ---------- Dependency to Get Current Staff ----------
-def get_current_staff(token: str = Depends(oauth2_scheme)):
+async def get_current_staff(request: Request):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+    )
+
     try:
+        # 1️⃣ Read token from HttpOnly cookie
+        token = request.cookies.get("access_token")
+        print(f"🔍 Looking for access_token cookie. Found: {bool(token)}")
+
+        # 2️⃣ Fallback to Authorization header (optional)
+        if not token:
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
+                print("🔍 Using Bearer token from Authorization header")
+            else:
+                print("❌ No access token found")
+                raise credentials_exception
+
+        # 3️⃣ Decode JWT
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        if payload.get("type") != "access":
+            print("❌ Token is not access token")
+            raise credentials_exception
+
         user_id: int = payload.get("user_id")
         if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        from HMS_backend.models import User
-        user = User.objects.get(id=user_id)
-        if not user.staff:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff not found for this user")
+            print("❌ user_id missing in token")
+            raise credentials_exception
+
+        # 4️⃣ Load User
+        user = await sync_to_async(User.objects.select_related("staff").get)(id=user_id)
+
+        # 5️⃣ Ensure staff exists
+        if not hasattr(user, "staff") or not user.staff:
+            print("❌ Staff not linked to user")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Staff access required",
+            )
+
+        print(f"✅ Authenticated staff: {user.staff.full_name}")
         return user.staff
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed")
+
+    except User.DoesNotExist:
+        raise credentials_exception
+    except JWTError as e:
+        print(f"❌ JWT error: {e}")
+        raise credentials_exception
+    except Exception as e:
+        print(f"❌ Auth error: {e}")
+        raise credentials_exception
 
 # ---------- Helper function to update stock ----------
 async def update_stock_quantity(medicine_name: str, dosage: str, quantity: int, operation: str = "decrement"):

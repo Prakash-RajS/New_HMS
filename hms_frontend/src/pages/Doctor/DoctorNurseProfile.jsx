@@ -631,9 +631,7 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
 import { successToast, errorToast } from "../../components/Toast";
-
-// const API_BASE = "http://127.0.0.1:8000";
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig"; // Import axios
 
 const ProfileSection = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -654,7 +652,10 @@ const ProfileSection = () => {
   const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Helper function to get profile picture URL
+  // Get API base URL from environment variable
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+  // Helper function to get profile picture URL - USING API_BASE for images
   const getProfilePictureUrl = (profilePicturePath) => {
     if (!profilePicturePath) return null;
 
@@ -665,30 +666,36 @@ const ProfileSection = () => {
       return profilePicturePath;
     }
 
-    // If it starts with /static/, it's already a proper URL path
+    // If it starts with /Fastapi_app/, construct full backend URL
     if (profilePicturePath.startsWith("/static/")) {
       return `${API_BASE}${profilePicturePath}`;
     }
 
-    // If it's a file path, extract the filename and construct the URL
+    // If it's a file path, extract the filename and construct the full backend URL
     const filename = profilePicturePath.split("/").pop();
     if (filename) {
+      // Use full backend URL from environment variable
       return `${API_BASE}/static/staffs_pictures/${filename}`;
     }
 
     return null;
   };
 
-  // Fetch all staff from backend
+  // Fetch all staff from backend - USING api.get() for API calls
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE}/staff/all/`);
-        if (!response.ok) throw new Error("Failed to fetch profiles");
-        const data = await response.json();
+        const response = await api.get("/staff/all/");
+        
+        if (response.status !== 200) {
+          throw new Error("Failed to fetch profiles");
+        }
+        
+        const data = response.data;
 
         console.log("Fetched staff data:", data); // Debug log
+        console.log("API Base URL for images:", API_BASE); // Debug log
 
         // Transform to match frontend format
         const transformed = data.map((staff) => ({
@@ -805,20 +812,17 @@ const ProfileSection = () => {
 
   const handleUpdateProfile = async (updatedData) => {
     try {
-      // Update the profile in the backend
-      const response = await fetch(
-        `${API_BASE}/staff/update/${updatedData.id}/`,
-        {
-          method: "PUT",
-          body: updatedData, // This should be FormData in your actual implementation
-        }
+      // Update the profile in the backend - USING api.put() for API calls
+      const response = await api.put(
+        `/staff/update/${updatedData.id}/`,
+        updatedData // This should be FormData in your actual implementation
       );
 
-      if (response.ok) {
+      if (response.status === 200) {
         successToast("Profile updated successfully");
-        // Refresh the profiles
-        const fetchResponse = await fetch(`${API_BASE}/staff/all/`);
-        const data = await fetchResponse.json();
+        // Refresh the profiles - USING api.get() for API calls
+        const fetchResponse = await api.get("/staff/all/");
+        const data = fetchResponse.data;
         const transformed = data.map((staff) => ({
           id: staff.id,
           name: staff.full_name || "Unknown",
@@ -1162,7 +1166,7 @@ const ProfileSection = () => {
                 {profile.type}
               </div>
 
-              {/* Profile Picture */}
+              {/* Profile Picture - USING getProfilePictureUrl with API_BASE */}
               <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden border-2 border-[#0EFF7B] bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
                 {profile.profilePicture ? (
                   <img
@@ -1172,7 +1176,9 @@ const ProfileSection = () => {
                     onError={(e) => {
                       console.log(
                         "Profile image failed to load:",
-                        profile.profilePicture
+                        profile.profilePicture,
+                        "Full URL:",
+                        getProfilePictureUrl(profile.profilePicture)
                       );
                       e.target.style.display = "none";
                       // Fallback to icon when image fails to load

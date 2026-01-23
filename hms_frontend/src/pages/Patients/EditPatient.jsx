@@ -3,10 +3,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown, Upload, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import axios from "axios";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const EditPatientPopup = ({
   patientId,
@@ -22,31 +20,12 @@ const EditPatientPopup = ({
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
-  // API Helpers
-  const api = {
-    getPatient: (id) => axios.get(`${API_BASE}/patients/${id}`),
-    getDepartments: () => axios.get(`${API_BASE}/patients/departments`),
-    getDoctors: (deptId) =>
-      axios.get(`${API_BASE}/patients/staff?department_id=${deptId}`),
-    updatePatient: (uniqueId, payload) => {
-      const form = new FormData();
-      Object.entries(payload).forEach(([k, v]) => {
-        if (v !== null && v !== undefined && v !== "") {
-          form.append(k, v);
-        }
-      });
-      return axios.put(`${API_BASE}/patients/${uniqueId}`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-    },
-  };
-
   // Fetch departments
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await api.getDepartments();
-        setDepartments(res.data.departments || []);
+        const response = await api.get("/patients/departments");
+        setDepartments(response.data.departments || []);
       } catch (err) {
         console.error("Failed to load departments:", err);
         errorToast("Failed to load departments");
@@ -66,8 +45,8 @@ const EditPatientPopup = ({
     const fetchPatient = async () => {
       try {
         setError("");
-        const res = await api.getPatient(patientId);
-        initializeForm(res.data);
+        const response = await api.get(`/patients/${patientId}`);
+        initializeForm(response.data);
       } catch (err) {
         console.error("Failed to fetch patient:", err);
         errorToast("Patient not found");
@@ -105,8 +84,10 @@ const EditPatientPopup = ({
     }
     setDoctorsLoading(true);
     try {
-      const res = await api.getDoctors(deptId);
-      setDoctors(res.data.staff || []);
+      const response = await api.get("/patients/staff", { 
+        params: { department_id: deptId } 
+      });
+      setDoctors(response.data.staff || []);
     } catch (err) {
       console.error("Failed to load doctors:", err);
       errorToast("Failed to load doctors");
@@ -254,14 +235,24 @@ const handlePhoneChange = (value) => {
 
     try {
       setError("");
-      await api.updatePatient(formData.patient_unique_id, payload);
+      const formDataToSend = new FormData();
+      Object.entries(payload).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          formDataToSend.append(key, value);
+        }
+      });
+
+      await api.put(`/patients/${formData.patient_unique_id}`, formDataToSend, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
       successToast(`Patient "${formData.full_name}" updated successfully!`);
       onUpdate?.();
       onClose();
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || "Update failed";
-      setError(msg);
-      errorToast(msg);
+      const errorMessage = err.response?.data?.detail || err.message || "Update failed";
+      setError(errorMessage);
+      errorToast(errorMessage);
     }
   };
 

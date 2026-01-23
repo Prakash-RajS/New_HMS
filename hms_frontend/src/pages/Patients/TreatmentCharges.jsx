@@ -8,13 +8,10 @@ import {
   Loader2,
 } from "lucide-react";
 import { Listbox, Dialog } from "@headlessui/react";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import DeleteChargePopup from "./DeleteChargePopup";
 import EditChargePopup from "./EditChargePopup";
-
-// API Base URL configuration
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 const TreatmentCharges = () => {
   // State for patients
@@ -94,13 +91,10 @@ const TreatmentCharges = () => {
   // Fetch patients list
   const fetchPatients = async () => {
     try {
-      const token = localStorage.getItem("token");
       let patientsData = [];
 
       try {
-        const res = await axios.get(`${API_BASE}/patients/`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get("/patients/");
 
         console.log("Patients list API Response:", res.data);
 
@@ -148,13 +142,10 @@ const TreatmentCharges = () => {
   const fetchPatientDetails = async (patientId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
       
       // First try the treatment charges API endpoint for patient details
       try {
-        const res = await axios.get(`${API_BASE}/treatment-charges/patients/${patientId}/details`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get(`/treatment-charges/patients/${patientId}/details`);
 
         console.log("Patient Details from treatment-charges API:", res.data);
         const patientData = res.data;
@@ -179,9 +170,7 @@ const TreatmentCharges = () => {
         console.log("Treatment charges API failed, trying patients API:", chargesApiError);
         
         // Fallback to patients API
-        const patientRes = await axios.get(`${API_BASE}/patients/${patientId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const patientRes = await api.get(`/patients/${patientId}`);
 
         const patientData = patientRes.data.data || patientRes.data.patient || patientRes.data;
         
@@ -213,15 +202,8 @@ const TreatmentCharges = () => {
   // Fetch treatment charges for a patient - CORRECTED ENDPOINT
   const fetchTreatmentCharges = async (patientId) => {
     try {
-      const token = localStorage.getItem("token");
-      
       // CORRECTED: Use the right endpoint from your backend
-      const res = await axios.get(
-        `${API_BASE}/treatment-charges/patient/${patientId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await api.get(`/treatment-charges/patient/${patientId}`);
 
       console.log("Treatment charges API response:", res.data);
 
@@ -435,8 +417,6 @@ const TreatmentCharges = () => {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      
       if (!selectedPatient || !selectedPatient.numericId) {
         errorToast("Could not determine patient ID. Please select the patient again.");
         return;
@@ -453,16 +433,7 @@ const TreatmentCharges = () => {
 
       console.log("Sending charge data:", JSON.stringify(chargeData, null, 2));
 
-      const res = await axios.post(
-        `${API_BASE}/treatment-charges/`,
-        chargeData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const res = await api.post("/treatment-charges/", chargeData);
 
       console.log("Response:", res.data);
       
@@ -498,15 +469,7 @@ const TreatmentCharges = () => {
 
   const handleConfirmDelete = async (chargeId) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `${API_BASE}/treatment-charges/${chargeId}/`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.delete(`/treatment-charges/${chargeId}/`);
 
       successToast("Treatment charge deleted successfully");
       setShowDeletePopup(false);
@@ -529,17 +492,7 @@ const TreatmentCharges = () => {
 
   const handleUpdateCharge = async (chargeId, chargeData) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `${API_BASE}/treatment-charges/${chargeId}/`,
-        chargeData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const res = await api.put(`/treatment-charges/${chargeId}/`, chargeData);
 
       successToast("Treatment charge updated successfully");
       setShowEditPopup(false);

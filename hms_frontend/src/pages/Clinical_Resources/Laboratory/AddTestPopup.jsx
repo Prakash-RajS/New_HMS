@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../../utils/axiosConfig";
+import { successToast, errorToast } from "../../../components/Toast.jsx";
 
 const Dropdown = ({
   label,
@@ -106,7 +106,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     description: "",
     price: "",
     duration_minutes: "",
-    status: "" // Changed from "available" to empty string
+    status: ""
   });
 
   const [loading, setLoading] = useState(false);
@@ -205,21 +205,38 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
         duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
       };
 
-      const res = await fetch(`${API_BASE}/laboratory/tests`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Failed to add test");
+      // Use axios instead of fetch
+      const response = await api.post("/laboratory/tests", payload);
+      
+      // Check for successful response
+      if (response.status === 200 || response.status === 201) {
+        // Show success toast
+        successToast("Test added successfully!");
+        
+        // Wait a moment for the toast to show, then close and refresh
+        setTimeout(async () => {
+          await onSuccess();
+          onClose();
+        }, 500);
+      } else {
+        throw new Error("Failed to add test");
       }
-
-      await onSuccess();
-      onClose();
     } catch (err) {
-      setError(err.message || "Failed to add test. Please try again.");
+      // Handle axios errors
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.response?.data?.error || 
+                          err.message || 
+                          "Failed to add test. Please try again.";
+      
+      setError(errorMessage);
+      
+      // Show error toast with more specific message if available
+      const toastMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          errorMessage;
+      errorToast(toastMessage);
+      
       console.error("Error adding test:", err);
     } finally {
       setLoading(false);

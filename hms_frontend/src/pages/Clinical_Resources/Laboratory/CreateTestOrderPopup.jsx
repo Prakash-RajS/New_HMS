@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
+import api from "../../../utils/axiosConfig"; // Import axios
 
 const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -20,16 +21,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [testTypesLoading, setTestTypesLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
   // Fetch test types from API
   const fetchTestTypes = async () => {
     setTestTypesLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/labreports/test-types`);
-      if (!response.ok) throw new Error("Failed to fetch test types");
+      const response = await api.get("/labreports/test-types");
       
-      const data = await response.json();
+      if (response.status !== 200) {
+        throw new Error("Failed to fetch test types");
+      }
+      
+      const data = response.data;
       console.log("Fetched test types:", data.test_types);
       setTestTypes(data.test_types || []);
     } catch (error) {
@@ -45,10 +47,13 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/patients/departments`);
-      if (!response.ok) throw new Error("Failed to fetch departments");
+      const response = await api.get("/patients/departments");
 
-      const data = await response.json();
+      if (response.status !== 200) {
+        throw new Error("Failed to fetch departments");
+      }
+
+      const data = response.data;
 
       // Format departments to ensure consistent structure
       const formattedDepartments = Array.isArray(data.departments)
@@ -79,11 +84,13 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
       setPatientsLoading(true);
       try {
         // Fetch patients
-        const patientsResponse = await fetch(
-          `${API_BASE}/medicine_allocation/edit`
-        );
-        if (!patientsResponse.ok) throw new Error("Failed to fetch patients");
-        const patientsData = await patientsResponse.json();
+        const patientsResponse = await api.get("/medicine_allocation/edit");
+        
+        if (patientsResponse.status !== 200) {
+          throw new Error("Failed to fetch patients");
+        }
+        
+        const patientsData = patientsResponse.data;
         setPatients(patientsData.patients || []);
 
         // Fetch departments

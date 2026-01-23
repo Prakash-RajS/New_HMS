@@ -14,15 +14,12 @@ import {
   UserMinus,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AdmitPatientPopup from "./AdmitPatientPopup";
 import EditAdmitPatientPopup from "./EditAdmitPatientPopup";
 import DischargePopup from "./Dischargepatient";
 import { successToast, errorToast } from "../../components/Toast";
-
-// const API_BASE = "http://localhost:8000";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
@@ -50,9 +47,8 @@ const RoomManagement = () => {
     const fetchRooms = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_BASE}/bedgroups/all`);
-        if (!res.ok) throw new Error("Failed to fetch bed groups");
-        const groups = await res.json();
+        const response = await api.get("/bedgroups/all");
+        const groups = response.data;
 
         const roomList = [];
 
@@ -67,17 +63,11 @@ const RoomManagement = () => {
               patientId = bed.patient.id || "—";
 
               try {
-                const patientRes = await fetch(
-                  `${API_BASE}/patients/${bed.patient.id}`
-                );
-                if (patientRes.ok) {
-                  const patient = await patientRes.json();
-                  admitDate = patient.admission_date
-                    ? new Date(patient.admission_date).toLocaleDateString(
-                        "en-GB"
-                      )
-                    : "—";
-                }
+                const patientResponse = await api.get(`/patients/${bed.patient.id}`);
+                const patient = patientResponse.data;
+                admitDate = patient.admission_date
+                  ? new Date(patient.admission_date).toLocaleDateString("en-GB")
+                  : "—";
               } catch (err) {
                 console.warn("Failed to fetch patient:", err);
               }
@@ -99,7 +89,7 @@ const RoomManagement = () => {
         setRooms(roomList);
       } catch (err) {
         console.error("Fetch error:", err);
-        errorToast("Failed to load rooms");
+        errorToast(err.response?.data?.detail || "Failed to load rooms");
       } finally {
         setLoading(false);
       }
@@ -178,20 +168,14 @@ const RoomManagement = () => {
     if (!dischargeRoom) return;
 
     try {
-      const res = await fetch(
-        `${API_BASE}/bedgroups/${dischargeRoom.groupId}/beds/${dischargeRoom.roomNo}/vacate`,
-        { method: "POST" }
+      await api.post(
+        `/bedgroups/${dischargeRoom.groupId}/beds/${dischargeRoom.roomNo}/vacate`
       );
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Discharge failed");
-      }
 
       successToast("Patient discharged successfully!");
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      errorToast(err.message);
+      errorToast(err.response?.data?.detail || "Discharge failed");
     } finally {
       setShowDischargePopup(false);
       setDischargeRoom(null);
@@ -208,9 +192,9 @@ const RoomManagement = () => {
     setDischargeRoom(null);
   };
 
-  const handleBedListClick = () => navigate("/Administration/BedList");
+  const handleBedListClick = () => navigate("/Administration/RoomManagement/BedList");
   const handleRoomManagementClick = () =>
-    navigate("/Administration/roommanagement");
+    navigate("/Administration/RoomManagement");
 
   const FilterPopover = ({ isOpen, onClose }) => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
@@ -359,7 +343,7 @@ const RoomManagement = () => {
     );
   };
 
-  const isBedListRoute = location.pathname.includes("BedList");
+  const isBedListRoute = location.pathname === "/Administration/RoomManagement/BedList";
 
   if (loading) {
     return (
@@ -370,6 +354,155 @@ const RoomManagement = () => {
       </div>
     );
   }
+
+  const RoomManagementContent = () => (
+    <div className="overflow-x-auto">
+      <table className="w-full text-center text-sm min-w-[1000px]">
+        <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
+          <tr>
+            <th className="py-3 px-2">
+              <input
+                type="checkbox"
+                className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                checked={
+                  currentRooms.length > 0 &&
+                  selectedRooms.length === currentRooms.length
+                }
+                onChange={handleSelectAll}
+              />
+            </th>
+            <th>Bed no</th>
+            <th>Bed Group</th>
+            <th>Patients</th>
+            <th>Admit</th>
+            <th>Status</th>
+            <th className="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
+          {currentRooms.length > 0 ? (
+            currentRooms.map((room, index) => (
+              <tr
+                key={room.roomNo}
+                className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
+              >
+                <td className="px-2 py-3">
+                  <input
+                    type="checkbox"
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                    checked={selectedRooms.includes(room.roomNo)}
+                    onChange={() => handleCheckboxChange(room.roomNo)}
+                  />
+                </td>
+                <td className="text-black dark:text-white">
+                  {room.roomNo}
+                </td>
+                <td className="text-black dark:text-white">
+                  {room.bedGroup}
+                </td>
+                <td className="flex items-center justify-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#08994A] dark:bg-green-600 flex items-center justify-center text-sm font-bold text-white dark:text-black">
+                    {room.patient === "—"
+                      ? "?"
+                      : room.patient.charAt(0)}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-black dark:text-white text-sm font-medium">
+                      {room.patient}
+                    </p>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs">
+                      {room.patientId}
+                    </p>
+                  </div>
+                </td>
+                <td className="text-black dark:text-white">
+                  {room.admit}
+                </td>
+                <td className={statusColors[room.status]}>
+                  {room.status}
+                </td>
+                <td className="text-center">
+                  <div className="flex justify-center gap-2">
+                    {/* Edit Button */}
+                    <div
+                      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
+           border border-[#08994A1A] dark:border-[#0EFF7B1A] 
+           bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
+                      onClick={() => handleEditClick(room)}
+                    >
+                      <Edit
+                        size={16}
+                        className="text-[#08994A] dark:text-[#0EFF7B] 
+             hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                      />
+                      <span
+                        className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+             px-3 py-1 text-xs rounded-md shadow-md
+             bg-gray-100 dark:bg-black text-black dark:text-white
+             opacity-0 group-hover:opacity-100
+             transition-all duration-150"
+                      >
+                        Edit
+                      </span>
+                    </div>
+
+                    {/* Delete / Discharge Button */}
+                    <div
+                      className="relative group w-8 h-8 flex items-center justify-center rounded-full 
+             border border-red-200 dark:border-red-900/50 
+             bg-red-50 dark:bg-red-900/20 cursor-pointer"
+                      onClick={() => handleDischargeClick(room)}
+                    >
+                      <UserMinus
+                        size={16}
+                        className="text-red-600 dark:text-red-400 
+             hover:text-red-700 dark:hover:text-red-300"
+                      />
+                      <span
+                        className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-gray-100 dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150 pointer-events-none"
+                      >
+                        Discharge Patient
+                      </span>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td
+                colSpan="7"
+                className="h-64 text-center text-gray-500 dark:text-gray-400 text-lg font-medium"
+              >
+                No rooms found
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const BedListContent = () => (
+    <div className="text-center py-10 text-black dark:text-white">
+      <h3 className="text-xl font-semibold mb-4 text-black dark:text-white">
+        Bed List View
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400">
+        This is the Bed List page content.
+      </p>
+      <button
+        onClick={handleRoomManagementClick}
+        className="mt-4 px-4 py-2 bg-[#08994A] dark:bg-green-500 text-white dark:text-black rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 border border-[#0EFF7B] dark:border-[#1E1E1E]"
+      >
+        Back to Room Management
+      </button>
+    </div>
+  );
 
   return (
     <div className=" h-100% mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl w-full max-w-[2500px] mx-auto dark:border-[#1E1E1E] font-[Helvetica]">
@@ -511,161 +644,8 @@ const RoomManagement = () => {
           onClose={() => setFilterOpen(false)}
         />
 
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="overflow-x-auto">
-                <table className="w-full text-center text-sm min-w-[1000px]">
-                  <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
-                    <tr>
-                      <th className="py-3 px-2">
-                        <input
-                          type="checkbox"
-                          className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                          checked={
-                            currentRooms.length > 0 &&
-                            selectedRooms.length === currentRooms.length
-                          }
-                          onChange={handleSelectAll}
-                        />
-                      </th>
-                      <th>Bed no</th>
-                      <th>Bed Group</th>
-                      <th>Patients</th>
-                      <th>Admit</th>
-                      <th>Status</th>
-                      <th className="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="[&>tr>td]:px-4 [&>tr>td]:py-3 bg-gray-100 dark:bg-black">
-                    {currentRooms.length > 0 ? (
-                      currentRooms.map((room, index) => (
-                        <tr
-                          key={room.roomNo}
-                          className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
-                        >
-                          <td className="px-2 py-3">
-                            <input
-                              type="checkbox"
-                              className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                              checked={selectedRooms.includes(room.roomNo)}
-                              onChange={() => handleCheckboxChange(room.roomNo)}
-                            />
-                          </td>
-                          <td className="text-black dark:text-white">
-                            {room.roomNo}
-                          </td>
-                          <td className="text-black dark:text-white">
-                            {room.bedGroup}
-                          </td>
-                          <td className="flex items-center justify-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-[#08994A] dark:bg-green-600 flex items-center justify-center text-sm font-bold text-white dark:text-black">
-                              {room.patient === "—"
-                                ? "?"
-                                : room.patient.charAt(0)}
-                            </div>
-                            <div className="text-center">
-                              <p className="text-black dark:text-white text-sm font-medium">
-                                {room.patient}
-                              </p>
-                              <p className="text-gray-600 dark:text-gray-400 text-xs">
-                                {room.patientId}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="text-black dark:text-white">
-                            {room.admit}
-                          </td>
-                          <td className={statusColors[room.status]}>
-                            {room.status}
-                          </td>
-                          <td className="text-center">
-                            <div className="flex justify-center gap-2">
-                              {/* Edit Button */}
-                              <div
-                                className="relative group w-8 h-8 flex items-center justify-center rounded-full 
-                 border border-[#08994A1A] dark:border-[#0EFF7B1A] 
-                 bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer"
-                                onClick={() => handleEditClick(room)}
-                              >
-                                <Edit
-                                  size={16}
-                                  className="text-[#08994A] dark:text-[#0EFF7B] 
-                   hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                />
-                                <span
-                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-               px-3 py-1 text-xs rounded-md shadow-md
-               bg-gray-100 dark:bg-black text-black dark:text-white
-               opacity-0 group-hover:opacity-100
-               transition-all duration-150"
-                                >
-                                  Edit
-                                </span>
-                              </div>
-
-                              {/* Delete / Discharge Button */}
-                              <div
-                                className="relative group w-8 h-8 flex items-center justify-center rounded-full 
-                 border border-red-200 dark:border-red-900/50 
-                 bg-red-50 dark:bg-red-900/20 cursor-pointer"
-                                onClick={() => handleDischargeClick(room)}
-                              >
-                                <UserMinus
-                                  size={16}
-                                  className="text-red-600 dark:text-red-400 
-                   hover:text-red-700 dark:hover:text-red-300"
-                                />
-                                <span
-                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                   px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 pointer-events-none"
-                                >
-                                  Discharge Patient
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="7"
-                          className="h-64 text-center text-gray-500 dark:text-gray-400 text-lg font-medium"
-                        >
-                          No rooms found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            }
-          />
-          <Route
-            path="BedList"
-            element={
-              <div className="text-center py-10 text-black dark:text-white">
-                <h3 className="text-xl font-semibold mb-4 text-black dark:text-white">
-                  Bed List View
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  This is the Bed List page content.
-                </p>
-                <button
-                  onClick={handleRoomManagementClick}
-                  className="mt-4 px-4 py-2 bg-[#08994A] dark:bg-green-500 text-white dark:text-black rounded-full hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 border border-[#0EFF7B] dark:border-[#1E1E1E]"
-                >
-                  Back to Room Management
-                </button>
-              </div>
-            }
-          />
-        </Routes>
+        {/* Conditional Content */}
+        {isBedListRoute ? <BedListContent /> : <RoomManagementContent />}
 
         {/* Popups */}
         {showAdmitPopup && (

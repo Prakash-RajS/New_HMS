@@ -183,6 +183,8 @@ class Staff(models.Model):
     # 🔹 Dynamic Field - Will be calculated
     total_patients_treated = models.IntegerField(default=0)
     
+    surgery_count = models.IntegerField(default=0,null=True,blank=True)
+
     # 🔹 File fields
     certificates = models.TextField(blank=True, null=True)
     profile_picture = models.TextField(blank=True, null=True)
@@ -1290,3 +1292,105 @@ class MedicalTest(models.Model):
 
 
         
+class Surgery(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_SUCCESS = "success"
+    STATUS_CANCELLED = "cancelled"
+    STATUS_FAILED = "failed"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_SUCCESS, "Success"),
+        (STATUS_CANCELLED, "Cancelled"),
+        (STATUS_FAILED, "Failed"),
+    ]
+
+    patient = models.ForeignKey(
+        Patient,
+        on_delete=models.CASCADE,
+        related_name="surgeries"
+    )
+
+    doctor = models.ForeignKey(
+        Staff,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="surgeries"
+    )
+
+    surgery_type = models.CharField(max_length=255)
+
+    description = models.TextField(blank=True, null=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING
+    )
+
+    price = models.DecimalField(  # Added price field
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    scheduled_date = models.DateTimeField()
+
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.surgery_type} - {self.patient}"
+
+    class Meta:
+        db_table = "surgeries"
+        ordering = ["-scheduled_date"]
+
+    def save(self, *args, **kwargs):
+        old_status = None
+        if self.pk:
+            try:
+                old_status = Surgery.objects.only("status").get(pk=self.pk).status
+            except Surgery.DoesNotExist:
+                pass
+            
+        # Save surgery first
+        super().save(*args, **kwargs)
+    
+        if not self.doctor:
+            return
+    
+        COUNTED_STATUSES = {self.STATUS_SUCCESS, self.STATUS_FAILED}
+        NON_COUNTED_STATUSES = {self.STATUS_PENDING, self.STATUS_CANCELLED}
+    
+        # Case 1: Add count
+        if (
+            old_status in NON_COUNTED_STATUSES
+            and self.status in COUNTED_STATUSES
+        ):
+            self.doctor.surgery_count = (self.doctor.surgery_count or 0) + 1
+            self.doctor.save(update_fields=["surgery_count"])
+    
+            print(
+                f"➕ Surgery count incremented for {self.doctor.full_name}: "
+                f"{self.doctor.surgery_count}"
+            )
+    
+        # Case 2: Reduce count
+        elif (
+            old_status in COUNTED_STATUSES
+            and self.status in NON_COUNTED_STATUSES
+        ):
+            self.doctor.surgery_count = max(
+                (self.doctor.surgery_count or 0) - 1,
+                0
+            )
+            self.doctor.save(update_fields=["surgery_count"])
+    
+            print(
+                f"➖ Surgery count decremented for {self.doctor.full_name}: "
+                f"{self.doctor.surgery_count}"
+            )
+    
+        # Case 3: success ↔ failed → DO NOTHING

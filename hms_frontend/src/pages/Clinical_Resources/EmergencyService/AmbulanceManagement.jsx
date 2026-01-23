@@ -28,12 +28,9 @@ import EditDispatchModal from "./EditDispatch";
 import EditTripModal from "./EditTrip";
 import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
+import api from "../../../utils/axiosConfig";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const WS_URL = import.meta.env.VITE_API_BASE_URL;
-
-
-
 
 const AmbulanceManagement = () => {
   // ── STATE ─────────────────────────────────────
@@ -429,20 +426,15 @@ const formatMessageType = (type) => {
     setLoading(true);
     setError(null);
     try {
-      const [dispatchRes, tripRes, unitRes, patientRes] = await Promise.all([
-        fetch(`${API_BASE}/ambulance/dispatch`),
-        fetch(`${API_BASE}/ambulance/trips`),
-        fetch(`${API_BASE}/ambulance/units`),
-        fetch(`${API_BASE}/ambulance/patients`),
-      ]);
+      const dispatchRes = await api.get("/ambulance/dispatch");
+      const tripRes = await api.get("/ambulance/trips");
+      const unitRes = await api.get("/ambulance/units");
+      const patientRes = await api.get("/ambulance/patients");
 
-      if (!dispatchRes.ok || !tripRes.ok || !unitRes.ok || !patientRes.ok)
-        throw new Error("Failed to fetch data");
-
-      const dispatches = await dispatchRes.json();
-      const trips = await tripRes.json();
-      const allUnits = await unitRes.json();
-      const patients = await patientRes.json();
+      const dispatches = dispatchRes.data;
+      const trips = tripRes.data;
+      const allUnits = unitRes.data;
+      const patients = patientRes.data;
 
       setPatientList(patients);
       setDispatchData(dispatches);
@@ -458,8 +450,17 @@ const formatMessageType = (type) => {
 
       setStats({ total, ready, onRoad, outOfService });
     } catch (err) {
+      let errorMessage = "Failed to fetch data.";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
       console.error("❌ Error fetching data:", err);
-      setError(err.message);
+      setError(errorMessage);
+      errorToast(errorMessage);
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -577,14 +578,11 @@ const formatMessageType = (type) => {
         : "unit";
 
     try {
-      const responses = await Promise.all(
+      await Promise.all(
         ids.map((id) =>
-          fetch(`${API_BASE}/ambulance/${endpoint}/${id}`, { method: "DELETE" })
+          api.delete(`/ambulance/${endpoint}/${id}`)
         )
       );
-
-      const failed = responses.some((res) => !res.ok);
-      if (failed) throw new Error("Some items could not be deleted");
 
       await fetchData();
       setSelectedRows(new Set());
@@ -597,8 +595,16 @@ const formatMessageType = (type) => {
             } deleted successfully!`
           : `${count} ${itemType}s deleted successfully!`
       );
-    } catch (error) {
-      errorToast(error.message || "Failed to delete item(s)");
+    } catch (err) {
+      let errorMessage = "Failed to delete item(s).";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      errorToast(errorMessage);
     } finally {
       setIsDeleteOpen(false);
       setSelectedItem(null);
@@ -649,41 +655,34 @@ const formatMessageType = (type) => {
   };
 
   const saveDispatch = async (payload) => {
-    const method = editingDispatch ? "PUT" : "POST";
     const url = editingDispatch
-      ? `${API_BASE}/ambulance/dispatch/${editingDispatch.id}`
-      : `${API_BASE}/ambulance/dispatch`;
+      ? `/ambulance/dispatch/${editingDispatch.id}`
+      : `/ambulance/dispatch`;
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || "Failed to save dispatch");
-      }
+      const res = await (editingDispatch ? api.put(url, payload) : api.post(url, payload));
       await fetchData();
       setEditDispatchOpen(false);
       setEditingDispatch(null);
       successToast(editingDispatch ? "Dispatch updated!" : "Dispatch created!");
-    } catch (e) {
-      errorToast(e.message || "Operation failed");
+    } catch (err) {
+      let errorMessage = editingDispatch ? "Failed to update dispatch!" : "Failed to create dispatch!";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      errorToast(errorMessage);
     }
   };
 
   const saveTrip = async (payload) => {
-    const method = editingTrip ? "PUT" : "POST";
     const url = editingTrip
-      ? `${API_BASE}/ambulance/trips/${editingTrip.id}`
-      : `${API_BASE}/ambulance/trips`;
+      ? `/ambulance/trips/${editingTrip.id}`
+      : `/ambulance/trips`;
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed");
+      const res = await (editingTrip ? api.put(url, payload) : api.post(url, payload));
       await fetchData();
       setEditTripOpen(false);
       setEditingTrip(null);
@@ -692,25 +691,25 @@ const formatMessageType = (type) => {
           ? "Trip updated successfully!"
           : "Trip created successfully!"
       );
-    } catch (e) {
-      errorToast(
-        editingTrip ? "Failed to update trip!" : "Failed to create trip!"
-      );
+    } catch (err) {
+      let errorMessage = editingTrip ? "Failed to update trip!" : "Failed to create trip!";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      errorToast(errorMessage);
     }
   };
 
   const saveUnit = async (payload) => {
-    const method = editingUnit ? "PUT" : "POST";
     const url = editingUnit
-      ? `${API_BASE}/ambulance/units/${editingUnit.id}`
-      : `${API_BASE}/ambulance/units`;
+      ? `/ambulance/units/${editingUnit.id}`
+      : `/ambulance/units`;
     try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error("Failed");
+      const res = await (editingUnit ? api.put(url, payload) : api.post(url, payload));
       await fetchData();
       setEditUnitOpen(false);
       setEditingUnit(null);
@@ -719,10 +718,16 @@ const formatMessageType = (type) => {
           ? "Unit updated successfully!"
           : "Unit created successfully!"
       );
-    } catch (e) {
-      errorToast(
-        editingUnit ? "Failed to update unit!" : "Failed to create unit!"
-      );
+    } catch (err) {
+      let errorMessage = editingUnit ? "Failed to update unit!" : "Failed to create unit!";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      errorToast(errorMessage);
     }
   };
 

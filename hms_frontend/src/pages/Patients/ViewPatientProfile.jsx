@@ -906,9 +906,10 @@
 // }
 
 //Pages/patients/ViewPatientProfile.jsx
+//Pages/patients/ViewPatientProfile.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/axiosConfig";
 import {
   ClipboardList,
   FileText,
@@ -927,10 +928,9 @@ import {
   History,
   Eye,
   Download,
+  Scissors,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
@@ -968,6 +968,9 @@ export default function ViewPatientProfile() {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
 
+  const [surgeries, setSurgeries] = useState([]);
+  const [currentSurgeryPage, setCurrentSurgeryPage] = useState(1);
+
   // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -979,12 +982,25 @@ export default function ViewPatientProfile() {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await axios.get(
-          `${API_BASE}/medicine_allocation/departments/`
+        const res = await api.get(
+          "/medicine_allocation/departments/"
         );
         setDepartments(["All", ...res.data]);
       } catch (err) {
         console.error("Failed to load departments", err);
+        if (err.response) {
+          if (err.response.status === 401) {
+            console.error("Authentication failed.");
+          } else if (err.response.status === 404) {
+            console.error("Departments endpoint not found.");
+          } else {
+            console.error(`Server error: ${err.response.status}`);
+          }
+        } else if (err.request) {
+          console.error("No response from server.");
+        } else {
+          console.error("Failed to load departments");
+        }
         setDepartments(["All", "Pathology", "Radiology"]);
       }
     };
@@ -995,10 +1011,23 @@ export default function ViewPatientProfile() {
   useEffect(() => {
     const fetchPatient = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/patients/${patient_id}`);
+        const res = await api.get(`/patients/${patient_id}`);
         setPatient(res.data);
       } catch (err) {
         console.error("Failed to load patient", err);
+        if (err.response) {
+          if (err.response.status === 401) {
+            console.error("Authentication failed.");
+          } else if (err.response.status === 404) {
+            console.error("Patient not found.");
+          } else {
+            console.error(`Server error: ${err.response.status}`);
+          }
+        } else if (err.request) {
+          console.error("No response from server.");
+        } else {
+          console.error("Failed to load patient");
+        }
       } finally {
         setLoading(false);
       }
@@ -1008,44 +1037,95 @@ export default function ViewPatientProfile() {
 
   // Fetch All Data including Invoices and History
   useEffect(() => {
-    if (!patient) return;
-    
-    const fetchTabData = async () => {
-      setDataLoading(true);
-      try {
-        const [diagRes, presRes, testRes, invRes, histRes] = await Promise.all([
-          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/diagnoses/`),
-          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/prescriptions/`),
-          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/test-reports/`),
-          axios.get(`${API_BASE}/medicine_allocation/${patient_id}/all-invoices/`),
-          axios.get(`${API_BASE}/patients/${patient_id}/history?page=1&limit=20`)
-        ]);
-        
-        setDiagnoses(diagRes.data || []);
-        setPrescriptions(presRes.data || []);
-        setTestReports(testRes.data || []);
-        setInvoices(invRes.data || []);
-        setHistory(histRes.data?.history || []);
-        
-        // Auto-select latest invoice
-        if (invRes.data.length > 0) {
-          setSelectedInvoiceIndex(0);
-        }
-        
-        // Reset pagination to first page on data load
-        setCurrentPage(1);
-        setCurrentPrescriptionPage(1);
-        setCurrentTestPage(1);
-        setCurrentHistoryPage(1);
-      } catch (err) {
-        console.error("Failed to load tab data", err);
-      } finally {
-        setDataLoading(false);
+  if (!patient) return;
+  
+  const fetchTabData = async () => {
+    setDataLoading(true);
+    try {
+      // Fetch all data in parallel but handle errors individually
+      const promises = [
+        api.get(`/medicine_allocation/${patient_id}/diagnoses/`)
+          .catch(err => {
+            console.error("Failed to load diagnoses:", err);
+            return { data: [] };
+          }),
+        api.get(`/medicine_allocation/${patient_id}/prescriptions/`)
+          .catch(err => {
+            console.error("Failed to load prescriptions:", err);
+            return { data: [] };
+          }),
+        api.get(`/medicine_allocation/${patient_id}/test-reports/`)
+          .catch(err => {
+            console.error("Failed to load test reports:", err);
+            return { data: [] };
+          }),
+        api.get(`/medicine_allocation/${patient_id}/all-invoices/`)
+          .catch(err => {
+            console.error("Failed to load invoices:", err);
+            return { data: [] };
+          }),
+        api.get(`/patients/${patient_id}/history?page=1&limit=20`)
+          .catch(err => {
+            console.error("Failed to load history:", err);
+            return { data: { history: [] } };
+          }),
+        api.get(`/patients/${patient_id}/surgeries`)
+          .catch(err => {
+            console.warn("Surgeries API not available or error:", err.message);
+            return { data: [] }; // Return empty array if API fails
+          })
+      ];
+      
+      const [diagRes, presRes, testRes, invRes, histRes, surgRes] = await Promise.all(promises);
+      
+      setDiagnoses(diagRes.data || []);
+      setPrescriptions(presRes.data || []);
+      setTestReports(testRes.data || []);
+      setInvoices(invRes.data || []);
+      setHistory(histRes.data?.history || []);
+      setSurgeries(surgRes.data || []); // This should work now
+      
+      // Auto-select latest invoice
+      if (invRes.data.length > 0) {
+        setSelectedInvoiceIndex(0);
       }
-    };
-    
-    fetchTabData();
-  }, [patient, patient_id]);
+      
+      // Reset pagination to first page on data load
+      setCurrentPage(1);
+      setCurrentPrescriptionPage(1);
+      setCurrentTestPage(1);
+      setCurrentHistoryPage(1);
+      setCurrentSurgeryPage(1);
+    } catch (err) {
+      console.error("Failed to load tab data", err);
+      if (err.response) {
+        if (err.response.status === 401) {
+          console.error("Authentication failed.");
+        } else if (err.response.status === 404) {
+          console.error("Resource not found.");
+        } else {
+          console.error(`Server error: ${err.response.status}`);
+        }
+      } else if (err.request) {
+        console.error("No response from server.");
+      } else {
+        console.error("Failed to load tab data");
+      }
+      // Set empty arrays for all data to prevent further errors
+      setDiagnoses([]);
+      setPrescriptions([]);
+      setTestReports([]);
+      setInvoices([]);
+      setHistory([]);
+      setSurgeries([]);
+    } finally {
+      setDataLoading(false);
+    }
+  };
+  
+  fetchTabData();
+}, [patient, patient_id]);
+
 
   // Reset test page on filter change
   useEffect(() => {
@@ -1055,7 +1135,7 @@ export default function ViewPatientProfile() {
   // Function to extract filename from path
   const extractFilenameFromPath = (filePath) => {
     if (!filePath) return null;
-    // Extract filename from path like "/uploads/lab_reports/e3afa669-c08c-4d2e-ae44-8fbc88caa15c.jpg"
+    // Extract filename from path like "/uploads/lab_reports/e3afa669669-c08c-4d2e-ae44-8fbc88caa15c.jpg"
     const parts = filePath.split('/');
     return parts[parts.length - 1];
   };
@@ -1073,20 +1153,30 @@ export default function ViewPatientProfile() {
   const getReportFilePath = async (reportId) => {
     try {
       // First, try to get the actual file path from the server
-      const response = await axios.get(`${API_BASE}/labreports/${reportId}/path`);
+      const response = await api.get(`/labreports/${reportId}/path`);
       return response.data.file_path;
     } catch (error) {
       console.error("Error fetching file path:", error);
+      if (error.response) {
+        if (error.response.status === 401) {
+          console.error("Authentication failed.");
+        } else if (error.response.status === 404) {
+          console.error("File path not found.");
+        } else {
+          console.error(`Server error: ${error.response.status}`);
+        }
+      } else if (error.request) {
+        console.error("No response from server.");
+      } else {
+        console.error("Failed to fetch file path");
+      }
       return null;
     }
   };
 
   // Function to view lab report (opens in new tab)
   const handleViewReport = async (reportId, orderId) => {
-    if (!reportId) {
-      console.error("No report ID provided");
-      return;
-    }
+    if (!reportId) return;
     try {
       // First, get the file path for this report
       const filePath = await getReportFilePath(reportId);
@@ -1097,7 +1187,7 @@ export default function ViewPatientProfile() {
       }
       
       // Directly use the file path from backend
-      const url = `${API_BASE}${filePath}`;
+      const url = filePath;
       window.open(url, '_blank');
     } catch (error) {
       console.error("Error viewing report:", error);
@@ -1107,10 +1197,7 @@ export default function ViewPatientProfile() {
 
   // Function to download lab report
   const handleDownloadReport = async (reportId, orderId, testType) => {
-    if (!reportId) {
-      console.error("No report ID provided");
-      return;
-    }
+    if (!reportId) return;
     try {
       // First, get the file path for this report
       const filePath = await getReportFilePath(reportId);
@@ -1126,7 +1213,7 @@ export default function ViewPatientProfile() {
         return;
       }
       
-      const downloadUrl = `${API_BASE}${filePath}`;
+      const downloadUrl = filePath;
       const link = document.createElement('a');
       link.href = downloadUrl;
       
@@ -1150,12 +1237,12 @@ export default function ViewPatientProfile() {
   // Alternative: Simple view/download if you want to skip the API call for file path
   const handleViewReportSimple = (reportId) => {
     // This assumes you have an endpoint that serves the file by report ID
-    const url = `${API_BASE}/labreports/${reportId}/view`;
+    const url = `/labreports/${reportId}/view`;
     window.open(url, '_blank');
   };
 
   const handleDownloadReportSimple = (reportId, testType) => {
-    const url = `${API_BASE}/labreports/${reportId}/download`;
+    const url = `/labreports/${reportId}/download`;
     const link = document.createElement('a');
     link.href = url;
     link.download = `${(testType || `Report_${reportId}`).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
@@ -1164,6 +1251,20 @@ export default function ViewPatientProfile() {
     link.click();
     document.body.removeChild(link);
   };
+
+  const formatSurgeryDate = (dateString) => {
+  if (!dateString) return "—";
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    return dateString; // Return as-is if parsing fails
+  }
+};
 
   if (loading)
     return (
@@ -1188,6 +1289,7 @@ export default function ViewPatientProfile() {
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
   const currentHistory = paginate(history, currentHistoryPage);
+  const currentSurgeries = paginate(surgeries, currentSurgeryPage);
   
   const filteredTests = testReports.filter(
     (t) =>
@@ -1288,43 +1390,44 @@ export default function ViewPatientProfile() {
 
   // Mobile Navigation
   const MobileTabs = () => (
-    <div className="md:hidden">
-      <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="w-full flex items-center justify-between bg-[#025126] text-white p-4 rounded-lg mb-4"
-      >
-        <span>{activeTab}</span>
-        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-     
-      {mobileMenuOpen && (
-        <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
-          {[
-            { name: "Prescription", icon: FileText },
-            { name: "Invoice", icon: Receipt },
-            { name: "Test Reports", icon: TestTube2 },
-            { name: "History", icon: History },
-          ].map(({ name, icon: Icon }) => (
-            <button
-              key={name}
-              onClick={() => {
-                setActiveTab(name);
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
-                activeTab === name
-                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-            >
-              <Icon size={20} />
-              <span>{name}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  <div className="md:hidden">
+    <button
+      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+      className="w-full flex items-center justify-between bg-[#025126] text-white p-4 rounded-lg mb-4"
+    >
+      <span>{activeTab}</span>
+      {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+    </button>
+   
+    {mobileMenuOpen && (
+      <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
+        {[
+          { name: "Prescription", icon: FileText },
+          { name: "Invoice", icon: Receipt },
+          { name: "Test Reports", icon: TestTube2 },
+          { name: "Surgeries", icon: Scissors }, // Add this
+          { name: "History", icon: History },
+        ].map(({ name, icon: Icon }) => (
+          <button
+            key={name}
+            onClick={() => {
+              setActiveTab(name);
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
+              activeTab === name
+                ? "bg-[#0EFF7B14] text-[#0EFF7B]"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            }`}
+          >
+            <Icon size={20} />
+            <span>{name}</span>
+          </button>
+        ))}
+      </div>
+    )}
+  </div>
+);
 
   return (
     <div className=" mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
@@ -1466,35 +1569,36 @@ export default function ViewPatientProfile() {
         
         {/* Desktop Tabs */}
         <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
-          <div className="flex justify-start sm:justify-center min-w-max">
-            {[
-              { name: "Prescription", icon: FileText },
-              { name: "Invoice", icon: Receipt },
-              { name: "Test Reports", icon: TestTube2 },
-              { name: "History", icon: History },
-            ].map(({ name, icon: Icon }) => (
-              <button
-                key={name}
-                onClick={() => setActiveTab(name)}
-                className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
-                  activeTab === name
-                    ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-                    : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
-                }`}
-                style={{
-                  borderBottom: "1px solid",
-                  borderImageSlice: 1,
-                  borderImageSource:
-                    "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
-                }}
-              >
-                <Icon size={18} className="text-[#0EFF7B]" />
-                <span className="hidden sm:inline">{name}</span>
-                <span className="sm:hidden">{name.substring(0, 3)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+  <div className="flex justify-start sm:justify-center min-w-max">
+    {[
+      { name: "Prescription", icon: FileText },
+      { name: "Invoice", icon: Receipt },
+      { name: "Test Reports", icon: TestTube2 },
+      { name: "Surgeries", icon: Scissors }, // Add this
+      { name: "History", icon: History },
+    ].map(({ name, icon: Icon }) => (
+      <button
+        key={name}
+        onClick={() => setActiveTab(name)}
+        className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
+          activeTab === name
+            ? "bg-[#0EFF7B14] text-[#0EFF7B]"
+            : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
+        }`}
+        style={{
+          borderBottom: "1px solid",
+          borderImageSlice: 1,
+          borderImageSource:
+            "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
+        }}
+      >
+        <Icon size={18} className="text-[#0EFF7B]" />
+        <span className="hidden sm:inline">{name}</span>
+        <span className="sm:hidden">{name.substring(0, 3)}</span>
+      </button>
+    ))}
+  </div>
+</div>
         
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
@@ -1623,9 +1727,7 @@ export default function ViewPatientProfile() {
                       value={selectedInvoiceIndex}
                       onChange={(value) => setSelectedInvoiceIndex(value)}
                     >
-                      <Listbox.Button
-                        className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between"
-                      >
+                      <Listbox.Button className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between">
                         <span className="truncate text-xs lg:text-sm">
                           {invoices.length > 0
                             ? `${invoices[
@@ -1696,7 +1798,7 @@ export default function ViewPatientProfile() {
                         <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
                           ID: {currentInvoice.patient_id}
                         </p>
-                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
+                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-1">
                           {currentInvoice.patient?.address || patient.address || "—"}
                         </p>
                         <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">
@@ -1785,7 +1887,7 @@ export default function ViewPatientProfile() {
                         <div className="space-y-2 lg:space-y-4">
                           <div className="flex justify-between text-sm lg:text-base">
                             <span className="font-medium">Subtotal</span>
-                            <span className="font-semibold">${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
+                            <span>${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
                           </div>
                          
                           {currentInvoice.tax_amount > 0 && (
@@ -2042,6 +2144,109 @@ export default function ViewPatientProfile() {
           </div>
         )}
         
+
+        {activeTab === "Surgeries" && !dataLoading && (
+  <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+      <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
+        Patient's surgical history and procedures.
+      </p>
+    </div>
+    {surgeries.length === 0 ? (
+      <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+        No surgery records found
+      </p>
+    ) : (
+      <>
+        <ResponsiveTable
+          headers={["Date", "Surgery Name", "Doctor", "Status"]}
+          mobileData={currentSurgeries.map(s => [
+            s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—",
+            s.surgery_type,
+            s.doctor || "—",
+            <span
+              className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                s.status === "success"
+                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                  : s.status === "pending"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                  : s.status === "cancelled"
+                  ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                  : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              }`}
+            >
+              {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
+            </span>
+          ])}
+        >
+          <thead>
+            <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+              <th className="py-3 px-2 sm:px-4">Date</th>
+              <th className="py-3 px-2 sm:px-4">Surgery Name</th>
+              <th className="py-3 px-2 sm:px-4">Doctor</th>
+              <th className="py-3 px-2 sm:px-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+            {currentSurgeries.map((s, i) => (
+              <tr
+                key={i}
+                className="border-b border-gray-200 dark:border-gray-700"
+              >
+                <td className="py-3 px-2 sm:px-4">
+                  {s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—"}
+                </td>
+                <td className="py-3 px-2 sm:px-4 font-medium">{s.surgery_type || "—"}</td>
+                <td className="py-3 px-2 sm:px-4">{s.doctor || "—"}</td>
+                <td className="py-3 px-2 sm:px-4">
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                      s.status === "success"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        : s.status === "pending"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                        : s.status === "cancelled"
+                        ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                        : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                    }`}
+                  >
+                    {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </ResponsiveTable>
+        <div className="flex items-center mt-4 gap-x-4">
+          <div className="text-sm text-black dark:text-white">
+            Page {currentSurgeryPage} of {totalPages(surgeries)}
+          </div>
+          <div className="flex items-center gap-x-2">
+            <button
+              onClick={() => setCurrentSurgeryPage(Math.max(1, currentSurgeryPage - 1))}
+              disabled={currentSurgeryPage === 1}
+              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+            >
+              <ChevronLeft size={12} />
+            </button>
+            <button
+              onClick={() =>
+                setCurrentSurgeryPage(
+                  Math.min(totalPages(surgeries), currentSurgeryPage + 1)
+                )
+              }
+              disabled={currentSurgeryPage === totalPages(surgeries)}
+              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+            >
+              <ChevronRight size={12} />
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+)}
+
        {/* === HISTORY TAB === */}
         {activeTab === "History" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -2089,7 +2294,7 @@ export default function ViewPatientProfile() {
                     {currentHistory.map((h, i) => (
                       <tr
                         key={i}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        className="border-b border-gray-200 dark:border-gray-700"
                       >
                         <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>
                         <td className="py-3 px-2 sm:px-4">{h.department || "—"}</td>

@@ -783,8 +783,7 @@ import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient.jsx";
 import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig";
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -847,18 +846,13 @@ const AppointmentListIPD = () => {
     setDataLoading(true);
     setErr("");
     try {
-      const url = new URL(`${API_BASE}/patients/`);
-      url.searchParams.set("limit", 100);
-      
-      console.log("Fetching patients from:", url.toString());
+      console.log("Fetching patients from API...");
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error("API Response not OK:", res.status, res.statusText);
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
+      const response = await api.get("/patients/", {
+        params: { limit: 100 }
+      });
       
-      const json = await res.json();
+      const json = response.data;
       console.log("API Response:", json);
 
       if (!json.patients) {
@@ -1075,9 +1069,11 @@ const AppointmentListIPD = () => {
 
   // Load departments for filter
   useEffect(() => {
-    fetch(`${API_BASE}/patients/departments`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setFilterDepartments(data.departments || []))
+    api.get("/patients/departments")
+      .then((response) => {
+        const data = response.data;
+        setFilterDepartments(data.departments || []);
+      })
       .catch(() => setFilterDepartments([]))
       .finally(() => setLoadingFilterDepts(false));
   }, []);
@@ -1090,9 +1086,11 @@ const AppointmentListIPD = () => {
       return;
     }
     setLoadingFilterDocs(true);
-    fetch(`${API_BASE}/patients/staff?department_id=${filters.department}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
-      .then((data) => setFilterDoctors(data.staff || []))
+    api.get("/patients/staff", { params: { department_id: filters.department } })
+      .then((response) => {
+        const data = response.data;
+        setFilterDoctors(data.staff || []);
+      })
       .catch(() => setFilterDoctors([]))
       .finally(() => setLoadingFilterDocs(false));
   }, [filters.department]);
@@ -1125,7 +1123,6 @@ const AppointmentListIPD = () => {
       date: "",
     });
     setActiveFilter("All");
-    //SetShowFilter(false);
     setPage(1);
     if (allAppointments.length > 0) {
       applyClientSideFilter(allAppointments, activeTab);
@@ -1156,14 +1153,7 @@ const AppointmentListIPD = () => {
 
     try {
       const pid = selAppt.patientId;
-      const r = await fetch(`${API_BASE}/patients/${pid}`, {
-        method: "DELETE",
-      });
-
-      if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(txt || "Delete failed");
-      }
+      await api.delete(`/patients/${pid}`);
 
       successToast(`Patient "${selAppt.patient}" deleted successfully!`);
       await refreshData();
@@ -1171,7 +1161,8 @@ const AppointmentListIPD = () => {
       setSelAppt(null);
     } catch (e) {
       console.error(e);
-      errorToast(e.message || "Failed to delete patient");
+      const errorMessage = e.response?.data?.detail || e.message || "Failed to delete patient";
+      errorToast(errorMessage);
     }
   };
 

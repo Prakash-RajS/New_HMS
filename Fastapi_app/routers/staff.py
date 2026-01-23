@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 from django.db import IntegrityError, DatabaseError
-from HMS_backend.models import Staff, Department
+from HMS_backend.models import Staff, Department, Surgery
 from asgiref.sync import sync_to_async
 import os
 import traceback
@@ -39,6 +39,9 @@ class StaffResponse(BaseModel):
     profile_picture: Optional[str] = None 
     shift_timing: Optional[str] = None 
     status: Optional[str] = "Active"
+
+    total_surgeries: Optional[int] = 0
+    success_rate: Optional[float] = 0.0
     
     # New dynamic fields
     education: Optional[str] = None
@@ -622,13 +625,36 @@ async def update_staff(
 async def get_staff_by_id(staff_id: int):
     try:
         @sync_to_async
-        def get_staff_sync():
+        def get_staff_and_surgery_stats():
             try:
-                return Staff.objects.select_related("department").get(id=staff_id)
-            except Staff.DoesNotExist:
-                return None
+                staff = Staff.objects.select_related("department").get(id=staff_id)
 
-        staff = await get_staff_sync()
+                # ✅ Surgery stats (ENDPOINT ONLY)
+                surgeries = Surgery.objects.filter(
+                    doctor=staff,
+                    status__in=[
+                        Surgery.STATUS_SUCCESS,
+                        Surgery.STATUS_FAILED
+                    ]
+                )
+
+                total_surgeries = surgeries.count()
+                success_count = surgeries.filter(
+                    status=Surgery.STATUS_SUCCESS
+                ).count()
+
+                success_rate = (
+                    round((success_count / total_surgeries) * 100, 2)
+                    if total_surgeries > 0 else 0
+                )
+
+                return staff, total_surgeries, success_rate
+
+            except Staff.DoesNotExist:
+                return None, 0, 0
+
+        staff, total_surgeries, success_rate = await get_staff_and_surgery_stats()
+
         if not staff:
             raise HTTPException(status_code=404, detail="Staff not found")
 
@@ -657,13 +683,18 @@ async def get_staff_by_id(staff_id: int):
             professional_memberships=staff.professional_memberships,
             languages_spoken=staff.languages_spoken,
             awards_recognitions=staff.awards_recognitions,
-            total_patients_treated=staff.total_patients_treated
+            total_patients_treated=staff.total_patients_treated,
+
+            # ✅ NEW DYNAMIC FIELDS
+            total_surgeries=total_surgeries,
+            success_rate=success_rate
         )
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @router.post("/{staff_id}/update-statistics/")
 async def update_staff_statistics(staff_id: int):
     try:

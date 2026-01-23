@@ -4,8 +4,7 @@ import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+import api from "../../utils/axiosConfig"; // Import axios config
 
 const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   // Safety: Close if no profile
@@ -182,13 +181,15 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const res = await fetch(`${API_BASE}/departments/`);
-        if (res.ok) {
-          const data = await res.json();
-          setDepartments(data); // [{id, name}, ...]
+        // Use axios instead of fetch
+        const response = await api.get("/departments/");
+        if (response.status === 200) {
+          setDepartments(response.data); // [{id, name}, ...]
         }
       } catch (err) {
         console.error("Failed to load departments", err);
+        // You can show error toast if needed
+        // errorToast("Failed to load departments");
       }
     };
 
@@ -283,27 +284,42 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
         formDataToSend.append("date_of_joining", date);
       }
 
-      const response = await fetch(`${API_BASE}/staff/update/${profile.id}/`, {
-        method: 'PUT',
-        body: formDataToSend
+      // Use axios for the API call
+      const response = await api.put(`/staff/update/${profile.id}/`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (response.ok) {
-        const updatedStaff = await response.json();
+      if (response.status === 200) {
+        const updatedStaff = response.data;
         successToast("Profile updated successfully");
         onUpdate(updatedStaff);
         onClose();
       } else {
         let msg = "Failed to update profile";
         try {
-          const err = await response.json();
-          msg = err.detail || msg;
+          msg = response.data?.detail || msg;
         } catch {}
         errorToast(msg);
       }
     } catch (error) {
       console.error("Update error:", error);
-      errorToast("Network error");
+      
+      // Handle axios error response
+      if (error.response) {
+        // Server responded with an error status
+        const errorMessage = error.response.data?.detail || 
+                            error.response.data?.message || 
+                            "Failed to update profile";
+        errorToast(errorMessage);
+      } else if (error.request) {
+        // Request was made but no response received
+        errorToast("Network error. Please check your connection.");
+      } else {
+        // Something else happened
+        errorToast("An error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
