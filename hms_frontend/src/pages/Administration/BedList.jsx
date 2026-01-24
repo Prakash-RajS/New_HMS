@@ -296,67 +296,67 @@ const BedList = () => {
     }
   };
 
-  const handleAddBedGroup = async (newGroup) => {
-    const { bedGroup, bedFrom, bedTo } = newGroup;
+  // const handleAddBedGroup = async (newGroup) => {
+  //   const { bedGroup, bedFrom, bedTo } = newGroup;
 
-    try {
-      // Send request to create new bed group with range
-      const response = await api.post("/bedgroups/add-with-range", {
-        bedGroup: bedGroup,
-        bedFrom: parseInt(bedFrom),
-        bedTo: parseInt(bedTo),
-      });
+  //   try {
+  //     // Send request to create new bed group with range
+  //     const response = await api.post("/bedgroups/add-with-range", {
+  //       bedGroup: bedGroup,
+  //       bedFrom: parseInt(bedFrom),
+  //       bedTo: parseInt(bedTo),
+  //     });
 
-      const createdGroup = response.data;
+  //     const createdGroup = response.data;
 
-      // Calculate bed range from created beds
-      const beds = createdGroup.beds || [];
-      const bedNumbers = beds.map(b => b.bed_number).sort((a, b) => a - b);
-      const bedRange = bedNumbers.length > 0
-        ? `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]}`
-        : "1-1";
+  //     // Calculate bed range from created beds
+  //     const beds = createdGroup.beds || [];
+  //     const bedNumbers = beds.map(b => b.bed_number).sort((a, b) => a - b);
+  //     const bedRange = bedNumbers.length > 0
+  //       ? `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]}`
+  //       : "1-1";
 
-      const newEntry = {
-        id: createdGroup.id,
-        bedGroup: createdGroup.bedGroup,
-        capacity: createdGroup.capacity,
-        occupied: createdGroup.occupied,
-        unoccupied: createdGroup.unoccupied,
-        status: createdGroup.status,
-        bedRange: bedRange,
-        beds: beds,
-      };
+  //     const newEntry = {
+  //       id: createdGroup.id,
+  //       bedGroup: createdGroup.bedGroup,
+  //       capacity: createdGroup.capacity,
+  //       occupied: createdGroup.occupied,
+  //       unoccupied: createdGroup.unoccupied,
+  //       status: createdGroup.status,
+  //       bedRange: bedRange,
+  //       beds: beds,
+  //     };
 
-      setRoomsData((prev) => [...prev, newEntry]);
-      successToast("Bed group added successfully!");
-    } catch (err) {
-      let errorMessage = "Failed to add bed group.";
+  //     setRoomsData((prev) => [...prev, newEntry]);
+  //     successToast("Bed group added successfully!");
+  //   } catch (err) {
+  //     let errorMessage = "Failed to add bed group.";
 
-      if (err.response) {
-        if (err.response.status === 409) {
-          // Handle duplicate bed number conflict
-          const conflictData = err.response.data;
-          errorMessage = conflictData.message || "Bed numbers already exist in the requested range.";
+  //     if (err.response) {
+  //       if (err.response.status === 409) {
+  //         // Handle duplicate bed number conflict
+  //         const conflictData = err.response.data;
+  //         errorMessage = conflictData.message || "Bed numbers already exist in the requested range.";
           
-          // Show the suggested alternative range
-          if (conflictData.suggested_range) {
-            errorMessage += ` Suggested range: ${conflictData.suggested_range}`;
-          }
-        } else if (err.response.status === 400) {
-          errorMessage = err.response.data?.detail || errorMessage;
-        } else {
-          errorMessage = err.response.data?.detail || errorMessage;
-        }
-      } else if (err.request) {
-        errorMessage = "Network error. Please check your connection.";
-      } else {
-        errorMessage = err.message || errorMessage;
-      }
+  //         // Show the suggested alternative range
+  //         if (conflictData.suggested_range) {
+  //           errorMessage += ` Suggested range: ${conflictData.suggested_range}`;
+  //         }
+  //       } else if (err.response.status === 400) {
+  //         errorMessage = err.response.data?.detail || errorMessage;
+  //       } else {
+  //         errorMessage = err.response.data?.detail || errorMessage;
+  //       }
+  //     } else if (err.request) {
+  //       errorMessage = "Network error. Please check your connection.";
+  //     } else {
+  //       errorMessage = err.message || errorMessage;
+  //     }
 
-      errorToast(errorMessage);
-      console.error("Add BedGroup Error:", err);
-    }
-  };
+  //     errorToast(errorMessage);
+  //     console.error("Add BedGroup Error:", err);
+  //   }
+  // };
 
   const FilterPopover = ({ isOpen, onClose }) => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
@@ -840,7 +840,7 @@ const BedList = () => {
         {showAddPopup && (
           <AddBedGroupPopup
             onClose={() => setShowAddPopup(false)}
-            onAdd={handleAddBedGroup}
+            // onAdd={handleAddBedGroup}
           />
         )}
         {showEditPopup && editingRoomIndex !== null && (

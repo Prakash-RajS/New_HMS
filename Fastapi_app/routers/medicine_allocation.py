@@ -986,6 +986,7 @@
 
 import os
 import logging
+import sys
 from datetime import datetime
 from typing import Optional, Union
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path, Depends, status, Request
@@ -1000,7 +1001,35 @@ from HMS_backend.models import Patient, Staff, MedicineAllocation, LabReport, St
 from HMS_backend.models import Patient, Department, Staff
 from Fastapi_app.routers.notifications import NotificationService
 from asgiref.sync import sync_to_async
+from django.shortcuts import get_object_or_404
 
+# Django setup
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(BASE_DIR)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
+import django
+django.setup()
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/medicine_allocation", tags=["Medicine Allocation"])
 
@@ -1059,6 +1088,7 @@ class AllocationResponse(BaseModel):
 
 # ---------- Dependency to Get Current Staff ----------
 async def get_current_staff(request: Request):
+    await sync_to_async(ensure_db_connection)()
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -1120,6 +1150,7 @@ async def update_stock_quantity(medicine_name: str, dosage: str, quantity: int, 
     Update stock quantity for a medicine.
     operation: "decrement" or "increment"
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         # Find the stock item
         stock_item = await run_in_threadpool(
@@ -1156,14 +1187,13 @@ async def update_stock_quantity(medicine_name: str, dosage: str, quantity: int, 
         raise HTTPException(status_code=500, detail=f"Failed to update stock: {str(e)}")
 
 # ---------- Allocate Medicines and Lab Reports (Async Version) ----------
-from asgiref.sync import sync_to_async
-
 @router.post("/{patient_id}/allocations/", response_model=AllocationResponse)
 async def allocate_medicines(
     patient_id: int,
     allocation: AllocationRequest,
     current_staff: Staff = Depends(get_current_staff),
 ):
+    await sync_to_async(ensure_db_connection)()
     try:
         patient = await sync_to_async(Patient.objects.get)(id=patient_id)
         department = await sync_to_async(lambda: patient.department)()
@@ -1274,6 +1304,7 @@ async def allocate_medicines(
 # ---------- Fetch Medicine Allocation History ----------
 @router.get("/{patient_id}/medicine-allocations/", response_model=List[MedicineAllocationResponse])
 def get_medicine_allocations(patient_id: int):
+    ensure_db_connection()
     try:
         allocations = (
             MedicineAllocation.objects
@@ -1328,6 +1359,7 @@ async def update_medicine_allocation(
     medicine_data: MedicineAllocationCreate,
     current_staff: Staff = Depends(get_current_staff)
 ):
+    await sync_to_async(ensure_db_connection)()
     try:
         # Get allocation with related data
         allocation = await sync_to_async(MedicineAllocation.objects.select_related("patient", "staff").get)(
@@ -1408,6 +1440,7 @@ async def update_medicine_allocation(
 # ---------- Delete Medicine Allocation ----------
 @router.delete("/{patient_id}/medicine-allocations/{allocation_id}/")
 async def delete_medicine_allocation(patient_id: int, allocation_id: int):
+    await sync_to_async(ensure_db_connection)()
     try:
         # Get allocation with related data before deletion
         allocation = await sync_to_async(MedicineAllocation.objects.select_related("patient", "staff").get)(
@@ -1466,6 +1499,7 @@ async def get_available_medicines():
     """
     Returns list of available medicines with their dosages from stock
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         # Get all available stock items with quantity > 0
         stock_items = await sync_to_async(list)(
@@ -1517,6 +1551,7 @@ async def get_stock_list():
     """
     Returns all stock items for the medicine allocation dropdown
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         stock_items = await sync_to_async(list)(
             Stock.objects.filter(
@@ -1533,6 +1568,7 @@ async def get_stock_list():
 # ---------- Get available stock ----------
 @router.get("/available/")
 def get_available_stock():
+    ensure_db_connection()
     stock = Stock.objects.filter(
         status="available", quantity__gt=0
     ).values(
@@ -1544,6 +1580,7 @@ def get_available_stock():
 async def get_medicine_by_code(
     item_code: str = Path(..., description="Medicine item code (e.g., P001, M123)")
 ):
+    await sync_to_async(ensure_db_connection)()
     try:
         stock_item = await sync_to_async(Stock.objects.get)(item_code=item_code)
         return {
@@ -1588,6 +1625,7 @@ async def edit_patient(
     reason_for_visit: Optional[str] = Form(None),
     photo: Optional[UploadFile] = File(None),
 ):
+    await sync_to_async(ensure_db_connection)()
     def safe_str_update(value: Optional[str]):
         if value is None or value.strip() == "":
             return None
@@ -1686,6 +1724,7 @@ async def edit_patient(
 # ---------- List Patients ----------
 @router.get("/edit")
 async def list_patients():
+    await sync_to_async(ensure_db_connection)()
     try:
         patients = await run_in_threadpool(lambda: list(Patient.objects.select_related('department').values('id', 'full_name', 'patient_unique_id', 'department__name')))
         # Rename department__name to department
@@ -1705,6 +1744,7 @@ def get_patient_diagnoses(patient_id: int):
     Returns every LabReport for the patient.
     Used by the "Diagnosis" tab.
     """
+    ensure_db_connection()
     try:
         reports = LabReport.objects.filter(patient__id=patient_id).values(
             "test_type",
@@ -1731,6 +1771,7 @@ def get_patient_diagnoses(patient_id: int):
 # --------------------------------------------------------------
 @router.get("/{patient_id}/prescriptions/", response_model=List[dict])
 def get_patient_prescriptions(patient_id: int):
+    ensure_db_connection()
     try:
         allocs = MedicineAllocation.objects.filter(
             patient__id=patient_id,
@@ -1769,9 +1810,7 @@ def get_patient_prescriptions(patient_id: int):
 
 # Add these imports at the top of your FastAPI router
 from HMS_backend.models import HospitalInvoiceHistory, PharmacyInvoiceHistory, PharmacyInvoiceItem
-from django.shortcuts import get_object_or_404
 
-# Add these endpoints to your medicine_allocation.py router
 # --------------------------------------------------------------
 # 4. HOSPITAL INVOICES
 # --------------------------------------------------------------
@@ -1780,6 +1819,7 @@ def get_patient_hospital_invoices(patient_id: int):
     """
     Returns hospital invoices for the patient.
     """
+    ensure_db_connection()
     try:
         invoices = HospitalInvoiceHistory.objects.filter(patient_id=str(patient_id)).values(
             "invoice_id", "date", "patient_name", "amount", "payment_method",
@@ -1840,6 +1880,7 @@ def get_patient_pharmacy_invoices(patient_id: int):
     """
     Returns pharmacy invoices for the patient.
     """
+    ensure_db_connection()
     try:
         invoices = PharmacyInvoiceHistory.objects.filter(
             patient_id=str(patient_id)
@@ -1909,6 +1950,7 @@ def get_patient_all_invoices(patient_id: int):
     FULLY COMPATIBLE with current React frontend (no frontend changes needed)
     Now correctly maps HospitalInvoiceItem fields → frontend expected keys
     """
+    ensure_db_connection()
     try:
         print(f"Fetching all invoices for patient_id (int): {patient_id}")
         patient = get_object_or_404(Patient, id=patient_id)
@@ -2054,6 +2096,7 @@ def get_patient_all_invoices(patient_id: int):
 # --------------------------------------------------------------
 @router.get("/{patient_id}/test-reports/", response_model=List[dict])
 def get_patient_test_reports(patient_id: int):
+    ensure_db_connection()
     try:
         reports = LabReport.objects.filter(
             patient__id=patient_id
@@ -2114,6 +2157,7 @@ def get_departments():
     Returns unique department names from LabReport.
     Used by Test Reports dropdown.
     """
+    ensure_db_connection()
     try:
         depts = (
             LabReport.objects
@@ -2133,6 +2177,7 @@ async def get_available_medicines():
     Returns list of available medicines with their possible dosages and item_code
     Used for dynamic dropdown in Medicine Allocation
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         medicines = Stock.objects.filter(
             status='available',
@@ -2171,6 +2216,7 @@ async def get_available_medicines():
   
 @router.get("/available/")
 def get_available_stock():
+    ensure_db_connection()
     stock = Stock.objects.filter(
         status="available", quantity__gt=0
     ).values(
@@ -2182,6 +2228,7 @@ def get_available_stock():
 async def get_medicine_by_code(
     item_code: str = Path(..., description="Medicine item code (e.g., P001, M123)")
 ):
+    await sync_to_async(ensure_db_connection)()
     try:
         stock_item = await sync_to_async(Stock.objects.get)(item_code=item_code)
         return {

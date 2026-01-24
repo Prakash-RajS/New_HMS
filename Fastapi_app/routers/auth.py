@@ -1,3 +1,4 @@
+#Fastapi_app/routers/auth.py
 from fastapi import APIRouter, HTTPException, Form, Depends, status, Response, Request
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
@@ -53,6 +54,7 @@ def ensure_db_connection():
 # ----------------- Async Database Operations -----------------
 @sync_to_async
 def get_user_by_username(username: str):
+    ensure_db_connection()  # Ensure connection in this thread
     try:
         return User.objects.get(username=username)
     except User.DoesNotExist:
@@ -60,6 +62,7 @@ def get_user_by_username(username: str):
 
 @sync_to_async
 def get_user_by_id(user_id: int):
+    ensure_db_connection()  # Ensure connection in this thread
     try:
         return User.objects.get(id=user_id)
     except User.DoesNotExist:
@@ -67,6 +70,7 @@ def get_user_by_id(user_id: int):
 
 @sync_to_async
 def get_user_permissions_async(role: str):
+    ensure_db_connection()  # Ensure connection in this thread
     try:
         permissions = Permission.objects.filter(role=role)
         return [{"module": p.module, "enabled": p.enabled} for p in permissions]
@@ -75,6 +79,7 @@ def get_user_permissions_async(role: str):
 
 @sync_to_async
 def get_staff_details_async(user):
+    ensure_db_connection()  # Ensure connection in this thread
     try:
         if hasattr(user, 'staff') and user.staff:
             staff = user.staff

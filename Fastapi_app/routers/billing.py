@@ -251,6 +251,28 @@ from django.db import transaction
 # Import NotificationService
 from Fastapi_app.services.notification_service import NotificationService
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter(prefix="/billing", tags=["Billing Management"])
 
 
@@ -284,6 +306,7 @@ async def get_invoice_data(invoice) -> Dict[str, Any]:
     # Wrap every Django ORM call inside sync_to_async
     @sync_to_async
     def fetch_patient_and_department(invoice_patient_id):
+        ensure_db_connection()
         dept = "Unknown"
         try:
             patient = Patient.objects.select_related("department").get(
@@ -325,6 +348,7 @@ async def create_invoice(data: InvoiceSchema):
     try:
         @sync_to_async
         def create_invoice_sync():
+            ensure_db_connection()
             with transaction.atomic():
                 invoice = PharmacyInvoiceHistory.objects.create(
                     bill_no=data.invoice_id,
@@ -372,6 +396,7 @@ async def list_invoices():
     try:
         @sync_to_async
         def get_all():
+            ensure_db_connection()
             return list(PharmacyInvoiceHistory.objects.all().order_by("-bill_date"))
 
         invoices = await get_all()
@@ -392,6 +417,7 @@ async def get_invoice(invoice_id: str):
     try:
         @sync_to_async
         def fetch_invoice():
+            ensure_db_connection()
             try:
                 return PharmacyInvoiceHistory.objects.get(bill_no=invoice_id)
             except PharmacyInvoiceHistory.DoesNotExist:
@@ -423,6 +449,7 @@ async def delete_invoice(invoice_id: str):
     try:
         @sync_to_async
         def delete_invoice_sync():
+            ensure_db_connection()
             try:
                 invoice = PharmacyInvoiceHistory.objects.get(bill_no=invoice_id)
                 invoice_data = {
@@ -466,6 +493,7 @@ async def update_invoice_status(invoice_id: str, payload: StatusUpdate):
     try:
         @sync_to_async
         def update_sync():
+            ensure_db_connection()
             try:
                 invoice = PharmacyInvoiceHistory.objects.get(bill_no=invoice_id)
                 old_status = invoice.payment_status
@@ -570,6 +598,7 @@ async def export_invoices_csv():
     try:
         @sync_to_async
         def fetch_all():
+            ensure_db_connection()
             return list(PharmacyInvoiceHistory.objects.all())
 
         invoices = await fetch_all()
@@ -600,6 +629,7 @@ async def export_invoices_excel():
     try:
         @sync_to_async
         def fetch_all():
+            ensure_db_connection()
             return list(PharmacyInvoiceHistory.objects.all())
 
         invoices = await fetch_all()
@@ -639,6 +669,7 @@ async def get_billing_statistics():
     try:
         @sync_to_async
         def compute_stats():
+            ensure_db_connection()
             qs = PharmacyInvoiceHistory.objects.all()
             total_invoices = qs.count()
             total_amount = sum(float(i.net_amount or 0) for i in qs)

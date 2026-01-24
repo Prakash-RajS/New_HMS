@@ -1,3 +1,4 @@
+
 # fastapi_app/django_setup.py
 import os
 import django

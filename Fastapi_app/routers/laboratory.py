@@ -1,10 +1,42 @@
+# Fastapi_app/routers/laboratory.py
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
 from pydantic import BaseModel, validator
 from datetime import datetime
 from django.db import transaction
+import os
+import sys
+
+# Django setup
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(BASE_DIR)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
+import django
+django.setup()
+
 from HMS_backend.models import MedicalTest
 from asgiref.sync import sync_to_async
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/laboratory", tags=["Laboratory"])
 
@@ -111,6 +143,7 @@ async def create_medical_test(payload: MedicalTestCreate):
     try:
         @sync_to_async
         def create_test_with_transaction():
+            ensure_db_connection()
             with transaction.atomic():
                 test = MedicalTest.objects.create(
                     test_type=payload.test_type,
@@ -135,6 +168,7 @@ async def list_medical_tests(
     """Get all medical tests with optional filtering"""
     @sync_to_async
     def get_tests():
+        ensure_db_connection()
         queryset = MedicalTest.objects.all()
         
         # Apply filters
@@ -155,6 +189,7 @@ async def get_medical_test(test_id: int):
     """Get a specific medical test by ID"""
     @sync_to_async
     def get_test():
+        ensure_db_connection()
         try:
             return MedicalTest.objects.get(id=test_id)
         except MedicalTest.DoesNotExist:
@@ -172,6 +207,7 @@ async def update_medical_test(test_id: int, payload: MedicalTestUpdate):
     """Update a medical test"""
     @sync_to_async
     def get_test():
+        ensure_db_connection()
         try:
             return MedicalTest.objects.get(id=test_id)
         except MedicalTest.DoesNotExist:
@@ -196,6 +232,7 @@ async def update_medical_test(test_id: int, payload: MedicalTestUpdate):
 
     @sync_to_async
     def save_test():
+        ensure_db_connection()
         with transaction.atomic():
             test.save()
             return MedicalTest.objects.get(id=test.id)
@@ -211,6 +248,7 @@ async def delete_medical_test(test_id: int):
     """Delete a medical test"""
     @sync_to_async
     def delete_test():
+        ensure_db_connection()
         try:
             test = MedicalTest.objects.get(id=test_id)
             test.delete()
@@ -227,6 +265,7 @@ async def get_test_types():
     """Get distinct test types for dropdown"""
     @sync_to_async
     def get_distinct_types():
+        ensure_db_connection()
         return list(MedicalTest.objects.values_list('test_type', flat=True).distinct())
     
     types = await get_distinct_types()
@@ -237,6 +276,7 @@ async def get_status_counts():
     """Get count of tests by status"""
     @sync_to_async
     def get_counts():
+        ensure_db_connection()
         counts = {}
         statuses = ["available", "unavailable", "maintenance"]
         for status in statuses:

@@ -10,6 +10,26 @@ from HMS_backend.models import Stock
 from django.core.exceptions import ObjectDoesNotExist
 from asgiref.sync import sync_to_async
 import logging
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +102,7 @@ OUT_OF_STOCK_THRESHOLD = 0
 @sync_to_async
 def get_stock_by_id(stock_id: int):
     """Get stock by ID"""
+    ensure_db_connection()
     try:
         return Stock.objects.get(id=stock_id)
     except Stock.DoesNotExist:
@@ -90,6 +111,7 @@ def get_stock_by_id(stock_id: int):
 @sync_to_async
 def get_stock_by_details(product_name: str, batch_number: str, vendor_id: str):
     """Get stock by product details"""
+    ensure_db_connection()
     try:
         return Stock.objects.filter(
             product_name=product_name,
@@ -102,6 +124,7 @@ def get_stock_by_details(product_name: str, batch_number: str, vendor_id: str):
 @sync_to_async
 def get_stock_by_item_code(item_code: str):
     """Get stock by item code"""
+    ensure_db_connection()
     try:
         return Stock.objects.filter(item_code=item_code).first()
     except Exception:
@@ -110,6 +133,7 @@ def get_stock_by_item_code(item_code: str):
 @sync_to_async
 def create_stock(stock_data: dict):
     """Create new stock item"""
+    ensure_db_connection()
     try:
         return Stock.objects.create(**stock_data)
     except Exception as e:
@@ -118,6 +142,7 @@ def create_stock(stock_data: dict):
 @sync_to_async
 def update_stock_quantity(stock, new_quantity: int):
     """Update stock quantity using the model's add_stock method"""
+    ensure_db_connection()
     # Use the model's method which handles status automatically
     stock.add_stock(new_quantity - stock.quantity)
     return stock
@@ -125,22 +150,26 @@ def update_stock_quantity(stock, new_quantity: int):
 @sync_to_async
 def save_stock(stock):
     """Save stock instance"""
+    ensure_db_connection()
     stock.save()
     return stock
 
 @sync_to_async
 def delete_stock_instance(stock):
     """Delete stock instance"""
+    ensure_db_connection()
     stock.delete()
 
 @sync_to_async
 def get_all_stocks():
     """Get all stocks"""
+    ensure_db_connection()
     return list(Stock.objects.all().order_by("id"))
 
 @sync_to_async
 def search_stocks(query: str):
     """Search stocks"""
+    ensure_db_connection()
     return list(Stock.objects.filter(
         Q(product_name__icontains=query) |
         Q(item_code__icontains=query) |
@@ -154,6 +183,7 @@ def search_stocks(query: str):
 @sync_to_async
 def get_low_stocks():
     """Get low stocks"""
+    ensure_db_connection()
     return list(Stock.objects.filter(
         quantity__lte=LOW_STOCK_THRESHOLD, 
         quantity__gt=OUT_OF_STOCK_THRESHOLD
@@ -162,11 +192,13 @@ def get_low_stocks():
 @sync_to_async
 def get_out_of_stocks():
     """Get out of stocks"""
+    ensure_db_connection()
     return list(Stock.objects.filter(quantity__lte=OUT_OF_STOCK_THRESHOLD))
 
 @sync_to_async
 def add_stock_to_instance(stock, quantity_to_add: int):
     """Safely call the model's add_stock method in async context"""
+    ensure_db_connection()
     stock.add_stock(quantity_to_add)
     return stock
 
@@ -183,14 +215,14 @@ async def add_stock(payload: StockCreate):
     """
     try:
         logger.info(f"Adding stock: {payload.product_name}, quantity: {payload.quantity}")
-        
+
         # Clean the input data
         product_name = payload.product_name.strip()
         batch_number = payload.batch_number.strip()
         vendor_id = payload.vendor_id.strip()
         item_code = payload.item_code.strip()
         dosage = payload.dosage.strip() if payload.dosage else None  # ✅ Clean dosage
-        
+
         # Check if item_code already exists (since it's unique)
         existing_by_item_code = await get_stock_by_item_code(item_code)
         if existing_by_item_code:
@@ -198,30 +230,30 @@ async def add_stock(payload: StockCreate):
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Stock item with item code '{item_code}' already exists"
             )
-        
+
         # Check if stock already exists using async function
         existing_stock = await get_stock_by_details(product_name, batch_number, vendor_id)
-        
+
         if existing_stock:
             # Update existing stock
             logger.info(f"Stock exists, updating quantity: {existing_stock.quantity} -> {existing_stock.quantity + payload.quantity}")
             previous_quantity = existing_stock.quantity
             new_quantity = existing_stock.quantity + payload.quantity
-            
+
             # Update dosage if provided
             if dosage and dosage != existing_stock.dosage:
                 existing_stock.dosage = dosage
-            
+
             # Update stock using the model's method
             updated_stock = await update_stock_quantity(existing_stock, new_quantity)
-            
+
             # Import NotificationService here to avoid circular imports
             from ..routers.notifications import NotificationService
-            
+
             # Send notification
             await NotificationService.send_stock_updated(updated_stock, previous_quantity)
             await check_stock_alerts(updated_stock, previous_quantity)
-            
+
             return StockOut(
                 id=updated_stock.id,
                 product_name=updated_stock.product_name,
@@ -257,16 +289,16 @@ async def add_stock(payload: StockCreate):
                 "unit_price": payload.unit_price,
                 "status": "available" if payload.quantity > 0 else "outofstock"
             }
-            
+
             new_stock = await create_stock(stock_data)
-            
+
             # Import NotificationService here to avoid circular imports
             from ..routers.notifications import NotificationService
-            
+
             # Send notification
             await NotificationService.send_stock_added(new_stock)
             await check_stock_alerts(new_stock)
-            
+
             return StockOut(
                 id=new_stock.id,
                 product_name=new_stock.product_name,
@@ -285,7 +317,7 @@ async def add_stock(payload: StockCreate):
                 created_at=new_stock.created_at,
                 updated_at=new_stock.updated_at
             )
-                
+
     except IntegrityError as e:
         logger.error(f"Integrity error adding stock: {str(e)}")
         raise HTTPException(
@@ -357,10 +389,10 @@ async def edit_stock(stock_id: int, payload: StockUpdate):
 
         # Import NotificationService here to avoid circular imports
         from ..routers.notifications import NotificationService
-        
+
         # Send update notification
         await NotificationService.send_stock_updated(stock, previous_quantity)
-        
+
         # Check for low stock or out of stock conditions
         await check_stock_alerts(stock, previous_quantity)
 
@@ -439,7 +471,7 @@ async def delete_stock(stock_id: int):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Stock item with ID {stock_id} not found"
             )
-        
+
         # Store stock data for notification before deletion
         stock_data = {
             'product_name': stock.product_name,
@@ -448,15 +480,15 @@ async def delete_stock(stock_id: int):
             'vendor': stock.vendor,
             'quantity': stock.quantity
         }
-        
+
         await delete_stock_instance(stock)
-        
+
         # Import NotificationService here to avoid circular imports
         from ..routers.notifications import NotificationService
-        
+
         # Send deletion notification
         await NotificationService.send_stock_deleted(stock_data)
-        
+
         return {
             "message": f"Stock item {stock_id} deleted successfully",
             "deleted_id": stock_id
@@ -488,7 +520,7 @@ async def search_stock(
 
     try:
         stocks = await search_stocks(query)
-        
+
         if not stocks:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No matching stock found")
 
@@ -533,14 +565,14 @@ async def check_stock_alerts(stock, previous_quantity=None):
     """
     try:
         current_quantity = stock.quantity
-        
+
         # Import NotificationService here to avoid circular imports
         from ..routers.notifications import NotificationService
-        
+
         # Check for stock out
         if current_quantity <= OUT_OF_STOCK_THRESHOLD:
             await NotificationService.send_stock_out(stock)
-        
+
         # Check for low stock (only if it wasn't already low before)
         elif current_quantity <= LOW_STOCK_THRESHOLD:
             if previous_quantity is None or previous_quantity > LOW_STOCK_THRESHOLD:
@@ -562,28 +594,28 @@ async def check_all_low_stock():
     try:
         low_stocks = await get_low_stocks()
         out_of_stocks = await get_out_of_stocks()
-        
+
         notification_count = 0
-        
+
         # Import NotificationService here to avoid circular imports
         from ..routers.notifications import NotificationService
-        
+
         # Send low stock notifications
         for stock in low_stocks:
             await NotificationService.send_stock_low(stock)
             notification_count += 1
-        
+
         # Send out of stock notifications
         for stock in out_of_stocks:
             await NotificationService.send_stock_out(stock)
             notification_count += 1
-        
+
         return {
             "message": f"Stock check completed. Sent {notification_count} notifications.",
             "low_stock_count": len(low_stocks),
             "out_of_stock_count": len(out_of_stocks)
         }
-        
+
     except Exception as e:
         logger.error(f"Error checking stock levels: {str(e)}")
         raise HTTPException(

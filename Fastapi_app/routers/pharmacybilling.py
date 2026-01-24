@@ -1,3 +1,4 @@
+
 #fastapi_app/routers/pharmacybilling.py
 from fastapi import APIRouter, HTTPException 
 from pydantic import BaseModel
@@ -6,6 +7,27 @@ from asgiref.sync import sync_to_async
 from datetime import datetime
 
 from HMS_backend.models import Patient, MedicineAllocation, Stock
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/pharmacy-billing", tags=["Pharmacy Billing"])
 
@@ -20,7 +42,7 @@ class StockCheckItem(BaseModel):
 class StockCheckResponse(BaseModel):
     all_medicines_available: bool
     stock_check: List[StockCheckItem]
-    
+
 class PharmacyBillingItem(BaseModel):
     allocation_id: int 
     item_code: str
@@ -52,22 +74,32 @@ async def get_pharmacy_billing_details(
 ):
     try:
         # Fetch patient
-        patient = await sync_to_async(Patient.objects.get)(id=patient_id)
+        @sync_to_async
+        def get_patient(pid):
+            ensure_db_connection()
+            return Patient.objects.get(id=pid)
+
+        patient = await get_patient(patient_id)
 
         # ✅ Fetch ONLY pending allocations (not billed or paid)
         allocations_query = MedicineAllocation.objects.select_related("staff").filter(
             patient=patient,
             billing_status="pending"  # ✅ Only show pending allocations
         )
-        
+
         # Apply date filtering if provided
         if date_from:
             allocations_query = allocations_query.filter(allocation_date__gte=date_from)
-        
+
         if date_to:
             allocations_query = allocations_query.filter(allocation_date__lte=date_to)
-        
-        allocations = await sync_to_async(list)(allocations_query)
+
+        @sync_to_async
+        def get_allocations(query):
+            ensure_db_connection()
+            return list(query)
+
+        allocations = await get_allocations(allocations_query)
 
         billing_items = []
         total_amount = 0.0
@@ -75,13 +107,16 @@ async def get_pharmacy_billing_details(
         for allocation in allocations:
             if not allocation.medicine_name:
                 continue
-            
+
             # Fetch stock asynchronously
-            stock = await sync_to_async(
-                lambda: Stock.objects.filter(
-                    product_name__iexact=allocation.medicine_name
+            @sync_to_async
+            def get_stock(medicine_name):
+                ensure_db_connection()
+                return Stock.objects.filter(
+                    product_name__iexact=medicine_name
                 ).first()
-            )()
+
+            stock = await get_stock(allocation.medicine_name)
 
             unit_price = float(stock.unit_price) if stock else 0.0
             quantity = int(allocation.quantity or 0)
@@ -125,8 +160,8 @@ async def get_pharmacy_billing_details(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
-    
+
+
 @router.get("/check-stock-availability/{patient_id}/", response_model=StockCheckResponse)
 async def check_stock_availability(
     patient_id: int, 
@@ -139,13 +174,18 @@ async def check_stock_availability(
             patient_id=patient_id,
             billing_status="pending"  # ✅ Only check stock for pending allocations
         )
-        
+
         if date_from:
             allocations_query = allocations_query.filter(allocation_date__gte=date_from)
         if date_to:
             allocations_query = allocations_query.filter(allocation_date__lte=date_to)
-        
-        allocations = await sync_to_async(list)(allocations_query)
+
+        @sync_to_async
+        def get_allocations(query):
+            ensure_db_connection()
+            return list(query)
+
+        allocations = await get_allocations(allocations_query)
 
         stock_check_results = []
         all_available = True
@@ -153,13 +193,16 @@ async def check_stock_availability(
         for allocation in allocations:
             if not allocation.medicine_name:
                 continue
-            
+
             # Fetch stock
-            stock = await sync_to_async(
-                lambda: Stock.objects.filter(
-                    product_name__iexact=allocation.medicine_name
+            @sync_to_async
+            def get_stock(medicine_name):
+                ensure_db_connection()
+                return Stock.objects.filter(
+                    product_name__iexact=medicine_name
                 ).first()
-            )()
+
+            stock = await get_stock(allocation.medicine_name)
 
             quantity_needed = int(allocation.quantity or 0)
             quantity_available = stock.quantity if stock else 0

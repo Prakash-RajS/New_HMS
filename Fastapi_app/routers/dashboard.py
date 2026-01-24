@@ -16,15 +16,39 @@ from HMS_backend.models import (
     MedicineAllocation, Dispatch, Trip, Stock, BloodGroup, Surgery
 )
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 # Async wrappers for Django ORM calls
 @sync_to_async
 def get_patient_count():
+    ensure_db_connection()
     return Patient.objects.count()
 
 @sync_to_async
 def get_active_patients():
+    ensure_db_connection()
     return Patient.objects.filter(
         admission_date__isnull=False,
         discharge_date__isnull=True
@@ -32,50 +56,61 @@ def get_active_patients():
 
 @sync_to_async
 def get_weekly_admissions(week_ago):
+    ensure_db_connection()
     return Patient.objects.filter(created_at__date__gte=week_ago).count()
 
 @sync_to_async
 def get_today_admissions(today):
+    ensure_db_connection()
     return Patient.objects.filter(created_at__date=today).count()
 
 @sync_to_async
 def get_priority_care():
+    ensure_db_connection()
     return Appointment.objects.filter(status='severe').count()
 
 @sync_to_async
 def get_appointment_count():
+    ensure_db_connection()
     return Appointment.objects.count()
 
 @sync_to_async
 def get_today_appointments(today):
+    ensure_db_connection()
     return Appointment.objects.filter(created_at__date=today).count()
 
 @sync_to_async
 def get_emergency_cases():
+    ensure_db_connection()
     return Appointment.objects.filter(appointment_type='emergency').count()
 
 @sync_to_async
 def get_department_stats():
+    ensure_db_connection()
     return list(Appointment.objects.values('department__name').annotate(count=Count('id')).order_by('-count'))
 
 @sync_to_async
 def get_total_revenue():
+    ensure_db_connection()
     result = HospitalInvoiceHistory.objects.aggregate(total=Sum('amount'))
     return float(result['total'] or 0)
 
 @sync_to_async
 def get_today_revenue(today):
+    ensure_db_connection()
     result = HospitalInvoiceHistory.objects.filter(date=today).aggregate(total=Sum('amount'))
     return float(result['total'] or 0)
 
 @sync_to_async
 def get_outstanding_payments():
+    ensure_db_connection()
     result = HospitalInvoiceHistory.objects.filter(status__in=['Unpaid', 'Pending']).aggregate(total=Sum('amount'))
     return float(result['total'] or 0)
 
 # Safe pharmacy revenue function (handles missing table)
 @sync_to_async
 def get_pharmacy_revenue_today(today):
+    ensure_db_connection()
     try:
         # Check if PharmacyInvoiceHistory model exists and table is created
         from HMS_backend.models import PharmacyInvoiceHistory
@@ -86,22 +121,27 @@ def get_pharmacy_revenue_today(today):
 
 @sync_to_async
 def get_recent_patients():
+    ensure_db_connection()
     return list(Patient.objects.order_by('-created_at')[:5].values('id', 'full_name', 'created_at'))
 
 @sync_to_async
 def get_recent_appointments():
+    ensure_db_connection()
     return list(Appointment.objects.order_by('-created_at')[:5].values('id', 'patient_name', 'created_at'))
 
 @sync_to_async
 def get_emergency_appointments():
+    ensure_db_connection()
     return Appointment.objects.filter(appointment_type='emergency').count()
 
 @sync_to_async
 def get_patients_with_admission():
+    ensure_db_connection()
     return Patient.objects.filter(admission_date__isnull=False).count()
 
 @sync_to_async
 def get_total_invoices():
+    ensure_db_connection()
     return HospitalInvoiceHistory.objects.count()
 
 def normalize_timestamp(ts):
@@ -123,6 +163,7 @@ from datetime import timedelta
 
 @sync_to_async
 def get_total_surgeries():
+    ensure_db_connection()
     now = timezone.now()
 
     # First day of current month
@@ -148,6 +189,7 @@ def get_total_surgeries():
 
 @sync_to_async
 def get_today_surgeries():
+    ensure_db_connection()
     today = timezone.localdate()
 
     start = datetime.combine(today, time.min)
@@ -166,6 +208,7 @@ def get_today_surgeries():
 
 @sync_to_async
 def get_success_rate():
+    ensure_db_connection()
     today = timezone.now()
     start_of_month = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
@@ -189,6 +232,7 @@ def get_success_rate():
     
 @sync_to_async
 def get_emergency_surgeries():
+    ensure_db_connection()
     emergency_patient_ids = Appointment.objects.filter(
         appointment_type="emergency"
     ).values_list("patient_id", flat=True)
@@ -327,55 +371,7 @@ async def get_dashboard_stats():
             "error": str(e)
         }
 
-# @router.get("/recent-activities")
-# async def get_recent_activities():
-#     """Get recent activities for notifications"""
-#     try:
-#         recent_activities = []
-        
-#         # Get recent patients
-#         recent_patients = await get_recent_patients()
-#         for patient in recent_patients[:3]:  # Last 3 patients
-#             recent_activities.append({
-#                 "id": f"patient_{patient['id']}",
-#                 "type": "info",
-#                 "message": f"New patient registered: {patient['full_name']}",
-#                 "timestamp": patient['created_at'],
-#                 "read": False,
-#                 "category": "patient"
-#             })
-        
-#         # Get recent appointments
-#         recent_appointments = await get_recent_appointments()
-#         for appointment in recent_appointments[:3]:  # Last 3 appointments
-#             recent_activities.append({
-#                 "id": f"appointment_{appointment['id']}",
-#                 "type": "info", 
-#                 "message": f"New appointment: {appointment['patient_name']}",
-#                 "timestamp": appointment['created_at'],
-#                 "read": False,
-#                 "category": "appointment"
-#             })
-        
-#         # Get emergency cases
-#         emergency_count = await get_emergency_appointments()
-#         if emergency_count > 0:
-#             recent_activities.append({
-#                 "id": "emergency_alert",
-#                 "type": "error",
-#                 "message": f"{emergency_count} emergency case(s) require attention",
-#                 "timestamp": datetime.now().isoformat(),
-#                 "read": False,
-#                 "category": "emergency"
-#             })
-        
-#         # Sort by timestamp and return
-#         recent_activities.sort(key=lambda x: x['timestamp'], reverse=True)
-#         return recent_activities[:10]  # Return top 10
-        
-#     except Exception as e:
-#         print(f"Recent activities error: {str(e)}")
-#         return []
+
 @router.get("/recent-activities")
 async def get_recent_activities():
     try:
@@ -537,35 +533,35 @@ async def create_sample_data():
         from datetime import date
         
         # Get or create department
-        department = await sync_to_async(Department.objects.first)()
+        department = await sync_to_async(lambda: (ensure_db_connection(), Department.objects.first())[1])()
         if not department:
-            department = await sync_to_async(Department.objects.create)(
+            department = await sync_to_async(lambda: (ensure_db_connection(), Department.objects.create(
                 name="General Medicine",
                 status="active"
-            )
+            ))[1])()
         
         # Get or create staff
-        staff = await sync_to_async(Staff.objects.first)()
+        staff = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.first())[1])()
         if not staff:
-            staff = await sync_to_async(Staff.objects.create)(
+            staff = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.create(
                 full_name="Dr. Test Doctor",
                 phone="1234567890",
                 email="doctor@test.com",
                 designation="Doctor",
                 department=department
-            )
+            ))[1])()
         
         # Create sample patient with admission
-        patient = await sync_to_async(Patient.objects.create)(
+        patient = await sync_to_async(lambda: (ensure_db_connection(), Patient.objects.create(
             full_name="Test Emergency Patient",
             admission_date=date.today(),
             phone_number="9876543210",
             patient_unique_id="PAT_TEST001",
             created_at=timezone.now()
-        )
+        ))[1])()
         
         # Create emergency appointment
-        appointment = await sync_to_async(Appointment.objects.create)(
+        appointment = await sync_to_async(lambda: (ensure_db_connection(), Appointment.objects.create(
             patient_name="Test Emergency Patient",
             department=department,
             staff=staff,
@@ -573,10 +569,10 @@ async def create_sample_data():
             phone_no="9876543210",
             appointment_type="emergency",
             status="severe"
-        )
+        ))[1])()
         
         # Create sample invoice
-        invoice = await sync_to_async(HospitalInvoiceHistory.objects.create)(
+        invoice = await sync_to_async(lambda: (ensure_db_connection(), HospitalInvoiceHistory.objects.create(
             date=date.today(),
             patient_name="Test Emergency Patient",
             patient_id="PAT_TEST001",
@@ -584,7 +580,7 @@ async def create_sample_data():
             amount=2500.00,
             payment_method="Cash",
             status="Paid"
-        )
+        ))[1])()
         
         return {
             "status": "success",

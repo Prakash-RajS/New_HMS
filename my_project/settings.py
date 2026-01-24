@@ -136,7 +136,18 @@ DATABASES = {
 #     }
 # }
 
-
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "hms_db",
+#         "USER": "hms_user",
+#         "PASSWORD": "Hms@2026_Test!",
+#         "HOST": "localhost",
+#         "PORT": "3306",
+#         "OPTIONS": { "charset": "utf8mb4" },
+#         "CONN_MAX_AGE": 0,  # Explicitly set to avoid persistence issues
+#     }
+# }
 
 TIME_ZONE = "Asia/Kolkata"
 USE_TZ = True

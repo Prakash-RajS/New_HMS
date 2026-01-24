@@ -540,6 +540,7 @@
 #Fastapi_app/routers/new_registration.py
 import os
 import logging
+import sys
 from datetime import datetime
 from typing import Optional
 import uuid
@@ -554,6 +555,37 @@ from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAl
 from django.db.models import Q, F  # ← ADDED F
 from Fastapi_app.routers.notifications import NotificationService
 from pathlib import Path as PathLib
+from asgiref.sync import sync_to_async
+
+
+# Django setup
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(BASE_DIR)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
+import django
+django.setup()
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter(prefix="/patients", tags=["Patients"])
 
 PHOTO_DIR = "Fastapi_app/Patient_photos"
@@ -580,13 +612,16 @@ def parse_optional_float(v):
 # ---------- 1. GET Departments ----------
 @router.get("/departments")
 async def get_departments():
-    depts = await run_in_threadpool(
-        lambda: list(
+    @sync_to_async
+    def fetch_depts():
+        ensure_db_connection()
+        return list(
             Department.objects.filter(status="active")
             .values("id", "name")
             .order_by("name")
         )
-    )
+    
+    depts = await fetch_depts()
     return {"departments": depts}
 
 
@@ -596,10 +631,17 @@ async def get_staff(department_id: int = Query(...)):
     if department_id <= 0:
         raise HTTPException(400, "department_id required")
     
-    await run_in_threadpool(Department.objects.get, id=department_id, status="active")
+    @sync_to_async
+    def validate_dept():
+        ensure_db_connection()
+        return Department.objects.get(id=department_id, status="active")
     
-    staff = await run_in_threadpool(
-        lambda: list(
+    await validate_dept()
+    
+    @sync_to_async
+    def fetch_staff():
+        ensure_db_connection()
+        return list(
             Staff.objects.filter(
                 department_id=department_id,
                 status="active",
@@ -608,7 +650,8 @@ async def get_staff(department_id: int = Query(...)):
             .values("id", "full_name", "designation")
             .order_by("full_name")
         )
-    )
+    
+    staff = await fetch_staff()
     return {"staff": staff}
 
 
@@ -649,39 +692,54 @@ async def register_patient(
     if not dept_id or not staff_db_id:
         raise HTTPException(400, "Invalid department_id or staff_id")
 
-    department = await run_in_threadpool(Department.objects.get, id=dept_id)
-    staff = await run_in_threadpool(Staff.objects.get, id=staff_db_id)
+    @sync_to_async
+    def get_department():
+        ensure_db_connection()
+        return Department.objects.get(id=dept_id)
+    
+    department = await get_department()
+    
+    @sync_to_async
+    def get_staff_member():
+        ensure_db_connection()
+        return Staff.objects.get(id=staff_db_id)
+    
+    staff = await get_staff_member()
 
-    patient = await run_in_threadpool(
-        Patient.objects.create,
-        full_name=full_name,
-        date_of_birth=parse_date(date_of_birth),
-        gender=gender,
-        age=parse_optional_int(age),
-        marital_status=marital_status,
-        address=address,
-        phone_number=phone_number,
-        email_address=email_address,
-        national_id=national_id,
-        city=city,
-        country=country,
-        date_of_registration=parse_date(date_of_registration),
-        occupation=occupation,
-        weight_in_kg=parse_optional_float(weight_in_kg),
-        height_in_cm=parse_optional_float(height_in_cm),
-        blood_group=blood_group,
-        blood_pressure=blood_pressure,
-        body_temperature=parse_optional_float(body_temperature),
-        consultation_type=consultation_type,
-        department=department,
-        staff=staff,
-        appointment_type=appointment_type,
-        admission_date=parse_date(admission_date),
-        room_number=room_number,
-        test_report_details=test_report_details,
-        casualty_status=(casualty_status or "Active").strip().title(),
-        reason_for_visit=reason_for_visit,
-    )
+    @sync_to_async
+    def create_patient():
+        ensure_db_connection()
+        return Patient.objects.create(
+            full_name=full_name,
+            date_of_birth=parse_date(date_of_birth),
+            gender=gender,
+            age=parse_optional_int(age),
+            marital_status=marital_status,
+            address=address,
+            phone_number=phone_number,
+            email_address=email_address,
+            national_id=national_id,
+            city=city,
+            country=country,
+            date_of_registration=parse_date(date_of_registration),
+            occupation=occupation,
+            weight_in_kg=parse_optional_float(weight_in_kg),
+            height_in_cm=parse_optional_float(height_in_cm),
+            blood_group=blood_group,
+            blood_pressure=blood_pressure,
+            body_temperature=parse_optional_float(body_temperature),
+            consultation_type=consultation_type,
+            department=department,
+            staff=staff,
+            appointment_type=appointment_type,
+            admission_date=parse_date(admission_date),
+            room_number=room_number,
+            test_report_details=test_report_details,
+            casualty_status=(casualty_status or "Active").strip().title(),
+            reason_for_visit=reason_for_visit,
+        )
+
+    patient = await create_patient()
 
     # History is automatically created in Patient.save() method when patient is registered
 
@@ -715,7 +773,12 @@ async def register_patient(
             f.write(content)
         
         patient.photo = path.replace("\\", "/")
-        await run_in_threadpool(patient.save)
+        @sync_to_async
+        def save_photo():
+            ensure_db_connection()
+            patient.save()
+        
+        await save_photo()
 
     await NotificationService.send_patient_registered(patient)
 
@@ -734,20 +797,27 @@ async def list_patients(
     limit: int = Query(10, ge=1, le=200)
 ):
     try:
-        query = Patient.objects.all().order_by("-created_at")
+        @sync_to_async
+        def build_query():
+            ensure_db_connection()
+            query = Patient.objects.all().order_by("-created_at")
+            
+            # Add type filter if provided
+            if type:
+                # Try to match the patient_type field
+                query = query.filter(patient_type__iexact=type)
+            
+            if search:
+                query = query.filter(
+                    Q(full_name__icontains=search) |
+                    Q(phone_number__icontains=search) |
+                    Q(patient_unique_id__icontains=search)
+                )
+            
+            return query
         
-        # Add type filter if provided
-        if type:
-            # Try to match the patient_type field
-            query = query.filter(patient_type__iexact=type)
+        query = await build_query()
         
-        if search:
-            query = query.filter(
-                Q(full_name__icontains=search) |
-                Q(phone_number__icontains=search) |
-                Q(patient_unique_id__icontains=search)
-            )
-
         total = await run_in_threadpool(query.count)
         patients = await run_in_threadpool(
             lambda: list(
@@ -803,16 +873,23 @@ async def list_opd(
     limit: int = Query(10, ge=1, le=200)
 ):
     try:
-        qs = Patient.objects.filter(
-            Q(casualty_status__iexact="Completed") |
-            Q(casualty_status__iexact="Discharged")
-        ).order_by("-created_at")
+        @sync_to_async
+        def build_opd_query():
+            ensure_db_connection()
+            qs = Patient.objects.filter(
+                Q(casualty_status__iexact="Completed") |
+                Q(casualty_status__iexact="Discharged")
+            ).order_by("-created_at")
 
-        if search:
-            qs = qs.filter(
-                Q(full_name__icontains=search) |
-                Q(patient_unique_id__icontains=search)
-            )
+            if search:
+                qs = qs.filter(
+                    Q(full_name__icontains=search) |
+                    Q(patient_unique_id__icontains=search)
+                )
+
+            return qs
+        
+        qs = await build_opd_query()
 
         total = await run_in_threadpool(qs.count)
         start = (page - 1) * limit
@@ -865,13 +942,33 @@ async def list_opd(
 async def get_patient(patient_id: str = Path(...)):
     try:
         if patient_id.isdigit():
-            patient = await run_in_threadpool(
-                lambda: Patient.objects.select_related("department", "staff").get(id=int(patient_id))
-            )
+            @sync_to_async
+            def get_by_id():
+                ensure_db_connection()
+                return Patient.objects.select_related("department", "staff").get(id=int(patient_id))
+            
+            patient = await get_by_id()
         else:
-            patient = await run_in_threadpool(
-                lambda: Patient.objects.select_related("department", "staff").get(patient_unique_id=patient_id)
-            )
+            @sync_to_async
+            def get_by_uid():
+                ensure_db_connection()
+                return Patient.objects.select_related("department", "staff").get(patient_unique_id=patient_id)
+            
+            patient = await get_by_uid()
+
+        @sync_to_async
+        def get_bed():
+            ensure_db_connection()
+            return patient.beds.first()
+        
+        bed = await get_bed()
+        if bed:
+            @sync_to_async
+            def refresh_bed_group():
+                ensure_db_connection()
+                bed.bed_group.refresh_counts()
+            
+            await refresh_bed_group()
 
         p = {
             "id": patient.id,
@@ -912,9 +1009,7 @@ async def get_patient(patient_id: str = Path(...)):
             "bed_number": None,
         }
         p["staff__full_name"] = patient.staff.full_name if patient.staff else None
-        bed = await run_in_threadpool(lambda: patient.beds.first())
         if bed:
-            await run_in_threadpool(lambda: bed.bed_group.refresh_counts())
             p["bed_group"] = bed.bed_group.bedGroup
             p["bed_number"] = bed.bed_number
 
@@ -954,7 +1049,12 @@ async def edit_patient(
     photo: Optional[UploadFile] = File(None),
 ):
     try:
-        patient = await run_in_threadpool(Patient.objects.get, patient_unique_id=patient_id)
+        @sync_to_async
+        def get_patient_edit():
+            ensure_db_connection()
+            return Patient.objects.get(patient_unique_id=patient_id)
+        
+        patient = await get_patient_edit()
 
         if full_name is not None and full_name.strip():
             patient.full_name = full_name.strip()
@@ -981,10 +1081,20 @@ async def edit_patient(
         dept_id = parse_optional_int(department_id)
         staff_db_id = parse_optional_int(staff_id)
         if dept_id:
-            department = await run_in_threadpool(Department.objects.get, id=dept_id)
+            @sync_to_async
+            def get_dept_edit():
+                ensure_db_connection()
+                return Department.objects.get(id=dept_id)
+            
+            department = await get_dept_edit()
             patient.department = department
         if staff_db_id:
-            staff = await run_in_threadpool(Staff.objects.get, id=staff_db_id)
+            @sync_to_async
+            def get_staff_edit():
+                ensure_db_connection()
+                return Staff.objects.get(id=staff_db_id)
+            
+            staff = await get_staff_edit()
             patient.staff = staff
 
         if photo and photo.filename:
@@ -1032,7 +1142,12 @@ async def edit_patient(
             # Save the new photo path to the patient object
             patient.photo = path.replace("\\", "/")
         
-        await run_in_threadpool(patient.save)
+        @sync_to_async
+        def save_patient_edit():
+            ensure_db_connection()
+            patient.save()
+        
+        await save_patient_edit()
         await NotificationService.send_patient_updated(patient)
         return JSONResponse({"success": True, "message": "Updated"})
     except Patient.DoesNotExist:
@@ -1057,12 +1172,27 @@ async def get_patient_history(
     try:
         # Find patient by ID or patient_unique_id
         if patient_id.isdigit():
-            patient = await run_in_threadpool(Patient.objects.get, id=int(patient_id))
+            @sync_to_async
+            def get_patient_history_id():
+                ensure_db_connection()
+                return Patient.objects.get(id=int(patient_id))
+            
+            patient = await get_patient_history_id()
         else:
-            patient = await run_in_threadpool(Patient.objects.get, patient_unique_id=patient_id)
+            @sync_to_async
+            def get_patient_history_uid():
+                ensure_db_connection()
+                return Patient.objects.get(patient_unique_id=patient_id)
+            
+            patient = await get_patient_history_uid()
         
         # Get history records for this patient
-        history_qs = patient.history_records.all().order_by("-created_at")
+        @sync_to_async
+        def get_history_qs():
+            ensure_db_connection()
+            return patient.history_records.all().order_by("-created_at")
+        
+        history_qs = await get_history_qs()
         
         # Get total count
         total = await run_in_threadpool(history_qs.count)
@@ -1071,8 +1201,10 @@ async def get_patient_history(
         start = (page - 1) * limit
         end = start + limit
         
-        history = await run_in_threadpool(
-            lambda: list(
+        @sync_to_async
+        def fetch_history():
+            ensure_db_connection()
+            return list(
                 history_qs[start:end].values(
                     "id",
                     "patient_name",
@@ -1082,7 +1214,8 @@ async def get_patient_history(
                     "created_at"
                 )
             )
-        )
+        
+        history = await fetch_history()
         
         # Format dates
         for record in history:
@@ -1114,6 +1247,7 @@ def get_patient_diagnoses(patient_id: int):
     Returns every LabReport that belongs to the patient
     (whether it was created together with a medicine allocation or not).
     """
+    ensure_db_connection()
     try:
         reports = (
             LabReport.objects
@@ -1149,6 +1283,7 @@ def get_patient_prescriptions(patient_id: int):
     """
     Returns every MedicineAllocation for the patient.
     """
+    ensure_db_connection()
     try:
         allocs = (
             MedicineAllocation.objects
@@ -1183,6 +1318,7 @@ def get_patient_prescriptions(patient_id: int):
 # --------------------------------------------------------------
 @router.get("/{patient_id}/test-reports/", response_model=List[dict])
 def get_patient_test_reports(patient_id: int):
+    ensure_db_connection()
     try:
         reports = (
             LabReport.objects
@@ -1217,3 +1353,82 @@ def get_patient_test_reports(patient_id: int):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/{patient_id}/surgeries")
+async def get_patient_surgeries(
+    patient_id: str = Path(...),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100)
+):
+    """
+    Get surgery records for a specific patient
+    """
+    try:
+        # Find patient by ID or patient_unique_id
+        if patient_id.isdigit():
+            @sync_to_async
+            def get_patient_surgeries_id():
+                ensure_db_connection()
+                return Patient.objects.get(id=int(patient_id))
+            
+            patient = await get_patient_surgeries_id()
+        else:
+            @sync_to_async
+            def get_patient_surgeries_uid():
+                ensure_db_connection()
+                return Patient.objects.get(patient_unique_id=patient_id)
+            
+            patient = await get_patient_surgeries_uid()
+        
+        # Get surgeries for this patient
+        @sync_to_async
+        def get_surgeries_qs():
+            ensure_db_connection()
+            return patient.surgeries.all().select_related('doctor').order_by("-scheduled_date")
+        
+        surgeries_qs = await get_surgeries_qs()
+        
+        # Get total count
+        total = await run_in_threadpool(surgeries_qs.count)
+        
+        # Get paginated results
+        start = (page - 1) * limit
+        end = start + limit
+        
+        @sync_to_async
+        def fetch_surgeries():
+            ensure_db_connection()
+            return list(
+                surgeries_qs[start:end].values(
+                    "id",
+                    "surgery_type",
+                    "description",
+                    "status",
+                    "price",
+                    "scheduled_date",
+                    "doctor__full_name"
+                )
+            )
+        
+        surgeries = await fetch_surgeries()
+        
+        # Format the data
+        formatted_surgeries = []
+        for surgery in surgeries:
+            formatted_surgeries.append({
+                "id": surgery["id"],
+                "surgery_type": surgery["surgery_type"],
+                "description": surgery["description"],
+                "status": surgery["status"],
+                "price": float(surgery["price"]) if surgery["price"] else None,
+                "scheduled_date": surgery["scheduled_date"].strftime("%Y-%m-%d %H:%M:%S") if surgery["scheduled_date"] else None,
+                "doctor": surgery["doctor__full_name"] if surgery["doctor__full_name"] else "—"
+            })
+        
+        return formatted_surgeries  # Return directly the array for frontend
+        
+    except Patient.DoesNotExist:
+        raise HTTPException(404, "Patient not found")
+    except Exception as e:
+        logging.exception("get_patient_surgeries error")
+        raise HTTPException(500, detail=str(e))

@@ -6,6 +6,27 @@ import django.db.models as models
 from datetime import datetime
 from asgiref.sync import sync_to_async
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/bedgroups", tags=["Bed Groups"])
 
@@ -73,9 +94,9 @@ class BedGroupResponse(BedGroupBase):
     async def from_orm_with_beds(cls, group: BedGroup):
         beds = []
         # Use sync_to_async for related objects with proper prefetching
-        group_beds = await sync_to_async(list)(
+        group_beds = await sync_to_async(lambda: (ensure_db_connection(), list(
             group.beds.all().select_related('patient', 'bed_group')
-        )
+        ))[1])()
        
         for bed in group_beds:
             patient_info = None
@@ -140,7 +161,7 @@ async def _next_available_range(capacity: int) -> int:
     
     # Get all bed numbers in ascending order
     all_beds = await sync_to_async(
-        lambda: list(Bed.objects.all().order_by('bed_number').values_list('bed_number', flat=True))
+        lambda: (ensure_db_connection(), list(Bed.objects.all().order_by('bed_number').values_list('bed_number', flat=True)))[1]
     )()
     
     # If no beds exist yet, start from 1
@@ -167,7 +188,7 @@ async def _find_next_available_range(capacity: int) -> Dict[str, Any]:
     
     # Get all bed numbers in ascending order
     all_beds = await sync_to_async(
-        lambda: list(Bed.objects.all().order_by('bed_number').values_list('bed_number', flat=True))
+        lambda: (ensure_db_connection(), list(Bed.objects.all().order_by('bed_number').values_list('bed_number', flat=True)))[1]
     )()
     
     if not all_beds:
@@ -197,6 +218,7 @@ async def _check_range_availability(bed_from: int, bed_to: int, exclude_group_id
     
     @sync_to_async
     def check():
+        ensure_db_connection()
         # Check if any beds in this range already exist
         query = Bed.objects.filter(
             bed_number__gte=bed_from,
@@ -273,7 +295,7 @@ async def create_bed_group(group: BedGroupCreate):
     """Create a new bed group with automatic bed number allocation"""
     # Check if bed group exists
     exists = await sync_to_async(
-        lambda: BedGroup.objects.filter(bedGroup=group.bedGroup).exists()
+        lambda: (ensure_db_connection(), BedGroup.objects.filter(bedGroup=group.bedGroup).exists())[1]
     )()
    
     if exists:
@@ -283,22 +305,22 @@ async def create_bed_group(group: BedGroupCreate):
     start = await _next_available_range(group.capacity)
     
     # Create new bed group
-    new_group = await sync_to_async(BedGroup.objects.create)(
+    new_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.create(
         bedGroup=group.bedGroup,
         capacity=group.capacity,
         occupied=0,
         unoccupied=group.capacity,
         status="Available",
-    )
+    ))[1])()
     
     # Create beds with contiguous numbers
     beds_created = []
     for offset in range(group.capacity):
-        bed = await sync_to_async(Bed.objects.create)(
+        bed = await sync_to_async(lambda: (ensure_db_connection(), Bed.objects.create(
             bed_number=start + offset,
             bed_group=new_group,
             is_occupied=False,
-        )
+        ))[1])()
         beds_created.append(bed)
     
     # Send notifications
@@ -315,7 +337,7 @@ async def create_bed_group_with_range(group: BedGroupCreateWithRange):
     """Create a new bed group with specific bed number range"""
     # Check if bed group exists
     exists = await sync_to_async(
-        lambda: BedGroup.objects.filter(bedGroup=group.bedGroup).exists()
+        lambda: (ensure_db_connection(), BedGroup.objects.filter(bedGroup=group.bedGroup).exists())[1]
     )()
    
     if exists:
@@ -340,22 +362,22 @@ async def create_bed_group_with_range(group: BedGroupCreateWithRange):
         )
     
     # Create new bed group
-    new_group = await sync_to_async(BedGroup.objects.create)(
+    new_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.create(
         bedGroup=group.bedGroup,
         capacity=group.capacity,
         occupied=0,
         unoccupied=group.capacity,
         status="Available",
-    )
+    ))[1])()
     
     # Create beds in the specified range
     beds_created = []
     for bed_num in range(group.bedFrom, group.bedTo + 1):
-        bed = await sync_to_async(Bed.objects.create)(
+        bed = await sync_to_async(lambda: (ensure_db_connection(), Bed.objects.create(
             bed_number=bed_num,
             bed_group=new_group,
             is_occupied=False,
-        )
+        ))[1])()
         beds_created.append(bed)
     
     # Send notifications
@@ -417,9 +439,9 @@ async def check_bed_range(payload: dict = Body(...)):
 async def get_bed_groups():
     """Get all bed groups with their beds"""
     # Prefetch all related data in one query
-    groups = await sync_to_async(list)(
+    groups = await sync_to_async(lambda: (ensure_db_connection(), list(
         BedGroup.objects.all().prefetch_related('beds__patient')
-    )
+    ))[1])()
     results = []
     for group in groups:
         result = await BedGroupResponse.from_orm_with_beds(group)
@@ -432,7 +454,7 @@ async def get_beds(group_id: int):
     """Get all beds of a specific bed group"""
     try:
         group = await sync_to_async(
-            lambda: BedGroup.objects.prefetch_related('beds__patient').get(id=group_id)
+            lambda: (ensure_db_connection(), BedGroup.objects.prefetch_related('beds__patient').get(id=group_id))[1]
         )()
     except BedGroup.DoesNotExist:
         raise HTTPException(status_code=404, detail="Bed group not found")
@@ -443,14 +465,14 @@ async def get_beds(group_id: int):
 async def update_bed_group(group_id: int, group_update: BedGroupUpdate):
     """Update bed group information"""
     try:
-        bed_group = await sync_to_async(BedGroup.objects.get)(id=group_id)
+        bed_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(id=group_id))[1])()
     except BedGroup.DoesNotExist:
         raise HTTPException(status_code=404, detail="Bed group not found")
     
     # Check if bed group name already exists (excluding current)
     if group_update.bedGroup:
         exists = await sync_to_async(
-            lambda: BedGroup.objects.filter(bedGroup=group_update.bedGroup).exclude(id=group_id).exists()
+            lambda: (ensure_db_connection(), BedGroup.objects.filter(bedGroup=group_update.bedGroup).exclude(id=group_id).exists())[1]
         )()
         if exists:
             raise HTTPException(status_code=400, detail="Bed group name already exists")
@@ -486,20 +508,20 @@ async def update_bed_group(group_id: int, group_update: BedGroupUpdate):
             )
         
         # Delete old beds and create new ones
-        await sync_to_async(bed_group.beds.all().delete)()
+        await sync_to_async(lambda: (ensure_db_connection(), bed_group.beds.all().delete())[1])()
         
         # Create new beds in the specified range
         for bed_num in range(group_update.bedFrom, group_update.bedTo + 1):
-            await sync_to_async(Bed.objects.create)(
+            await sync_to_async(lambda: (ensure_db_connection(), Bed.objects.create(
                 bed_number=bed_num,
                 bed_group=bed_group,
                 is_occupied=False,
-            )
+            ))[1])()
         
         bed_group.capacity = new_capacity
     
-    await sync_to_async(bed_group.save)()
-    await sync_to_async(bed_group.refresh_counts)()
+    await sync_to_async(lambda: (ensure_db_connection(), bed_group.save())[1])()
+    await sync_to_async(lambda: (ensure_db_connection(), bed_group.refresh_counts())[1])()
     
     # Send notifications
     await safe_send_bed_notification("bed_group_updated", bed_group)
@@ -514,7 +536,7 @@ async def update_bed_group(group_id: int, group_update: BedGroupUpdate):
 async def delete_bed_group(group_id: int):
     """Delete a bed group"""
     try:
-        bed_group = await sync_to_async(BedGroup.objects.get)(id=group_id)
+        bed_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(id=group_id))[1])()
         if bed_group.occupied > 0:
             raise HTTPException(status_code=400, detail="Cannot delete: group has occupied beds")
        
@@ -527,19 +549,19 @@ async def delete_bed_group(group_id: int):
        
         # Get beds data for notifications with prefetching
         beds_data = await sync_to_async(
-            lambda: [
+            lambda: (ensure_db_connection(), [
                 {
                     'id': bed.id,
                     'bed_number': bed.bed_number,
                     'bed_group': bed.bed_group.bedGroup
                 }
                 for bed in bed_group.beds.all().select_related('bed_group')
-            ]
+            ])[1]
         )()
        
         # Delete beds and group
-        await sync_to_async(bed_group.beds.all().delete)()
-        await sync_to_async(bed_group.delete)()
+        await sync_to_async(lambda: (ensure_db_connection(), bed_group.beds.all().delete())[1])()
+        await sync_to_async(lambda: (ensure_db_connection(), bed_group.delete())[1])()
        
         # Send notifications
         await safe_send_bed_notification("bed_group_deleted", bed_group_data)
@@ -583,7 +605,7 @@ async def admit_patient(admit_request: AdmitPatientRequest):
     # Fetch Patient
     # ---------------------------
     try:
-        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=admit_request.patient_unique_id)
+        patient = await sync_to_async(lambda: (ensure_db_connection(), Patient.objects.get(patient_unique_id=admit_request.patient_unique_id))[1])()
         if patient.full_name != admit_request.full_name:
             raise HTTPException(
                 status_code=400, 
@@ -596,11 +618,11 @@ async def admit_patient(admit_request: AdmitPatientRequest):
     # Prevent Double Admission
     # ---------------------------
     patient_beds_exists = await sync_to_async(
-        lambda: patient.beds.filter(is_occupied=True).exists()
+        lambda: (ensure_db_connection(), patient.beds.filter(is_occupied=True).exists())[1]
     )()
     if patient_beds_exists:
         current_bed = await sync_to_async(
-            lambda: patient.beds.select_related('bed_group').filter(is_occupied=True).first()
+            lambda: (ensure_db_connection(), patient.beds.select_related('bed_group').filter(is_occupied=True).first())[1]
         )()
         raise HTTPException(
             status_code=400,
@@ -614,11 +636,11 @@ async def admit_patient(admit_request: AdmitPatientRequest):
     # Fetch Bed Group & Bed
     # ---------------------------
     try:
-        bed_group = await sync_to_async(BedGroup.objects.get)(bedGroup=admit_request.bed_group_name)
+        bed_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(bedGroup=admit_request.bed_group_name))[1])()
         bed = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group', 'patient').get(
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(
                 bed_group=bed_group, bed_number=admit_request.bed_number
-            )
+            ))[1]
         )()
     except BedGroup.DoesNotExist:
         raise HTTPException(status_code=404, detail="Bed group not found")
@@ -641,23 +663,23 @@ async def admit_patient(admit_request: AdmitPatientRequest):
     patient.room_number = formatted_room
     
     # Save only these fields
-    await sync_to_async(patient.save)(
+    await sync_to_async(lambda: (ensure_db_connection(), patient.save(
         update_fields=["admission_date", "room_number"]
-    )
+    ))[1])()
     
     # ---------------------------
     # Allocate Bed
     # ---------------------------
     bed.is_occupied = True
     bed.patient = patient
-    await sync_to_async(bed.save)()
+    await sync_to_async(lambda: (ensure_db_connection(), bed.save())[1])()
     
     # Refresh counts
-    await sync_to_async(bed_group.refresh_counts)()
+    await sync_to_async(lambda: (ensure_db_connection(), bed_group.refresh_counts())[1])()
     
     # Reload bed with relations
     bed_with_relations = await sync_to_async(
-        lambda: Bed.objects.select_related('bed_group', 'patient').get(id=bed.id)
+        lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(id=bed.id))[1]
     )()
     
     # ---------------------------
@@ -696,11 +718,11 @@ async def admit_patient(admit_request: AdmitPatientRequest):
 @router.post("/{group_id}/beds/{bed_number}/vacate", response_model=BedGroupResponse)
 async def vacate_bed(group_id: int, bed_number: int):
     try:
-        group = await sync_to_async(BedGroup.objects.get)(id=group_id)
+        group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(id=group_id))[1])()
         bed = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group', 'patient').get(
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(
                 bed_group=group, bed_number=bed_number
-            )
+            ))[1]
         )()
     except (BedGroup.DoesNotExist, Bed.DoesNotExist):
         raise HTTPException(status_code=404, detail="Bed or Bed group not found")
@@ -712,15 +734,15 @@ async def vacate_bed(group_id: int, bed_number: int):
     # Update discharge date on patient
     if bed.patient:
         bed.patient.discharge_date = datetime.now().date()
-        await sync_to_async(bed.patient.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), bed.patient.save())[1])()
     bed.is_occupied = False
     bed.patient = None
-    await sync_to_async(bed.save)()
+    await sync_to_async(lambda: (ensure_db_connection(), bed.save())[1])()
     # Refresh group counts
-    await sync_to_async(group.refresh_counts)()
+    await sync_to_async(lambda: (ensure_db_connection(), group.refresh_counts())[1])()
     # Reload bed with relations for notification
     bed_with_relations = await sync_to_async(
-        lambda: Bed.objects.select_related('bed_group').get(id=bed.id)
+        lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group').get(id=bed.id))[1]
     )()
     # Send notifications
     await safe_send_bed_notification("bed_vacated", bed_with_relations, patient_name=patient_name)
@@ -741,19 +763,19 @@ async def transfer_patient(
 ):
     try:
         # Find source bed with prefetching
-        from_group = await sync_to_async(BedGroup.objects.get)(bedGroup=from_bed_group)
+        from_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(bedGroup=from_bed_group))[1])()
         from_bed = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group', 'patient').get(
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(
                 bed_group=from_group, bed_number=from_bed_number
-            )
+            ))[1]
         )()
        
         # Find destination bed with prefetching
-        to_group = await sync_to_async(BedGroup.objects.get)(bedGroup=to_bed_group)
+        to_group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(bedGroup=to_bed_group))[1])()
         to_bed = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group', 'patient').get(
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(
                 bed_group=to_group, bed_number=to_bed_number
-            )
+            ))[1]
         )()
        
         # Verify patient is in source bed
@@ -768,22 +790,22 @@ async def transfer_patient(
         # Transfer patient
         from_bed.is_occupied = False
         from_bed.patient = None
-        await sync_to_async(from_bed.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), from_bed.save())[1])()
         to_bed.is_occupied = True
         to_bed.patient = patient
-        await sync_to_async(to_bed.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), to_bed.save())[1])()
         # Update patient room number
         patient.room_number = str(to_bed_number)
-        await sync_to_async(patient.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), patient.save())[1])()
         # Refresh group counts
-        await sync_to_async(from_group.refresh_counts)()
-        await sync_to_async(to_group.refresh_counts)()
+        await sync_to_async(lambda: (ensure_db_connection(), from_group.refresh_counts())[1])()
+        await sync_to_async(lambda: (ensure_db_connection(), to_group.refresh_counts())[1])()
         # Reload beds with relations for notifications
         from_bed_with_relations = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group').get(id=from_bed.id)
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group').get(id=from_bed.id))[1]
         )()
         to_bed_with_relations = await sync_to_async(
-            lambda: Bed.objects.select_related('bed_group', 'patient').get(id=to_bed.id)
+            lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(id=to_bed.id))[1]
         )()
         # Send notifications
         await safe_send_bed_notification("bed_vacated", from_bed_with_relations, patient_name=patient.full_name)

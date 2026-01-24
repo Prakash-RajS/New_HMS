@@ -11,6 +11,28 @@ import asyncio
 # Django Models
 from HMS_backend.models import AmbulanceUnit, Dispatch, Trip, Patient
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter(prefix="/ambulance", tags=["Ambulance Management"])
 
 notify_clients = None
@@ -141,7 +163,7 @@ async def simulate_live_gps(trip_id: int, unit_number: str):
 # Safe Async Delete Helper
 # ==============================================
 async def safe_delete(model, obj_id: int, name: str):
-    deleted = await sync_to_async(model.objects.filter(id=obj_id).delete)()
+    deleted = await sync_to_async(lambda: (ensure_db_connection(), model.objects.filter(id=obj_id).delete())[1])()
     if deleted[0] == 0:
         raise HTTPException(status_code=404, detail=f"{name} not found")
     return deleted
@@ -276,11 +298,11 @@ async def list_units(in_service: Optional[bool] = None):
     qs = AmbulanceUnit.objects.all()
     if in_service is not None:
         qs = qs.filter(in_service=in_service)
-    return await sync_to_async(list)(qs.order_by("-id"))
+    return await sync_to_async(lambda: (ensure_db_connection(), list(qs.order_by("-id")))[1])()
 
 @router.post("/units", response_model=AmbulanceUnitResponse, status_code=201)
 async def create_unit(payload: AmbulanceUnitCreate):
-    unit = await sync_to_async(AmbulanceUnit.objects.create)(**payload.dict())
+    unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.create(**payload.dict()))[1])()
     unit_response = AmbulanceUnitResponse.from_orm(unit)
     
     # Notify about unit creation
@@ -291,10 +313,10 @@ async def create_unit(payload: AmbulanceUnitCreate):
 @router.put("/units/{unit_id}", response_model=AmbulanceUnitResponse)
 async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
     try:
-        unit = await sync_to_async(AmbulanceUnit.objects.get)(id=unit_id)
+        unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=unit_id))[1])()
         for k, v in payload.dict().items():
             setattr(unit, k, v)
-        await sync_to_async(unit.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), unit.save())[1])()
         
         unit_response = AmbulanceUnitResponse.from_orm(unit)
         
@@ -309,7 +331,7 @@ async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
 async def delete_unit(unit_id: int):
     # Get unit info before deletion for notification
     try:
-        unit = await sync_to_async(AmbulanceUnit.objects.get)(id=unit_id)
+        unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=unit_id))[1])()
         unit_number = unit.unit_number
     except AmbulanceUnit.DoesNotExist:
         raise HTTPException(404, "Unit not found")
@@ -324,9 +346,9 @@ async def delete_unit(unit_id: int):
 # ==============================================
 @router.get("/dispatch", response_model=List[DispatchResponse])
 async def list_dispatches():
-    dispatches = await sync_to_async(list)(
+    dispatches = await sync_to_async(lambda: (ensure_db_connection(), list(
         Dispatch.objects.select_related("unit").all().order_by("-timestamp")
-    )
+    ))[1])()
     result = []
     for d in dispatches:
         unit_resp = AmbulanceUnitResponse.from_orm(d.unit) if d.unit else None
@@ -340,12 +362,12 @@ async def list_dispatches():
 
 @router.post("/dispatch", response_model=DispatchResponse, status_code=201)
 async def create_dispatch(payload: DispatchCreate):
-    unit = await sync_to_async(AmbulanceUnit.objects.get)(id=payload.unit_id) if payload.unit_id else None
-    dispatch = await sync_to_async(Dispatch.objects.create)(
+    unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
+    dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.create(
         timestamp=payload.timestamp, unit=unit, dispatcher=payload.dispatcher,
         call_type=payload.call_type or "Emergency", location=payload.location,
         status=payload.status or "Standby"
-    )
+    ))[1])()
     unit_resp = AmbulanceUnitResponse.from_orm(unit) if unit else None
     dispatch_response = DispatchResponse(
         id=dispatch.id, dispatch_id=dispatch.dispatch_id, timestamp=dispatch.timestamp,
@@ -362,15 +384,15 @@ async def create_dispatch(payload: DispatchCreate):
 @router.put("/dispatch/{dispatch_id}", response_model=DispatchResponse)
 async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
     try:
-        d = await sync_to_async(Dispatch.objects.get)(id=dispatch_id)
+        d = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=dispatch_id))[1])()
         if payload.timestamp is not None: d.timestamp = payload.timestamp
         if payload.dispatcher is not None: d.dispatcher = payload.dispatcher
         if payload.call_type is not None: d.call_type = payload.call_type
         if payload.location is not None: d.location = payload.location
         if payload.status is not None: d.status = payload.status
         if payload.unit_id is not None:
-            d.unit = await sync_to_async(AmbulanceUnit.objects.get)(id=payload.unit_id) if payload.unit_id else None
-        await sync_to_async(d.save)()
+            d.unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
+        await sync_to_async(lambda: (ensure_db_connection(), d.save())[1])()
         unit_resp = AmbulanceUnitResponse.from_orm(d.unit) if d.unit else None
         dispatch_response = DispatchResponse(
             id=d.id, dispatch_id=d.dispatch_id, timestamp=d.timestamp,
@@ -392,7 +414,7 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
 async def delete_dispatch(dispatch_id: int):
     # Get dispatch info before deletion for notification
     try:
-        dispatch = await sync_to_async(Dispatch.objects.get)(id=dispatch_id)
+        dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=dispatch_id))[1])()
         dispatch_id_str = dispatch.dispatch_id
     except Dispatch.DoesNotExist:
         raise HTTPException(404, "Dispatch not found")
@@ -408,14 +430,14 @@ async def delete_dispatch(dispatch_id: int):
 # ==============================================
 @router.get("/trips", response_model=List[TripResponse])
 async def list_trips():
-    trips = await sync_to_async(list)(
+    trips = await sync_to_async(lambda: (ensure_db_connection(), list(
         Trip.objects.select_related("dispatch__unit", "unit", "patient").all().order_by("-created_at")
-    )
+    ))[1])()
     result = []
     for t in trips:
         dispatch_resp = None
         if t.dispatch:
-            unit_d = await sync_to_async(getattr)(t.dispatch, "unit")  # ← Safe async access
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit))[1]()  # ← Safe async access
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=t.dispatch.id, dispatch_id=t.dispatch.dispatch_id,
@@ -444,29 +466,29 @@ async def create_trip(payload: TripCreate):
         # Fetch related objects
         dispatch = None
         if payload.dispatch_id:
-            dispatch = await sync_to_async(Dispatch.objects.select_related("unit").get)(id=payload.dispatch_id)
+            dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.select_related("unit").get(id=payload.dispatch_id))[1])()
 
         unit = None
         if payload.unit_id:
-            unit = await sync_to_async(AmbulanceUnit.objects.get)(id=payload.unit_id)
+            unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])()
 
         patient = None
         if payload.patient_id:
-            patient = await sync_to_async(Patient.objects.get)(id=payload.patient_id)
+            patient = await sync_to_async(lambda: (ensure_db_connection(), Patient.objects.get(id=payload.patient_id))[1])()
 
         # Create trip
-        trip = await sync_to_async(Trip.objects.create)(
+        trip = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.create(
             dispatch=dispatch, unit=unit, patient=patient,
             crew=payload.crew, pickup_location=payload.pickup_location,
             destination=payload.destination, start_time=payload.start_time,
             end_time=payload.end_time, mileage=payload.mileage,
             status=payload.status or "Standby", notes=payload.notes
-        )
+        ))[1])()
 
         # Build nested dispatch response safely
         dispatch_resp = None
         if dispatch:
-            unit_d = await sync_to_async(lambda: dispatch.unit)()  # ← Critical fix
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), dispatch.unit))[1]()  # ← Critical fix
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=dispatch.id, dispatch_id=dispatch.dispatch_id,
@@ -500,13 +522,13 @@ async def create_trip(payload: TripCreate):
 @router.put("/trips/{trip_id}", response_model=TripResponse)
 async def update_trip(trip_id: int, payload: TripUpdate):
     try:
-        t = await sync_to_async(Trip.objects.get)(id=trip_id)
+        t = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.get(id=trip_id))[1])()
         if payload.dispatch_id is not None:
-            t.dispatch = await sync_to_async(Dispatch.objects.get)(id=payload.dispatch_id) if payload.dispatch_id else None
+            t.dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=payload.dispatch_id))[1])() if payload.dispatch_id else None
         if payload.unit_id is not None:
-            t.unit = await sync_to_async(AmbulanceUnit.objects.get)(id=payload.unit_id) if payload.unit_id else None
+            t.unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
         if payload.patient_id is not None:
-            t.patient = await sync_to_async(Patient.objects.get)(id=payload.patient_id) if payload.patient_id else None
+            t.patient = await sync_to_async(lambda: (ensure_db_connection(), Patient.objects.get(id=payload.patient_id))[1])() if payload.patient_id else None
         if payload.crew is not None: t.crew = payload.crew
         if payload.pickup_location is not None: t.pickup_location = payload.pickup_location
         if payload.destination is not None: t.destination = payload.destination
@@ -515,12 +537,12 @@ async def update_trip(trip_id: int, payload: TripUpdate):
         if payload.mileage is not None: t.mileage = payload.mileage
         if payload.status is not None: t.status = payload.status
         if payload.notes is not None: t.notes = payload.notes
-        await sync_to_async(t.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), t.save())[1])()
 
         # Build response
         dispatch_resp = None
         if t.dispatch:
-            unit_d = await sync_to_async(lambda: t.dispatch.unit)()
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit))[1]()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=t.dispatch.id, dispatch_id=t.dispatch.dispatch_id,
@@ -556,7 +578,7 @@ async def update_trip(trip_id: int, payload: TripUpdate):
 async def delete_trip(trip_id: int):
     # Get trip info before deletion for notification
     try:
-        trip = await sync_to_async(Trip.objects.select_related("unit").get)(id=trip_id)
+        trip = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.select_related("unit").get(id=trip_id))[1])()
         trip_id_str = trip.trip_id
         unit_number = trip.unit.unit_number if trip.unit else None
     except Trip.DoesNotExist:
@@ -572,10 +594,10 @@ async def delete_trip(trip_id: int):
 # ==============================================
 @router.get("/patients", response_model=List[dict])
 async def get_patients_for_dropdown():
-    patients = await sync_to_async(list)(
+    patients = await sync_to_async(lambda: (ensure_db_connection(), list(
         Patient.objects.values("id", "patient_unique_id", "full_name")
         .order_by("patient_unique_id")[:500]
-    )
+    ))[1])()
     return [
         {"id": p["id"], "patient_unique_id": p["patient_unique_id"], "full_name": p["full_name"]}
         for p in patients
@@ -588,15 +610,15 @@ async def get_patients_for_dropdown():
 async def update_trip_status(trip_id: int, status: str):
     """Update trip status and notify clients"""
     try:
-        trip = await sync_to_async(Trip.objects.select_related("unit").get)(id=trip_id)
+        trip = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.select_related("unit").get(id=trip_id))[1])()
         old_status = trip.status
         trip.status = status
-        await sync_to_async(trip.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), trip.save())[1])()
 
         # Build response
         dispatch_resp = None
         if trip.dispatch:
-            unit_d = await sync_to_async(lambda: trip.dispatch.unit)()
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), trip.dispatch.unit))[1]()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=trip.dispatch.id, dispatch_id=trip.dispatch.dispatch_id,

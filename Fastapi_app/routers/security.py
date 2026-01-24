@@ -227,6 +227,9 @@
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Error toggling permission: {str(e)}")
 
+
+# security.py
+
 from fastapi import APIRouter, Depends, HTTPException, Form
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -236,6 +239,26 @@ import django
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
 from Fastapi_app.routers.user_profile import get_current_user
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "HMS_backend.settings")
 django.setup()
@@ -275,6 +298,7 @@ class UserProfileResponse(BaseModel):
 
 # ------------------ Helpers ------------------
 def get_permissions_by_role(role: str):
+    ensure_db_connection()
     perms = Permission.objects.filter(role=role)
     return [{"module": p.module, "enabled": p.enabled} for p in perms]
 
@@ -282,12 +306,13 @@ def get_user_permissions_dict(user_obj):
     """Convert user object to dictionary with permissions"""
     try:
         role = user_obj.role.lower()
-        
+
         # Get enabled permissions for this role
+        ensure_db_connection()
         enabled_permissions = Permission.objects.filter(role=role, enabled=True)
         enabled_modules = [perm.module for perm in enabled_permissions]
         permissions_list = get_permissions_by_role(role)
-        
+
         staff_data = None
         if hasattr(user_obj, "staff") and user_obj.staff:
             s = user_obj.staff
@@ -298,7 +323,7 @@ def get_user_permissions_dict(user_obj):
                 department=s.department.name if s.department else "N/A",
                 email=s.email,
             )
-        
+
         return {
             "username": user_obj.username,
             "role": role,
@@ -321,7 +346,7 @@ def get_user_profile(current_user: User = Depends(get_current_user)):
     try:
         # Convert user object to dictionary
         user_dict = get_user_permissions_dict(current_user)
-        
+
         # Build response
         response_data = {
             "username": current_user.username,
@@ -330,7 +355,7 @@ def get_user_profile(current_user: User = Depends(get_current_user)):
             "permissions": user_dict["permissions"],
             "profile_picture": user_dict.get("profile_picture"),
         }
-        
+
         # Add staff details if available
         if user_dict.get("staff_details"):
             staff = user_dict["staff_details"]
@@ -346,9 +371,9 @@ def get_user_profile(current_user: User = Depends(get_current_user)):
                 "full_name": current_user.username,
                 "designation": user_dict["role"],
             })
-        
+
         return response_data
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching profile: {str(e)}")
 
@@ -362,7 +387,7 @@ def create_user(
 ):
     # ✅ Allow Django superuser or role=admin to bypass permission checks
     user_dict = get_user_permissions_dict(current_user)
-    
+
     if not current_user.is_superuser and user_dict["role"] != "admin":
         if "create_user" not in [
             p["module"] for p in user_dict["permissions"] if p["enabled"]
@@ -371,14 +396,17 @@ def create_user(
                 status_code=403, detail="You do not have permission to create users"
             )
 
+    ensure_db_connection()
     if User.objects.filter(username=username).exists():
         raise HTTPException(status_code=400, detail="Username already exists")
 
     try:
+        ensure_db_connection()
         staff = Staff.objects.get(employee_id=staff_id)
     except Staff.DoesNotExist:
         raise HTTPException(status_code=404, detail="Staff ID not found")
 
+    ensure_db_connection()
     user = User.objects.create(
         username=username,
         password=make_password(password),
@@ -386,10 +414,12 @@ def create_user(
         staff=staff,
     )
 
+    ensure_db_connection()
     Permission.initialize_default_permissions()
 
     # Assign default permissions
     for module, _ in getattr(Permission, "MODULE_CHOICES", []):
+        ensure_db_connection()
         Permission.objects.get_or_create(role=staff.designation.lower(), module=module)
 
     return {
@@ -404,7 +434,7 @@ def create_user(
 def read_permissions(role: str, current_user: User = Depends(get_current_user)):
     # ✅ Allow superuser or admin role bypass
     user_dict = get_user_permissions_dict(current_user)
-    
+
     if not current_user.is_superuser and user_dict["role"] != "admin":
         if user_dict["role"] != role:
             raise HTTPException(status_code=403, detail="Not authorized")
@@ -420,7 +450,7 @@ def toggle_permission(
 ):
     # ✅ Allow superuser or admin role bypass
     user_dict = get_user_permissions_dict(current_user)
-    
+
     if not current_user.is_superuser and user_dict["role"] != "admin":
         raise HTTPException(status_code=403, detail="Only admin can toggle permissions")
 
@@ -434,16 +464,17 @@ def toggle_permission(
 
     try:
         # Use get_or_create to handle both existing and new permissions
+        ensure_db_connection()
         perm, created = Permission.objects.get_or_create(
             role=role,
             module=module,
             defaults={"enabled": False}
         )
-        
+
         # Toggle the enabled status
         perm.enabled = not perm.enabled
         perm.save()
-        
+
         return {"module": perm.module, "enabled": perm.enabled}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error toggling permission: {str(e)}")

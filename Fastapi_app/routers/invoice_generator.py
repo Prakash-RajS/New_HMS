@@ -211,7 +211,6 @@
 #         headers={"Content-Disposition": f'attachment; filename="{pdf_filename}"'}
 #     )
 # fastapi_app/routers/invoice_generator.py
-
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr
@@ -227,6 +226,27 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(BASE_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
 django.setup()
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 from HMS_backend.models import HospitalInvoiceHistory, HospitalInvoiceItem, Patient
 
@@ -293,6 +313,7 @@ def amount_to_words(amount: Decimal) -> str:
 # ===================== MAIN ENDPOINT (FIXED!) =====================
 @router.post("/hospital-invoices/generate", response_class=FileResponse)
 def generate_invoice_pdf(payload: InvoiceCreateIn):
+    ensure_db_connection()
     if not payload.invoice_items:
         raise HTTPException(status_code=400, detail="At least one invoice item is required.")
 

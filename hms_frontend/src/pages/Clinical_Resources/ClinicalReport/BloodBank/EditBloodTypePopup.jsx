@@ -118,7 +118,7 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
         console.log("🟡 Sending update data:", payload);
         
         // Update via API
-        const response = await api.put(`/blood-groups/${formData.id}/edit`, payload);
+        const response = await api.put(`/api/blood-groups/${formData.id}/edit`, payload);
         
         console.log("🟢 Update successful:", response.data);
         

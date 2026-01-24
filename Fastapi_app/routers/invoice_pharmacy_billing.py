@@ -332,6 +332,27 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
 import django
 django.setup()
 
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 # Import Django models
 from django.db import transaction
 from HMS_backend.models import (
@@ -417,6 +438,7 @@ def number_to_words(amount):
 
 @sync_to_async
 def _get_last_invoice():
+    ensure_db_connection()
     return PharmacyInvoiceHistory.objects.order_by("-id").first()
 
 class StockCheckItem(BaseModel):
@@ -443,6 +465,7 @@ async def generate_invoice_number() -> str:
 # Reduce stock quantities (async-safe)
 # ------------------------------
 async def reduce_stock_quantities(items: List[InvoiceItemSchema]):
+    await sync_to_async(ensure_db_connection)()
     low_stock_items = []
     out_of_stock_items = []
 
@@ -485,6 +508,7 @@ async def mark_medicine_allocations_as_billed(patient_id: str, invoice):
     Mark all pending medicine allocations for a patient as 'billed'
     when invoice is created
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         # Get the patient
         patient = await sync_to_async(
@@ -523,6 +547,7 @@ async def mark_allocations_as_paid(invoice_id: str):
     """
     Mark medicine allocations as 'paid' when invoice payment status changes to 'paid'
     """
+    await sync_to_async(ensure_db_connection)()
     try:
         invoice = await sync_to_async(
             PharmacyInvoiceHistory.objects.filter(bill_no=invoice_id).first
@@ -557,18 +582,22 @@ async def mark_allocations_as_paid(invoice_id: str):
 # ------------------------------
 @sync_to_async
 def _get_invoice_by_id(inv_id):
+    ensure_db_connection()
     return PharmacyInvoiceHistory.objects.get(id=inv_id)
 
 @sync_to_async
 def _get_invoice_by_billno(bill_no):
+    ensure_db_connection()
     return PharmacyInvoiceHistory.objects.get(bill_no=bill_no)
 
 @sync_to_async
 def _get_invoice_items_for_invoice(invoice):
+    ensure_db_connection()
     return list(PharmacyInvoiceItem.objects.filter(invoice=invoice).order_by("sl_no"))
 
 @sync_to_async
 def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
+    ensure_db_connection()
     with transaction.atomic():
         subtotal = Decimal("0.00")
         items_with_totals = []
@@ -780,6 +809,7 @@ async def get_pharmacy_invoice(bill_no: str):
 @router.get("/invoices", response_model=List[Dict[str, Any]])
 async def list_pharmacy_invoices():
     try:
+        await sync_to_async(ensure_db_connection)()
         invoices_qs = await sync_to_async(list)(PharmacyInvoiceHistory.objects.all().order_by('-created_at'))
         invoice_list = []
         for invoice in invoices_qs:
@@ -808,6 +838,7 @@ async def list_pharmacy_invoices():
 @router.delete("/invoice/{bill_no}")
 async def delete_pharmacy_invoice(bill_no: str):
     try:
+        await sync_to_async(ensure_db_connection)()
         invoice = await sync_to_async(PharmacyInvoiceHistory.objects.get)(bill_no=bill_no)
         invoice_data = {
             "invoice_id": invoice.bill_no,
@@ -843,6 +874,7 @@ async def delete_pharmacy_invoice(bill_no: str):
 @router.patch("/invoice/{bill_no}/status")
 async def update_pharmacy_payment_status(bill_no: str, status: str):
     try:
+        await sync_to_async(ensure_db_connection)()
         invoice = await sync_to_async(PharmacyInvoiceHistory.objects.get)(bill_no=bill_no)
         old_status = invoice.payment_status
         invoice.payment_status = status
@@ -899,6 +931,7 @@ async def download_selected_pharmacy_invoices(invoice_ids: InvoiceIds, backgroun
             added = False
             for bill_no in invoice_ids.ids:
                 try:
+                    await sync_to_async(ensure_db_connection)()
                     invoice = await sync_to_async(PharmacyInvoiceHistory.objects.get)(bill_no=bill_no)
                     if invoice.path and os.path.exists(invoice.path):
                         zipf.write(invoice.path, f"{bill_no}.pdf")
@@ -943,6 +976,7 @@ async def download_selected_pharmacy_invoices(invoice_ids: InvoiceIds, backgroun
 @router.get("/export/csv")
 async def export_pharmacy_invoices_csv():
     try:
+        await sync_to_async(ensure_db_connection)()
         invoices = await sync_to_async(list)(PharmacyInvoiceHistory.objects.all())
         if not invoices:
             raise HTTPException(status_code=404, detail="No invoices found")
@@ -994,6 +1028,7 @@ async def get_pharmacy_invoice_stats():
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
+        await sync_to_async(ensure_db_connection)()
         today_stats = await sync_to_async(lambda: PharmacyInvoiceHistory.objects.filter(
             created_at__gte=today_start).aggregate(
                 total_invoices=Count('id'),
@@ -1001,6 +1036,7 @@ async def get_pharmacy_invoice_stats():
                 avg_amount=Avg('net_amount')
         ))()
 
+        await sync_to_async(ensure_db_connection)()
         month_stats = await sync_to_async(lambda: PharmacyInvoiceHistory.objects.filter(
             created_at__gte=month_start).aggregate(
                 total_invoices=Count('id'),
@@ -1008,6 +1044,7 @@ async def get_pharmacy_invoice_stats():
                 avg_amount=Avg('net_amount')
         ))()
 
+        await sync_to_async(ensure_db_connection)()
         status_breakdown = await sync_to_async(lambda: list(
             PharmacyInvoiceHistory.objects.values('payment_status').annotate(
                 count=Count('id'),
@@ -1015,6 +1052,7 @@ async def get_pharmacy_invoice_stats():
             )
         ))()
 
+        await sync_to_async(ensure_db_connection)()
         recent_invoices_qs = await sync_to_async(list)(PharmacyInvoiceHistory.objects.order_by('-created_at')[:5])
 
         stats = {

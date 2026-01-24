@@ -90,29 +90,52 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
 
   /* ---------- Check for Duplicate Bed Numbers ---------- */
   const checkForDuplicates = async () => {
-    const fromNum = parseInt(formData.bedFrom);
-    const toNum = parseInt(formData.bedTo);
+  const fromNum = parseInt(formData.bedFrom);
+  const toNum = parseInt(formData.bedTo);
 
-    if (isNaN(fromNum) || isNaN(toNum) || fromNum > toNum) {
-      return { available: false };
+  if (isNaN(fromNum) || isNaN(toNum) || fromNum > toNum) {
+    return { available: false };
+  }
+
+  setCheckingDuplicates(true);
+  try {
+    const response = await api.post("/bedgroups/check-range", {
+      bedFrom: fromNum,
+      bedTo: toNum,
+    });
+
+    setRangeAvailable(response.data.available);
+    return response.data;
+  } catch (error) {
+    console.error("Error checking duplicates:", error);
+    
+    // If we get a 409 conflict, parse the response properly
+    if (error.response?.status === 409) {
+      const errorData = error.response.data;
+      // Check different possible structures
+      if (errorData.detail && typeof errorData.detail === 'object') {
+        return {
+          available: false,
+          duplicates: errorData.detail.duplicates || [],
+          suggested_range: errorData.detail.suggested_range || "",
+          message: errorData.detail.message || "Duplicate bed numbers found"
+        };
+      } else if (errorData.duplicates) {
+        // Direct structure
+        return {
+          available: false,
+          duplicates: errorData.duplicates || [],
+          suggested_range: errorData.suggested_range || "",
+          message: errorData.message || "Duplicate bed numbers found"
+        };
+      }
     }
-
-    setCheckingDuplicates(true);
-    try {
-      const response = await api.post("/bedgroups/check-range", {
-        bedFrom: fromNum,
-        bedTo: toNum,
-      });
-
-      setRangeAvailable(response.data.available);
-      return response.data;
-    } catch (error) {
-      console.error("Error checking duplicates:", error);
-      return { available: false };
-    } finally {
-      setCheckingDuplicates(false);
-    }
-  };
+    
+    return { available: false };
+  } finally {
+    setCheckingDuplicates(false);
+  }
+};
 
   /* ---------- Handle Input Change ---------- */
   const handleInputChange = (e) => {
@@ -238,59 +261,109 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   };
 
   const proceedWithCreation = async () => {
-    setLoading(true);
-    setServerError("");
+  setLoading(true);
+  setServerError("");
 
-    const fromNum = parseInt(formData.bedFrom);
-    const toNum = parseInt(formData.bedTo);
+  const fromNum = parseInt(formData.bedFrom);
+  const toNum = parseInt(formData.bedTo);
 
-    const payload = {
-      bedGroup: formData.bedGroupName.trim(),
-      bedFrom: fromNum,
-      bedTo: toNum,
+  const payload = {
+    bedGroup: formData.bedGroupName.trim(),
+    bedFrom: fromNum,
+    bedTo: toNum,
+  };
+
+  try {
+    const response = await api.post("/bedgroups/add-with-range", payload);
+
+    // IMPORTANT: The backend returns BedGroupResponse structure
+    const newGroup = response.data;
+    
+    // Calculate bed range from the beds array
+    const beds = newGroup.beds || [];
+    const bedNumbers = beds.map(b => b.bed_number).sort((a, b) => a - b);
+    const bedRange = bedNumbers.length > 0
+      ? `${bedNumbers[0]}-${bedNumbers[bedNumbers.length - 1]}`
+      : "1-1";
+
+    // Create the structure that your parent component expects
+    const transformedGroup = {
+      id: newGroup.id,
+      bedGroup: newGroup.bedGroup,
+      capacity: newGroup.capacity,
+      occupied: newGroup.occupied,
+      unoccupied: newGroup.unoccupied,
+      status: newGroup.status,
+      bedRange: bedRange,
+      beds: beds,
     };
 
-    try {
-      const response = await api.post("/bedgroups/add-with-range", payload);
+    successToast(`"${newGroup.bedGroup}" created successfully!`);
 
-      const newGroup = response.data;
-      successToast(`"${newGroup.bedGroup}" created successfully!`);
+    // Pass the transformed data to parent
+    if (onAdd) onAdd(transformedGroup);
 
-      if (onAdd) onAdd(newGroup);
+    setTimeout(() => {
+      onClose();
+    }, 600);
+  } catch (error) {
+  console.error("Create BedGroup Error:", error);
 
-      setTimeout(() => {
-        onClose();
-      }, 600);
-    } catch (error) {
-      console.error("Create BedGroup Error:", error);
-      
-      // Handle duplicate error even after check (race condition)
-      if (error.response?.status === 409) {
-        const errorData = error.response.data;
-        setDuplicateBeds(errorData.detail?.duplicates || []);
-        setSuggestedRange(errorData.detail?.suggested_range || "");
-        setShowDuplicateWarning(true);
-        setLoading(false);
-        return;
-      }
+  /* =========================
+     FASTAPI 422 HANDLING
+     ========================= */
+  if (error.response?.status === 422) {
+    const details = error.response.data?.detail;
 
-      // Handle other errors
-      let errorMessage = "Failed to create bed group.";
-      
-      if (error.response?.status === 400) {
-        errorMessage = error.response.data?.detail || "Bed group already exists.";
-      } else if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+    let message = "Validation error";
 
-      setServerError(errorMessage);
-      errorToast(errorMessage);
-    } finally {
-      setLoading(false);
+    if (Array.isArray(details)) {
+      message = details
+        .map(d => `${d.loc?.join(".")}: ${d.msg}`)
+        .join(", ");
+    } else if (typeof details === "string") {
+      message = details;
     }
-  };
+
+    errorToast(message);
+    setServerError(message);
+    setLoading(false);
+    return;
+  }
+
+  /* =========================
+     DUPLICATE RANGE (409)
+     ========================= */
+  if (error.response?.status === 409) {
+    const data = error.response.data?.detail || error.response.data;
+
+    setDuplicateBeds(data?.duplicates || []);
+    setSuggestedRange(data?.suggested_range || "");
+    setShowDuplicateWarning(true);
+    setLoading(false);
+    return;
+  }
+
+  /* =========================
+     OTHER ERRORS
+     ========================= */
+  let errorMessage = "Failed to create bed group.";
+
+  if (error.response?.data?.detail) {
+    errorMessage =
+      typeof error.response.data.detail === "string"
+        ? error.response.data.detail
+        : JSON.stringify(error.response.data.detail);
+  } else if (error.message) {
+    errorMessage = error.message;
+  }
+
+  errorToast(errorMessage);
+  setServerError(errorMessage);
+  setLoading(false);
+}
+
+};
 
   const handleAutoAdjust = () => {
     if (suggestedRange) {

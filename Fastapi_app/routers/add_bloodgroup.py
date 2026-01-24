@@ -8,6 +8,28 @@ from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 # Create router WITHOUT prefix to manually define paths
 router = APIRouter()
 
@@ -61,7 +83,7 @@ async def add_blood_group(blood_data: BloodGroupCreate):
        
         # Check if blood group already exists
         exists = await run_in_threadpool(
-            lambda: BloodGroup.objects.filter(blood_type=blood_data.blood_type).exists()
+            lambda: (ensure_db_connection(), BloodGroup.objects.filter(blood_type=blood_data.blood_type).exists())[1]
         )
        
         if exists:
@@ -73,7 +95,7 @@ async def add_blood_group(blood_data: BloodGroupCreate):
             available_units=blood_data.available_units,
             status=blood_data.status
         )
-        await run_in_threadpool(blood_group.save)
+        await run_in_threadpool(lambda: (ensure_db_connection(), blood_group.save())[1])
        
         print(f"✅ Blood group created: {blood_group.id} - {blood_group.blood_type}")
         
@@ -106,9 +128,9 @@ async def add_blood_group(blood_data: BloodGroupCreate):
 async def list_blood_groups():
     try:
         blood_groups = await run_in_threadpool(
-            lambda: list(BloodGroup.objects.all().values(
+            lambda: (ensure_db_connection(), list(BloodGroup.objects.all().values(
                 'id', 'blood_type', 'available_units', 'status', 'created_at', 'updated_at'
-            ))
+            )))[1]
         )
         print(f"✅ Fetched {len(blood_groups)} blood groups")
         return {"blood_groups": blood_groups}
@@ -127,7 +149,7 @@ async def get_blood_types():
        
         # Get distinct blood types from existing blood groups
         blood_groups = await run_in_threadpool(
-            lambda: list(BloodGroup.objects.all().values_list('blood_type', flat=True).distinct())
+            lambda: (ensure_db_connection(), list(BloodGroup.objects.all().values_list('blood_type', flat=True).distinct()))[1]
         )
        
         print(f"🟡 Found blood types in DB: {blood_groups}")
@@ -163,7 +185,7 @@ async def edit_blood_group(blood_id: int, blood_data: BloodGroupUpdate):
         print(f"🟡 Editing blood group {blood_id} with data: {blood_data.dict()}")
        
         # Get the blood group
-        blood_group = await sync_to_async(BloodGroup.objects.get)(id=blood_id)
+        blood_group = await sync_to_async(lambda: (ensure_db_connection(), BloodGroup.objects.get(id=blood_id))[1])()
         print(f"🟡 Current blood group: {blood_group.blood_type} (ID: {blood_group.id})")
         
         # Store old values for notifications
@@ -181,9 +203,9 @@ async def edit_blood_group(blood_id: int, blood_data: BloodGroupUpdate):
                 print(f"🟡 Checking if blood type {blood_data.blood_type} exists (excluding ID {blood_id})")
                
                 exists = await sync_to_async(
-                    lambda: BloodGroup.objects.filter(
+                    lambda: (ensure_db_connection(), BloodGroup.objects.filter(
                         blood_type=blood_data.blood_type
-                    ).exclude(id=blood_id).exists()
+                    ).exclude(id=blood_id).exists())[1]
                 )()
                
                 print(f"🟡 Blood type exists check result: {exists}")
@@ -191,9 +213,9 @@ async def edit_blood_group(blood_id: int, blood_data: BloodGroupUpdate):
                 if exists:
                     # Get the conflicting blood group for debugging
                     conflicting = await sync_to_async(
-                        lambda: list(BloodGroup.objects.filter(
+                        lambda: (ensure_db_connection(), list(BloodGroup.objects.filter(
                             blood_type=blood_data.blood_type
-                        ).exclude(id=blood_id).values('id', 'blood_type'))
+                        ).exclude(id=blood_id).values('id', 'blood_type')))[1]
                     )()
                     print(f"🟡 Conflicting blood groups: {conflicting}")
                     raise HTTPException(status_code=400, detail="Blood type already exists")
@@ -203,14 +225,14 @@ async def edit_blood_group(blood_id: int, blood_data: BloodGroupUpdate):
         # Update available units if provided
         if blood_data.available_units is not None:
             blood_group.available_units = blood_data.available_units
-            await sync_to_async(blood_group.update_status)()
+            await sync_to_async(lambda: (ensure_db_connection(), blood_group.update_status())[1])()
        
         # Update status if provided
         if blood_data.status:
             blood_group.status = blood_data.status
             
         # Save the changes
-        await sync_to_async(blood_group.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), blood_group.save())[1])()
         
         # Prepare data for notification
         blood_group_data = {
@@ -258,7 +280,7 @@ async def edit_blood_group(blood_id: int, blood_data: BloodGroupUpdate):
 @router.delete("/api/blood-groups/{blood_id}/delete")
 async def delete_blood_group(blood_id: int):
     try:
-        blood_group = await run_in_threadpool(BloodGroup.objects.get, id=blood_id)
+        blood_group = await run_in_threadpool(lambda: (ensure_db_connection(), BloodGroup.objects.get(id=blood_id))[1])
         
         # Store data for notification before deletion
         blood_group_data = {
@@ -268,7 +290,7 @@ async def delete_blood_group(blood_id: int):
             'status': blood_group.status
         }
         
-        await run_in_threadpool(blood_group.delete)
+        await run_in_threadpool(lambda: (ensure_db_connection(), blood_group.delete())[1])
         
         # Send deletion notification
         await safe_send_blood_notification("deleted", blood_group_data)
@@ -292,15 +314,15 @@ async def add_blood_units(blood_id: int, units: int):
     Add units to existing blood group (simulating donation)
     """
     try:
-        blood_group = await sync_to_async(BloodGroup.objects.get)(id=blood_id)
+        blood_group = await sync_to_async(lambda: (ensure_db_connection(), BloodGroup.objects.get(id=blood_id))[1])()
         
         # Store old units for notification
         old_units = blood_group.available_units
         
         # Add units
         blood_group.available_units += units
-        await sync_to_async(blood_group.update_status)()
-        await sync_to_async(blood_group.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), blood_group.update_status())[1])()
+        await sync_to_async(lambda: (ensure_db_connection(), blood_group.save())[1])()
         
         # Prepare data for notification
         blood_group_data = {
@@ -334,7 +356,7 @@ async def issue_blood_units(blood_id: int, units: int, patient_name: str = "Unkn
     Issue blood units to a patient
     """
     try:
-        blood_group = await sync_to_async(BloodGroup.objects.get)(id=blood_id)
+        blood_group = await sync_to_async(lambda: (ensure_db_connection(), BloodGroup.objects.get(id=blood_id))[1])()
         
         # Check if enough units available
         if blood_group.available_units < units:
@@ -345,8 +367,8 @@ async def issue_blood_units(blood_id: int, units: int, patient_name: str = "Unkn
         
         # Deduct units
         blood_group.available_units -= units
-        await sync_to_async(blood_group.update_status)()
-        await sync_to_async(blood_group.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), blood_group.update_status())[1])()
+        await sync_to_async(lambda: (ensure_db_connection(), blood_group.save())[1])()
         
         # Prepare data for notification
         blood_group_data = {
@@ -388,12 +410,12 @@ async def check_low_stock():
     Check and send notifications for low stock blood groups
     """
     try:
-        low_stock_groups = await sync_to_async(list)(
+        low_stock_groups = await sync_to_async(lambda: (ensure_db_connection(), list(
             BloodGroup.objects.filter(available_units__lte=50, available_units__gt=0)
-        )
-        out_of_stock_groups = await sync_to_async(list)(
+        ))[1])()
+        out_of_stock_groups = await sync_to_async(lambda: (ensure_db_connection(), list(
             BloodGroup.objects.filter(available_units=0)
-        )
+        ))[1])()
         
         notification_count = 0
         

@@ -932,6 +932,8 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
   const navigate = useNavigate();
@@ -940,7 +942,7 @@ export default function ViewPatientProfile() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+ 
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
@@ -948,36 +950,33 @@ export default function ViewPatientProfile() {
   const [invoices, setInvoices] = useState([]);
   const [history, setHistory] = useState([]);
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
-  
+ 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPrescriptionPage, setCurrentPrescriptionPage] = useState(1);
   const [currentTestPage, setCurrentTestPage] = useState(1);
   const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
   const itemsPerPage = 5;
-  
+ 
   // Filters
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  
+ 
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
-  
+ 
   // Responsive state
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
-
   const [surgeries, setSurgeries] = useState([]);
   const [currentSurgeryPage, setCurrentSurgeryPage] = useState(1);
-
   // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -1006,7 +1005,6 @@ export default function ViewPatientProfile() {
     };
     fetchDepartments();
   }, []);
-
   // Fetch Patient
   useEffect(() => {
     const fetchPatient = async () => {
@@ -1034,11 +1032,10 @@ export default function ViewPatientProfile() {
     };
     fetchPatient();
   }, [patient_id]);
-
   // Fetch All Data including Invoices and History
   useEffect(() => {
   if (!patient) return;
-  
+ 
   const fetchTabData = async () => {
     setDataLoading(true);
     try {
@@ -1075,21 +1072,21 @@ export default function ViewPatientProfile() {
             return { data: [] }; // Return empty array if API fails
           })
       ];
-      
+     
       const [diagRes, presRes, testRes, invRes, histRes, surgRes] = await Promise.all(promises);
-      
+     
       setDiagnoses(diagRes.data || []);
       setPrescriptions(presRes.data || []);
       setTestReports(testRes.data || []);
       setInvoices(invRes.data || []);
       setHistory(histRes.data?.history || []);
       setSurgeries(surgRes.data || []); // This should work now
-      
+     
       // Auto-select latest invoice
       if (invRes.data.length > 0) {
         setSelectedInvoiceIndex(0);
       }
-      
+     
       // Reset pagination to first page on data load
       setCurrentPage(1);
       setCurrentPrescriptionPage(1);
@@ -1122,16 +1119,13 @@ export default function ViewPatientProfile() {
       setDataLoading(false);
     }
   };
-  
+ 
   fetchTabData();
 }, [patient, patient_id]);
-
-
   // Reset test page on filter change
   useEffect(() => {
     setCurrentTestPage(1);
   }, [selectedMonth, selectedDepartment, selectedStatus]);
-
   // Function to extract filename from path
   const extractFilenameFromPath = (filePath) => {
     if (!filePath) return null;
@@ -1139,7 +1133,6 @@ export default function ViewPatientProfile() {
     const parts = filePath.split('/');
     return parts[parts.length - 1];
   };
-
   // Function to construct file path from report ID
   const constructFilePath = (reportId) => {
     // Construct the file path based on your database pattern
@@ -1148,7 +1141,6 @@ export default function ViewPatientProfile() {
     // For now, return null - we'll need to fetch the actual path
     return null;
   };
-
   // Function to get file path for a report
   const getReportFilePath = async (reportId) => {
     try {
@@ -1173,7 +1165,6 @@ export default function ViewPatientProfile() {
       return null;
     }
   };
-
   // Function to view lab report (opens in new tab)
   const handleViewReport = async (reportId, orderId) => {
     if (!reportId) return;
@@ -1185,16 +1176,15 @@ export default function ViewPatientProfile() {
         alert("Report file not found on server");
         return;
       }
-      
+     
       // Directly use the file path from backend
-      const url = filePath;
+      const url = `${API_BASE}${filePath.startsWith('/') ? filePath : '/' + filePath}`;
       window.open(url, '_blank');
     } catch (error) {
       console.error("Error viewing report:", error);
       alert("Error loading report. Please try again.");
     }
   };
-
   // Function to download lab report
   const handleDownloadReport = async (reportId, orderId, testType) => {
     if (!reportId) return;
@@ -1206,25 +1196,25 @@ export default function ViewPatientProfile() {
         alert("Report file not found on server");
         return;
       }
-      
+     
       const filename = extractFilenameFromPath(filePath);
       if (!filename) {
         console.error("Could not extract filename from path:", filePath);
         return;
       }
-      
-      const downloadUrl = filePath;
+     
+      const downloadUrl = `${API_BASE}${filePath.startsWith('/') ? filePath : '/' + filePath}`;
       const link = document.createElement('a');
       link.href = downloadUrl;
-      
+     
       // Extract file extension
       const fileExtension = filename.split('.').pop();
       const cleanReportName = (testType || `Report_${reportId}`).replace(/[^a-zA-Z0-9]/g, '_');
-      
+     
       // Set appropriate filename for download
       link.download = `${cleanReportName}.${fileExtension}`;
       link.target = '_blank';
-      
+     
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1233,16 +1223,14 @@ export default function ViewPatientProfile() {
       alert("Error downloading report. Please try again.");
     }
   };
-
   // Alternative: Simple view/download if you want to skip the API call for file path
   const handleViewReportSimple = (reportId) => {
     // This assumes you have an endpoint that serves the file by report ID
-    const url = `/labreports/${reportId}/view`;
+    const url = `${API_BASE}/labreports/${reportId}/view`;
     window.open(url, '_blank');
   };
-
   const handleDownloadReportSimple = (reportId, testType) => {
-    const url = `/labreports/${reportId}/download`;
+    const url = `${API_BASE}/labreports/${reportId}/download`;
     const link = document.createElement('a');
     link.href = url;
     link.download = `${(testType || `Report_${reportId}`).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
@@ -1251,7 +1239,6 @@ export default function ViewPatientProfile() {
     link.click();
     document.body.removeChild(link);
   };
-
   const formatSurgeryDate = (dateString) => {
   if (!dateString) return "—";
   try {
@@ -1265,42 +1252,39 @@ export default function ViewPatientProfile() {
     return dateString; // Return as-is if parsing fails
   }
 };
-
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#0EFF7B] mb-4"></div>
       </div>
     );
-   
+  
   if (!patient)
     return (
       <div className="min-h-screen flex items-center justify-center text-red-500">
         Patient not found
       </div>
     );
-
   // Pagination Helpers
   const paginate = (items, page) =>
     items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  
+ 
   const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
-  
+ 
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
   const currentHistory = paginate(history, currentHistoryPage);
   const currentSurgeries = paginate(surgeries, currentSurgeryPage);
-  
+ 
   const filteredTests = testReports.filter(
     (t) =>
       (selectedMonth === "All" || t.month === selectedMonth) &&
       (selectedDepartment === "All" || t.department === selectedDepartment) &&
       (selectedStatus === "All" || t.status === selectedStatus)
   );
-  
+ 
   const currentTests = paginate(filteredTests, currentTestPage);
   const currentInvoice = invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
-
   // Dynamic Vitals Data
   const vitalsData = [
     {
@@ -1328,7 +1312,6 @@ export default function ViewPatientProfile() {
       unit: "°C",
     },
   ];
-
   // Reusable Listbox Component
   const FilterListbox = ({ value, onChange, options, label }) => (
     <Listbox value={value} onChange={onChange}>
@@ -1357,7 +1340,6 @@ export default function ViewPatientProfile() {
       </div>
     </Listbox>
   );
-
   // Responsive Table Component
   const ResponsiveTable = ({ children, headers, mobileData }) => {
     if (isMobile) {
@@ -1376,7 +1358,7 @@ export default function ViewPatientProfile() {
         </div>
       );
     }
-   
+  
     return (
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="min-w-full inline-block align-middle">
@@ -1387,7 +1369,6 @@ export default function ViewPatientProfile() {
       </div>
     );
   };
-
   // Mobile Navigation
   const MobileTabs = () => (
   <div className="md:hidden">
@@ -1398,7 +1379,7 @@ export default function ViewPatientProfile() {
       <span>{activeTab}</span>
       {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
     </button>
-   
+  
     {mobileMenuOpen && (
       <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
         {[
@@ -1428,7 +1409,6 @@ export default function ViewPatientProfile() {
     )}
   </div>
 );
-
   return (
     <div className=" mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
@@ -1440,7 +1420,7 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       />
-     
+    
       {/* Gradient Border - FIXED for responsiveness */}
       <div
         className="absolute inset-0 rounded-[10px] pointer-events-none"
@@ -1455,7 +1435,7 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       />
-      
+     
       {/* Back Button */}
       <button
         onClick={() => {
@@ -1473,7 +1453,7 @@ export default function ViewPatientProfile() {
         <ArrowLeft size={18} />
         Back
       </button>
-      
+     
       {/* Profile Card - FIXED WIDTH ISSUE */}
       <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
         {/* Avatar Section */}
@@ -1495,12 +1475,12 @@ export default function ViewPatientProfile() {
             {patient.email_address || "—"}
           </span>
         </div>
-        
+       
         {/* Vertical Separator - Only on large screens */}
         {windowWidth >= 1320 && (
           <div className="hidden lg:block w-[1px] h-[240px] bg-gray-300 dark:bg-[#A0A0A0] mr-8" />
         )}
-        
+       
         {/* Info Grid - Responsive */}
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 lg:mt-0">
           {[
@@ -1526,7 +1506,7 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
-      
+     
       {/* Vitals Section */}
       <div className="mb-6 sm:mb-8 relative z-10">
         <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
@@ -1561,12 +1541,12 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
-      
+     
       {/* Main Tabs Container - FIXED WIDTH ISSUE */}
       <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
         {/* Mobile Navigation */}
         <MobileTabs />
-        
+       
         {/* Desktop Tabs */}
         <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
   <div className="flex justify-start sm:justify-center min-w-max">
@@ -1599,14 +1579,14 @@ export default function ViewPatientProfile() {
     ))}
   </div>
 </div>
-        
+       
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             Loading records...
           </div>
         )}
-        
-        
+       
+       
         {/* === PRESCRIPTION TAB === */}
         {activeTab === "Prescription" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -1710,7 +1690,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-        
+       
         {/* === INVOICE TAB === */}
         {activeTab === "Invoice" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
@@ -1889,14 +1869,14 @@ export default function ViewPatientProfile() {
                             <span className="font-medium">Subtotal</span>
                             <span>${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
                           </div>
-                         
+                        
                           {currentInvoice.tax_amount > 0 && (
                             <div className="flex justify-between text-xs lg:text-sm">
                               <span>Tax ({currentInvoice.tax_percent || 18}%)</span>
                               <span>${currentInvoice.tax_amount || "0.00"}</span>
                             </div>
                           )}
-                         
+                        
                           {currentInvoice.discount_amount > 0 && (
                             <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium">
                               <span>Discount</span>
@@ -1931,7 +1911,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-        
+       
         {/* === TEST REPORTS TAB === */}
         {activeTab === "Test Reports" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
@@ -2061,14 +2041,14 @@ export default function ViewPatientProfile() {
                               <div className="relative group">
                                 <button
                                   onClick={() => handleViewReportSimple(t.reportId)}
-                                  className="flex items-center justify-center w-8 h-8 rounded-full 
-                                    border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] 
-                                    bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer 
+                                  className="flex items-center justify-center w-8 h-8 rounded-full
+                                    border border-[#0EFF7B1A] dark:border-[#0EFF7B1A]
+                                    bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer
                                     hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
                                 >
                                   <Eye
                                     size={18}
-                                    className="text-[#08994A] dark:text-[#0EFF7B] 
+                                    className="text-[#08994A] dark:text-[#0EFF7B]
                                       hover:text-[#0cd968] dark:hover:text-[#0cd968]"
                                   />
                                 </button>
@@ -2081,18 +2061,17 @@ export default function ViewPatientProfile() {
                                   View Report
                                 </span>
                               </div>
-
                               <div className="relative group">
                                 <button
                                   onClick={() => handleDownloadReportSimple(t.reportId, t.testType)}
-                                  className="flex items-center justify-center w-8 h-8 rounded-full 
-                                    border border-[#08994A1A] dark:border-[#0EFF7B1A] 
-                                    bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer 
+                                  className="flex items-center justify-center w-8 h-8 rounded-full
+                                    border border-[#08994A1A] dark:border-[#0EFF7B1A]
+                                    bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer
                                     hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
                                 >
                                   <Download
                                     size={18}
-                                    className="text-[#08994A] dark:text-[#0EFF7B] 
+                                    className="text-[#08994A] dark:text-[#0EFF7B]
                                       hover:text-[#0cd968] dark:hover:text-[#0cd968]"
                                   />
                                 </button>
@@ -2143,8 +2122,7 @@ export default function ViewPatientProfile() {
             )}
           </div>
         )}
-        
-
+       
         {activeTab === "Surgeries" && !dataLoading && (
   <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
     <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
@@ -2246,7 +2224,6 @@ export default function ViewPatientProfile() {
     )}
   </div>
 )}
-
        {/* === HISTORY TAB === */}
         {activeTab === "History" && !dataLoading && (
           <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">

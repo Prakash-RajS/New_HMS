@@ -1,4 +1,3 @@
-# fastapi_app/routers/staff.py
 import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel, EmailStr
@@ -11,6 +10,26 @@ import os
 import traceback
 from Fastapi_app.routers.notifications import NotificationService
 from pathlib import Path as PathLib
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/staff", tags=["Staffs"])
 
@@ -58,6 +77,7 @@ class StaffResponse(BaseModel):
 # ---------- Helper for Employee ID ----------
 @sync_to_async
 def generate_employee_id_sync(designation: str) -> str:
+    ensure_db_connection()
     prefix_map = {
         "doctor": "DOC",
         "nurse": "NUR",
@@ -133,6 +153,7 @@ async def add_staff(
         # Check for existing staff using sync_to_async
         @sync_to_async
         def check_existing_staff():
+            ensure_db_connection()
             existing_email = Staff.objects.filter(email=email).exists()
             existing_phone = Staff.objects.filter(phone=phone).exists()
             return existing_email, existing_phone
@@ -177,6 +198,7 @@ async def add_staff(
         # Get department using sync_to_async
         @sync_to_async
         def get_department_sync(department_id):
+            ensure_db_connection()
             try:
                 return Department.objects.get(id=department_id)
             except Department.DoesNotExist:
@@ -235,6 +257,7 @@ async def add_staff(
         # Create staff using sync_to_async
         @sync_to_async
         def create_staff_sync(staff_data):
+            ensure_db_connection()
             try:
                 staff = Staff(**staff_data)
                 staff.save()
@@ -312,6 +335,7 @@ async def add_staff(
         if cert_paths or pic_path:
             @sync_to_async
             def update_staff_files(staff_id, cert_paths, pic_path):
+                ensure_db_connection()
                 staff = Staff.objects.get(id=staff_id)
                 if cert_paths:
                     staff.certificates = ",".join(cert_paths)
@@ -325,7 +349,8 @@ async def add_staff(
         # Get the final staff object with related department
         @sync_to_async
         def get_final_staff(staff_id):
-            return Staff.objects.select_related("department").get(id=staff_id)
+            ensure_db_connection()
+            return Staff.objects.select_related('department').get(id=staff_id)
         
         final_staff = await get_final_staff(staff.id)
         await NotificationService.send_staff_registered(final_staff)
@@ -375,6 +400,7 @@ async def get_all_staff():
     try:
         @sync_to_async
         def get_staff_list():
+            ensure_db_connection()
             staffs = list(Staff.objects.select_related("department").all().order_by("id"))
             result = []
             for s in staffs:
@@ -459,6 +485,7 @@ async def update_staff(
     try:
         @sync_to_async
         def update_staff_sync():
+            ensure_db_connection()
             try:
                 staff = Staff.objects.select_related("department").get(id=staff_id)
                 
@@ -574,6 +601,7 @@ async def update_staff(
         if cert_paths or pic_path:
             @sync_to_async
             def update_files_sync():
+                ensure_db_connection()
                 staff_obj = Staff.objects.get(id=staff.id)
                 if cert_paths:
                     staff_obj.certificates = ",".join(cert_paths)
@@ -626,6 +654,7 @@ async def get_staff_by_id(staff_id: int):
     try:
         @sync_to_async
         def get_staff_and_surgery_stats():
+            ensure_db_connection()
             try:
                 staff = Staff.objects.select_related("department").get(id=staff_id)
 
@@ -700,6 +729,7 @@ async def update_staff_statistics(staff_id: int):
     try:
         @sync_to_async
         def update_stats_sync():
+            ensure_db_connection()
             try:
                 staff = Staff.objects.get(id=staff_id)
                 old_count = staff.total_patients_treated
@@ -736,6 +766,7 @@ async def update_all_staff_statistics():
     try:
         @sync_to_async
         def update_all_stats_sync():
+            ensure_db_connection()
             try:
                 staff_count = Staff.objects.count()
                 updated_count = 0

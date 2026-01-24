@@ -9,6 +9,28 @@ from asgiref.sync import sync_to_async
 import logging
 from Fastapi_app.routers.notifications import NotificationService   
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/departments", tags=["Departments"])
@@ -38,6 +60,7 @@ class DepartmentOut(BaseModel):
 @sync_to_async
 def get_department_by_id(department_id: int):
     """Get department by ID"""
+    ensure_db_connection()
     try:
         return Department.objects.get(id=department_id)
     except Department.DoesNotExist:
@@ -46,6 +69,7 @@ def get_department_by_id(department_id: int):
 @sync_to_async
 def get_department_by_name(name: str):
     """Get department by name (case insensitive)"""
+    ensure_db_connection()
     try:
         return Department.objects.filter(name__iexact=name).first()
     except Exception:
@@ -54,6 +78,7 @@ def get_department_by_name(name: str):
 @sync_to_async
 def create_department_instance(department_data: dict):
     """Create new department"""
+    ensure_db_connection()
     try:
         return Department.objects.create(**department_data)
     except Exception as e:
@@ -62,12 +87,14 @@ def create_department_instance(department_data: dict):
 @sync_to_async
 def save_department(department):
     """Save department instance"""
+    ensure_db_connection()
     department.save()
     return department
 
 @sync_to_async
 def delete_department_instance(department):
     """Delete department instance"""
+    ensure_db_connection()
     try:
         department.delete()
         return True
@@ -78,11 +105,13 @@ def delete_department_instance(department):
 @sync_to_async
 def get_all_departments():
     """Get all departments"""
+    ensure_db_connection()
     return list(Department.objects.all().order_by("id"))
 
 @sync_to_async
 def check_department_name_exists(name: str, exclude_id: int = None):
     """Check if department name exists (excluding given ID)"""
+    ensure_db_connection()
     queryset = Department.objects.filter(name__iexact=name)
     if exclude_id:
         queryset = queryset.exclude(id=exclude_id)
@@ -91,6 +120,7 @@ def check_department_name_exists(name: str, exclude_id: int = None):
 @sync_to_async
 def check_department_references(department_id: int):
     """Check if department is referenced by other models"""
+    ensure_db_connection()
     references = {}
     
     try:
@@ -420,6 +450,7 @@ async def search_departments(query: str):
     try:
         @sync_to_async
         def search_departments_by_query(search_query: str):
+            ensure_db_connection()
             return list(Department.objects.filter(
                 name__icontains=search_query
             ).order_by("name"))

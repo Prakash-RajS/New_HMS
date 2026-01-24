@@ -1,26 +1,54 @@
-from fastapi import APIRouter, HTTPException, status, Response, UploadFile, File, Form
+# Fastapi_app/routers/labreports.py
+from fastapi import APIRouter, HTTPException, status, Response, UploadFile, File, Form, Request
+from fastapi.responses import FileResponse, RedirectResponse
 from typing import Optional, List
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import ClassVar
 from django.db import transaction, IntegrityError
-from HMS_backend.models import LabReport, Patient, MedicalTest, TreatmentCharge
-from datetime import datetime
-import os
-import uuid
-from pathlib import Path
-from Fastapi_app.routers.notifications import NotificationService
-from asgiref.sync import sync_to_async
-import sys
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, RedirectResponse
-from pathlib import Path
 from django.core.exceptions import ObjectDoesNotExist
-from asgiref.sync import sync_to_async
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+import uuid
+
+# Django setup
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(BASE_DIR)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
+import django
+django.setup()
+
+
+from HMS_backend.models import LabReport, Patient, MedicalTest, TreatmentCharge
+from Fastapi_app.routers.notifications import NotificationService
+from asgiref.sync import sync_to_async, async_to_sync
+
+from django.db import close_old_connections, connection
+ 
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 # Assuming this is in Fastapi_app/routers/labreports.py
 # Set UPLOAD_DIR relative to Fastapi_app
-BASE_DIR = Path(__file__).resolve().parent.parent  # Points to Fastapi_app
-UPLOAD_DIR = BASE_DIR / "uploads" / "lab_reports"
+BASE_DIR_PATH = Path(__file__).resolve().parent.parent  # Points to Fastapi_app
+UPLOAD_DIR = BASE_DIR_PATH / "uploads" / "lab_reports"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter(prefix="/labreports", tags=["Lab Reports"])
@@ -71,7 +99,9 @@ class LabReportOut(BaseModel):
 
 
 # ---------- Utility ----------
+@sync_to_async
 def generate_order_id() -> str:
+    ensure_db_connection()
     last = LabReport.objects.all().order_by("id").last()
     if not last:
         return "LABID0001"
@@ -99,9 +129,14 @@ def save_uploaded_file(file: UploadFile) -> str:
 @router.get("/test-types")
 async def get_test_types():
     try:
-        tests = await sync_to_async(list)(
-            MedicalTest.objects.filter(status="available").order_by("test_type")
-        )
+        @sync_to_async
+        def fetch_tests():
+            ensure_db_connection()
+            return list(
+                MedicalTest.objects.filter(status="available").order_by("test_type")
+            )
+        
+        tests = await fetch_tests()
         test_types = [test.test_type for test in tests]
         return {"test_types": test_types}
     except Exception as e:
@@ -119,7 +154,12 @@ async def create_labreport(
     test_type: str = Form(...),
 ):
     try:
-        patient = await sync_to_async(Patient.objects.get)(patient_unique_id=patient_id)
+        @sync_to_async
+        def get_patient():
+            ensure_db_connection()
+            return Patient.objects.get(patient_unique_id=patient_id)
+        
+        patient = await get_patient()
         if patient.full_name.strip().lower() != patient_name.strip().lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -129,14 +169,20 @@ async def create_labreport(
         raise HTTPException(status_code=404, detail="Patient not found.")
 
     try:
-        with transaction.atomic():
-            lab = LabReport.objects.create(
-                order_id=generate_order_id(),
-                patient=patient,
-                department=department.strip(),
-                test_type=test_type.strip(),
-                status="pending",
-            )
+        @sync_to_async
+        def create_lab():
+            ensure_db_connection()
+            with transaction.atomic():
+                lab = LabReport.objects.create(
+                    order_id=async_to_sync(generate_order_id)(),
+                    patient=patient,
+                    department=department.strip(),
+                    test_type=test_type.strip(),
+                    status="pending",
+                )
+                return lab
+
+        lab = await create_lab()
 
         await NotificationService.send_lab_report_created(lab)
 
@@ -160,9 +206,14 @@ async def create_labreport(
 
 @router.get("/list", response_model=List[LabReportOut])
 async def list_labreports():
-    labs = await sync_to_async(list)(
-        LabReport.objects.all().order_by("-id").select_related("patient")
-    )
+    @sync_to_async
+    def fetch_labs():
+        ensure_db_connection()
+        return list(
+            LabReport.objects.all().order_by("-id").select_related("patient")
+        )
+    
+    labs = await fetch_labs()
     lab_reports = []
     for lab in labs:
         lab_reports.append(
@@ -193,7 +244,12 @@ async def update_labreport(
     lab_report_file: Optional[UploadFile] = File(None),
 ):
     try:
-        lab = await sync_to_async(LabReport.objects.select_related("patient").get)(id=labreport_id)
+        @sync_to_async
+        def get_lab():
+            ensure_db_connection()
+            return LabReport.objects.select_related("patient").get(id=labreport_id)
+        
+        lab = await get_lab()
     except LabReport.DoesNotExist:
         raise HTTPException(status_code=404, detail="Lab Report not found.")
 
@@ -203,7 +259,12 @@ async def update_labreport(
     # Handle patient update
     if patient_id:
         try:
-            patient = await sync_to_async(Patient.objects.get)(patient_unique_id=patient_id)
+            @sync_to_async
+            def get_patient_update():
+                ensure_db_connection()
+                return Patient.objects.get(patient_unique_id=patient_id)
+            
+            patient = await get_patient_update()
             if patient_name and patient.full_name.strip().lower() != patient_name.strip().lower():
                 raise HTTPException(status_code=400, detail="Patient name does not match patient ID.")
             lab.patient = patient
@@ -231,41 +292,59 @@ async def update_labreport(
             detail="A lab report file is required when status is set to 'completed'."
         )
 
-    await sync_to_async(lab.save)()
+    @sync_to_async
+    def save_lab():
+        ensure_db_connection()
+        lab.save()
+    
+    await save_lab()
 
     await NotificationService.send_lab_report_updated(lab)
 
     # Create TreatmentCharge when status changes to completed
     if lab.status == "completed" and lab.status != old_status:
         try:
-            medical_test = await sync_to_async(
-                MedicalTest.objects.filter(test_type__iexact=lab.test_type.strip()).first
-            )()
+            @sync_to_async
+            def get_medical_test():
+                ensure_db_connection()
+                return MedicalTest.objects.filter(test_type__iexact=lab.test_type.strip()).first()
+            
+            medical_test = await get_medical_test()
 
             unit_price = float(medical_test.price) if medical_test and medical_test.price else 0.0
             amount = unit_price
 
-            await sync_to_async(TreatmentCharge.objects.create)(
-                patient=lab.patient,
-                description=f"Lab Test: {lab.test_type} (Order ID: {lab.order_id})",
-                quantity=1,
-                unit_price=unit_price,
-                amount=amount,
-                status=TreatmentCharge.PENDING,
-            )
+            @sync_to_async
+            def create_charge():
+                ensure_db_connection()
+                TreatmentCharge.objects.create(
+                    patient=lab.patient,
+                    description=f"Lab Test: {lab.test_type} (Order ID: {lab.order_id})",
+                    quantity=1,
+                    unit_price=unit_price,
+                    amount=amount,
+                    status=TreatmentCharge.PENDING,
+                )
+            
+            await create_charge()
 
             await NotificationService.send_lab_report_completed(lab)
         except Exception as e:
             print(f"Error creating treatment charge: {e}")
             # Fallback charge with zero price
-            await sync_to_async(TreatmentCharge.objects.create)(
-                patient=lab.patient,
-                description=f"Lab Test: {lab.test_type} (Order ID: {lab.order_id})",
-                quantity=1,
-                unit_price=0,
-                amount=0,
-                status=TreatmentCharge.PENDING,
-            )
+            @sync_to_async
+            def create_fallback_charge():
+                ensure_db_connection()
+                TreatmentCharge.objects.create(
+                    patient=lab.patient,
+                    description=f"Lab Test: {lab.test_type} (Order ID: {lab.order_id})",
+                    quantity=1,
+                    unit_price=0,
+                    amount=0,
+                    status=TreatmentCharge.PENDING,
+                )
+            
+            await create_fallback_charge()
 
     response_data = {
         "id": lab.id,
@@ -285,7 +364,12 @@ async def update_labreport(
 @router.delete("/{labreport_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_labreport(labreport_id: int):
     try:
-        lab = await sync_to_async(LabReport.objects.select_related("patient").get)(id=labreport_id)
+        @sync_to_async
+        def get_lab_delete():
+            ensure_db_connection()
+            return LabReport.objects.select_related("patient").get(id=labreport_id)
+        
+        lab = await get_lab_delete()
     except LabReport.DoesNotExist:
         raise HTTPException(status_code=404, detail="Lab Report not found.")
 
@@ -296,21 +380,19 @@ async def delete_labreport(labreport_id: int):
 
     # Optionally delete file from disk
     if lab.file_path:
-        file_full_path = BASE_DIR / ".".join(lab.file_path.split("/")[1:])  # Adjust to absolute path
+        file_full_path = BASE_DIR_PATH / ".".join(lab.file_path.split("/")[1:])  # Adjust to absolute path
         if file_full_path.exists():
             file_full_path.unlink()
 
-    await sync_to_async(lab.delete)()
+    @sync_to_async
+    def delete_lab():
+        ensure_db_connection()
+        lab.delete()
+    
+    await delete_lab()
     await NotificationService.send_lab_report_deleted(lab_data)
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-from fastapi import Request
-from fastapi.responses import FileResponse
-from pathlib import Path
-
-BASE_DIR = Path(__file__).resolve().parent.parent  # Fastapi_app folder
-UPLOAD_DIR = BASE_DIR / "uploads" / "lab_reports"
 
 @router.get("/download/{filename}")
 async def download_lab_report(filename: str):
@@ -331,8 +413,12 @@ async def download_lab_report(filename: str):
 @router.get("/{report_id}/view")
 async def view_lab_report(report_id: int):
     try:
-        # Use sync_to_async for Django ORM operations
-        report = await sync_to_async(LabReport.objects.get)(id=report_id)
+        @sync_to_async
+        def get_report():
+            ensure_db_connection()
+            return LabReport.objects.get(id=report_id)
+        
+        report = await get_report()
         
         if not report.file_path:
             raise HTTPException(status_code=404, detail="Report not found")
@@ -354,8 +440,12 @@ async def view_lab_report(report_id: int):
 @router.get("/{report_id}/download")
 async def download_lab_report(report_id: int):
     try:
-        # Use sync_to_async for Django ORM operations
-        report = await sync_to_async(LabReport.objects.get)(id=report_id)
+        @sync_to_async
+        def get_report_download():
+            ensure_db_connection()
+            return LabReport.objects.get(id=report_id)
+        
+        report = await get_report_download()
         
         if not report.file_path:
             raise HTTPException(status_code=404, detail="Report not found")
@@ -371,8 +461,7 @@ async def download_lab_report(report_id: int):
         
         if not file_path.exists():
             # Try with absolute path
-            base_dir = Path(__file__).resolve().parent.parent
-            file_path = base_dir / file_path_str
+            file_path = BASE_DIR_PATH / file_path_str
             
             if not file_path.exists():
                 raise HTTPException(status_code=404, detail="File not found on server")

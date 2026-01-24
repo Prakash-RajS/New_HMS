@@ -7,6 +7,28 @@ from collections import defaultdict
 from asgiref.sync import sync_to_async
 from datetime import date
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter(
     prefix="/attendance",
     tags=["Attendance"]
@@ -40,9 +62,9 @@ class AttendanceResponse(AttendanceBase):
     @classmethod
     async def from_orm_with_details(cls, obj: Staff_Management):
         # Async-safe access
-        staff_name = await sync_to_async(lambda: obj.staff.full_name if obj.staff else "Unknown")()
-        designation = await sync_to_async(lambda: obj.staff.designation if obj.staff else "")()
-        department = await sync_to_async(lambda: obj.staff.department.name if obj.staff and obj.staff.department else None)()
+        staff_name = await sync_to_async(lambda: (ensure_db_connection(), obj.staff.full_name if obj.staff else "Unknown")[1])()
+        designation = await sync_to_async(lambda: (ensure_db_connection(), obj.staff.designation if obj.staff else "")[1])()
+        department = await sync_to_async(lambda: (ensure_db_connection(), obj.staff.department.name if obj.staff and obj.staff.department else None)[1])()
 
         return cls(
             id=obj.id,
@@ -69,24 +91,24 @@ async def get_attendance(
     skip: int = 0,
     limit: int = 20
 ):
-    query = await sync_to_async(lambda: Staff_Management.objects.all())()
+    query = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.all())[1])()
     
     if staff_id:
-        query = await sync_to_async(lambda: query.filter(staff__id=staff_id))()
+        query = await sync_to_async(lambda: (ensure_db_connection(), query.filter(staff__id=staff_id))[1])()
     if status:
-        query = await sync_to_async(lambda: query.filter(status=status))()
+        query = await sync_to_async(lambda: (ensure_db_connection(), query.filter(status=status))[1])()
     if start_date:
-        query = await sync_to_async(lambda: query.filter(date__gte=start_date))()
+        query = await sync_to_async(lambda: (ensure_db_connection(), query.filter(date__gte=start_date))[1])()
     if end_date:
-        query = await sync_to_async(lambda: query.filter(date__lte=end_date))()
+        query = await sync_to_async(lambda: (ensure_db_connection(), query.filter(date__lte=end_date))[1])()
 
-    attendance_list = await sync_to_async(lambda: list(query[skip:skip + limit]))()
+    attendance_list = await sync_to_async(lambda: (ensure_db_connection(), list(query[skip:skip + limit]))[1])()
     return [await AttendanceResponse.from_orm_with_details(a) for a in attendance_list]
 
 @router.get("/{attendance_id}", response_model=AttendanceResponse)
 async def get_attendance_by_id(attendance_id: int):
     try:
-        obj = await sync_to_async(lambda: Staff_Management.objects.get(id=attendance_id))()
+        obj = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.get(id=attendance_id))[1])()
         return await AttendanceResponse.from_orm_with_details(obj)
     except Staff_Management.DoesNotExist:
         raise HTTPException(status_code=404, detail="Attendance record not found")
@@ -94,25 +116,25 @@ async def get_attendance_by_id(attendance_id: int):
 @router.post("/", response_model=AttendanceResponse, status_code=201)
 async def create_attendance(att: AttendanceCreate):
     try:
-        staff_obj = await sync_to_async(lambda: Staff.objects.get(id=att.staff_id))()
+        staff_obj = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.get(id=att.staff_id))[1])()
     except Staff.DoesNotExist:
         raise HTTPException(status_code=404, detail="Staff not found")
     
-    new_att = await sync_to_async(lambda: Staff_Management.objects.create(
+    new_att = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.create(
         staff=staff_obj,
         date=att.date,
         shift=att.shift,
         status=att.status,
         check_in=att.check_in,
         check_out=att.check_out
-    ))()
+    ))[1])()
     return await AttendanceResponse.from_orm_with_details(new_att)
 
 @router.put("/{attendance_id}", response_model=AttendanceResponse)
 async def update_attendance(attendance_id: int, att: AttendanceUpdate):
     try:
-        db_att = await sync_to_async(lambda: Staff_Management.objects.get(id=attendance_id))()
-        staff_obj = await sync_to_async(lambda: Staff.objects.get(id=att.staff_id))()
+        db_att = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.get(id=attendance_id))[1])()
+        staff_obj = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.get(id=att.staff_id))[1])()
         
         db_att.staff = staff_obj
         db_att.date = att.date
@@ -120,7 +142,7 @@ async def update_attendance(attendance_id: int, att: AttendanceUpdate):
         db_att.status = att.status
         db_att.check_in = att.check_in
         db_att.check_out = att.check_out
-        await sync_to_async(db_att.save)()
+        await sync_to_async(lambda: (ensure_db_connection(), db_att.save())[1])()
         return await AttendanceResponse.from_orm_with_details(db_att)
     except Staff_Management.DoesNotExist:
         raise HTTPException(status_code=404, detail="Attendance record not found")
@@ -130,8 +152,8 @@ async def update_attendance(attendance_id: int, att: AttendanceUpdate):
 @router.delete("/{attendance_id}", status_code=204)
 async def delete_attendance(attendance_id: int):
     try:
-        db_att = await sync_to_async(lambda: Staff_Management.objects.get(id=attendance_id))()
-        await sync_to_async(db_att.delete)()
+        db_att = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.get(id=attendance_id))[1])()
+        await sync_to_async(lambda: (ensure_db_connection(), db_att.delete())[1])()
         return None
     except Staff_Management.DoesNotExist:
         raise HTTPException(status_code=404, detail="Attendance record not found")
@@ -160,14 +182,14 @@ async def daily_attendance_chart(
     end_date: Optional[date] = None
 ):
     # Fetch the queryset and apply filters synchronously
-    queryset = await sync_to_async(lambda: Staff_Management.objects.all())()
+    queryset = await sync_to_async(lambda: (ensure_db_connection(), Staff_Management.objects.all())[1])()
     if start_date:
-        queryset = await sync_to_async(lambda: queryset.filter(date__gte=start_date))()
+        queryset = await sync_to_async(lambda: (ensure_db_connection(), queryset.filter(date__gte=start_date))[1])()
     if end_date:
-        queryset = await sync_to_async(lambda: queryset.filter(date__lte=end_date))()
+        queryset = await sync_to_async(lambda: (ensure_db_connection(), queryset.filter(date__lte=end_date))[1])()
 
     # Convert queryset to list to avoid lazy evaluation in async context
-    attendance_list = await sync_to_async(lambda: list(queryset))()
+    attendance_list = await sync_to_async(lambda: (ensure_db_connection(), list(queryset))[1])()
 
     chart_dict = defaultdict(lambda: {"present": 0, "absent": 0, "leave": 0})
     for att in attendance_list:
@@ -190,7 +212,7 @@ async def daily_attendance_chart(
 @router.get("/chart/staff", response_model=List[StaffAttendanceItem])
 async def staff_attendance_chart():
     # Fetch the queryset into a list to avoid lazy evaluation
-    queryset = await sync_to_async(lambda: list(Staff_Management.objects.select_related('staff__department')))()
+    queryset = await sync_to_async(lambda: (ensure_db_connection(), list(Staff_Management.objects.select_related('staff__department')))[1])()
 
     staff_dict = defaultdict(lambda: {"present": 0, "absent": 0, "leave": 0, "designation": "", "department": ""})
     
@@ -211,7 +233,7 @@ async def staff_attendance_chart():
     result = []
     for sid, vals in staff_dict.items():
         # Fetch staff_name for the specific staff_id
-        staff_name = await sync_to_async(lambda: Staff.objects.get(id=sid).full_name)()
+        staff_name = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.get(id=sid).full_name)[1])()
         result.append(
             StaffAttendanceItem(
                 staff_id=sid,

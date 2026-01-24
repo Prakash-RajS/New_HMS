@@ -18,7 +18,7 @@ import os
 import tempfile
 from zipfile import ZipFile
 import time
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
 from django.db import transaction
 from django.utils import timezone
 
@@ -46,6 +46,28 @@ try:
     from num2words import num2words
 except ImportError:
     num2words = None
+
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/hospital-billing", tags=["Hospital Billing Management"])
 
@@ -172,6 +194,7 @@ def delayed_remove(file_path: str, delay: int = 5):
 async def get_department_name(patient_id: str) -> str:
     @sync_to_async
     def fetch_dept():
+        ensure_db_connection()
         try:
             patient = Patient.objects.select_related("department").get(
                 patient_unique_id=patient_id
@@ -192,16 +215,23 @@ def format_date(date_obj) -> str:
         return str(date_obj)
 
 
-def get_invoice_data(invoice):
+async def get_invoice_data(invoice):
     dept = invoice.department or "Unknown"
-    try:
-        patient = Patient.objects.get(patient_unique_id=invoice.patient_id)
-        if patient.department:
-            dept = patient.department.name
-    except Patient.DoesNotExist:
-        pass
-    except Exception as e:
-        print(f"Error getting patient for {invoice.patient_id}: {e}")
+    @sync_to_async
+    def fetch_patient():
+        ensure_db_connection()
+        try:
+            patient = Patient.objects.get(patient_unique_id=invoice.patient_id)
+            return patient
+        except Patient.DoesNotExist:
+            return None
+        except Exception as e:
+            print(f"Error getting patient for {invoice.patient_id}: {e}")
+            return None
+
+    patient = await fetch_patient()
+    if patient and patient.department:
+        dept = patient.department.name
 
     try:
         date_str = invoice.date.isoformat()
@@ -243,6 +273,7 @@ async def generate_invoice_pdf(payload: InvoiceCreateIn):
     try:
         @sync_to_async
         def create_invoice_with_pdf():
+            ensure_db_connection()
             # 1. Validate patient
             try:
                 patient = Patient.objects.get(patient_unique_id=payload.patient_id)
@@ -412,6 +443,7 @@ async def get_patient_treatment_charges(patient_id: str):
         # Fetch patient first
         @sync_to_async
         def fetch_patient():
+            ensure_db_connection()
             try:
                 return Patient.objects.get(patient_unique_id=patient_id)
             except Patient.DoesNotExist:
@@ -424,6 +456,7 @@ async def get_patient_treatment_charges(patient_id: str):
         # Fetch pending treatment charges
         @sync_to_async
         def fetch_charges(patient_obj):
+            ensure_db_connection()
             return list(TreatmentCharge.objects.filter(
                 patient=patient_obj,
                 status="PENDING"
@@ -437,6 +470,7 @@ async def get_patient_treatment_charges(patient_id: str):
         # Calculate billed charges
         @sync_to_async
         def fetch_billed_charges(patient_obj):
+            ensure_db_connection()
             billed = TreatmentCharge.objects.filter(
                 patient=patient_obj,
                 status="BILLED"
@@ -483,6 +517,7 @@ async def list_invoices():
     try:
         @sync_to_async
         def fetch_invoices():
+            ensure_db_connection()
             from django.db import connection
             # Clear query cache
             connection.queries_log.clear()
@@ -529,12 +564,10 @@ async def get_invoice_detail(invoice_id: str):
     try:
         @sync_to_async
         def fetch_invoice():
-            try:
-                return HospitalInvoiceHistory.objects.prefetch_related("items").get(
-                    invoice_id=invoice_id
-                )
-            except HospitalInvoiceHistory.DoesNotExist:
-                return None
+            ensure_db_connection()
+            return HospitalInvoiceHistory.objects.prefetch_related("items").get(
+                invoice_id=invoice_id
+            )
         
         invoice = await fetch_invoice()
         
@@ -542,8 +575,12 @@ async def get_invoice_detail(invoice_id: str):
             raise HTTPException(status_code=404, detail="Invoice not found")
 
         # Fetch items
-        items_qs = invoice.items.all()
-        items = await sync_to_async(list)(items_qs)
+        @sync_to_async
+        def fetch_items():
+            ensure_db_connection()
+            return list(invoice.items.all())
+
+        items = await fetch_items()
         item_list = [
             InvoiceItemSchema(
                 s_no=item.s_no,
@@ -606,6 +643,7 @@ async def mark_invoice_as_paid(invoice_id: str):
     try:
         @sync_to_async
         def update_invoice_and_charges():
+            ensure_db_connection()
             with transaction.atomic():
                 # Get invoice
                 invoice = HospitalInvoiceHistory.objects.get(invoice_id=invoice_id)
@@ -667,6 +705,7 @@ async def delete_invoice(invoice_id: str):
     try:
         @sync_to_async
         def delete_invoice_sync():
+            ensure_db_connection()
             invoice = HospitalInvoiceHistory.objects.get(invoice_id=invoice_id)
 
             # ✅ FIRST: Delete the PDF file from disk if it exists
@@ -734,7 +773,12 @@ async def delete_invoice(invoice_id: str):
 @router.get("/pdf/{invoice_id}")
 async def download_pdf(invoice_id: str):
     try:
-        invoice = await sync_to_async(HospitalInvoiceHistory.objects.get)(invoice_id=invoice_id)
+        @sync_to_async
+        def fetch_invoice():
+            ensure_db_connection()
+            return HospitalInvoiceHistory.objects.get(invoice_id=invoice_id)
+        
+        invoice = await fetch_invoice()
 
         # Validate PDF is linked in DB
         if not invoice.pdf_file:
@@ -785,7 +829,12 @@ async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: Back
             found = 0
             for inv_id in invoice_ids.ids:
                 try:
-                    invoice = await sync_to_async(HospitalInvoiceHistory.objects.get)(invoice_id=inv_id)
+                    @sync_to_async
+                    def fetch_invoice():
+                        ensure_db_connection()
+                        return HospitalInvoiceHistory.objects.get(invoice_id=inv_id)
+                    
+                    invoice = await fetch_invoice()
                     pdf_path = None
 
                     if invoice.pdf_file and os.path.exists(invoice.pdf_file.path):
@@ -829,7 +878,12 @@ async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: Back
 # -------------------------------
 @router.get("/export/csv")
 async def export_csv(include_items: bool = False):
-    invoices = await sync_to_async(list)(HospitalInvoiceHistory.objects.prefetch_related("items").all())
+    @sync_to_async
+    def fetch_invoices():
+        ensure_db_connection()
+        return list(HospitalInvoiceHistory.objects.prefetch_related("items").all())
+
+    invoices = await fetch_invoices()
 
     output = io.StringIO()
     writer = csv.writer(output)
@@ -842,7 +896,7 @@ async def export_csv(include_items: bool = False):
             "Subtotal", "Tax", "Grand Total", "Status"
         ])
         for inv in invoices:
-            items = inv.items.all()
+            items = await sync_to_async(list)(inv.items.all())
             subtotal = sum(item.amount for item in items) if items else 0
             tax = subtotal * (inv.tax_percent / 100)
             first = True
@@ -893,9 +947,12 @@ async def export_csv(include_items: bool = False):
 async def export_excel():
     from decimal import Decimal
 
-    invoices = await sync_to_async(list)(
-        HospitalInvoiceHistory.objects.prefetch_related("items").all()
-    )
+    @sync_to_async
+    def fetch_invoices():
+        ensure_db_connection()
+        return list(HospitalInvoiceHistory.objects.prefetch_related("items").all())
+
+    invoices = await fetch_invoices()
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -910,7 +967,7 @@ async def export_excel():
     ws.append(header)
 
     for inv in invoices:
-        items = list(inv.items.all())
+        items = await sync_to_async(list)(inv.items.all())
 
         # Decimal Safe calculations
         subtotal = sum(Decimal(str(i.amount)) for i in items) if items else Decimal("0")
@@ -956,44 +1013,3 @@ async def export_excel():
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=hospital_invoices.xlsx"}
     )
-
-# @router.post("/cleanup-orphaned-pdfs")
-# async def cleanup_orphaned_pdfs():
-#     """
-#     Clean up PDF files that don't have corresponding database records
-#     """
-#     try:
-#         @sync_to_async
-#         def get_all_invoice_ids():
-#             return list(HospitalInvoiceHistory.objects.values_list('invoice_id', flat=True))
-        
-#         invoice_ids = await get_all_invoice_ids()
-#         print(f"Found {len(invoice_ids)} invoices in database")
-        
-#         deleted_files = []
-        
-#         # Check the invoices_generator directory
-#         if os.path.exists(PDF_OUTPUT_DIR):
-#             for filename in os.listdir(PDF_OUTPUT_DIR):
-#                 if filename.endswith('.pdf'):
-#                     # Extract invoice_id from filename (remove .pdf extension)
-#                     file_invoice_id = filename[:-4]  # Remove '.pdf'
-                    
-#                     # Check if this invoice exists in database
-#                     if file_invoice_id not in invoice_ids:
-#                         file_path = os.path.join(PDF_OUTPUT_DIR, filename)
-#                         try:
-#                             os.remove(file_path)
-#                             deleted_files.append(filename)
-#                             print(f"Deleted orphaned PDF: {filename}")
-#                         except Exception as e:
-#                             print(f"Error deleting {filename}: {e}")
-        
-#         return {
-#             "detail": f"Cleaned up {len(deleted_files)} orphaned PDF files",
-#             "deleted_files": deleted_files,
-#             "total_invoices_in_db": len(invoice_ids)
-#         }
-        
-#     except Exception as e:
-#         return {"error": str(e)}

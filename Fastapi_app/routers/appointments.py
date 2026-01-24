@@ -12,6 +12,28 @@ from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
 from Fastapi_app.routers.notifications import NotificationService
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 
 # Assuming you have auth setup - if not, we'll create a simple version
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
@@ -156,8 +178,8 @@ def calendar_item_to_out(item) -> CalendarItemOut:
 @router.post("/create_appointment", status_code=status.HTTP_201_CREATED)
 async def create_appointment(payload: AppointmentCreate):
     try:
-        department = await sync_to_async(Department.objects.get)(id=payload.department_id)
-        staff = await sync_to_async(Staff.objects.get)(id=payload.staff_id)
+        department = await sync_to_async(lambda: (ensure_db_connection(), Department.objects.get(id=payload.department_id))[1])()
+        staff = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.get(id=payload.staff_id))[1])()
     except Department.DoesNotExist:
         raise HTTPException(status_code=404, detail="Department not found")
     except Staff.DoesNotExist:
@@ -165,6 +187,7 @@ async def create_appointment(payload: AppointmentCreate):
 
     @sync_to_async
     def create_appointment_with_transaction():
+        ensure_db_connection()
         with transaction.atomic():
             appointment = Appointment.objects.create(
                 patient_name=payload.patient_name,
@@ -191,6 +214,7 @@ async def create_appointment(payload: AppointmentCreate):
 async def list_appointments():
     @sync_to_async
     def get_appointments():
+        ensure_db_connection()
         return list(Appointment.objects.select_related('department', 'staff').all().order_by("-created_at"))
     
     appointments = await get_appointments()
@@ -201,6 +225,7 @@ async def list_appointments():
 async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     @sync_to_async
     def get_appointment():
+        ensure_db_connection()
         try:
             return Appointment.objects.select_related('department', 'staff').get(id=appointment_id)
         except Appointment.DoesNotExist:
@@ -215,13 +240,13 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
         appt.patient_name = payload.patient_name
     if payload.department_id is not None:
         try:
-            department = await sync_to_async(Department.objects.get)(id=payload.department_id)
+            department = await sync_to_async(lambda: (ensure_db_connection(), Department.objects.get(id=payload.department_id))[1])()
             appt.department = department
         except Department.DoesNotExist:
             raise HTTPException(status_code=404, detail="Department not found")
     if payload.staff_id is not None:
         try:
-            staff = await sync_to_async(Staff.objects.get)(id=payload.staff_id)
+            staff = await sync_to_async(lambda: (ensure_db_connection(), Staff.objects.get(id=payload.staff_id))[1])()
             appt.staff = staff
         except Staff.DoesNotExist:
             raise HTTPException(status_code=404, detail="Staff not found")
@@ -240,6 +265,7 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
 
     @sync_to_async
     def save_appointment():
+        ensure_db_connection()
         with transaction.atomic():
             appt.save()
             return Appointment.objects.select_related('department', 'staff').get(id=appt.id)
@@ -256,6 +282,7 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
 async def delete_appointment(appointment_id: int):
     @sync_to_async
     def get_appointment_data():
+        ensure_db_connection()
         try:
             return Appointment.objects.select_related('staff', 'department').get(id=appointment_id)
         except Appointment.DoesNotExist:
@@ -274,6 +301,7 @@ async def delete_appointment(appointment_id: int):
 
     @sync_to_async
     def delete_appt():
+        ensure_db_connection()
         try:
             Appointment.objects.get(id=appointment_id).delete()
             return True
@@ -290,11 +318,11 @@ async def delete_appointment(appointment_id: int):
 @router.get("/departments", response_model=List[DepartmentOut])
 async def get_departments():
     depts = await run_in_threadpool(
-        lambda: list(
+        lambda: (ensure_db_connection(), list(
             Department.objects.filter(status="active")
             .values("id", "name")
             .order_by("name")
-        )
+        ))[1]
     )
     return depts
 
@@ -303,17 +331,17 @@ async def get_departments():
 async def get_staff_by_department(department_id: int = Query(..., gt=0)):
     try:
         await run_in_threadpool(
-            Department.objects.get, id=department_id, status="active"
+            lambda: (ensure_db_connection(), Department.objects.get(id=department_id, status="active"))[1]
         )
     except Department.DoesNotExist:
         raise HTTPException(status_code=404, detail="Department not found or inactive")
 
     staff = await run_in_threadpool(
-        lambda: list(
+        lambda: (ensure_db_connection(), list(
             Staff.objects.filter(department_id=department_id, status="active")
             .values("id", "full_name")
             .order_by("full_name")
-        )
+        ))[1]
     )
     return staff
 
@@ -330,6 +358,7 @@ async def get_my_calendar_appointments(
     try:
         @sync_to_async
         def get_my_calendar_data():
+            ensure_db_connection()
             # Get staff profile for current user
             try:
                 staff = Staff.objects.get(user=current_user)

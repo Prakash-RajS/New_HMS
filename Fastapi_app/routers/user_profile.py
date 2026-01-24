@@ -14,6 +14,28 @@ import os
 import json
 from pathlib import Path as PathLib
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 # ------------------- Router -------------------
 router = APIRouter(prefix="/profile", tags=["User_Profile"])
 
@@ -54,6 +76,7 @@ def get_profile_picture_path(filename: str) -> str:
 # ------------------- Async Database Operations -------------------
 @sync_to_async
 def get_user_by_id(user_id):
+    ensure_db_connection()
     try:
         return User.objects.select_related("staff").get(id=user_id)
     except User.DoesNotExist:
@@ -61,6 +84,7 @@ def get_user_by_id(user_id):
 
 @sync_to_async
 def get_staff_with_department(staff_id):
+    ensure_db_connection()
     try:
         return Staff.objects.select_related("department").get(id=staff_id)
     except Staff.DoesNotExist:
@@ -68,6 +92,7 @@ def get_staff_with_department(staff_id):
 
 @sync_to_async
 def get_staff_with_user(staff_id):
+    ensure_db_connection()
     try:
         return Staff.objects.select_related("user").get(id=staff_id)
     except Staff.DoesNotExist:
@@ -75,6 +100,7 @@ def get_staff_with_user(staff_id):
 
 @sync_to_async
 def get_user_permissions_async(role: str):
+    ensure_db_connection()
     try:
         permissions = Permission.objects.filter(role=role)
         return [{"module": p.module, "enabled": p.enabled} for p in permissions]
@@ -83,14 +109,17 @@ def get_user_permissions_async(role: str):
 
 @sync_to_async
 def save_staff(staff):
+    ensure_db_connection()
     staff.save()
 
 @sync_to_async
 def save_user(user):
+    ensure_db_connection()
     user.save()
 
 @sync_to_async
 def update_staff_fields(staff, **fields):
+    ensure_db_connection()
     for field, value in fields.items():
         if value is not None:
             setattr(staff, field, value)
@@ -472,6 +501,7 @@ async def get_my_profile_sync(current_user: User = Depends(get_current_user)):
     """
     @sync_to_async
     def get_profile_sync(user_id):
+        ensure_db_connection()
         try:
             user = User.objects.select_related("staff__department").get(id=user_id)
             if not user.staff:

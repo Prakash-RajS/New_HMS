@@ -23,6 +23,28 @@ django.setup()
 from HMS_backend.models import Donor, BloodGroup
 from django.utils import timezone
 
+from django.db import close_old_connections, connection
+
+# ------------------- Database Health Check -------------------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
+
 router = APIRouter()
 BASE_DIR = Path(__file__).resolve().parent.parent   # fastapi_app folder
 load_dotenv(dotenv_path=BASE_DIR / ".env")
@@ -360,7 +382,7 @@ class DonorScheduler:
         try:
             print("🔄 Running automatic eligibility check...")
             
-            donors = await run_in_threadpool(lambda: list(Donor.objects.all()))
+            donors = await run_in_threadpool(lambda: (ensure_db_connection(), list(Donor.objects.all()))[1])
             
             notifications_sent = 0
             for donor in donors:
@@ -437,6 +459,7 @@ async def add_donor(request: Request):
         raise HTTPException(status_code=422, detail=e.errors())
     
     def create_donor():
+        ensure_db_connection()
         try:
             from django.db import transaction
            
@@ -535,6 +558,7 @@ async def add_donor(request: Request):
 @router.get("/api/donors/list", response_model=List[DonorResponse])
 async def fetch_donors():
     def get_all():
+        ensure_db_connection()
         donors = Donor.objects.all()
         # Check eligibility for all donors before returning
         for donor in donors:
@@ -559,6 +583,7 @@ async def fetch_donors():
 @router.get("/api/donors/{donor_id}", response_model=DonorResponse)
 async def get_donor(donor_id: int):
     def get_donor_by_id():
+        ensure_db_connection()
         try:
             donor = Donor.objects.get(id=donor_id)
             donor.check_eligibility() # Update eligibility before returning
@@ -595,6 +620,7 @@ async def edit_donor(donor_id: int, request: Request):
         raise HTTPException(status_code=422, detail=e.errors())
     
     def update():
+        ensure_db_connection()
         try:
             donor = Donor.objects.get(id=donor_id)
             print(f"🟡 Found donor: {donor.donor_name} (ID: {donor.id})")
@@ -698,6 +724,7 @@ async def edit_donor(donor_id: int, request: Request):
 @router.delete("/api/donors/{donor_id}")
 async def delete_donor(donor_id: int):
     def delete():
+        ensure_db_connection()
         try:
             donor = Donor.objects.get(id=donor_id)
             # Store donor data for notification before deletion
@@ -725,6 +752,7 @@ async def delete_donor(donor_id: int):
 @router.post("/api/donors/{donor_id}/record-donation")
 async def record_donation(donor_id: int, units_donated: int):
     def record():
+        ensure_db_connection()
         try:
             donor = Donor.objects.get(id=donor_id)
            
@@ -755,10 +783,10 @@ async def record_donation(donor_id: int, units_donated: int):
        
         # Also update corresponding blood group
         try:
-            blood_group = await run_in_threadpool(BloodGroup.objects.get, blood_type=donor.blood_type)
+            blood_group = await run_in_threadpool(lambda: (ensure_db_connection(), BloodGroup.objects.get(blood_type=donor.blood_type))[1])
             old_units = blood_group.available_units
             blood_group.available_units += units
-            await run_in_threadpool(blood_group.save)
+            await run_in_threadpool(lambda: (ensure_db_connection(), blood_group.save())[1])
            
             # Send blood stock update notification
             from Fastapi_app.routers.add_bloodgroup import safe_send_blood_notification
@@ -826,6 +854,7 @@ async def send_urgent_request_to_donor(request: Request):
 async def check_all_donors_eligibility():
     """Endpoint to manually trigger eligibility check for all donors"""
     def check_eligibility():
+        ensure_db_connection()
         donors = Donor.objects.all()
         status_changes = []
        
@@ -848,7 +877,7 @@ async def check_all_donors_eligibility():
        
         # Send notifications and emails for status changes
         for change in changes:
-            donor = await run_in_threadpool(Donor.objects.get, id=change['donor_id'])
+            donor = await run_in_threadpool(lambda: (ensure_db_connection(), Donor.objects.get(id=change['donor_id']))[1])
             
             # If donor became eligible, send email
             if change['new_status'] == "Eligible" and donor.email:
