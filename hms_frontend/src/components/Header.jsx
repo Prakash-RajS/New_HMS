@@ -259,7 +259,7 @@ const Header = ({ isCollapsed }) => {
   };
 
   const handleSettingsClick = () => {
-    navigate("/security");
+    navigate("/settings");
   };
 
   // Listen for profile updates and fetch directly
@@ -355,15 +355,14 @@ const Header = ({ isCollapsed }) => {
       <header
         className="flex items-center justify-between p-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
         style={{
-          width: `calc(100% - ${isCollapsed ? "70px" : "220px"})`,
-          maxWidth: "2580px",
-          position: "fixed",
-          left: isCollapsed ? "100px" : "267px",
-          zIndex: 40,
-          transitionProperty: "width, left",
-          transitionDuration: "300ms",
-          transitionTimingFunction: "ease-in-out",
-        }}
+    position: "fixed",
+    top: 0,
+    left: isCollapsed ? "70px" : "220px",
+    right: "0",
+    maxWidth: "100vw",
+    zIndex: 40,
+    transition: "left 300ms ease-in-out",
+  }}
       >
         <div className="w-[394px]"></div>
 
@@ -577,7 +576,7 @@ const Header = ({ isCollapsed }) => {
           {/* Profile Dropdown */}
           <div className="relative font-[Helvetica]" ref={dropdownRef}>
             <div
-              className="relative group flex items-center gap-3 cursor-pointer w-[163px] h-[32px]"
+              className="relative group flex items-center gap-3 cursor-pointer min-w-[163px] h-[32px]"
               onClick={toggleDropdown}
             >
               <div className="relative w-8 h-8 min-w-8 min-h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0 border-2 border-white dark:border-gray-800">

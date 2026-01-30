@@ -268,8 +268,460 @@
 //   );
 // }
 
-//hm
-import { useState } from "react";
+// import { useState } from "react";
+// import { NavLink, useLocation } from "react-router-dom";
+// import LOGO from "../assets/logo.png";
+// import {
+//   LayoutDashboard,
+//   CalendarDays,
+//   Users,
+//   Building2,
+//   Bed,
+//   UserCog,
+//   Pill,
+//   Boxes,
+//   ClipboardList,
+//   DollarSign,
+//   Microscope,
+//   BarChart3,
+//   HeartPulse,
+//   Calendar,
+//   Ambulance,
+//   User,
+//   ShieldCheck,
+//   ChevronDown,
+// } from "lucide-react";
+// import { usePermissions } from "./PermissionContext";
+
+// // === MENU ITEMS WITH EXACT PERMISSION KEYS FROM YOUR MODEL ===
+// const menuItems = [
+//   {
+//     name: "Dashboard",
+//     path: "/dashboard",
+//     icon: LayoutDashboard,
+//     permission: "dashboard",
+//   },
+//   {
+//     name: "Appointments",
+//     path: "/appointments",
+//     icon: CalendarDays,
+//     permission: "appointments",
+//   },
+
+//   // Patients
+//   {
+//     name: "Patients",
+//     path: "/patients",
+//     icon: Users,
+//     dropdown: [
+//       {
+//         name: "New Registration",
+//         path: "/patients/new-registration",
+//         icon: User,
+//         permission: "patients_create",
+//       },
+//       {
+//         name: "IPD / OPD Patient",
+//         path: "/patients/ipd-opd",
+//         paths: ["/patients/ipd-opd", "/patients/out-patients"],
+//         icon: Bed,
+//         permission: "patients_view",
+//       },
+//       {
+//         name: "Patient Profile",
+//         path: "/patients/profile",
+//         paths: ["/patients/profile", "/patients/profile/details"],
+//         icon: ClipboardList,
+//         permission: "patients_profile",
+//       },
+//       {
+//       name: "Treatment Charges",
+//       path: "/patients/treatment-charges",
+//       icon: DollarSign, // Using DollarSign icon for charges
+//       permission: "treatment_charges", // Add this permission key
+//     },
+//     ],
+//   },
+
+//   // Administration
+//   {
+//     name: "Administration",
+//     path: "/Administration",
+//     icon: Building2,
+//     dropdown: [
+//       {
+//         name: "Departments",
+//         path: "/Administration/Departments",
+//         icon: Building2,
+//         permission: "departments",
+//       },
+//       {
+//         name: "Room Management",
+//         path: "/Administration/RoomManagement",
+//         paths: [
+//           "/Administration/roommanagement",
+//           "/Administration/BedList",
+//           "/Administration/RoomManagement",
+//         ],
+//         icon: Bed,
+//         permission: "room_management",
+//       },
+//       {
+//         name: "Staff Management",
+//         path: "/Administration/StaffManagement",
+//         icon: UserCog,
+//         permission: "staff_management",
+//       },
+//     ],
+//   },
+
+//   // Pharmacy
+//   {
+//     name: "Pharmacy",
+//     path: "/Pharmacy",
+//     icon: Pill,
+//     dropdown: [
+//       {
+//         name: "Stock & Inventory",
+//         path: "/Pharmacy/Stock-Inventory",
+//         icon: Boxes,
+//         permission: "pharmacy_inventory",
+//       },
+//       {
+//         name: "Bill",
+//         path: "/Pharmacy/Bill",
+//         icon: DollarSign,
+//         permission: "pharmacy_billing",
+//       },
+//     ],
+//   },
+
+//   // Doctors / Nurse
+//   {
+//     name: "Doctors / Nurse",
+//     path: "/Doctors-Nurse",
+//     icon: ShieldCheck,
+//     dropdown: [
+//       {
+//         name: "Add Doctor / Nurse",
+//         path: "/Doctors-Nurse/AddDoctorNurse",
+//         icon: User,
+//         permission: "doctors_manage",
+//       },
+//       {
+//         name: "Doctor / Nurse",
+//         path: "/Doctors-Nurse/DoctorNurseProfile",
+//         paths: [
+//           "/Doctors-Nurse/DoctorNurseProfile",
+//           "/Doctors-Nurse/ViewProfile",
+//         ],
+//         icon: Users,
+//         permission: "doctors_manage",
+//       },
+//       {
+//         name: "Medicine Allocation",
+//         path: "/Doctors-Nurse/MedicineAllocation",
+//         icon: Pill,
+//         permission: "medicine_allocation",
+//       },
+//       {
+//         name: "Appointment Calendar",
+//         path: "/appointments/calendar",
+//         icon: Calendar,
+//         permission: "appointments", // or "doctors_manage" if you prefer
+//       },
+//     ],
+//   },
+
+//   // Clinical Resources
+//   {
+//     name: "Clinical Resources",
+//     path: "/ClinicalResources",
+//     icon: Microscope,
+//     dropdown: [
+//       {
+//         name: "Laboratory Reports",
+//         path: "/ClinicalResources/Laboratory/LaboratoryReports",
+//         icon: BarChart3,
+//         permission: "lab_reports",
+//       },
+//       {
+//       name: "Laboratory Management",
+//       path: "/ClinicalResources/Laboratory/Laboratory",
+//       icon: Microscope, // Using the Microscope icon for lab management
+//       permission: "laboratory_manage",
+//     },
+//       {
+//         name: "Blood Bank",
+//         path: "/ClinicalResources/ClinicalReports/BloodBank",
+//         icon: HeartPulse,
+//         permission: "blood_bank",
+//       },
+//       {
+//         name: "Ambulance Management",
+//         path: "/ClinicalResources/EmergencyServices/Ambulance",
+//         icon: Ambulance,
+//         permission: "ambulance",
+//       },
+//     ],
+//   },
+
+//   {
+//     name: "Billing",
+//     path: "/Billing",
+//     icon: DollarSign,
+//     permission: "billing",
+//   },
+
+//   {
+//     name: "Accounts",
+//     path: "/UserSettings",
+//     paths: ["/security", "/UserSettings"],
+//     icon: UserCog,
+//     permission: "user_settings",
+//   },
+// ];
+
+// // Recursive MenuItem - unchanged design, only logic fixed
+// const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
+//   const [isOpen, setIsOpen] = useState(false);
+//   const location = useLocation();
+//   const hasDropdown = item.dropdown && item.dropdown.length > 0;
+
+//   // Filter visible children
+//   const visibleChildren = hasDropdown
+//     ? item.dropdown.filter((child) =>
+//         child.permission ? hasPermission(child.permission) : true
+//       )
+//     : [];
+
+//   // Hide parent if no children visible
+//   if (hasDropdown && visibleChildren.length === 0) {
+//     return null;
+//   }
+
+//   // Hide standalone item if no permission
+//   if (!hasDropdown && item.permission && !hasPermission(item.permission)) {
+//     return null;
+//   }
+
+//   const isParentActive = item.paths
+//     ? item.paths.some((p) => location.pathname.startsWith(p))
+//     : location.pathname.startsWith(item.path);
+
+//   const isExactActive = item.paths
+//     ? item.paths.includes(location.pathname)
+//     : location.pathname === item.path;
+
+//   const Icon = item.icon;
+//   const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
+//   const iconSizeClass = level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
+//   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
+
+//   return (
+//     <li className="w-full font-[Helvetica]">
+//       {hasDropdown ? (
+//         <>
+//           <div
+//             onClick={() => setIsOpen(!isOpen)}
+//             className={`w-full h-[40px] rounded-[8px] flex items-center justify-between pr-3 ${paddingLeft} cursor-pointer transition-all duration-200
+//               ${
+//                 isExactActive || isParentActive
+//                   ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+//                   : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+//               }`}
+//           >
+//             <div
+//               className={`flex items-center gap-2 ${
+//                 isCollapsed ? "justify-center w-full" : ""
+//               }`}
+//             >
+//               <Icon
+//                 className={`${iconSizeClass} ${
+//                   isExactActive || isParentActive
+//                     ? "text-white"
+//                     : "text-[#08994A] dark:text-emerald-500"
+//                 }`}
+//               />
+//               {!isCollapsed && (
+//                 <span className={`${textSizeClass} font-[Helvetica]`}>
+//                   {item.name}
+//                 </span>
+//               )}
+//             </div>
+//             {!isCollapsed && (
+//               <ChevronDown
+//                 size={16}
+//                 className={`transition-transform duration-200 ${
+//                   isOpen
+//                     ? "rotate-180 text-white"
+//                     : "text-[#08994A] dark:text-emerald-500"
+//                 }`}
+//               />
+//             )}
+//           </div>
+
+//           <div
+//             className="overflow-hidden transition-all duration-500 ease-in-out"
+//             style={{ maxHeight: isOpen ? "500px" : "0px" }}
+//           >
+//             <ul className="mt-2 flex flex-col gap-0.5 font-[Helvetica]">
+//               {visibleChildren.map((child, idx) => (
+//                 <MenuItem
+//                   key={idx}
+//                   item={child}
+//                   level={level + 1}
+//                   isCollapsed={isCollapsed}
+//                   hasPermission={hasPermission}
+//                 />
+//               ))}
+//             </ul>
+//           </div>
+//         </>
+//       ) : (
+//         <NavLink
+//           to={item.path}
+//           className={`w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
+//             ${
+//               isExactActive
+//                 ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
+//                 : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
+//             }`}
+//         >
+//           <Icon
+//             className={`${iconSizeClass} text-[#08994A] dark:text-emerald-500`}
+//           />
+//           {!isCollapsed && (
+//             <span className={`${textSizeClass} font-[Helvetica]`}>
+//               {item.name}
+//             </span>
+//           )}
+//         </NavLink>
+//       )}
+//     </li>
+//   );
+// };
+
+// export default function Sidebar({ isCollapsed, setIsCollapsed }) {
+//   const { hasPermission, currentUser, loading } = usePermissions();
+
+//   if (loading) {
+//     return (
+//       <div
+//         className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+//         style={{
+//           width: isCollapsed ? "80px" : "220px",
+//           height: "calc(100vh - 110px)",
+//           minHeight: "590px",
+//         }}
+//       >
+//         <div className="flex-1 p-3 flex items-center justify-center">
+//           <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   // Filter top-level items: show if standalone has permission OR any child has permission
+//   const filteredMenuItems = menuItems.filter((item) => {
+//     if (!item.dropdown) {
+//       return !item.permission || hasPermission(item.permission);
+//     }
+//     return item.dropdown.some(
+//       (child) => !child.permission || hasPermission(child.permission)
+//     );
+//   });
+
+//   return (
+//     <div
+//       className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+//       style={{
+//         width: isCollapsed ? "80px" : "220px",
+//         height: "calc(100vh - 110px)",
+//         minHeight: "590px",
+//       }}
+//     >
+//       <div
+//         className="absolute inset-0 rounded-[8px] p-[1.5px] pointer-events-none"
+//         style={{
+//           background:
+//             "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+//           WebkitMask:
+//             "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+//           WebkitMaskComposite: "xor",
+//           maskComposite: "exclude",
+//           zIndex: 1,
+//         }}
+//       ></div>
+
+//       <div
+//         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+//         style={{
+//           background:
+//             "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+//           zIndex: 0,
+//         }}
+//       ></div>
+
+//       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4 relative z-10">
+//         <button
+//           onClick={() => setIsCollapsed(!isCollapsed)}
+//           className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#08994A] dark:border-[#1E1E1E] bg-transparent"
+//         >
+//           <svg
+//             width="24px"
+//             height="24px"
+//             viewBox="0 0 24 24"
+//             fill="none"
+//             xmlns="http://www.w3.org/2000/svg"
+//             className="text-[#08994A] dark:text-emerald-500"
+//           >
+//             <path
+//               d="M4 6H20M4 12H20M4 18H20"
+//               stroke="currentColor"
+//               strokeWidth="2"
+//               strokeLinecap="round"
+//             />
+//           </svg>
+//         </button>
+
+//         {!isCollapsed && (
+//           <img
+//             src={LOGO}
+//             alt="Logo"
+//             className="w-[118px] h-[36px] object-contain"
+//           />
+//         )}
+//       </div>
+
+//       <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10">
+//         <ul className="flex flex-col gap-1.5">
+//           {filteredMenuItems.map((item, idx) => (
+//             <MenuItem
+//               key={idx}
+//               item={item}
+//               isCollapsed={isCollapsed}
+//               hasPermission={hasPermission}
+//             />
+//           ))}
+//         </ul>
+
+//         {filteredMenuItems.length === 0 && (
+//           <div className="text-center p-4 text-gray-500 dark:text-gray-400">
+//             No accessible menu items
+//             <div className="text-xs mt-2">
+//               User: {currentUser?.username} | Role: {currentUser?.role} |
+//               Superuser: {currentUser?.is_superuser ? "Yes" : "No"}
+//             </div>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// Sidebar.jsx
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
 import {
@@ -291,9 +743,10 @@ import {
   User,
   ShieldCheck,
   ChevronDown,
-  Stethoscope,
+  Settings,
 } from "lucide-react";
 import { usePermissions } from "./PermissionContext";
+import { useHospital } from "./HospitalContext";
 
 // === MENU ITEMS WITH EXACT PERMISSION KEYS FROM YOUR MODEL ===
 const menuItems = [
@@ -309,7 +762,6 @@ const menuItems = [
     icon: CalendarDays,
     permission: "appointments",
   },
-
   // Patients
   {
     name: "Patients",
@@ -337,29 +789,22 @@ const menuItems = [
         permission: "patients_profile",
       },
       {
-      name: "Treatment Charges",
-      path: "/patients/treatment-charges",
-      icon: DollarSign, // Using DollarSign icon for charges
-      permission: "treatment_charges", // Add this permission key
-    },
-    {
-      name: "Surgeries",
-      path: "/patients/surgeries",
-      icon: Stethoscope,
-      permission: "surgeries", // Add this permission key
-    },
+        name: "Treatment Charges",
+        path: "/patients/treatment-charges",
+        icon: DollarSign,
+        permission: "treatment_charges",
+      },
     ],
   },
-
   // Administration
   {
     name: "Administration",
-    path: "/Administration",
+    path: "/administration",
     icon: Building2,
     dropdown: [
       {
         name: "Departments",
-        path: "/Administration/Departments",
+        path: "/administration/departments",
         icon: Building2,
         permission: "departments",
       },
@@ -382,35 +827,33 @@ const menuItems = [
       },
     ],
   },
-
   // Pharmacy
   {
     name: "Pharmacy",
-    path: "/Pharmacy",
+    path: "/pharmacy",
     icon: Pill,
     dropdown: [
       {
         name: "Stock & Inventory",
-        path: "/Pharmacy/Stock-Inventory",
+        path: "/pharmacy/stock-inventory",
         icon: Boxes,
         permission: "pharmacy_inventory",
       },
       {
         name: "Bill",
-        path: "/Pharmacy/Bill",
+        path: "/pharmacy/bill",
         icon: DollarSign,
         permission: "pharmacy_billing",
       },
     ],
   },
-
   // Doctors / Nurse
   {
     name: "Doctors / Nurse",
-    path: "/Doctors-Nurse",
+    path: "/doctors-nurse",
     icon: ShieldCheck,
     dropdown: [
-      {
+            {
         name: "Add Doctor / Nurse",
         path: "/Doctors-Nurse/AddDoctorNurse",
         icon: User,
@@ -426,7 +869,7 @@ const menuItems = [
         icon: Users,
         permission: "doctors_manage",
       },
-      {
+            {
         name: "Medicine Allocation",
         path: "/Doctors-Nurse/MedicineAllocation",
         icon: Pill,
@@ -436,18 +879,17 @@ const menuItems = [
         name: "Appointment Calendar",
         path: "/appointments/calendar",
         icon: Calendar,
-        permission: "appointments", // or "doctors_manage" if you prefer
+        permission: "doctors_manage",
       },
     ],
   },
-
   // Clinical Resources
   {
     name: "Clinical Resources",
-    path: "/ClinicalResources",
+    path: "/clinical-resources",
     icon: Microscope,
     dropdown: [
-      {
+            {
         name: "Laboratory Reports",
         path: "/ClinicalResources/Laboratory/LaboratoryReports",
         icon: BarChart3,
@@ -473,24 +915,29 @@ const menuItems = [
       },
     ],
   },
-
   {
     name: "Billing",
-    path: "/Billing",
+    path: "/billing",
     icon: DollarSign,
     permission: "billing",
   },
-
+  // Settings Section with proper routing
+  {
+    name: "Settings",
+    path: "/settings",
+    icon: Settings,
+    permission: "settings_access",
+  },
   {
     name: "Accounts",
     path: "/UserSettings",
     paths: ["/security", "/UserSettings"],
     icon: UserCog,
-    permission: "user_settings",
+    permission: "user_settings"
   },
 ];
 
-// Recursive MenuItem - unchanged design, only logic fixed
+// Recursive MenuItem component
 const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -499,7 +946,7 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   // Filter visible children
   const visibleChildren = hasDropdown
     ? item.dropdown.filter((child) =>
-        child.permission ? hasPermission(child.permission) : true
+        child.permission ? hasPermission(child.permission) : true,
       )
     : [];
 
@@ -568,7 +1015,6 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
               />
             )}
           </div>
-
           <div
             className="overflow-hidden transition-all duration-500 ease-in-out"
             style={{ maxHeight: isOpen ? "500px" : "0px" }}
@@ -589,20 +1035,30 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
       ) : (
         <NavLink
           to={item.path}
-          className={`w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
+          className={({ isActive }) =>
+            `w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
             ${
-              isExactActive
+              isActive
                 ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
                 : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
-            }`}
+            }`
+          }
         >
-          <Icon
-            className={`${iconSizeClass} text-[#08994A] dark:text-emerald-500`}
-          />
-          {!isCollapsed && (
-            <span className={`${textSizeClass} font-[Helvetica]`}>
-              {item.name}
-            </span>
+          {({ isActive }) => (
+            <>
+              <Icon
+                className={`${iconSizeClass} ${
+                  isActive
+                    ? "text-white"
+                    : "text-[#08994A] dark:text-emerald-500"
+                }`}
+              />
+              {!isCollapsed && (
+                <span className={`${textSizeClass} font-[Helvetica]`}>
+                  {item.name}
+                </span>
+              )}
+            </>
           )}
         </NavLink>
       )}
@@ -611,12 +1067,22 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
 };
 
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
-  const { hasPermission, currentUser, loading } = usePermissions();
+  const {
+    hasPermission,
+    currentUser,
+    loading: permissionsLoading,
+  } = usePermissions();
+  const {
+    hospitalInfo,
+    loading: hospitalLoading,
+    error: hospitalError,
+  } = useHospital();
 
-  if (loading) {
+  // Show loading state
+  if (permissionsLoading) {
     return (
       <div
-        className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+        className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300 z-50"
         style={{
           width: isCollapsed ? "80px" : "220px",
           height: "calc(100vh - 110px)",
@@ -632,17 +1098,22 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   // Filter top-level items: show if standalone has permission OR any child has permission
   const filteredMenuItems = menuItems.filter((item) => {
+    // Settings require admin/superuser access
+    if (item.name === "Settings") {
+      return currentUser?.is_superuser || currentUser?.role === "admin";
+    }
+
     if (!item.dropdown) {
       return !item.permission || hasPermission(item.permission);
     }
     return item.dropdown.some(
-      (child) => !child.permission || hasPermission(child.permission)
+      (child) => !child.permission || hasPermission(child.permission),
     );
   });
 
   return (
     <div
-      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300"
+      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] flex flex-col fixed left-0 top-0 transition-all duration-300 z-50"
       style={{
         width: isCollapsed ? "80px" : "220px",
         height: "calc(100vh - 110px)",
@@ -661,7 +1132,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
           zIndex: 1,
         }}
       ></div>
-
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -671,10 +1141,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         }}
       ></div>
 
+      {/* Logo and Collapse Button */}
       <div className="w-[170px] h-[36px] mt-5 mb-2 ml-3 flex items-center gap-[7px] px-1 py-4 relative z-10">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#08994A] dark:border-[#1E1E1E] bg-transparent"
+          className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#08994A] dark:border-[#1E1E1E] bg-transparent hover:bg-[#08994A]/10 transition-colors"
+          title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
           <svg
             width="24px"
@@ -692,16 +1164,44 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             />
           </svg>
         </button>
-
         {!isCollapsed && (
-          <img
-            src={LOGO}
-            alt="Logo"
-            className="w-[118px] h-[36px] object-contain"
-          />
+          <div className="flex items-center">
+            {hospitalLoading ? (
+              <div className="w-[118px] h-[36px] flex items-center justify-center bg-gray-200 dark:bg-[#1A1A1A] rounded animate-pulse">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  Loading...
+                </span>
+              </div>
+            ) : hospitalError ? (
+              <div className="w-[118px] h-[36px] flex items-center justify-center bg-red-100 dark:bg-red-900/20 rounded">
+                <span className="text-xs text-red-500 dark:text-red-400">
+                  Error
+                </span>
+              </div>
+            ) : hospitalInfo.logo ? (
+              <img
+                src={hospitalInfo.logo}
+                alt={hospitalInfo.hospital_name || "Hospital Logo"}
+                className="w-[118px] h-[36px] object-contain"
+                onError={(e) => {
+                  // Fallback to default logo if hospital logo fails to load
+                  console.error("Failed to load hospital logo, using default");
+                  e.target.onerror = null;
+                  e.target.src = LOGO;
+                }}
+              />
+            ) : (
+              <img
+                src={LOGO}
+                alt="Default Logo"
+                className="w-[118px] h-[36px] object-contain"
+              />
+            )}
+          </div>
         )}
       </div>
 
+      {/* Menu Items */}
       <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative z-10">
         <ul className="flex flex-col gap-1.5">
           {filteredMenuItems.map((item, idx) => (
@@ -713,7 +1213,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             />
           ))}
         </ul>
-
         {filteredMenuItems.length === 0 && (
           <div className="text-center p-4 text-gray-500 dark:text-gray-400">
             No accessible menu items
@@ -724,6 +1223,25 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
           </div>
         )}
       </div>
+
+      {/* User info at bottom */}
+      {!isCollapsed && currentUser && (
+        <div className="p-3 border-t border-gray-200 dark:border-[#2A2A2A] relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0EFF7B] to-[#08994A] flex items-center justify-center text-white text-sm font-bold">
+              {currentUser.username?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                {currentUser.username || "User"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {currentUser.role || "Role"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -544,29 +544,23 @@ import sys
 from datetime import datetime
 from typing import Optional
 import uuid
-
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query, Path
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from typing import List
 from HMS_backend import models
 from HMS_backend.models import Patient, Department, Staff, LabReport, MedicineAllocation, PatientHistory
-
-from django.db.models import Q, F  # ← ADDED F
+from django.db.models import Q, F # ← ADDED F
 from Fastapi_app.routers.notifications import NotificationService
 from pathlib import Path as PathLib
 from asgiref.sync import sync_to_async
-
-
 # Django setup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 sys.path.append(BASE_DIR)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "my_project.settings")
 import django
 django.setup()
-
 from django.db import close_old_connections, connection
- 
 def check_db_connection():
     """Ensure database connection is alive"""
     try:
@@ -576,7 +570,6 @@ def check_db_connection():
         return True
     except Exception:
         return False
-
 def ensure_db_connection():
     """Reconnect if database connection is lost"""
     if not check_db_connection():
@@ -585,15 +578,11 @@ def ensure_db_connection():
             connection.connect()
         except Exception:
             pass
-
 router = APIRouter(prefix="/patients", tags=["Patients"])
-
 PHOTO_DIR = "Fastapi_app/Patient_photos"
 os.makedirs(PHOTO_DIR, exist_ok=True)
-
 # Base URL for static files
-BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000") 
-
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", "http://localhost:8000")
 def parse_date(date_str: Optional[str]):
     if not date_str:
         return None
@@ -601,14 +590,10 @@ def parse_date(date_str: Optional[str]):
         return datetime.strptime(date_str, "%Y-%m-%d").date()
     except Exception:
         return None
-
 def parse_optional_int(v):
     return int(v) if v and str(v).strip() else None
-
 def parse_optional_float(v):
     return float(v) if v and str(v).strip() else None
-
-
 # ---------- 1. GET Departments ----------
 @router.get("/departments")
 async def get_departments():
@@ -620,24 +605,22 @@ async def get_departments():
             .values("id", "name")
             .order_by("name")
         )
-    
+   
     depts = await fetch_depts()
     return {"departments": depts}
-
-
 # ---------- 2. GET Staff ----------
 @router.get("/staff")
 async def get_staff(department_id: int = Query(...)):
     if department_id <= 0:
         raise HTTPException(400, "department_id required")
-    
+   
     @sync_to_async
     def validate_dept():
         ensure_db_connection()
         return Department.objects.get(id=department_id, status="active")
-    
+   
     await validate_dept()
-    
+   
     @sync_to_async
     def fetch_staff():
         ensure_db_connection()
@@ -645,16 +628,14 @@ async def get_staff(department_id: int = Query(...)):
             Staff.objects.filter(
                 department_id=department_id,
                 status="active",
-                designation__iexact="Doctor"   # ← ONLY DOCTORS
+                designation__iexact="Doctor" # ← ONLY DOCTORS
             )
             .values("id", "full_name", "designation")
             .order_by("full_name")
         )
-    
+   
     staff = await fetch_staff()
     return {"staff": staff}
-
-
 # ---------- 3. POST Register Patient ----------
 @router.post("/register")
 async def register_patient(
@@ -691,21 +672,19 @@ async def register_patient(
     staff_db_id = parse_optional_int(staff_id)
     if not dept_id or not staff_db_id:
         raise HTTPException(400, "Invalid department_id or staff_id")
-
     @sync_to_async
     def get_department():
         ensure_db_connection()
         return Department.objects.get(id=dept_id)
-    
+   
     department = await get_department()
-    
+   
     @sync_to_async
     def get_staff_member():
         ensure_db_connection()
         return Staff.objects.get(id=staff_db_id)
-    
+   
     staff = await get_staff_member()
-
     @sync_to_async
     def create_patient():
         ensure_db_connection()
@@ -738,11 +717,8 @@ async def register_patient(
             casualty_status=(casualty_status or "Active").strip().title(),
             reason_for_visit=reason_for_visit,
         )
-
     patient = await create_patient()
-
     # History is automatically created in Patient.save() method when patient is registered
-
     if photo and photo.filename:
         # Generate new filename format: First4CharsXXXXPIC.ext
         # Get first 4 characters of name, uppercase, pad if shorter
@@ -752,42 +728,40 @@ async def register_patient(
         else:
             # If name is shorter than 4 chars, pad with underscores
             first_four = name_part.ljust(4, '_')
-        
+       
         # Generate 4-character unique ID (uppercase)
-        unique_id = str(uuid.uuid4().hex)[:4].upper()  # Using hex for cleaner output
-        
+        unique_id = str(uuid.uuid4().hex)[:4].upper() # Using hex for cleaner output
+       
         # Get file extension
         original_filename = photo.filename
         file_extension = PathLib(original_filename).suffix.lower() if original_filename else ".jpg"
-        
+       
         # Format: First4CharsXXXXPIC.ext
         filename = f"{first_four}{unique_id}PIC{file_extension}"
-        
+       
         path = os.path.join(PHOTO_DIR, filename)
-        
+       
         # Create directory if it doesn't exist
         os.makedirs(PHOTO_DIR, exist_ok=True)
-        
+       
         with open(path, "wb") as f:
             content = await photo.read()
             f.write(content)
-        
+       
         patient.photo = path.replace("\\", "/")
         @sync_to_async
         def save_photo():
             ensure_db_connection()
             patient.save()
-        
+       
         await save_photo()
-
     await NotificationService.send_patient_registered(patient)
-
     return JSONResponse({
         "success": True,
         "patient_id": patient.patient_unique_id,
         "message": "Patient registered"
     })
-    
+   
 # ---------- 4. GET List All Patients (IPD) ----------
 @router.get("/", response_model=dict)
 async def list_patients(
@@ -801,26 +775,26 @@ async def list_patients(
         def build_query():
             ensure_db_connection()
             query = Patient.objects.all().order_by("-created_at")
-            
+           
             # Add type filter if provided
             if type:
                 # Try to match the patient_type field
                 query = query.filter(patient_type__iexact=type)
-            
+           
             if search:
                 query = query.filter(
                     Q(full_name__icontains=search) |
                     Q(phone_number__icontains=search) |
                     Q(patient_unique_id__icontains=search)
                 )
-            
+           
             return query
-        
+       
         query = await build_query()
-        
-        total = await run_in_threadpool(query.count)
+       
+        total = await run_in_threadpool(lambda: (ensure_db_connection(), query.count())[1])
         patients = await run_in_threadpool(
-            lambda: list(
+            lambda: (ensure_db_connection(), list(
                 query[(page - 1) * limit : page * limit].values(
                     "id",
                     "patient_unique_id",
@@ -831,13 +805,12 @@ async def list_patients(
                     "room_number",
                     "appointment_type",
                     "casualty_status",
-                    "patient_type",  # ← ADD THIS FIELD
+                    "patient_type", # ← ADD THIS FIELD
                     "photo",
                     "created_at",
                 )
-            )
+            ))[1]
         )
-
         for p in patients:
             cs = (p.get("casualty_status") or "").strip().lower()
             p["discharge"] = "Done" if cs in ["completed", "discharged"] else "Pending"
@@ -852,7 +825,6 @@ async def list_patients(
                     p["patient_type"] = "Out-patient"
                 else:
                     p["patient_type"] = "In-patient"
-
         return {
             "patients": patients,
             "total": total,
@@ -863,8 +835,6 @@ async def list_patients(
     except Exception as e:
         logging.exception("list_patients error")
         raise HTTPException(500, detail=str(e))
-
-
 # ---------- 4.1 GET OPD ----------
 @router.get("/opd")
 async def list_opd(
@@ -880,21 +850,18 @@ async def list_opd(
                 Q(casualty_status__iexact="Completed") |
                 Q(casualty_status__iexact="Discharged")
             ).order_by("-created_at")
-
             if search:
                 qs = qs.filter(
                     Q(full_name__icontains=search) |
                     Q(patient_unique_id__icontains=search)
                 )
-
             return qs
-        
+       
         qs = await build_opd_query()
-
-        total = await run_in_threadpool(qs.count)
+        total = await run_in_threadpool(lambda: (ensure_db_connection(), qs.count())[1])
         start = (page - 1) * limit
         patients = await run_in_threadpool(
-            lambda: list(
+            lambda: (ensure_db_connection(), list(
                 qs[start:start + limit].values(
                     "id",
                     "patient_unique_id",
@@ -905,12 +872,11 @@ async def list_opd(
                     "room_number",
                     "appointment_type",
                     "casualty_status",
-                    "patient_type",  # ← ADD THIS FIELD
+                    "patient_type", # ← ADD THIS FIELD
                     "photo"
                 )
-            )
+            ))[1]
         )
-
         for p in patients:
             p["discharge"] = "Done"
             photo = p.get("photo")
@@ -924,7 +890,7 @@ async def list_opd(
                     p["patient_type"] = "Out-patient"
                 else:
                     p["patient_type"] = "In-patient"
-        
+       
         return {
             "patients": patients,
             "total": total,
@@ -932,11 +898,9 @@ async def list_opd(
             "limit": limit,
             "pages": (total + limit - 1) // limit,
         }
-
     except Exception as e:
         logging.exception("list_opd error: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch OPD patients: {str(e)}")
-
 # ---------- 5. GET One Patient (BY ID OR PATxxxx) ----------
 @router.get("/{patient_id}")
 async def get_patient(patient_id: str = Path(...)):
@@ -946,30 +910,28 @@ async def get_patient(patient_id: str = Path(...)):
             def get_by_id():
                 ensure_db_connection()
                 return Patient.objects.select_related("department", "staff").get(id=int(patient_id))
-            
+           
             patient = await get_by_id()
         else:
             @sync_to_async
             def get_by_uid():
                 ensure_db_connection()
                 return Patient.objects.select_related("department", "staff").get(patient_unique_id=patient_id)
-            
+           
             patient = await get_by_uid()
-
         @sync_to_async
         def get_bed():
             ensure_db_connection()
             return patient.beds.first()
-        
+       
         bed = await get_bed()
         if bed:
             @sync_to_async
             def refresh_bed_group():
                 ensure_db_connection()
                 bed.bed_group.refresh_counts()
-            
+           
             await refresh_bed_group()
-
         p = {
             "id": patient.id,
             "patient_unique_id": patient.patient_unique_id,
@@ -1012,29 +974,23 @@ async def get_patient(patient_id: str = Path(...)):
         if bed:
             p["bed_group"] = bed.bed_group.bedGroup
             p["bed_number"] = bed.bed_number
-
         # Format dates
         for f in ["date_of_birth", "date_of_registration", "admission_date", "discharge_date"]:
             if p.get(f):
                 d = p[f]
                 p[f] = d.strftime("%m/%d/%Y")
-
         if p["photo"]:
             p["photo_url"] = f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(p['photo'])}"
         else:
             p["photo_url"] = None
-
         cs = (p.get("casualty_status") or "").strip().lower()
         p["discharge"] = "Done" if cs in ["completed", "discharged"] else "Pending"
-
         return p
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
     except Exception as e:
         logging.exception("get_patient error")
         raise HTTPException(500, detail=str(e))
-
-
 # ---------- 6. PUT Edit Patient ----------
 @router.put("/{patient_id}")
 async def edit_patient(
@@ -1053,16 +1009,14 @@ async def edit_patient(
         def get_patient_edit():
             ensure_db_connection()
             return Patient.objects.get(patient_unique_id=patient_id)
-        
+       
         patient = await get_patient_edit()
-
         if full_name is not None and full_name.strip():
             patient.full_name = full_name.strip()
         if phone_number is not None and phone_number.strip():
             patient.phone_number = phone_number.strip()
         if appointment_type is not None and appointment_type.strip():
             patient.appointment_type = appointment_type.strip()
-
         if status is not None:
             cleaned = status.strip()
             if cleaned:
@@ -1072,12 +1026,11 @@ async def edit_patient(
                     patient.patient_type = "Out-patient"
                 else:
                     patient.patient_type = "in-patient"
-        
+       
         if date_of_registration:
             parsed = parse_date(date_of_registration)
             if parsed:
                 patient.date_of_registration = parsed
-
         dept_id = parse_optional_int(department_id)
         staff_db_id = parse_optional_int(staff_id)
         if dept_id:
@@ -1085,7 +1038,7 @@ async def edit_patient(
             def get_dept_edit():
                 ensure_db_connection()
                 return Department.objects.get(id=dept_id)
-            
+           
             department = await get_dept_edit()
             patient.department = department
         if staff_db_id:
@@ -1093,25 +1046,24 @@ async def edit_patient(
             def get_staff_edit():
                 ensure_db_connection()
                 return Staff.objects.get(id=staff_db_id)
-            
+           
             staff = await get_staff_edit()
             patient.staff = staff
-
         if photo and photo.filename:
             # Delete old photo if exists
             if patient.photo:
                 try:
                     # Get the actual file path from the ImageFieldFile object
-                    old_photo_path = patient.photo.path  # Use .path attribute for Django FileField/ImageField
+                    old_photo_path = patient.photo.path # Use .path attribute for Django FileField/ImageField
                     if os.path.exists(old_photo_path):
                         os.remove(old_photo_path)
                 except Exception as e:
                     logging.warning(f"Failed to delete old photo: {e}")
-            
+           
             # Generate new filename format: First4CharsXXXXPIC.ext
             # Use updated full_name if provided, otherwise existing name
             name_to_use = full_name.strip() if full_name and full_name.strip() else patient.full_name
-            
+           
             # Get first 4 characters of name, uppercase, pad if shorter
             name_part = name_to_use.upper()
             if len(name_part) >= 4:
@@ -1119,34 +1071,34 @@ async def edit_patient(
             else:
                 # If name is shorter than 4 chars, pad with underscores
                 first_four = name_part.ljust(4, '_')
-            
+           
             # Generate 4-character unique ID (uppercase)
-            unique_id = str(uuid.uuid4().hex)[:4].upper()  # Using hex for cleaner output
-            
+            unique_id = str(uuid.uuid4().hex)[:4].upper() # Using hex for cleaner output
+           
             # Get file extension
             original_filename = photo.filename
             file_extension = PathLib(original_filename).suffix.lower() if original_filename else ".jpg"
-            
+           
             # Format: First4CharsXXXXPIC.ext
             filename = f"{first_four}{unique_id}PIC{file_extension}"
-            
+           
             path = os.path.join(PHOTO_DIR, filename)
-            
+           
             # Create directory if it doesn't exist
             os.makedirs(PHOTO_DIR, exist_ok=True)
-            
+           
             with open(path, "wb") as f:
                 content = await photo.read()
                 f.write(content)
-            
+           
             # Save the new photo path to the patient object
             patient.photo = path.replace("\\", "/")
-        
+       
         @sync_to_async
         def save_patient_edit():
             ensure_db_connection()
             patient.save()
-        
+       
         await save_patient_edit()
         await NotificationService.send_patient_updated(patient)
         return JSONResponse({"success": True, "message": "Updated"})
@@ -1155,7 +1107,6 @@ async def edit_patient(
     except Exception as e:
         logging.exception("edit_patient error")
         raise HTTPException(400, detail=str(e))
-
 # ---------- 8. GET Patient History ----------
 @router.get("/{patient_id}/history")
 async def get_patient_history(
@@ -1176,31 +1127,31 @@ async def get_patient_history(
             def get_patient_history_id():
                 ensure_db_connection()
                 return Patient.objects.get(id=int(patient_id))
-            
+           
             patient = await get_patient_history_id()
         else:
             @sync_to_async
             def get_patient_history_uid():
                 ensure_db_connection()
                 return Patient.objects.get(patient_unique_id=patient_id)
-            
+           
             patient = await get_patient_history_uid()
-        
+       
         # Get history records for this patient
         @sync_to_async
         def get_history_qs():
             ensure_db_connection()
             return patient.history_records.all().order_by("-created_at")
-        
+       
         history_qs = await get_history_qs()
-        
+       
         # Get total count
-        total = await run_in_threadpool(history_qs.count)
-        
+        total = await run_in_threadpool(lambda: (ensure_db_connection(), history_qs.count())[1])
+       
         # Get paginated results
         start = (page - 1) * limit
         end = start + limit
-        
+       
         @sync_to_async
         def fetch_history():
             ensure_db_connection()
@@ -1214,14 +1165,14 @@ async def get_patient_history(
                     "created_at"
                 )
             )
-        
+       
         history = await fetch_history()
-        
+       
         # Format dates
         for record in history:
             if record["created_at"]:
                 record["created_at"] = record["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-        
+       
         return {
             "patient_id": patient.patient_unique_id,
             "patient_name": patient.full_name,
@@ -1233,14 +1184,12 @@ async def get_patient_history(
             "limit": limit,
             "pages": (total + limit - 1) // limit
         }
-        
+       
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
     except Exception as e:
         logging.exception("get_patient_history error")
         raise HTTPException(500, detail=str(e))
-
-
 @router.get("/{patient_id}/diagnoses/", response_model=List[dict])
 def get_patient_diagnoses(patient_id: int):
     """
@@ -1255,10 +1204,10 @@ def get_patient_diagnoses(patient_id: int):
             .filter(patient__id=patient_id)
             .values(
                 "id",
-                "test_type",          # reportType
-                "created_at",         # date
+                "test_type", # reportType
+                "created_at", # date
                 "status",
-                "result",             # description (or notes)
+                "result", # description (or notes)
             )
         )
         # Format exactly like the mock data
@@ -1273,8 +1222,6 @@ def get_patient_diagnoses(patient_id: int):
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 # --------------------------------------------------------------
 # 2. PRESCRIPTIONS (medicine allocations)
 # --------------------------------------------------------------
@@ -1305,14 +1252,12 @@ def get_patient_prescriptions(patient_id: int):
                 "prescription": a["medicine_name"],
                 "dosage": f"{a['dosage']} {a['quantity'] or ''}".strip(),
                 "timing": f"{a['frequency'] or ''} {a['time'] or ''}".strip(),
-                "status": "Completed",          # you can add a real status field later
+                "status": "Completed", # you can add a real status field later
             }
             for a in allocs
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
 # --------------------------------------------------------------
 # 3. TEST REPORTS (lab reports – same as diagnoses but with extra fields)
 # --------------------------------------------------------------
@@ -1329,15 +1274,14 @@ def get_patient_test_reports(patient_id: int):
                 "test_type",
                 "department",
                 "status",
-                "order_id",  # Add order_id
-                "file_path",  # Add file_path
+                "order_id", # Add order_id
+                "file_path", # Add file_path
             )
         )
         print(reports.file_path)
         # Helper to get month name
         def month_name(dt):
             return dt.strftime("%B") if dt else "—"
-
         return [
             {
                 "dateTime": r["created_at"].strftime("%Y-%m-%d %I:%M %p") if r["created_at"] else "—",
@@ -1345,15 +1289,15 @@ def get_patient_test_reports(patient_id: int):
                 "testType": r["test_type"],
                 "department": r["department"] or "General",
                 "status": r["status"].capitalize(),
-                "orderId": r["order_id"],  # Include orderId
-                "hasReport": bool(r["file_path"]),  # Indicate if report exists
-                "reportPath": r["file_path"] if r["file_path"] else None,  # Include file path
+                "orderId": r["order_id"], # Include orderId
+                "hasReport": bool(r["file_path"]), # Indicate if report exists
+                "reportPath": r["file_path"] if r["file_path"] else None, # Include file path
             }
             for r in reports
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+   
 @router.get("/{patient_id}/surgeries")
 async def get_patient_surgeries(
     patient_id: str = Path(...),
@@ -1370,31 +1314,31 @@ async def get_patient_surgeries(
             def get_patient_surgeries_id():
                 ensure_db_connection()
                 return Patient.objects.get(id=int(patient_id))
-            
+           
             patient = await get_patient_surgeries_id()
         else:
             @sync_to_async
             def get_patient_surgeries_uid():
                 ensure_db_connection()
                 return Patient.objects.get(patient_unique_id=patient_id)
-            
+           
             patient = await get_patient_surgeries_uid()
-        
+       
         # Get surgeries for this patient
         @sync_to_async
         def get_surgeries_qs():
             ensure_db_connection()
             return patient.surgeries.all().select_related('doctor').order_by("-scheduled_date")
-        
+       
         surgeries_qs = await get_surgeries_qs()
-        
+       
         # Get total count
-        total = await run_in_threadpool(surgeries_qs.count)
-        
+        total = await run_in_threadpool(lambda: (ensure_db_connection(), surgeries_qs.count())[1])
+       
         # Get paginated results
         start = (page - 1) * limit
         end = start + limit
-        
+       
         @sync_to_async
         def fetch_surgeries():
             ensure_db_connection()
@@ -1409,9 +1353,9 @@ async def get_patient_surgeries(
                     "doctor__full_name"
                 )
             )
-        
+       
         surgeries = await fetch_surgeries()
-        
+       
         # Format the data
         formatted_surgeries = []
         for surgery in surgeries:
@@ -1424,9 +1368,9 @@ async def get_patient_surgeries(
                 "scheduled_date": surgery["scheduled_date"].strftime("%Y-%m-%d %H:%M:%S") if surgery["scheduled_date"] else None,
                 "doctor": surgery["doctor__full_name"] if surgery["doctor__full_name"] else "—"
             })
-        
-        return formatted_surgeries  # Return directly the array for frontend
-        
+       
+        return formatted_surgeries # Return directly the array for frontend
+       
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
     except Exception as e:

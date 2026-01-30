@@ -223,6 +223,7 @@
 
 # main.py
 
+from pathlib import Path
 import Fastapi_app.django_setup  # <-- sets DJANGO_SETTINGS_MODULE & calls django.setup()
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -252,7 +253,7 @@ from Fastapi_app.routers import (
     attendance, stock, ambulance, billing, auth, security,
     user_management, user_profile, medicine_allocation,
     pharmacybilling, invoice_generator, notifications, invoice_pharmacy_billing, hospital_billing,
-    dashboard, treatment_charges, laboratory, surgery
+    dashboard, treatment_charges, laboratory, surgery, settings
 )
 
 @asynccontextmanager
@@ -333,6 +334,14 @@ app.mount("/invoices_generator", StaticFiles(directory=HOSPITALBILLING_DIR), nam
 app.mount("/Fastapi_app/Staff_documents", StaticFiles(directory="Fastapi_app/Staff_documents"), name="staff_docs")
 
 app.mount("/uploads", StaticFiles(directory="Fastapi_app/uploads"), name="uploads")
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+media_dir = BASE_DIR / "media"
+media_dir.mkdir(exist_ok=True)
+(media_dir / "hospital_logo").mkdir(exist_ok=True)
+
+# Mount static files
+app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
 
 # ==================== HEALTH CHECK ====================
 @app.get("/")
@@ -437,6 +446,7 @@ app.include_router(dashboard.router)
 app.include_router(treatment_charges.router)
 app.include_router(laboratory.router)
 app.include_router(surgery.router)
+app.include_router(settings.router)
 
 # Make notify_clients available to routers
 app.state.notify_clients = notify_clients

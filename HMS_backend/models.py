@@ -944,6 +944,12 @@ class Permission(models.Model):
         
         # User Management
         ("create_user", "Create User"),
+        
+        ("settings_access", "Access Settings"),
+        ("settings_hospital", "Manage Hospital Info"),
+        ("settings_security", "Manage Security Settings"),
+        ("settings_general", "Manage General Settings"),
+ 
     ]
 
     class Meta:
@@ -1394,3 +1400,68 @@ class Surgery(models.Model):
             )
     
         # Case 3: success ↔ failed → DO NOTHING
+        
+class HospitalSettings(models.Model):
+    """Core hospital information - usually only one instance"""
+    hospital_name = models.CharField(max_length=255, default="Sravan Multispeciality Hospital")
+    logo = models.ImageField(upload_to='hospital_logo/', blank=True, null=True)
+    address = models.TextField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    gstin = models.CharField(max_length=20, blank=True, verbose_name="GSTIN")
+    emergency_contact = models.CharField(max_length=20, blank=True)
+    website = models.URLField(blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Additional fields for hospital settings
+    tagline = models.CharField(max_length=255, blank=True, null=True)
+    established_year = models.IntegerField(null=True, blank=True)
+    registration_number = models.CharField(max_length=50, blank=True, null=True)
+    working_hours = models.JSONField(default=dict, blank=True, help_text="Working hours in JSON format")
+
+    # System preferences field (ADD THIS)
+    system_preferences = models.JSONField(default=dict, blank=True, help_text="System preferences and configurations")
+
+    class Meta:
+        verbose_name = "Hospital Information"
+        verbose_name_plural = "Hospital Information"
+        db_table = "hospital_settings"
+
+    def __str__(self):
+        return self.hospital_name
+
+    @classmethod
+    def get_instance(cls):
+        """Always get or create the single instance"""
+        instance, created = cls.objects.get_or_create(id=1)
+        return instance
+
+    def save(self, *args, **kwargs):
+        if not self.working_hours:
+            self.working_hours = {
+                "monday": {"start": "09:00", "end": "18:00", "open": True},
+                "tuesday": {"start": "09:00", "end": "18:00", "open": True},
+                "wednesday": {"start": "09:00", "end": "18:00", "open": True},
+                "thursday": {"start": "09:00", "end": "18:00", "open": True},
+                "friday": {"start": "09:00", "end": "18:00", "open": True},
+                "saturday": {"start": "09:00", "end": "14:00", "open": True},
+                "sunday": {"start": "09:00", "end": "14:00", "open": False},
+            }
+
+        # Set default system preferences if empty
+        if not self.system_preferences:
+            self.system_preferences = {
+                "enable_email_notifications": True,
+                "enable_sms_notifications": True,
+                "allow_file_uploads": True,
+                "max_file_size_mb": 10,
+                "default_records_per_page": 20,
+                "default_timezone": "Asia/Kolkata",
+                "default_language": "en",
+                "default_currency": "INR",
+                "enable_dark_mode_default": False,
+                "date_format": "DD/MM/YYYY",
+                "time_format": "12h",
+            }
+
+        super().save(*args, **kwargs)

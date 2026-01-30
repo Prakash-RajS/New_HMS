@@ -1043,6 +1043,7 @@
 
 // export default Profile;
 // hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
+// hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
 import React, { useState, useEffect } from "react";
 import {
   FaEnvelope,
@@ -1611,6 +1612,7 @@ const fetchProfile = async () => {
         location: ""
       });
       successToast("Profile updated successfully!");
+      window.location.reload(); // Auto refresh the whole page after successful update
 
     } catch (err) {
       console.error("Update error:", err);
@@ -1659,6 +1661,7 @@ const fetchProfile = async () => {
       });
       setShowPasswordModal(false);
       successToast("Password changed successfully!");
+      window.location.reload(); // Auto refresh the whole page after successful password change
     } catch (err) {
       console.error("Password change error:", err);
       

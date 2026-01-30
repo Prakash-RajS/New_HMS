@@ -50,6 +50,7 @@ import Ambulance from "./pages/Clinical_Resources/EmergencyService/AmbulanceMana
 import UserSettings from "./pages/Accounts/UserSettings.jsx";
 import Security from "./pages/Accounts/SecuritySettingsPage.jsx";
 import GlobalBackgroundText from "./components/GlobalBackgroundText.jsx";
+import SettingsPage from "./pages/settings/SettingsPage";
 
 import { WebSocketProvider } from "./components/WebSocketContext";
 import {
@@ -59,23 +60,24 @@ import {
 import TreatmentCharges from "./pages/Patients/TreatmentCharges.jsx";
 import SurgeryList from "./pages/Patients/SurgeryList.jsx";
 import { UserProvider } from "./contexts/UserContext";
+import { HospitalProvider } from "./components/HospitalContext.jsx";
 
 // -------------------- Cookie Helper Functions --------------------
 const getCookie = (name) => {
   try {
     const cookies = document.cookie;
-    
-    const cookieArray = cookies.split(';');
-    
+
+    const cookieArray = cookies.split(";");
+
     for (let cookie of cookieArray) {
       const trimmedCookie = cookie.trim();
-      
+
       if (trimmedCookie.startsWith(`${name}=`)) {
         const value = trimmedCookie.substring(name.length + 1);
         return value;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error("Error reading cookie:", error);
@@ -126,23 +128,30 @@ const DashboardRedirect = () => {
     console.log("📍 Role:", currentUser?.role);
 
     // If user is admin/superuser, stay on dashboard
-    const isSuperuserOrAdmin = currentUser?.is_superuser === true || 
-                               currentUser?.role?.toLowerCase() === "admin";
-    
+    const isSuperuserOrAdmin =
+      currentUser?.is_superuser === true ||
+      currentUser?.role?.toLowerCase() === "admin";
+
     if (isSuperuserOrAdmin) {
-      console.log("✅ DashboardRedirect - Admin/Superuser detected, staying on dashboard");
+      console.log(
+        "✅ DashboardRedirect - Admin/Superuser detected, staying on dashboard",
+      );
       return; // Stay on dashboard
     }
 
     // For regular users without dashboard permission, go to profile
     if (!hasPermission("dashboard")) {
-      console.log("⚠️ DashboardRedirect - No dashboard permission, redirecting to profile");
+      console.log(
+        "⚠️ DashboardRedirect - No dashboard permission, redirecting to profile",
+      );
       navigate("/dashboard", { replace: true });
       return;
     }
 
     // User has dashboard permission, stay on dashboard
-    console.log("✅ DashboardRedirect - User has dashboard permission, staying on dashboard");
+    console.log(
+      "✅ DashboardRedirect - User has dashboard permission, staying on dashboard",
+    );
   }, [hasPermission, navigate, loading, currentUser]);
 
   if (loading) {
@@ -183,9 +192,11 @@ function AppContent({ contentRef }) {
   // Different layout for login page vs authenticated pages
   if (isLoginPage) {
     return (
-      <div className={`min-h-screen transition-colors duration-300 ${
-        theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
-      }`}>
+      <div
+        className={`min-h-screen transition-colors duration-300 ${
+          theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
+        }`}
+      >
         <Routes>
           <Route path="/" element={<Login />} />
         </Routes>
@@ -196,18 +207,20 @@ function AppContent({ contentRef }) {
 
   // Authenticated layout
   return (
-    <div className={`flex min-h-screen transition-colors duration-300 ${
-      theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
-    }`}>
+    <div
+      className={`flex min-h-screen transition-colors duration-300 ${
+        theme === "dark" ? "bg-black text-white" : "bg-gray-100 text-black"
+      }`}
+    >
       {/* Sidebar */}
       <GlobalBackgroundText isCollapsed={isCollapsed} />
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      
+
       {/* Main content area with header and scrollable content */}
       <div className="flex flex-col flex-1">
         {/* Fixed Header */}
         <Header isCollapsed={isCollapsed} />
-        
+
         {/* Scrollable main content */}
         <main
           ref={contentRef}
@@ -216,14 +229,14 @@ function AppContent({ contentRef }) {
             marginTop: "72px", // Height of header
             marginLeft: isCollapsed ? "100px" : "240px",
             height: "calc(100vh - 72px)",
-            width: `calc(100vw - ${isCollapsed ? "100px" : "240px"})`
+            width: `calc(100vw - ${isCollapsed ? "100px" : "240px"})`,
           }}
         >
           <div className="p-4 min-h-full">
             <Routes>
               {/* Redirect root to dashboard */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              
+
               {/* Dashboard - with redirect logic */}
               <Route path="/dashboard" element={<DashboardRedirect />} />
 
@@ -553,6 +566,37 @@ function AppContent({ contentRef }) {
                 }
               />
 
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="settings_access">
+                      <SettingsPage />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/hospital"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="settings_hospital">
+                      <SettingsPage />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings/security"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="settings_security">
+                      <SettingsPage />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
@@ -570,16 +614,18 @@ export default function App() {
   return (
     <ThemeProvider>
       <PermissionProvider>
+        
         <WebSocketProvider>
-        <UserProvider> 
-          
+          <UserProvider>
+            <HospitalProvider>
             <Router>
               <ScrollToTop contentRef={contentRef} />
               <AppContent contentRef={contentRef} />
             </Router>
-          
-        </UserProvider> 
+            </HospitalProvider>
+          </UserProvider>
         </WebSocketProvider>
+        
       </PermissionProvider>
     </ThemeProvider>
   );
