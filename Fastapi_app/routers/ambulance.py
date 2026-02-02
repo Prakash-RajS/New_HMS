@@ -437,7 +437,7 @@ async def list_trips():
     for t in trips:
         dispatch_resp = None
         if t.dispatch:
-            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit))[1]()  # ← Safe async access
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit)[1])()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=t.dispatch.id, dispatch_id=t.dispatch.dispatch_id,
@@ -488,7 +488,7 @@ async def create_trip(payload: TripCreate):
         # Build nested dispatch response safely
         dispatch_resp = None
         if dispatch:
-            unit_d = await sync_to_async(lambda: (ensure_db_connection(), dispatch.unit))[1]()  # ← Critical fix
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), dispatch.unit)[1])()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=dispatch.id, dispatch_id=dispatch.dispatch_id,
@@ -542,7 +542,7 @@ async def update_trip(trip_id: int, payload: TripUpdate):
         # Build response
         dispatch_resp = None
         if t.dispatch:
-            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit))[1]()
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit)[1])()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=t.dispatch.id, dispatch_id=t.dispatch.dispatch_id,
@@ -618,7 +618,7 @@ async def update_trip_status(trip_id: int, status: str):
         # Build response
         dispatch_resp = None
         if trip.dispatch:
-            unit_d = await sync_to_async(lambda: (ensure_db_connection(), trip.dispatch.unit))[1]()
+            unit_d = await sync_to_async(lambda: (ensure_db_connection(), trip.dispatch.unit)[1])()
             unit_d_resp = AmbulanceUnitResponse.from_orm(unit_d) if unit_d else None
             dispatch_resp = DispatchResponse(
                 id=trip.dispatch.id, dispatch_id=trip.dispatch.dispatch_id,

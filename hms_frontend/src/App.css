@@ -45,3 +45,40 @@
 .read-the-docs {
   color: #888;
 }
+
+
+/* =========================================================
+   REMOVE BROWSER PASSWORD REVEAL / AUTOFILL ICONS
+   Works in: Chrome, Edge, Firefox, Safari, Brave, Opera
+   ========================================================= */
+
+/* Edge / IE password reveal & clear */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Chrome / Edge / Safari autofill & credential icons */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-clear-button,
+input[type="password"]::-webkit-inner-spin-button,
+input[type="password"]::-webkit-outer-spin-button {
+  display: none !important;
+  appearance: none;
+}
+
+/* Chrome / Edge: hide decoration container */
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
+/* Firefox password reveal */
+input[type="password"] {
+  -moz-appearance: textfield;
+}
+
+/* Safari autofill background + icon */
+input:-webkit-autofill {
+  box-shadow: 0 0 0px 1000px transparent inset !important;
+  -webkit-text-fill-color: inherit !important;
+}

@@ -113,119 +113,119 @@ const LoginPage = () => {
     }
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
 
-    if (!username && !password) {
-      errorToast("Please enter username and password");
-      return;
-    }
-    if (!username) {
-      errorToast("Username is required");
-      return;
-    }
-    if (!password) {
-      errorToast("Password is required");
-      return;
-    }
+  
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
 
-    setIsLoading(true);
+  if (!username && !password) {
+    errorToast("Please enter username and password");
+    return;
+  }
+  if (!username) {
+    errorToast("Username is required");
+    return;
+  }
+  if (!password) {
+    errorToast("Password is required");
+    return;
+  }
 
-    try {
-      const formData = new FormData();
-      formData.append("username", username);
-      formData.append("password", password);
+  setIsLoading(true);
 
-      console.log("🔄 Attempting login...");
+  try {
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("password", password);
 
-      const res = await api.post(
-        "/auth/login",
-        formData,
-        {
-          timeout: 10000,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+    console.log("🔄 Attempting login...");
 
-      console.log("🔑 Login Response:", res.data);
-      console.log("🍪 Response headers:", res.headers);
-      
-      // Check if cookies were set in the response
-      const setCookieHeader = res.headers['set-cookie'];
-      if (setCookieHeader) {
-        console.log("✅ Set-Cookie header received:", setCookieHeader);
-        
-        // Wait a moment for cookies to be processed by browser
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Check if cookies are now accessible
-        console.log("🍪 Document cookies after login:", document.cookie);
-        
-        // Try to read the cookie
-        const token = getCookie('access_token');
-        if (token) {
-          console.log("✅ Successfully read access_token cookie:", token.substring(0, 30) + "...");
-        } else {
-          console.log("⚠️ Cookie might be HttpOnly (not accessible to JavaScript)");
-          console.log("🔍 This is OK - HttpOnly cookies are more secure");
-        }
+    const res = await api.post(
+      "/auth/login",
+      formData,
+      {
+        timeout: 10000,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       }
+    );
 
-      // Handle "Remember Me" - only username (non-sensitive)
-      if (rememberMe) {
-        localStorage.setItem("rememberedUsername", username);
-      } else {
-        localStorage.removeItem("rememberedUsername");
-      }
-
-      // Test if cookies are working by making an API call
-      console.log("🧪 Testing cookie functionality...");
-      const cookieTest = await testCookieAfterLogin();
-      
-      if (cookieTest) {
-        console.log("✅ Cookies are working correctly!");
-        
-        // Wait a moment before triggering the login event
-        setTimeout(() => {
-          // Trigger login event for PermissionContext
-          window.dispatchEvent(new CustomEvent("loginSuccess", { 
-            detail: { username: username } 
-          }));
-          
-          successToast(`Welcome back, ${username}!`);
-          
-          // Start session monitor
-          const monitor = startSessionMonitor();
-          setSessionMonitor(monitor);
-          
-          // Navigate to dashboard
-          navigate("/dashboard");
-        }, 1000);
-      } else {
-        console.error("❌ Cookies not working properly");
-        errorToast("Login successful but cookies not working. Please refresh.");
-        setIsLoading(false);
-      }
-      
-    } catch (err) {
-      console.error("❌ Login Error:", err);
-      
-      if (err.code === "ERR_NETWORK") {
-        errorToast("Cannot connect to server. Please check if backend is running.");
-      } else if (err.response?.status === 401) {
-        errorToast("Invalid username or password");
-      } else if (err.response?.data?.detail) {
-        errorToast(err.response.data.detail);
-      } else {
-        errorToast("Login failed. Please try again.");
-      }
-      setIsLoading(false);
+    console.log("✅ Login successful:", res.data);
+    
+    // Handle "Remember Me" - only username (non-sensitive)
+    if (rememberMe) {
+      localStorage.setItem("rememberedUsername", username);
+    } else {
+      localStorage.removeItem("rememberedUsername");
     }
-  };
 
+    // Wait a moment to ensure cookies are set
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Trigger login event for PermissionContext
+    window.dispatchEvent(new CustomEvent("loginSuccess", { 
+      detail: { 
+        username: username,
+        userData: res.data.user 
+      } 
+    }));
+    
+   successToast(`Welcome back, ${username}!`);
+
+const monitor = startSessionMonitor();
+setSessionMonitor(monitor);
+
+// Let toast render before route change
+setTimeout(() => {
+  navigate("/dashboard");
+}, 300);
+
+    
+  } catch (err) {
+    console.error("❌ Login Error:", err);
+    
+    // Debug: Log full error response
+    if (err.response) {
+      console.error("Error status:", err.response.status);
+      console.error("Error data:", err.response.data);
+      console.error("Error headers:", err.response.headers);
+    }
+    
+    // Specific error handling
+    if (err.code === "ERR_NETWORK") {
+      errorToast("Cannot connect to server. Please check your internet connection.");
+    } else if (err.response?.status === 401) {
+      // Backend returns 401 for invalid password
+      errorToast("Invalid password");
+    } else if (err.response?.status === 404) {
+      // Backend returns 404 for user not found
+      errorToast("Username not found");
+    } else if (err.response?.status === 400) {
+      // Backend returns 400 for missing credentials
+      errorToast(err.response.data?.detail || "Username and password required");
+    } else if (err.response?.data?.detail) {
+      // Any other error with detail message
+      errorToast(err.response.data.detail);
+    } else if (err.message?.includes("timeout")) {
+      errorToast("Request timeout. Please try again.");
+    } else {
+      errorToast("Login failed. Please try again.");
+    }
+    
+    setIsLoading(false);
+  }
+};
+
+useEffect(() => {
+    const showLogoutToast = localStorage.getItem("showLogoutToast");
+
+    if (showLogoutToast === "true") {
+      successToast("Logged out successfully!");
+      localStorage.removeItem("showLogoutToast"); // clear the flag
+    }
+  }, []);
   // Rest of your component remains the same...
   return (
     <>
@@ -424,45 +424,60 @@ const LoginPage = () => {
               </motion.div>
 
               <motion.div
-                className="flex flex-col"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-              >
-                <label
-                  htmlFor="password"
-                  className={`font-medium mb-1 ${
-                    isLightMode ? "text-gray-700" : "text-gray-400"
-                  }`}
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    placeholder="Enter your password"
-                    className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 bg-[#0EFF7B1A] focus:outline-none focus:bg-[#0EFF7B1A] pr-10 transition-all duration-300 hover:border-[#0EFF7B] border border-transparent ${
-                      isLightMode
-                        ? "text-[#00E569E5] placeholder-[#00E569E5]"
-                        : "text-white placeholder-gray-400"
-                    }`}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    aria-label="Password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-5 h-5"
-                    aria-label={
-                      showPassword ? "Hide password" : "Show password"
-                    }
-                  >
-                    {showPassword ? <Eye /> : <EyeOff />}
-                  </button>
-                </div>
-              </motion.div>
+  className="flex flex-col"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.6, delay: 0.8 }}
+>
+  <label
+    htmlFor="password"
+    className={`font-medium mb-1 ${
+      isLightMode ? "text-gray-700" : "text-gray-400"
+    }`}
+  >
+    Password
+  </label>
+
+  <div className="relative">
+    <input
+      type={showPassword ? "text" : "password"}
+      id="password"
+      name="password"
+      placeholder="Enter your password"
+
+      /* 🔐 Disable browser password UI (ALL browsers) */
+      autoComplete="new-password"
+      autoCorrect="off"
+      autoCapitalize="off"
+      spellCheck={false}
+      inputMode="text"
+
+      className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 pr-10
+        bg-[#0EFF7B1A] focus:outline-none focus:bg-[#0EFF7B1A]
+        transition-all duration-300 hover:border-[#0EFF7B]
+        border border-transparent ${
+          isLightMode
+            ? "text-[#00E569E5] placeholder-[#00E569E5]"
+            : "text-white placeholder-gray-400"
+        }`}
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      aria-label="Password"
+    />
+
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2
+                 text-[#0EFF7B] w-5 h-5"
+      aria-label={showPassword ? "Hide password" : "Show password"}
+      tabIndex={-1}
+    >
+      {showPassword ? <Eye /> : <EyeOff />}
+    </button>
+  </div>
+</motion.div>
+
 
               <motion.div
                 className="flex justify-between items-center mt-2"

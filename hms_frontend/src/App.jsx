@@ -200,7 +200,6 @@ function AppContent({ contentRef }) {
         <Routes>
           <Route path="/" element={<Login />} />
         </Routes>
-        <ToastProvider />
       </div>
     );
   }
@@ -602,8 +601,6 @@ function AppContent({ contentRef }) {
           </div>
         </main>
       </div>
-
-      <ToastProvider />
     </div>
   );
 }
@@ -614,18 +611,17 @@ export default function App() {
   return (
     <ThemeProvider>
       <PermissionProvider>
-        
         <WebSocketProvider>
           <UserProvider>
             <HospitalProvider>
-            <Router>
-              <ScrollToTop contentRef={contentRef} />
-              <AppContent contentRef={contentRef} />
-            </Router>
+              <ToastProvider />
+              <Router>
+                <ScrollToTop contentRef={contentRef} />
+                <AppContent contentRef={contentRef} />
+              </Router>
             </HospitalProvider>
           </UserProvider>
         </WebSocketProvider>
-        
       </PermissionProvider>
     </ThemeProvider>
   );

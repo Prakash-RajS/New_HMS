@@ -147,13 +147,19 @@ export const preloadImage = (url) => {
 // ==========================================================
 
 const addAuthHeader = (config) => {
+  // Skip auth header for login and refresh endpoints
+  const noAuthEndpoints = ['/auth/login', '/auth/refresh'];
+  const isNoAuthEndpoint = noAuthEndpoints.some(endpoint => 
+    config.url?.includes(endpoint)
+  );
+  
   // Log request in development
   if (isDevelopment) {
     console.log(`🌐 ${config.method?.toUpperCase()} ${config.url}`);
   }
   
   const token = localStorage.getItem('token');
-  if (token) {
+  if (token && !isNoAuthEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
@@ -220,11 +226,28 @@ const createResponseInterceptor = (axiosInstance) => {
         console.error(`❌ ${error.response?.status || 'Network'} Error:`, {
           url: originalRequest.url,
           status: error.response?.status,
+          data: error.response?.data,
         });
       }
       
-      // If error is 401 and we haven't tried refreshing yet
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // Special handling for login endpoint
+      if (originalRequest.url?.includes('/auth/login')) {
+        // Don't attempt token refresh for login failures
+        const errorData = error.response?.data;
+        if (error.response?.status === 401) {
+          // Show the actual error message from backend
+          const errorMessage = errorData?.detail || "Invalid username or password";
+          error.response.data = { ...errorData, detail: errorMessage };
+        } else if (error.response?.status === 404) {
+          // Show username not found message
+          const errorMessage = errorData?.detail || "Username not found";
+          error.response.data = { ...errorData, detail: errorMessage };
+        }
+        return Promise.reject(error);
+      }
+      
+      // If error is 401 and we haven't tried refreshing yet, and it's NOT a login request
+      if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login')) {
         
         if (isRefreshing) {
           // If already refreshing, add to queue
@@ -282,8 +305,11 @@ const createResponseInterceptor = (axiosInstance) => {
           // Process queue with error
           processQueue(refreshError, null);
           
-          // Redirect to login
-          redirectToLogin();
+          // Redirect to login if not already there
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/' && currentPath !== '/') {
+            redirectToLogin();
+          }
           
           return Promise.reject(refreshError);
         } finally {
@@ -299,9 +325,9 @@ const createResponseInterceptor = (axiosInstance) => {
       }
       
       // Handle 401 errors for non-refresh cases (session expired)
-      if (error.response?.status === 401) {
+      if (error.response?.status === 401 && !originalRequest.url?.includes('/auth/login')) {
         // Clear non-sensitive data
-        localStorage.removeItem("rememberedUsername");
+        //localStorage.removeItem("rememberedUsername");
         
         // Redirect to login if not already there
         const currentPath = window.location.pathname;
@@ -334,7 +360,6 @@ export const clearAuthData = () => {
     'role',
     'permissions',
     'allowedModules',
-    'rememberedUsername'
   ];
   
   itemsToRemove.forEach(item => localStorage.removeItem(item));

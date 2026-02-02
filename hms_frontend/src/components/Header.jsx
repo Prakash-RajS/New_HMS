@@ -224,39 +224,41 @@ const Header = ({ isCollapsed }) => {
     setIsNotificationOpen(false);
   };
 
-  const handleLogout = async () => {
-    setIsDropdownOpen(false);
-    try {
-      // Call logout endpoint to clear cookies server-side
-      await api.post("/auth/logout", {}, { withCredentials: true });
-      
-      // Clear all cookies client-side
-      clearAllCookies();
-      
-      // Trigger storage event for multi-tab sync
-      window.dispatchEvent(new Event("storage"));
-      window.dispatchEvent(new Event("userDataUpdated")); // Also trigger user data update
-      
-      successToast("Logged out successfully!");
-      
-      // Redirect to login
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 500);
-      
-    } catch (err) {
-      console.error("Logout error:", err);
-      
-      // Even if API call fails, clear local data
-      clearAllCookies();
-      
-      if (window.location.pathname !== '/') {
-        window.location.href = '/';
-      }
-      
-      errorToast("Logout failed. Please try again.");
+const handleLogout = async () => {
+  setIsDropdownOpen(false);
+
+  try {
+    // Call logout endpoint to clear cookies server-side
+    await api.post("/auth/logout", {}, { withCredentials: true });
+
+    // Clear all cookies client-side
+    clearAllCookies();
+
+    // Trigger storage event for multi-tab sync
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("userDataUpdated"));
+
+    // ✅ Set flag to show toast on login page
+    localStorage.setItem("showLogoutToast", "true");
+
+    // Redirect immediately to login page
+    window.location.href = "/";
+
+  } catch (err) {
+    console.error("Logout error:", err);
+
+    // Even if API call fails, clear local data
+    clearAllCookies();
+
+    if (window.location.pathname !== '/') {
+      window.location.href = '/';
     }
-  };
+
+    errorToast("Logout failed. Please try again.");
+  }
+};
+
+
 
   const handleSettingsClick = () => {
     navigate("/settings");
