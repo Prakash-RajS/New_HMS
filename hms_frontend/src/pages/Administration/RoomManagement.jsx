@@ -199,22 +199,41 @@ const RoomManagement = () => {
   const FilterPopover = ({ isOpen, onClose }) => {
     const [bedGroup, setBedGroup] = useState(bedGroupFilter);
     const [status, setStatus] = useState(statusFilter);
+    const [validationError, setValidationError] = useState("");
 
     // Get unique bed groups from the actual rooms data
     const bedGroups = ["All", ...new Set(rooms.map((room) => room.bedGroup))];
     const statuses = ["Available", "Not Available"];
 
     const handleApply = () => {
+      // Reset validation error
+      setValidationError("");
+      
+      // Check if at least one filter is selected
+      if (!bedGroup && !status) {
+        setValidationError("Please select at least one option");
+        return;
+      }
+      
       setBedGroupFilter(bedGroup);
       setStatusFilter(status);
       onClose();
     };
 
     const handleClear = () => {
+      // Clear the local state but DON'T close the popup
+      setBedGroup("");
+      setStatus("");
+      setValidationError("");
+    };
+
+    const handleCloseWithClear = () => {
+      // Clear filters and close
       setBedGroup("");
       setStatus("");
       setBedGroupFilter("");
       setStatusFilter("");
+      setValidationError("");
       onClose();
     };
 
@@ -244,12 +263,22 @@ const RoomManagement = () => {
               Filter
             </h3>
             <button
-              onClick={onClose}
+              onClick={handleCloseWithClear}
               className="w-6 h-6 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B1A] flex items-center justify-center"
             >
               <X size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
             </button>
           </div>
+          
+          {/* Validation Error Message */}
+          {validationError && (
+            <div className="mb-4 p-2 rounded-[8px] bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700">
+              <p className="text-red-600 dark:text-red-400 text-sm text-center">
+                {validationError}
+              </p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="text-sm">Bed Group</label>

@@ -16,6 +16,7 @@ import Logo from "../assets/logo_1.png";
 import Eclipse from "../assets/eclipse.png";
 import LightEclipse from "../assets/eclipse_1.png";
 import { successToast, errorToast } from "../components/Toast.jsx";
+
 import api, { startSessionMonitor } from "../utils/axiosConfig";
 
 const icons = [
@@ -440,30 +441,35 @@ useEffect(() => {
 
   <div className="relative">
     <input
-      type={showPassword ? "text" : "password"}
-      id="password"
-      name="password"
-      placeholder="Enter your password"
+  type="text"
+  id="password"
+  name="password"
+  placeholder="Enter your password"
 
-      /* 🔐 Disable browser password UI (ALL browsers) */
-      autoComplete="new-password"
-      autoCorrect="off"
-      autoCapitalize="off"
-      spellCheck={false}
-      inputMode="text"
+  autoComplete="off"
+  autoCorrect="off"
+  autoCapitalize="off"
+  spellCheck={false}
+  inputMode="text"
 
-      className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 pr-10
-        bg-[#0EFF7B1A] focus:outline-none focus:bg-[#0EFF7B1A]
-        transition-all duration-300 hover:border-[#0EFF7B]
-        border border-transparent ${
-          isLightMode
-            ? "text-[#00E569E5] placeholder-[#00E569E5]"
-            : "text-white placeholder-gray-400"
-        }`}
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      aria-label="Password"
-    />
+  style={{
+    WebkitTextSecurity: showPassword ? "none" : "disc", // 🔥 KEY LINE
+  }}
+
+  className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 pr-10
+    bg-[#0EFF7B1A] focus:outline-none focus:bg-[#0EFF7B1A]
+    transition-all duration-300 hover:border-[#0EFF7B]
+    border border-transparent ${
+      isLightMode
+        ? "text-[#00E569E5] placeholder-[#00E569E5]"
+        : "text-white placeholder-gray-400"
+    }`}
+
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  aria-label="Password"
+/>
+
 
     <button
       type="button"

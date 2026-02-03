@@ -117,7 +117,7 @@ export default function HospitalInfo({ data, onUpdate }) {
       <div className="flex items-center gap-3">
         <Building className="text-[#08994A]" size={24} />
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Hospital Information
+          Hospital Information  
         </h2>
       </div>
 

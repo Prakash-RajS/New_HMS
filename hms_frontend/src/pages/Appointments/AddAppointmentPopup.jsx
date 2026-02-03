@@ -1,17 +1,16 @@
-// src/components/AddAppointmentPopup.jsx
+//// src/components/AddAppointmentPopup.jsx
 import React, { useState, useEffect } from "react";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
-// ── Get tomorrow's date for default ────────────────────────────────
-const getTomorrowDate = () => {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const year = tomorrow.getFullYear();
-  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const day = String(tomorrow.getDate()).padStart(2, '0');
+// ── Get today's date for default ────────────────────────────────
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -38,7 +37,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     phone_no: "",
     appointment_type: "",
     status: "new", // Set default status
-    appointment_date: getTomorrowDate(), // ✅ Now this works!
+    appointment_date: getTodayDate(), // ✅ Changed to today's date
     appointment_time: getDefaultTime(), // Use current time as default
   });
 
@@ -78,6 +77,18 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       return "Please enter a valid mobile number";
     }
  
+    return "";
+  };
+
+  const validateTimeFormat = (value) => {
+    if (!value) return "Appointment time is required";
+    
+    // Validate time format
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (!timeRegex.test(value)) {
+      return "Please enter a valid time in HH:MM format (24-hour)";
+    }
+    
     return "";
   };
 
@@ -189,6 +200,9 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       case "phone_no":
         formatError = validatePhoneFormat(processedValue);
         break;
+      case "appointment_time":
+        formatError = validateTimeFormat(processedValue);
+        break;
       default:
         break;
     }
@@ -221,13 +235,19 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     const formatErrors = {
       patient_name: validatePatientNameFormat(formData.patient_name),
       phone_no: validatePhoneFormat(formData.phone_no),
+      appointment_time: validateTimeFormat(formData.appointment_time),
       appointment_date_time: validateAppointmentDateTime()
     };
     
-    // Update validation errors for display
-    setValidationErrors(formatErrors);
+    // Filter out empty error messages
+    const filteredErrors = Object.fromEntries(
+      Object.entries(formatErrors).filter(([_, value]) => value !== "")
+    );
     
-    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    // Update validation errors for display
+    setValidationErrors(filteredErrors);
+    
+    const formatValid = Object.keys(filteredErrors).length === 0;
     
     return requiredValid && formatValid;
   };
@@ -406,7 +426,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                    overflow-visible my-4"
       >
         <div
-          className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000]
+          className="w-[805px] rounded-[19px] bg-gray-100 dark:bg-[#000000]
                      text-black dark:text-white p-6 relative overflow-visible"
           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
         >
@@ -441,7 +461,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             </button>
           </div>
           {/* Form Grid */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             {/* Patient Name */}
             <div>
               <label className="text-sm text-black dark:text-white">
@@ -729,12 +749,25 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                       <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options 
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black 
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
                     {["checkup", "followup", "emergency"].map((v) => (
                       <Listbox.Option
                         key={v}
                         value={v}
-                        className="cursor-pointer py-2 px-2 text-sm"
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                           ${
+                             active
+                               ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                               : "text-black dark:text-white"
+                           }
+                           ${selected ? "bg-[#0EFF7B] !text-white dark:!text-black font-semibold" : ""}`
+                        }
+                        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                       >
                         {v === "checkup" ? "Check-up" : v === "followup" ? "Follow-up" : "Emergency"}
                       </Listbox.Option>
@@ -847,26 +880,65 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             </div>
 
             {/* Appointment Time */}
-            <div>
-              <label className="text-sm text-black dark:text-white">
-                Appointment Time <span className="text-red-700">*</span>
-              </label>
-              <input
-                type="time"
-                value={formData.appointment_time}
-                onChange={(e) => handleInputChange("appointment_time", e.target.value)}
-                onFocus={() => setFocusedField("appointment_time")}
-                onBlur={() => setFocusedField(null)}
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                           outline-none text-black dark:text-[#0EFF7B]
-                           ${focusedField === "appointment_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-              />
-              {fieldErrors.appointment_time && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.appointment_time}</span>
-                </div>
-              )}
-            </div>
+<div>
+  <label className="text-sm text-black dark:text-white">
+    Appointment Time <span className="text-red-700">*</span>
+  </label>
+
+  <input
+    type="time"
+    value={formData.appointment_time}
+    onChange={(e) => handleInputChange("appointment_time", e.target.value)}
+    onFocus={() => setFocusedField("appointment_time")}
+    onBlur={() => setFocusedField(null)}
+    className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+      outline-none text-black dark:text-[#0EFF7B]
+      appearance-none
+      ${focusedField === "appointment_time"
+        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+        : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+  />
+
+  <style>{`
+    /* Chrome, Edge, Safari */
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+      cursor: pointer;
+    }
+
+    /* Firefox */
+    input[type="time"]::-moz-calendar-picker-indicator {
+      filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+      cursor: pointer;
+    }
+
+    /* Force same icon color in both themes */
+    input[type="time"] {
+      color-scheme: light;
+    }
+
+    .dark input[type="time"] {
+      color-scheme: light;
+    }
+  `}</style>
+
+  {validationErrors.appointment_time && (
+    <div className="mt-1">
+      <span className="text-red-700 dark:text-red-500 text-xs">
+        {validationErrors.appointment_time}
+      </span>
+    </div>
+  )}
+
+  {fieldErrors.appointment_time && !validationErrors.appointment_time && (
+    <div className="mt-1">
+      <span className="text-red-700 dark:text-red-500 text-xs">
+        {fieldErrors.appointment_time}
+      </span>
+    </div>
+  )}
+</div>
+
           </div>
           
           {/* Combined date-time validation error */}

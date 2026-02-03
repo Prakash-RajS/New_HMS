@@ -183,10 +183,20 @@ const UserSettings = () => {
     "Doctor",
     "Staff",
     "Receptionist",
-    "Nurse"
+    "Nurse",
+    "Billing Staff"
   ]);
   const [canManageUsers, setCanManageUsers] = useState(false);
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+
+  // Role mapping functions
+  const getDisplayRole = (role) => {
+    return role === 'billing' ? 'Billing Staff' : role;
+  };
+
+  const getDbRole = (role) => {
+    return role === 'Billing Staff' ? 'billing' : role;
+  };
 
   // Validation functions
   const validateUsername = (username) => {
@@ -224,12 +234,12 @@ const UserSettings = () => {
       
       if (response.data) {
         const userData = response.data;
-        const role = userData.role;
-        setCurrentUserRole(role);
+        const originalRole = userData.role;
+        setCurrentUserRole(getDisplayRole(originalRole));
         
         // Check if user can manage users (Admin or Superuser)
-        const canManage = role.toLowerCase() === "admin" || 
-                         role.toLowerCase() === "superuser" ||
+        const canManage = originalRole.toLowerCase() === "admin" || 
+                         originalRole.toLowerCase() === "superuser" ||
                          userData.is_superuser === true;
         setCanManageUsers(canManage);
         
@@ -241,14 +251,15 @@ const UserSettings = () => {
             "Staff",
             "Receptionist",
             "Nurse",
+            "Billing Staff",
             "Admin",
           ]);
         } else {
-          setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse"]);
+          setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse", "Billing Staff"]);
         }
         
         console.log("User permissions loaded:", {
-          role: role,
+          role: originalRole,
           canManageUsers: canManage,
           isSuperuser: userData.is_superuser
         });
@@ -258,7 +269,7 @@ const UserSettings = () => {
       
       // Fallback: check localStorage as backup
       const fallbackRole = localStorage.getItem("role") || "";
-      setCurrentUserRole(fallbackRole);
+      setCurrentUserRole(getDisplayRole(fallbackRole));
       
       const canManageFallback = fallbackRole.toLowerCase() === "admin" || 
                                fallbackRole.toLowerCase() === "superuser";
@@ -271,10 +282,11 @@ const UserSettings = () => {
           "Staff",
           "Receptionist",
           "Nurse",
+          "Billing Staff",
           "Admin",
         ]);
       } else {
-        setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse"]);
+        setAvailableRoles(["Select Role", "Doctor", "Staff", "Receptionist", "Nurse", "Billing Staff"]);
       }
     } finally {
       setIsLoadingPermissions(false);
@@ -334,7 +346,7 @@ const UserSettings = () => {
         setUserFilterOptions(["Select Name", ...allUserNames]);
 
         // Get unique roles - Use availableRoles as base, then add any other roles found in data
-        const allRolesFromData = [...new Set(usersData.map((u) => u.role).filter(Boolean))];
+        const allRolesFromData = [...new Set(usersData.map((u) => getDisplayRole(u.role)).filter(Boolean))];
         const combinedRoles = [...new Set([...availableRoles, ...allRolesFromData])];
         setRoleFilterOptions(combinedRoles);
 
@@ -354,7 +366,7 @@ const UserSettings = () => {
       
       // Only append if not the default "Select..." value
       if (filters.user !== "Select Name") params.append("name", filters.user);
-      if (filters.role !== "Select Role") params.append("role", filters.role);
+      if (filters.role !== "Select Role") params.append("role", getDbRole(filters.role));
       if (filters.department !== "Select Department") 
         params.append("department", filters.department);
       if (userSearch) params.append("search", userSearch);
@@ -363,7 +375,7 @@ const UserSettings = () => {
       const url = queryString ? `/users/?${queryString}` : '/users/';
 
       const response = await api.get(url);
-      setAllUsers(response.data);
+      setAllUsers(response.data.map(user => ({ ...user, role: getDisplayRole(user.role) })));
       setError("");
     } catch (err) {
       let errorMessage = "Failed to load users";
@@ -571,7 +583,7 @@ const UserSettings = () => {
       formData.append("username", newUser.username);
       formData.append("password", newUser.password);
       formData.append("staff_id", newUser.staffId);
-      formData.append("role", newUser.role);
+      formData.append("role", getDbRole(newUser.role));
 
       await api.post("/users/create_user", formData, {
         headers: {
@@ -625,6 +637,8 @@ const UserSettings = () => {
         return "text-red-600 dark:text-red-500";
       case "Admin":
         return "text-blue-600 dark:text-blue-500";
+      case "Billing Staff":
+        return "text-purple-600 dark:text-purple-500";
       default:
         return "text-black dark:text-white";
     }
@@ -1308,7 +1322,7 @@ const UserSettings = () => {
 
               if (updatedUser.username)
                 formData.append("username", updatedUser.username);
-              if (updatedUser.role) formData.append("role", updatedUser.role);
+              if (updatedUser.role) formData.append("role", getDbRole(updatedUser.role));
               if (updatedUser.newPassword)
                 formData.append("new_password", updatedUser.newPassword);
               if (updatedUser.confirmPassword)

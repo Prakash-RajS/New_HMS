@@ -365,7 +365,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   const navigate = useNavigate();
 
   const maritalStatus = ["Single", "Married", "Divorced", "Widowed"];
-  const statusOptions = ["Active", "Inactive", "On Leave"];
+  const statusOptions = ["Available", "Unavailable", "On Leave"];
   const shiftTimingOptions = [
     "09:00 AM - 05:00 PM",
     "05:00 PM - 01:00 AM",
@@ -508,10 +508,11 @@ export default function NewRegistration({ isSidebarOpen }) {
     
     switch (field) {
       case "full_name":
-        if (value.length < 2) return "Full name must be at least 2 characters";
-        if (value.length > 100) return "Full name cannot exceed 100 characters";
-        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value)) return "Full name can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
-        return "";
+  if (value.length < 2) return "Full name must be at least 2 characters";
+  if (value.length > 100) return "Full name cannot exceed 100 characters";
+  // Basic check for obviously invalid characters
+  if (/[<>\[\]{}\|\\^~`]/.test(value)) return "Full name contains invalid characters";
+  return "";
       
       case "email":
         return validateEmailFormat(value);

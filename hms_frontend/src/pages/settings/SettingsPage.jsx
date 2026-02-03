@@ -153,6 +153,10 @@ export default function SettingsPage() {
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             </button>
+            <span className="text-[#0EFF7B]">
+  Version - {import.meta.env.VITE_APP_VERSION}
+</span>
+            <ChevronRight size={16} />
             <span>Settings</span>
             <ChevronRight size={16} />
             <span className="font-medium text-gray-700 dark:text-gray-300">

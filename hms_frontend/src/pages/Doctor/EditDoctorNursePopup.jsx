@@ -138,11 +138,11 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   const validateFieldFormat = (field, value) => {
     switch (field) {
       case "full_name":
-        if (!value) return "";
-        if (!/^[A-Za-z\s]*$/.test(value)) {
-          return "Name can only contain letters and spaces";
-        }
-        return "";
+  if (value.length < 2) return "Full name must be at least 2 characters";
+  if (value.length > 100) return "Full name cannot exceed 100 characters";
+  // Basic check for obviously invalid characters
+  if (/[<>\[\]{}\|\\^~`]/.test(value)) return "Full name contains invalid characters";
+  return "";
       
       case "phone":
         if (!value) return "";
@@ -211,47 +211,49 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
 
   // Validate form on submission
   const validateForm = () => {
-    const newErrors = {};
+  const newErrors = {};
 
-    // Name validation - only letters and spaces
-    if (!formData.full_name.trim()) {
-      newErrors.full_name = "Full name is required";
-    } else if (formData.full_name.trim().length < 2) {
-      newErrors.full_name = "Name must be at least 2 characters";
-    } else if (!/^[A-Za-z\s]+$/.test(formData.full_name)) {
-      newErrors.full_name = "Name can only contain letters and spaces";
+  // Name validation - Updated to accept international characters
+  if (!formData.full_name.trim()) {
+    newErrors.full_name = "Full name is required";
+  } else if (formData.full_name.trim().length < 2) {
+    newErrors.full_name = "Name must be at least 2 characters";
+  } else if (formData.full_name.trim().length > 100) {
+    newErrors.full_name = "Name cannot exceed 100 characters";
+  } else if (/[<>\[\]{}\|\\^~`]/.test(formData.full_name)) {
+    newErrors.full_name = "Full name contains invalid characters";
+  }
+
+  // Phone validation - EXACTLY 10 digits
+  if (!formData.phone.trim()) {
+    newErrors.phone = "Phone number is required";
+  } else if (!/^\d{10}$/.test(formData.phone)) {
+    newErrors.phone = "Phone must be exactly 10 digits";
+  }
+
+  // Email validation - REQUIRED
+  if (!formData.email.trim()) {
+    newErrors.email = "Email address is required";
+  } else {
+    const emailError = validateEmailFormat(formData.email);
+    if (emailError) {
+      newErrors.email = emailError;
     }
+  }
 
-    // Phone validation - EXACTLY 10 digits
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone)) {
-      newErrors.phone = "Phone must be exactly 10 digits";
-    }
+  // Designation validation
+  if (!formData.designation) {
+    newErrors.designation = "Role is required";
+  }
 
-    // Email validation - REQUIRED
-    if (!formData.email.trim()) {
-      newErrors.email = "Email address is required";
-    } else {
-      const emailError = validateEmailFormat(formData.email);
-      if (emailError) {
-        newErrors.email = emailError;
-      }
-    }
+  // Department validation
+  if (!formData.department) {
+    newErrors.department = "Department is required";
+  }
 
-    // Designation validation
-    if (!formData.designation) {
-      newErrors.designation = "Role is required";
-    }
-
-    // Department validation
-    if (!formData.department) {
-      newErrors.department = "Department is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
   const handleUpdate = async () => {
     if (!validateForm()) return;

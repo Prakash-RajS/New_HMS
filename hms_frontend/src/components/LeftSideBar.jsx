@@ -744,6 +744,7 @@ import {
   ShieldCheck,
   ChevronDown,
   Settings,
+  Stethoscope,
 } from "lucide-react";
 import { usePermissions } from "./PermissionContext";
 import { useHospital } from "./HospitalContext";
@@ -794,6 +795,12 @@ const menuItems = [
         icon: DollarSign,
         permission: "treatment_charges",
       },
+      {
+      name: "Surgeries",
+      path: "/patients/surgeries",
+      icon: Stethoscope,
+      permission: "surgeries", // Add this permission key
+    },
     ],
   },
   // Administration
@@ -819,12 +826,12 @@ const menuItems = [
         icon: Bed,
         permission: "room_management",
       },
-      {
-        name: "Staff Management",
-        path: "/Administration/StaffManagement",
-        icon: UserCog,
-        permission: "staff_management",
-      },
+      // {
+      //   name: "Staff Management",
+      //   path: "/Administration/StaffManagement",
+      //   icon: UserCog,
+      //   permission: "staff_management",
+      // },
     ],
   },
   // Pharmacy
