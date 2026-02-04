@@ -61,6 +61,15 @@ const TreatmentCharges = () => {
   
   // Status filter state
   const [statusFilter, setStatusFilter] = useState("ALL"); // ALL, PENDING, BILLED, CANCELLED
+  // Helper: starts with uppercase letter A-Z
+const startsWithCapital = (str) => {
+  return /^[A-Z]/.test(str);
+};
+
+// Helper: contains at least one letter (a-z or A-Z) anywhere
+const hasAtLeastOneLetter = (str) => {
+  return /[a-zA-Z]/.test(str);
+};
   
   // Filter treatment charges based on status filter
   useEffect(() => {
@@ -308,58 +317,78 @@ const TreatmentCharges = () => {
 
   // Handle form change with validation
   const handleFormChange = (field, value) => {
-    // Validate negative values during typing
-    const errors = { ...validationErrors };
-    
-    if (field === "quantity" && value !== "") {
-      const numValue = parseInt(value);
-      if (numValue <= 0) {
-        errors.quantity = "Quantity must be greater than 0";
-      } else {
-        delete errors.quantity;
-      }
-    }
-    
-    if (field === "unit_price" && value !== "") {
-      const numValue = parseFloat(value);
-      if (numValue < 0) {
-        errors.unit_price = "Unit price cannot be negative";
-      } else if (numValue === 0) {
-        errors.unit_price = "Unit price must be greater than 0";
-      } else {
-        delete errors.unit_price;
-      }
-    }
-    
-    if (field === "description" && validationErrors.description) {
-      delete errors.description;
-    }
-    
-    setValidationErrors(errors);
-    
-    // Calculate amount automatically
-    let updatedAmount = newCharge.amount;
-    if (field === "quantity" && newCharge.unit_price) {
-      updatedAmount = (value * newCharge.unit_price).toFixed(2);
-    } else if (field === "unit_price" && newCharge.quantity) {
-      updatedAmount = (newCharge.quantity * value).toFixed(2);
-    }
-    
-    setNewCharge({
-      ...newCharge,
-      [field]: value,
-      amount: updatedAmount
-    });
-  };
+  const errors = { ...validationErrors };
 
+  if (field === "description") {
+    const trimmed = value.trim();
+
+    if (trimmed) {
+      if (!startsWithCapital(trimmed)) {
+        errors.description = "Must start with a capital letter (A-Z)";
+      } else if (!hasAtLeastOneLetter(trimmed)) {
+        errors.description = "Must contain at least one letter";
+      } else {
+        delete errors.description;
+      }
+    } else {
+      delete errors.description; // clear error when empty (required error shows only on submit)
+    }
+  }
+
+  // Quantity live validation
+  if (field === "quantity" && value !== "") {
+    const num = parseInt(value);
+    if (isNaN(num) || num <= 0) {
+      errors.quantity = "Must be greater than 0";
+    } else {
+      delete errors.quantity;
+    }
+  }
+
+  // Unit price live validation
+  if (field === "unit_price" && value !== "") {
+    const num = parseFloat(value);
+    if (isNaN(num) || num <= 0) {
+      errors.unit_price = "Must be greater than 0";
+    } else {
+      delete errors.unit_price;
+    }
+  }
+
+  setValidationErrors(errors);
+
+  // Auto-calculate amount
+  let updatedAmount = newCharge.amount;
+  if (field === "quantity" && newCharge.unit_price) {
+    const qty = parseFloat(value) || 0;
+    updatedAmount = (qty * parseFloat(newCharge.unit_price)).toFixed(2);
+  } else if (field === "unit_price" && newCharge.quantity) {
+    const price = parseFloat(value) || 0;
+    updatedAmount = (parseFloat(newCharge.quantity) * price).toFixed(2);
+  }
+
+  setNewCharge({
+    ...newCharge,
+    [field]: value,
+    amount: updatedAmount || "",
+  });
+};
+ 
   // Validate form
   const validateForm = () => {
     const errors = {};
+    const desc = newCharge.description.trim();
     
     // Required field validation (only triggers after submission)
-    if (submitted && !newCharge.description.trim()) {
+    if (submitted) {
+    if (!desc) {
       errors.description = "Description is required";
+    } else if (!startsWithCapital(desc)) {
+      errors.description = "Description must start with a capital letter (A-Z)";
+    } else if (!hasAtLeastOneLetter(desc)) {
+      errors.description = "Description must contain at least one letter";
     }
+  }
     
     // Required field validation (only triggers after submission)
     if (submitted && !newCharge.quantity) {
@@ -373,21 +402,19 @@ const TreatmentCharges = () => {
     
     // Quantity validation (shows during typing too)
     if (newCharge.quantity !== "") {
-      const quantityNum = parseInt(newCharge.quantity);
-      if (quantityNum <= 0) {
-        errors.quantity = "Quantity must be greater than 0";
-      }
+    const qty = parseInt(newCharge.quantity);
+    if (isNaN(qty) || qty <= 0) {
+      errors.quantity = "Quantity must be a number greater than 0";
     }
+  }
     
     // Unit price validation (shows during typing too)
-    if (newCharge.unit_price !== "") {
-      const priceNum = parseFloat(newCharge.unit_price);
-      if (priceNum < 0) {
-        errors.unit_price = "Unit price cannot be negative";
-      } else if (priceNum === 0) {
-        errors.unit_price = "Unit price must be greater than 0";
-      }
+   if (newCharge.unit_price !== "") {
+    const price = parseFloat(newCharge.unit_price);
+    if (isNaN(price) || price <= 0) {
+      errors.unit_price = "Unit price must be a number greater than 0";
     }
+  }
     
     return errors;
   };
@@ -625,22 +652,26 @@ const TreatmentCharges = () => {
             </div>
             
             {/* Dropdown Results */}
-            {searchQuery.trim() && filteredPatients.length > 0 && (
-              <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
-                {filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    onClick={() => handlePatientSelect(patient)}
-                    className="cursor-pointer px-3 py-1.5 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126] border-b border-gray-200 dark:border-gray-800 last:border-b-0"
-                  >
-                    <div className="font-medium">{patient.name}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {patient.id}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {searchQuery.trim() && (
+    <div className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3C3C3C]">
+      {filteredPatients.length > 0 ? (
+        filteredPatients.map((patient) => (
+          <div
+            key={patient.id}
+            onClick={() => handlePatientSelect(patient)}
+            className="cursor-pointer px-3 py-1.5 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126] border-b border-gray-200 dark:border-gray-800 last:border-b-0"
+          >
+            <div className="font-medium">{patient.name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{patient.id}</div>
+          </div>
+        ))
+      ) : (
+        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+          No patient found matching "{searchQuery}"
+        </div>
+      )}
+    </div>
+  )}
           </div>
           
           {/* Patient Name and ID Dropdowns */}

@@ -1,11 +1,13 @@
-// EditSurgeryPopup.jsx
-import React, { useState, useEffect } from "react";
-import { X, Calendar, ChevronDown } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { X, Calendar, ChevronDown, AlertCircle, User, Stethoscope } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import { successToast, errorToast } from "../../components/Toast.jsx";
+import { successToast, errorToast, warningToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 
 export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
+  // Add useRef to prevent multiple toast calls
+  const toastShownRef = useRef(false);
+  
   const parseDateTime = (datetimeStr) => {
     if (!datetimeStr) return { date: "", time: "" };
     
@@ -45,6 +47,8 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
   const [validationErrors, setValidationErrors] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [focusedField, setFocusedField] = useState(null);
+  const [apiErrors, setApiErrors] = useState({});
+  const [showDuplicateError, setShowDuplicateError] = useState(false);
 
   // Format validation functions
   const validateSurgeryType = (value) => {
@@ -55,9 +59,16 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     return "";
   };
 
+  // Validate date and time to prevent past dates
   const validateDateTime = () => {
     if (!formData.scheduled_date) return "Surgery date is required";
     if (!formData.scheduled_time) return "Surgery time is required";
+    
+    // Check if date is in the past
+    const selectedDate = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`);
+    const now = new Date();
+    
+    if (selectedDate < now) return "Surgery date and time cannot be in the past";
     
     return "";
   };
@@ -75,15 +86,8 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     const errors = {};
     let isValid = true;
 
-    if (!formData.patient_id) {
-      errors.patient_id = "Patient is required";
-      isValid = false;
-    }
-    
-    if (!formData.doctor_id) {
-      errors.doctor_id = "Doctor is required";
-      isValid = false;
-    }
+    // Note: Patient and Doctor are now non-editable, so we don't validate them as required
+    // They should already have values from the surgery data
     
     if (!formData.surgery_type.trim()) {
       errors.surgery_type = "Surgery type is required";
@@ -115,6 +119,34 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     return isValid;
   };
 
+  // Get minimum date for date input (today)
+  const getMinDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get current time for time validation
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Check if selected date is today
+  const isToday = (dateString) => {
+    const today = new Date();
+    const selectedDate = new Date(dateString);
+    return (
+      selectedDate.getDate() === today.getDate() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getFullYear() === today.getFullYear()
+    );
+  };
+
   // Handle input change
   const handleInputChange = (field, value) => {
     let processedValue = value;
@@ -129,6 +161,16 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     
+    // Clear all errors when user starts typing
+    if (field === "surgery_type") {
+      setShowDuplicateError(false);
+      setApiErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.surgery_type;
+        return newErrors;
+      });
+    }
+    
     // Clear validation errors
     if (validationErrors[field]) {
       setValidationErrors(prev => {
@@ -140,6 +182,15 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     
     if (fieldErrors[field]) {
       setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+    
+    // Clear API errors for this field
+    if (apiErrors[field]) {
+      setApiErrors(prev => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -184,23 +235,22 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     }
   };
 
-  // Load patients and doctors
+  // Load patients and doctors (for reference only, not for editing)
   useEffect(() => {
     const fetchData = async () => {
       setLoadingPatients(true);
       setLoadingDoctors(true);
       
       try {
-        // Fetch patients
+        // Fetch patients and doctors for reference (optional)
         const patientsResponse = await api.get("/surgeries/patients");
         setPatients(patientsResponse.data || []);
         
-        // Fetch doctors
         const doctorsResponse = await api.get("/surgeries/doctors");
         setDoctors(doctorsResponse.data || []);
       } catch (err) {
         console.error("Error fetching data:", err);
-        errorToast("Failed to load data");
+        // Don't show error toast since fields are non-editable anyway
       } finally {
         setLoadingPatients(false);
         setLoadingDoctors(false);
@@ -232,14 +282,213 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
     return requiredValid && formatValid;
   };
 
-  // Handle update
+  // Extract error message from error data
+  const extractErrorMessage = (errorData) => {
+    if (!errorData) return "Unknown error occurred";
+    
+    console.log("Error data in EditSurgery:", errorData);
+    
+    // Handle your specific error format from screenshot
+    if (errorData.detail && typeof errorData.detail === 'object') {
+      // Check for nested detail property
+      if (errorData.detail.detail && typeof errorData.detail.detail === 'string') {
+        return errorData.detail.detail;
+      }
+      // Check if detail itself is a string
+      if (typeof errorData.detail === 'string') {
+        return errorData.detail;
+      }
+    }
+    
+    if (typeof errorData === 'string') return errorData;
+    
+    if (typeof errorData === 'object') {
+      if (errorData.message && typeof errorData.message === 'string') {
+        return errorData.message;
+      }
+      return "An error occurred. Please try again.";
+    }
+    
+    return "An error occurred. Please try again.";
+  };
+
+  // Handle API error response
+  const handleApiError = (error) => {
+    const errorData = error.response?.data;
+    const status = error.response?.status;
+    
+    // Reset toast flag
+    toastShownRef.current = false;
+    
+    // Clear previous API errors
+    setApiErrors({});
+    setShowDuplicateError(false);
+    
+    console.log("API Error Status:", status);
+    console.log("API Error Data:", errorData);
+    
+    if (!errorData) {
+      if (!toastShownRef.current) {
+        errorToast("Network error. Please check your connection.");
+        toastShownRef.current = true;
+      }
+      return;
+    }
+    
+    // Extract the main error message
+    const errorMessage = extractErrorMessage(errorData);
+    
+    // Handle duplicate entry error (409)
+    if (status === 409) {
+      console.log("Duplicate error detected:", errorData);
+      
+      // Extract field from nested structure
+      const field = errorData.detail?.field || errorData.field || 'surgery_type';
+      
+      // Set field-specific error - STORE AS STRING ONLY
+      setApiErrors({ 
+        [field]: errorMessage
+      });
+      setShowDuplicateError(true);
+      
+      // Show warning toast only once
+      if (!toastShownRef.current) {
+        const toastMessage = errorData.detail?.detail || 
+                            "Duplicate surgery found. Please use a different type.";
+        warningToast(toastMessage);
+        toastShownRef.current = true;
+      }
+      return;
+    }
+    
+    // Handle validation errors (422)
+    if (status === 422) {
+      const errors = {};
+      let showGeneralToast = true;
+      
+      if (errorData.detail && Array.isArray(errorData.detail)) {
+        errorData.detail.forEach(error => {
+          const field = error.loc?.[1] || 'general';
+          errors[field] = error.msg || "Invalid value";
+          if (field !== 'general') showGeneralToast = false;
+        });
+      } else if (errorData.detail && typeof errorData.detail === 'string') {
+        errors.general = errorData.detail;
+      } else if (errorData.detail && typeof errorData.detail === 'object') {
+        // Handle nested detail structure
+        if (errorData.detail.detail) {
+          errors.general = errorData.detail.detail;
+        } else {
+          errors.general = "Validation failed";
+        }
+      } else {
+        errors.general = "Validation failed";
+      }
+      
+      // Convert all errors to strings
+      const stringErrors = {};
+      Object.keys(errors).forEach(key => {
+        if (typeof errors[key] === 'string') {
+          stringErrors[key] = errors[key];
+        } else {
+          stringErrors[key] = String(errors[key]);
+        }
+      });
+      
+      setApiErrors(stringErrors);
+      
+      if (!toastShownRef.current && showGeneralToast) {
+        errorToast("Please check the form for errors");
+        toastShownRef.current = true;
+      }
+      return;
+    }
+    
+    // Handle other errors with single toast
+    if (!toastShownRef.current) {
+      errorToast(errorMessage || "Something went wrong. Please try again.");
+      toastShownRef.current = true;
+    }
+  };
+
+  // Get combined error for a field - FIXED to always return string
+  const getFieldError = (fieldName) => {
+    const error = apiErrors[fieldName] || validationErrors[fieldName] || fieldErrors[fieldName];
+    
+    if (!error) return "";
+    
+    // Return simplified duplicate error message
+    if (fieldName === "surgery_type" && showDuplicateError) {
+      return "This surgery type already exists for the selected patient, doctor, and date.";
+    }
+    
+    // CRITICAL FIX: Always return a string, never an object
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    // If it's an object, extract the string message
+    if (typeof error === 'object') {
+      console.warn("Object error detected in getFieldError:", error);
+      
+      // Handle nested detail structure
+      if (error.detail && typeof error.detail === 'object' && error.detail.detail) {
+        return String(error.detail.detail);
+      }
+      
+      // Handle detail property
+      if (error.detail && typeof error.detail === 'string') {
+        return error.detail;
+      }
+      
+      // Handle message property
+      if (error.message && typeof error.message === 'string') {
+        return error.message;
+      }
+      
+      // Safely convert to string
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return "An error occurred";
+      }
+    }
+    
+    // Fallback to string conversion
+    return String(error);
+  };
+
+  // Check if form has any errors
+  const hasErrors = () => {
+    const hasValidationErrors = Object.values(validationErrors).some(error => error !== "");
+    const hasFieldErrors = Object.values(fieldErrors).some(error => error !== "");
+    const hasApiErrors = Object.values(apiErrors).some(error => {
+      // Check if error is a non-empty string
+      if (typeof error === 'string') return error.trim() !== "";
+      // If it's an object, consider it an error
+      return error !== null && error !== undefined;
+    });
+    
+    return hasValidationErrors || hasFieldErrors || hasApiErrors;
+  };
+
+  // Handle update - FIXED VERSION
   const handleUpdate = async () => {
+    // Reset toast flag
+    toastShownRef.current = false;
+    
     if (!validateForm()) {
-      errorToast("Please fix all validation errors before saving");
+      if (!toastShownRef.current) {
+        errorToast("Please fix all validation errors before saving");
+        toastShownRef.current = true;
+      }
       return;
     }
 
     setSaving(true);
+    setApiErrors({});
+    setShowDuplicateError(false);
+    
     try {
       const payload = {
         patient_id: parseInt(formData.patient_id),
@@ -255,38 +504,16 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
         payload.price = parseFloat(formData.price);
       }
 
+      console.log("Updating surgery:", payload);
       const response = await api.put(`/surgeries/${formData.id}`, payload);
-
-      if (response.status === 422) {
-        const errorData = response.data;
-        console.error("Validation errors:", errorData);
-        
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            const errors = {};
-            errorData.detail.forEach(error => {
-              const field = error.loc?.[1] || 'general';
-              errors[field] = error.msg;
-            });
-            setValidationErrors(errors);
-            errorToast("Please fix the validation errors");
-          } else {
-            errorToast(errorData.detail);
-          }
-        } else {
-          errorToast("Validation failed. Please check your inputs.");
-        }
-        setSaving(false);
-        return;
-      }
 
       successToast("Surgery updated successfully!");
       onUpdate?.();
       onClose?.();
-    } catch (e) {
-      const errorMessage = e.response?.data?.detail || e.message || "Something went wrong. Please try again.";
-      errorToast(errorMessage);
-      console.error("Update error:", e);
+      
+    } catch (error) {
+      console.error("Update error:", error);
+      handleApiError(error);
     } finally {
       setSaving(false);
     }
@@ -331,132 +558,89 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
             <button
               onClick={onClose}
               className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                         bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                         bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center
+                         hover:scale-105 transition-transform"
             >
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
           
+          {/* General API Error Display */}
+          {apiErrors.general && (
+            <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={16} className="text-red-600 dark:text-red-400" />
+                <span className="text-red-700 dark:text-red-300 text-sm">
+                  {getFieldError("general")}
+                </span>
+              </div>
+            </div>
+          )}
+          
           {/* Form Grid - 3x3 layout */}
           <div className="grid grid-cols-3 gap-4">
-            {/* Patient Selection - Row 1, Column 1 */}
+            {/* Patient Display - Row 1, Column 1 (NON-EDITABLE) */}
             <div className="col-span-1">
               <label className="text-sm text-black dark:text-white">
                 Patient <span className="text-red-700">*</span>
               </label>
-              <Listbox 
-                value={formData.patient_id} 
-                onChange={(v) => handleInputChange("patient_id", v)}
-              >
-                <div className="relative mt-1">
-                  <Listbox.Button
-                    onFocus={() => setFocusedField("patient")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                               text-left text-[14px] leading-[16px] flex items-center justify-between group
-                               ${focusedField === "patient" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-                  >
-                    <span className={`block truncate ${formData.patient_id ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
-                      {loadingPatients ? (
-                        <span className="text-gray-500">Loading…</span>
-                      ) : formData.patient_id ? (
-                        patients.find((p) => String(p.id) === String(formData.patient_id))?.full_name || 
-                        formData.patient_name || 
-                        `ID: ${formData.patient_id}`
-                      ) : (
-                        "Select Patient"
-                      )}
+              <div className="relative mt-1">
+                <div
+                  className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+                             text-left text-[14px] leading-[16px] flex items-center justify-between group
+                             border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-50 dark:bg-[#1A1A1A] cursor-not-allowed`}
+                >
+                  <div className="flex items-center gap-2">
+                    <User size={14} className="text-[#0EFF7B]" />
+                    <span className="block truncate text-black dark:text-[#0EFF7B]">
+                      {formData.patient_name || 
+                       (patients.find((p) => String(p.id) === String(formData.patient_id))?.full_name) || 
+                       `ID: ${formData.patient_id}`}
                     </span>
-                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                    </span>
-                  </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
-                    {patients.map((patient) => (
-                      <Listbox.Option
-                        key={patient.id}
-                        value={patient.id}
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                           ${
-                             active
-                               ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                               : "text-black dark:text-white"
-                           }
-                           ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        {patient.full_name}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
+                  </div>
+                  {/* <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                    Fixed
+                  </div> */}
                 </div>
-              </Listbox>
-              {fieldErrors.patient_id && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.patient_id}</span>
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <div className="text-xs text-gray-400 dark:text-gray-500">Locked</div>
                 </div>
-              )}
+              </div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                Patient cannot be changed for existing surgery
+              </div>
             </div>
             
-            {/* Doctor Selection - Row 1, Column 2 */}
+            {/* Doctor Display - Row 1, Column 2 (NON-EDITABLE) */}
             <div className="col-span-1">
               <label className="text-sm text-black dark:text-white">
                 Doctor <span className="text-red-700">*</span>
               </label>
-              <Listbox 
-                value={formData.doctor_id} 
-                onChange={(v) => handleInputChange("doctor_id", v)}
-              >
-                <div className="relative mt-1">
-                  <Listbox.Button
-                    onFocus={() => setFocusedField("doctor")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                               text-left text-[14px] leading-[16px] flex items-center justify-between group
-                               ${focusedField === "doctor" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-                  >
-                    <span className={`block truncate ${formData.doctor_id ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
-                      {loadingDoctors ? (
-                        <span className="text-gray-500">Loading…</span>
-                      ) : formData.doctor_id ? (
-                        doctors.find((d) => String(d.id) === String(formData.doctor_id))?.full_name || 
-                        formData.doctor_name || 
-                        `ID: ${formData.doctor_id}`
-                      ) : (
-                        "Select Doctor"
-                      )}
+              <div className="relative mt-1">
+                <div
+                  className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+                             text-left text-[14px] leading-[16px] flex items-center justify-between group
+                             border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-50 dark:bg-[#1A1A1A] cursor-not-allowed`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Stethoscope size={14} className="text-[#0EFF7B]" />
+                    <span className="block truncate text-black dark:text-[#0EFF7B]">
+                      {formData.doctor_name || 
+                       (doctors.find((d) => String(d.id) === String(formData.doctor_id))?.full_name) || 
+                       `ID: ${formData.doctor_id}`}
                     </span>
-                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                    </span>
-                  </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
-                    {doctors.map((doctor) => (
-                      <Listbox.Option
-                        key={doctor.id}
-                        value={doctor.id}
-                        className={({ active, selected }) =>
-                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                           ${
-                             active
-                               ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                               : "text-black dark:text-white"
-                           }
-                           ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                        }
-                      >
-                        {doctor.full_name}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
+                  </div>
+                  {/* <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                    Fixed
+                  </div> */}
                 </div>
-              </Listbox>
-              {fieldErrors.doctor_id && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.doctor_id}</span>
+                <div className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                  <div className="text-xs text-gray-400 dark:text-gray-500">Locked</div>
                 </div>
-              )}
+              </div>
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 italic">
+                Doctor cannot be changed for existing surgery
+              </div>
             </div>
             
             {/* Surgery Type - Row 1, Column 3 */}
@@ -473,16 +657,16 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                 className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B]
-                           ${focusedField === "surgery_type" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                           ${focusedField === "surgery_type" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                             getFieldError("surgery_type") ? "border-red-500 ring-1 ring-red-500" : 
+                             "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
-              {validationErrors.surgery_type && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.surgery_type}</span>
-                </div>
-              )}
-              {fieldErrors.surgery_type && !validationErrors.surgery_type && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.surgery_type}</span>
+              {getFieldError("surgery_type") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">
+                    {getFieldError("surgery_type")}
+                  </span>
                 </div>
               )}
             </div>
@@ -502,7 +686,9 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                     onBlur={() => setFocusedField(null)}
                     className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                text-left text-[14px] flex items-center justify-between group
-                               ${focusedField === "status" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                               ${focusedField === "status" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                                 getFieldError("status") ? "border-red-500 ring-1 ring-red-500" : 
+                                 "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   >
                     <span className={`block truncate ${formData.status ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
                       {formData.status === "pending" ? "Pending" : 
@@ -530,9 +716,12 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                   </Listbox.Options>
                 </div>
               </Listbox>
-              {fieldErrors.status && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.status}</span>
+              {getFieldError("status") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">
+                    {getFieldError("status")}
+                  </span>
                 </div>
               )}
             </div>
@@ -549,6 +738,7 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                   onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
                   onFocus={() => setFocusedField("scheduled_date")}
                   onBlur={() => setFocusedField(null)}
+                  min={getMinDate()} // Prevent past dates
                   className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
                             bg-gray-100 dark:bg-transparent outline-none
                             text-black dark:text-[#0EFF7B] cursor-pointer
@@ -557,7 +747,9 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                             [&::-webkit-calendar-picker-indicator]:hidden
                             ${focusedField === "scheduled_date"
                               ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                              : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                              : getFieldError("scheduled_date") 
+                                ? "border-red-500 ring-1 ring-red-500"
+                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                             }`}
                 />
                 <Calendar
@@ -569,9 +761,12 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                   }}
                 />
               </div>
-              {fieldErrors.scheduled_date && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.scheduled_date}</span>
+              {getFieldError("scheduled_date") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">
+                    {getFieldError("scheduled_date")}
+                  </span>
                 </div>
               )}
             </div>
@@ -587,13 +782,20 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                 onChange={(e) => handleInputChange("scheduled_time", e.target.value)}
                 onFocus={() => setFocusedField("scheduled_time")}
                 onBlur={() => setFocusedField(null)}
+                // If date is today, set min time to current time
+                min={isToday(formData.scheduled_date) ? getCurrentTime() : undefined}
                 className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            outline-none text-black dark:text-[#0EFF7B]
-                           ${focusedField === "scheduled_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                           ${focusedField === "scheduled_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                             getFieldError("scheduled_time") ? "border-red-500 ring-1 ring-red-500" : 
+                             "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
-              {fieldErrors.scheduled_time && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.scheduled_time}</span>
+              {getFieldError("scheduled_time") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">
+                    {getFieldError("scheduled_time")}
+                  </span>
                 </div>
               )}
             </div>
@@ -618,17 +820,17 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                     className={`w-full h-[32px] mt-1 pl-8 pr-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                                placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                                text-black dark:text-[#0EFF7B]
-                               ${focusedField === "price" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                               ${focusedField === "price" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                                 getFieldError("price") ? "border-red-500 ring-1 ring-red-500" : 
+                                 "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
                   />
                 </div>
-                {validationErrors.price && (
-                  <div className="mt-1">
-                    <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.price}</span>
-                  </div>
-                )}
-                {fieldErrors.price && !validationErrors.price && (
-                  <div className="mt-1">
-                    <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.price}</span>
+                {getFieldError("price") && (
+                  <div className="mt-1 flex items-center gap-1">
+                    <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                    <span className="text-red-700 dark:text-red-400 text-xs">
+                      {getFieldError("price")}
+                    </span>
                   </div>
                 )}
               </div>
@@ -651,15 +853,28 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
                 className={`w-full mt-1 px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B] resize-none
-                           ${focusedField === "description" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                           ${focusedField === "description" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                             getFieldError("description") ? "border-red-500 ring-1 ring-red-500" : 
+                             "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
               />
+              {getFieldError("description") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">
+                    {getFieldError("description")}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
           
           {/* Combined date-time validation error */}
-          {validationErrors.scheduled_date_time && (
-            <div className="mt-2">
-              <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.scheduled_date_time}</span>
+          {validationErrors.scheduled_date_time && !getFieldError("scheduled_date") && !getFieldError("scheduled_time") && (
+            <div className="mt-2 flex items-center gap-1">
+              <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+              <span className="text-red-700 dark:text-red-500 text-xs">
+                {validationErrors.scheduled_date_time}
+              </span>
             </div>
           )}
           
@@ -669,17 +884,18 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
               onClick={onClose}
               className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
                          text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                         shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
+                         shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent
+                         hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleUpdate}
-              disabled={saving || Object.values(validationErrors).some(error => error !== "")}
+              disabled={saving || hasErrors()}
               className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                          bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                          shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
-                         hover:scale-105 transition disabled:opacity-70"
+                         hover:scale-105 transition disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {saving ? "Updating…" : "Update Surgery"}
             </button>

@@ -275,10 +275,10 @@ body {
 .medicine-table td:nth-child(1) { width: 8%; }
 
 .medicine-table th:nth-child(2),
-.medicine-table td:nth-child(2) { width: 42%; }
+.medicine-table td:nth-child(2) { width: 13%; }
 
 .medicine-table th:nth-child(3),
-.medicine-table td:nth-child(3) { width: 13%; }
+.medicine-table td:nth-child(3) { width: 42%; }
 
 .medicine-table th:nth-child(4),
 .medicine-table td:nth-child(4) { width: 13%; }
@@ -583,6 +583,7 @@ body {
             <thead>
             <tr>
                 <th>S.no</th>
+                <th>Item Code</th>
                 <th>Descriptions</th>
                 <th>Quantity</th>
                 <th>Unit price</th>
@@ -594,12 +595,10 @@ body {
             {% for item in first_page_items %}
             <tr>
                 <td class="col-center">{{ loop.index }}</td>
+                <td class="col-center">{{ item.item_code }}</td>
 
                 <td class="col-left">
                     <div class="item-name">{{ item.drug_name }}</div>
-                    <div class="item-sub">
-                        Code: {{ item.item_code }} • Rack {{ item.rack_no }} • Shelf {{ item.shelf_no }}
-                    </div>
                 </td>
 
                 <td class="col-center">{{ item.quantity }}</td>

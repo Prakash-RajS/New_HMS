@@ -263,7 +263,7 @@ export const menuItems = [
         path: "/Administration/BedList",
         icon: Bed,
       },
-      { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
+      // { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
     ],
   },
   {

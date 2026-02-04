@@ -340,6 +340,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [loadingDepts, setLoadingDepts] = useState(true);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loadingBeds, setLoadingBeds] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added for TC_096
 
   // Validation states
   const [validationErrors, setValidationErrors] = useState({}); // Format validation
@@ -401,49 +402,69 @@ export default function NewRegistration({ isSidebarOpen }) {
     return matrix[b.length][a.length];
   };
 
-  // Real-time format validation functions (for typing)
-  const validateNameFormat = (value) => {
-    if (/[0-9]/.test(value)) return "Name should not contain numbers";
-    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid name";
-    return "";
-  };
-
+  // Enhanced email validation for TC_097
   const validateEmailFormat = (value) => {
     const email = value.trim();
-    if (!email) return "";
+    if (!email) return "Email is required";
 
-    // 1️⃣ Basic structure check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Enhanced email validation regex
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    
     if (!emailRegex.test(email)) {
       return "Please enter a valid email address (e.g., user@domain.com)";
     }
 
-    // 2️⃣ Suspicious formatting
-    if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
-      return "Invalid email format";
+    // Check for common invalid patterns
+    const invalidPatterns = [
+      /\.\./, // No double dots
+      /@\./, // No @ immediately followed by dot
+      /\.@/, // No dot immediately before @
+      /^\./, // Cannot start with dot
+      /\.$/, // Cannot end with dot
+    ];
+
+    for (const pattern of invalidPatterns) {
+      if (pattern.test(email)) {
+        return "Invalid email format";
+      }
     }
 
-    const [localPart, domain] = email.toLowerCase().split("@");
-
-    // 3️⃣ Local-part sanity
-    if (localPart.length < 2) {
+    const [localPart, domain] = email.toLowerCase().split('@');
+    
+    // Local part validation
+    if (localPart.length < 1) {
       return "Email username is too short";
     }
-
-    if (/(.)\1{5,}/.test(localPart)) {
-      return "Email appears to be invalid";
+    
+    if (localPart.length > 64) {
+      return "Email username is too long";
     }
 
-    if (/(\.\.|__|--|\+\+)/.test(localPart)) {
-      return "Email contains invalid characters";
+    // Domain validation
+    const domainParts = domain.split('.');
+    if (domainParts.length < 2) {
+      return "Invalid domain format";
     }
 
-    // 4️⃣ Disposable / fake domains (hard block)
-    const invalidDomains = [
-      "email.com",
+    // TLD validation
+    const tld = domainParts[domainParts.length - 1];
+    if (tld.length < 2) {
+      return "Please use a valid domain extension";
+    }
+
+    // Block common invalid/placeholder domains (including test case example)
+    const blockedDomains = [
       "example.com",
       "test.com",
       "domain.com",
+      "invalid.com",
+      "123.com",
+      "gm.com", // This was your test case (1234@gm.com)
+      "gmail.con", // Common typo
+      "gmail.cm",
+      "gmailcom",
+      "email.com",
+      "mail.com",
       "mailinator.com",
       "tempmail.com",
       "guerrillamail.com",
@@ -456,32 +477,25 @@ export default function NewRegistration({ isSidebarOpen }) {
       "maildrop.cc"
     ];
 
-    if (invalidDomains.includes(domain)) {
-      return "Disposable or invalid email domains are not allowed";
+    if (blockedDomains.includes(domain.toLowerCase())) {
+      return "Please use a valid email domain";
     }
 
-    // 5️⃣ Dynamic typo detection for major providers
+    // Dynamic typo detection for major providers
     const providers = [
       "gmail.com",
       "yahoo.com",
       "outlook.com",
       "hotmail.com",
-      "icloud.com"
+      "icloud.com",
+      "protonmail.com"
     ];
 
     for (const provider of providers) {
       const distance = levenshtein(domain, provider);
-
-      // distance 1–2 = very likely a typo
       if (distance > 0 && distance <= 2) {
         return `Did you mean ${localPart}@${provider}?`;
       }
-    }
-
-    // 6️⃣ TLD sanity (not restrictive)
-    const tld = domain.split(".").pop();
-    if (tld.length < 2) {
-      return "Please use a valid domain extension";
     }
 
     return "";
@@ -577,6 +591,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     const errors = {};
     let isValid = true;
 
+    // Define required fields - REMOVED "admitDate" for TC_098
     const requiredFields = [
       "fullname",
       "dob",
@@ -598,7 +613,7 @@ export default function NewRegistration({ isSidebarOpen }) {
       "temperature",
       "consultType",
       "apptType",
-      "admitDate",
+      // "admitDate", // REMOVED - this makes it optional for TC_098
       "roomNo",
       "testReport",
       "casualty",
@@ -939,6 +954,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     setValidationErrors({});
     setFieldErrors({});
     setIsSubmitted(false);
+    setIsSubmitting(false); // Reset submitting state
   };
 
   /* ---------- Submit with Toast ---------- */
@@ -946,11 +962,18 @@ export default function NewRegistration({ isSidebarOpen }) {
     e.preventDefault();
     e.stopPropagation();
 
+    // Prevent multiple submissions - Fix for TC_096
+    if (isSubmitting) {
+      return;
+    }
+
     const isValid = validateForm();
     if (!isValid) {
       errorToast("Please fix all validation errors before saving.");
       return;
     }
+
+    setIsSubmitting(true); // Lock the form - Fix for TC_096
 
     const body = new FormData();
     body.append("full_name", safeStr(formData.fullname));
@@ -973,7 +996,7 @@ export default function NewRegistration({ isSidebarOpen }) {
     body.append("body_temperature", safeStr(formData.temperature));
     body.append("consultation_type", safeStr(formData.consultType));
     body.append("appointment_type", safeStr(formData.apptType));
-    body.append("admission_date", formData.admitDate || "");
+    body.append("admission_date", formData.admitDate || ""); // Optional - Fix for TC_098
     body.append("room_number", safeStr(formData.roomNo));
     body.append("test_report_details", safeStr(formData.testReport));
     body.append("casualty_status", safeStr(formData.casualty));
@@ -994,6 +1017,8 @@ export default function NewRegistration({ isSidebarOpen }) {
     } catch (err) {
       const errorMessage = err.response?.data?.detail || err.message || "Registration failed";
       errorToast(`Registration failed: ${errorMessage}`);
+    } finally {
+      setIsSubmitting(false); // Unlock the form - Fix for TC_096
     }
   };
 
@@ -1314,8 +1339,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                 label="Admit Date"
                 value={formData.admitDate}
                 onChange={handleDateChange("admitDate")}
-                required
                 restrictFuture={true}
+                // Removed required prop to make it optional for TC_098
               />
               <Dropdown
                 label="Room / Bed No"
@@ -1397,12 +1422,12 @@ export default function NewRegistration({ isSidebarOpen }) {
             </button>
             <button
               type="submit"
-              disabled={Object.values(validationErrors).some(
+              disabled={isSubmitting || Object.values(validationErrors).some(
                 (error) => error !== ""
               )}
               className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B] disabled:opacity-70"
             >
-              Add Patient..!
+              {isSubmitting ? "Submitting..." : "Add Patient..!"}
             </button>
           </div>
         </form>

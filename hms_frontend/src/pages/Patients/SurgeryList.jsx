@@ -1,4 +1,3 @@
-// SurgeryList.jsx
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Search,
@@ -16,6 +15,7 @@ import { Listbox } from "@headlessui/react";
 import AddSurgeryPopup from "./AddSurgeryPopup";
 import EditSurgeryPopup from "./EditSurgeryPopup";
 import DeleteSurgeryPopup from "./DeleteSurgeryPopup";
+import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 
 const SurgeryList = () => {
@@ -38,6 +38,8 @@ const SurgeryList = () => {
     status: "",
     date: "",
   });
+
+  const [tempFilters, setTempFilters] = useState(filtersData);
 
   const tabs = ["All", "Today", "Upcoming", "Past"];
 
@@ -146,15 +148,24 @@ const SurgeryList = () => {
     }
   }, [showAddPopup, showEditPopup, showDeletePopup]);
 
+  // Initialize tempFilters when popup opens
+  useEffect(() => {
+    if (showFilterPopup) {
+      setTempFilters({ ...filtersData });
+    }
+  }, [showFilterPopup, filtersData]);
+
   // === API handlers ===
   const handleDelete = async (id) => {
-    try {
-      await api.delete(`/surgeries/${id}`);
-      await fetchSurgeries();
-    } catch (err) {
-      throw err;
-    }
-  };
+  try {
+    await api.delete(`/surgeries/${id}`);
+    successToast("Surgery deleted successfully");
+    await fetchSurgeries();
+  } catch (err) {
+    errorToast("Failed to delete surgery. Please try again.");
+    console.error(err);
+  }
+};
 
   // === Status Counts ===
   const statusCounts = useMemo(() => {
@@ -258,26 +269,28 @@ const SurgeryList = () => {
     );
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFiltersData({ ...filtersData, [name]: value });
+  const handleTempChange = (name, value) => {
+    setTempFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   // === Apply filters from popup ===
   const handleApplyFilters = () => {
-    setShowFilterPopup(false);
+    setFiltersData({ ...tempFilters });
     setCurrentPage(1);
+    setShowFilterPopup(false);
   };
 
   const handleClearFilters = () => {
-    setFiltersData({
+    const emptyFilters = {
       patientName: "",
       doctorName: "",
       status: "",
       date: "",
-    });
+    };
+    setFiltersData(emptyFilters);
+    setTempFilters(emptyFilters);
     setCurrentPage(1);
-    setShowFilterPopup(false);
+    // Do not close the popup here
   };
 
   // === Dropdown component ===
@@ -745,8 +758,8 @@ const SurgeryList = () => {
                   <input
                     type="text"
                     name="patientName"
-                    value={filtersData.patientName}
-                    onChange={handleFilterChange}
+                    value={tempFilters.patientName}
+                    onChange={(e) => handleTempChange(e.target.name, e.target.value)}
                     placeholder="Enter patient name"
                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
@@ -759,8 +772,8 @@ const SurgeryList = () => {
                   <input
                     type="text"
                     name="doctorName"
-                    value={filtersData.doctorName}
-                    onChange={handleFilterChange}
+                    value={tempFilters.doctorName}
+                    onChange={(e) => handleTempChange(e.target.name, e.target.value)}
                     placeholder="Enter doctor name"
                     className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
                   />
@@ -768,9 +781,9 @@ const SurgeryList = () => {
 
                 <Dropdown
                   label="Status"
-                  value={filtersData.status}
+                  value={tempFilters.status}
                   onChange={(v) =>
-                    setFiltersData({ ...filtersData, status: v })
+                    handleTempChange("status", v)
                   }
                   options={[
                     "",
@@ -796,8 +809,8 @@ const SurgeryList = () => {
                       type="date"
                       id="filterDateInput"
                       name="date"
-                      value={filtersData.date}
-                      onChange={handleFilterChange}
+                      value={tempFilters.date}
+                      onChange={(e) => handleTempChange(e.target.name, e.target.value)}
                       className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer
                              [appearance:textfield]
                              [&::-webkit-calendar-picker-indicator]:opacity-0

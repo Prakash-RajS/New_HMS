@@ -129,7 +129,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (validateForm()) {
       try {
         // Prepare data for saving
@@ -141,7 +141,7 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
             )?.name || formData.department,
         };
 
-        onSave(saveData);
+        await onSave(saveData);
         successToast(
           `Test order for "${formData.patientName}" created successfully!`
         );

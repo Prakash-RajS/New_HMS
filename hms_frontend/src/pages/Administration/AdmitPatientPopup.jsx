@@ -1,9 +1,8 @@
-// AdmitPatientPopup.jsx
 import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { X, Calendar, ChevronDown } from "lucide-react";
-import { successToast, errorToast } from "../../components/Toast";
+import { X, Calendar, ChevronDown, AlertCircle } from "lucide-react";
+import { successToast, errorToast, warningToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
 
 /* -------------------------------------------------
@@ -122,7 +121,7 @@ const TypeAheadDropdown = ({
 };
 
 /* -------------------------------------------------
-   AdmitPatientPopup – Updated with type-ahead dropdowns
+   AdmitPatientPopup – Updated with better error handling
 ------------------------------------------------- */
 const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -137,11 +136,13 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [availableBeds, setAvailableBeds] = useState([]);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [fetchingPatients, setFetchingPatients] = useState(false);
 
   // Patient data
   const [allPatients, setAllPatients] = useState([]);
   const [patientNameOptions, setPatientNameOptions] = useState([]);
   const [patientIdOptions, setPatientIdOptions] = useState([]);
+  const [patientFetchError, setPatientFetchError] = useState("");
 
   // Load bed groups AND patients
   useEffect(() => {
@@ -163,63 +164,111 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           }));
         }
 
-        // Fetch patients - adjust endpoint based on your API
+        // Fetch patients - with better error handling
+        setFetchingPatients(true);
+        setPatientFetchError("");
         try {
           const patientsRes = await api.get("/medicine_allocation/edit");
-          const patientsData = patientsRes.data;
+          console.log("Patients API response:", patientsRes);
+          
+          let patientsData = patientsRes.data;
+          
+          // Check if response structure is different
+          if (!patientsData) {
+            console.warn("No patient data received");
+            // Try alternative endpoint
+            try {
+              const altRes = await api.get("/patients/list");
+              patientsData = altRes.data;
+            } catch (altErr) {
+              console.warn("Alternative endpoint also failed");
+            }
+          }
 
-          // Check if response is array or has patients property
+          // Handle different response structures
           let patientsList = [];
           if (Array.isArray(patientsData)) {
             patientsList = patientsData;
-          } else if (patientsData.patients) {
+          } else if (patientsData && patientsData.patients) {
             patientsList = patientsData.patients;
+          } else if (typeof patientsData === 'object' && patientsData !== null) {
+            // Try to extract array from object values
+            const values = Object.values(patientsData);
+            if (values.length > 0 && Array.isArray(values[0])) {
+              patientsList = values[0];
+            }
           }
 
-          setAllPatients(patientsList);
+          console.log("Processed patients list:", patientsList);
 
-          // Create name options (remove duplicates)
-          const nameOptions = Array.from(
-            new Map(
-              patientsList
-                .filter((p) => p.full_name)
-                .map((p) => [
-                  p.full_name,
-                  {
-                    value: p.full_name,
-                    label: p.full_name,
-                  },
-                ])
-            ).values()
-          );
+          if (patientsList.length === 0) {
+            setPatientFetchError("No patient data available. Please enter manually.");
+          } else {
+            setAllPatients(patientsList);
 
-          // Create ID options (remove duplicates)
-          const idOptions = Array.from(
-            new Map(
-              patientsList
-                .filter((p) => p.patient_unique_id)
-                .map((p) => [
-                  p.patient_unique_id,
-                  {
-                    value: p.patient_unique_id,
-                    label: p.patient_unique_id,
-                  },
-                ])
-            ).values()
-          );
+            // Create name options (remove duplicates)
+            const nameOptions = Array.from(
+              new Map(
+                patientsList
+                  .filter((p) => p.full_name)
+                  .map((p) => [
+                    p.full_name,
+                    {
+                      value: p.full_name,
+                      label: p.full_name,
+                    },
+                  ])
+              ).values()
+            );
 
-          setPatientNameOptions(nameOptions);
-          setPatientIdOptions(idOptions);
+            // Create ID options (remove duplicates)
+            const idOptions = Array.from(
+              new Map(
+                patientsList
+                  .filter((p) => p.patient_unique_id)
+                  .map((p) => [
+                    p.patient_unique_id,
+                    {
+                      value: p.patient_unique_id,
+                      label: p.patient_unique_id,
+                    },
+                  ])
+              ).values()
+            );
+
+            setPatientNameOptions(nameOptions);
+            setPatientIdOptions(idOptions);
+          }
         } catch (patientsError) {
-          console.warn("Could not fetch patients data:", patientsError);
-          // Continue without patient data - manual entry will be required
+          console.error("Failed to fetch patients data:", patientsError);
+          
+          let errorMessage = "Could not load patient list";
+          if (patientsError.response?.status === 400) {
+            errorMessage = "Server error: Database connection issue";
+          } else if (patientsError.response?.status === 401 || patientsError.response?.status === 403) {
+            errorMessage = "Authentication required. Please refresh the page.";
+          } else if (patientsError.response?.status === 404) {
+            errorMessage = "Patient endpoint not found. Using manual entry.";
+          } else if (patientsError.response?.status === 500) {
+            errorMessage = "Server error. Please try again later.";
+          } else if (patientsError.message === "Network Error") {
+            errorMessage = "Network error. Check your connection.";
+          }
+          
+          setPatientFetchError(errorMessage);
+          console.warn("Patient fetch error:", errorMessage);
+          
+          // Don't show error toast for patient fetch - it's not critical
+          // Users can still enter patient details manually
         }
       } catch (err) {
-        let errorMessage = "Failed to load data";
+        let errorMessage = "Failed to load bed groups";
         
         if (err.response) {
           if (err.response.status === 401 || err.response.status === 403) {
             errorMessage = "Session expired. Please login again.";
+          } else if (err.response.status === 400) {
+            errorMessage = "Invalid request. Please refresh the page.";
           } else {
             errorMessage = err.response.data?.detail || errorMessage;
           }
@@ -229,6 +278,8 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         
         setServerError(errorMessage);
         errorToast(errorMessage);
+      } finally {
+        setFetchingPatients(false);
       }
     };
 
@@ -265,6 +316,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
       })
       .catch((err) => {
         console.error("Error fetching bed groups:", err);
+        setServerError("Failed to load available beds");
       });
   }, [formData.bedGroup]);
 
@@ -427,6 +479,8 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           errorMessage = "Session expired. Please login again.";
         } else if (err.response.status === 409) {
           errorMessage = err.response.data?.detail || "Bed is already occupied.";
+        } else if (err.response.status === 500) {
+          errorMessage = "Server error. Please try again later.";
         } else {
           errorMessage = err.response.data?.detail || errorMessage;
         }
@@ -474,6 +528,12 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     return `${month}/${day}/${year}`;
   };
 
+  // Get today's date for minDate
+  const getToday = () => {
+    const today = new Date();
+    return today;
+  };
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 font-[Helvetica] z-50">
       <div
@@ -515,8 +575,25 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
         </div>
 
         {serverError && (
-          <div className="text-red-500 text-sm mb-4 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-            {typeof serverError === 'object' ? JSON.stringify(serverError) : serverError}
+          <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-red-600 dark:text-red-400" />
+              <span className="text-red-700 dark:text-red-300 text-sm">
+                {typeof serverError === 'object' ? JSON.stringify(serverError) : serverError}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Patient fetch warning (non-blocking) */}
+        {patientFetchError && (
+          <div className="mb-4 p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center gap-2">
+              <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-400" />
+              <span className="text-yellow-700 dark:text-yellow-300 text-sm">
+                {patientFetchError}
+              </span>
+            </div>
           </div>
         )}
 
@@ -533,8 +610,18 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
               onChange={handlePatientNameSelect}
               options={patientNameOptions}
               error={errors.name || errors.full_name}
-              placeholder="Type patient name..."
+              placeholder={
+                fetchingPatients ? "Loading patients..." : 
+                patientNameOptions.length > 0 ? "Type patient name..." :
+                "Enter patient name"
+              }
+              disabled={fetchingPatients}
             />
+            {fetchingPatients && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Loading patient list...
+              </div>
+            )}
           </div>
 
           {/* Patient ID - TypeAhead Dropdown */}
@@ -548,8 +635,18 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
               onChange={handlePatientIdSelect}
               options={patientIdOptions}
               error={errors.patientId || errors.patient_unique_id}
-              placeholder="Type patient ID..."
+              placeholder={
+                fetchingPatients ? "Loading patients..." : 
+                patientIdOptions.length > 0 ? "Type patient ID..." :
+                "Enter patient ID"
+              }
+              disabled={fetchingPatients}
             />
+            {fetchingPatients && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Loading patient list...
+              </div>
+            )}
           </div>
 
           {/* Bed Group - TypeAhead Dropdown */}
@@ -607,7 +704,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
                 }}
                 dateFormat="MM/dd/yyyy"
                 placeholderText="MM/DD/YYYY"
-                minDate={new Date()} // Prevent past dates
+                minDate={getToday()} // Prevent past dates
                 className="w-[228px] h-[33px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] 
                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                            focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] text-sm"
@@ -641,6 +738,17 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </div>
         </div>
 
+        {/* Info message about manual entry */}
+        {(patientFetchError && !fetchingPatients) && (
+          <div className="mt-4 p-3 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-2">
+              <span className="text-blue-700 dark:text-blue-300 text-sm">
+                You can still admit patients by manually typing patient name and ID.
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Buttons */}
         <div className="flex justify-center gap-[18px] mt-8">
           <button
@@ -652,12 +760,12 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
           </button>
           <button
             onClick={handleAdmit}
-            disabled={loading}
+            disabled={loading || fetchingPatients}
             style={{
               background:
                 "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
             }}
-            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:bg-[#0cd968] disabled:opacity-50"
+            className="w-[104px] h-[33px] rounded-[8px] border-b-[2px] border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:bg-[#0cd968] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Admitting..." : "Admit"}
           </button>

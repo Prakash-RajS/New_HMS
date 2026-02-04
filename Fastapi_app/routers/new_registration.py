@@ -1376,3 +1376,45 @@ async def get_patient_surgeries(
     except Exception as e:
         logging.exception("get_patient_surgeries error")
         raise HTTPException(500, detail=str(e))
+    
+@router.delete("/{patient_id}")
+async def delete_patient(patient_id: str = Path(...)):
+    await sync_to_async(ensure_db_connection)()
+    
+    try:
+        @sync_to_async
+        def fetch_patient():
+            return Patient.objects.get(patient_unique_id=patient_id)
+        
+        patient = await fetch_patient()
+        
+        # Store photo path
+        photo_path = getattr(patient, "photo", None)
+        
+        # Delete patient
+        @sync_to_async
+        def delete_patient_obj():
+            patient.delete()
+        
+        await delete_patient_obj()
+        
+        # Send notification (assuming this is async-safe)
+        await NotificationService.send_patient_deleted({
+            'patient_unique_id': patient.patient_unique_id,
+            'full_name': patient.full_name
+        })
+        
+        # Delete photo if exists - wrap file IO in threadpool
+        if photo_path and isinstance(photo_path, str) and os.path.exists(photo_path):
+            try:
+                await run_in_threadpool(os.remove, photo_path)
+            except Exception as file_err:
+                logging.warning(f"Failed to delete photo {photo_path}: {file_err}")
+        
+        return {"success": True, "message": "Deleted"}
+    
+    except Patient.DoesNotExist:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    except Exception as e:
+        logging.exception("delete_patient error")
+        raise HTTPException(status_code=500, detail=str(e))

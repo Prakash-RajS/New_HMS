@@ -1002,6 +1002,7 @@ from HMS_backend.models import Patient, Department, Staff
 from Fastapi_app.routers.notifications import NotificationService
 from asgiref.sync import sync_to_async
 from django.shortcuts import get_object_or_404
+from psycopg2 import OperationalError
 
 # Django setup
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -1722,18 +1723,40 @@ async def edit_patient(
         raise HTTPException(status_code=400, detail=f"Update failed: {str(e)}")
 
 # ---------- List Patients ----------
+# @router.get("/edit")
+# async def list_patients():
+#     await sync_to_async(ensure_db_connection)()
+#     try:
+#         patients = await run_in_threadpool(lambda: list(Patient.objects.select_related('department').values('id', 'full_name', 'patient_unique_id', 'department__name')))
+#         # Rename department__name to department
+#         for p in patients:
+#             if 'department__name' in p:
+#                 p['department'] = p.pop('department__name')
+#         return {"patients": patients}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 @router.get("/edit")
 async def list_patients():
     await sync_to_async(ensure_db_connection)()
     try:
-        patients = await run_in_threadpool(lambda: list(Patient.objects.select_related('department').values('id', 'full_name', 'patient_unique_id', 'department__name')))
+        def fetch_patients():
+            close_old_connections()
+            return list(Patient.objects.select_related('department').values('id', 'full_name', 'patient_unique_id', 'department__name'))
+        
+        patients = await sync_to_async(fetch_patients)()
+        
         # Rename department__name to department
         for p in patients:
             if 'department__name' in p:
                 p['department'] = p.pop('department__name')
+        
         return {"patients": patients}
+    except OperationalError as e:
+        print(f"Database connection error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Database connection failed. Please check credentials and server availability.")
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        print(f"Error fetching patients: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch patients list: {str(e)}")
   
 # --------------------------------------------------------------
 # 1. DIAGNOSES (LabReport → Diagnosis tab) – UPDATED
