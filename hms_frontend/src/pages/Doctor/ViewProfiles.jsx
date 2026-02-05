@@ -830,21 +830,50 @@ const DoctorProfile = () => {
     window.open(fileUrl, "_blank");
   };
   // Handle download certificate
-  const handleDownloadCertificate = (certificate) => {
-    // Use the original path from backend directly
-    const filePath = certificate.originalPath;
-   
-    // Construct the URL - Directly use the path from backend
-    const fileUrl = `${import.meta.env.VITE_API_BASE_URL}/${filePath}`;
-   
-    console.log("Downloading certificate URL:", fileUrl);
+ const handleDownloadCertificate = async (certificate) => {
+  try {
+    if (!certificate?.originalPath) {
+      errorToast("Certificate file not found.");
+      return;
+    }
+
+    const response = await api.post(
+      "/staff/download-certificate",
+      { path: certificate.originalPath },
+      { responseType: "blob" }
+    );
+
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+
+    const filename = certificate.originalPath
+      .split(",")[0]
+      .split("/")
+      .pop()
+      .replace(/["“”]/g, "")
+      .trim();
+
     const link = document.createElement("a");
-    link.href = fileUrl;
-    link.download = certificate.name;
+    link.href = url;
+    link.setAttribute("download", filename);
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+
+    window.URL.revokeObjectURL(url);
+
+    successToast("Certificate downloaded successfully");
+  } catch (err) {
+    console.error("Download error:", err);
+    errorToast(
+      err.response?.data?.detail ||
+      "Failed to download certificate"
+    );
+  }
+};
+
+
  
   // UPDATED: Dropdown component with error support
   const Dropdown = ({

@@ -26,11 +26,11 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
     setTestTypesLoading(true);
     try {
       const response = await api.get("/labreports/test-types");
-
+      
       if (response.status !== 200) {
         throw new Error("Failed to fetch test types");
       }
-
+      
       const data = response.data;
       console.log("Fetched test types:", data.test_types);
       setTestTypes(data.test_types || []);
@@ -85,17 +85,17 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
       try {
         // Fetch patients
         const patientsResponse = await api.get("/medicine_allocation/edit");
-
+        
         if (patientsResponse.status !== 200) {
           throw new Error("Failed to fetch patients");
         }
-
+        
         const patientsData = patientsResponse.data;
         setPatients(patientsData.patients || []);
 
         // Fetch departments
         await fetchDepartments();
-
+        
         // Fetch test types
         await fetchTestTypes();
       } catch (err) {

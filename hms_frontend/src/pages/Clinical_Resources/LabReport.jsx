@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import DeleteLabReportPopup from "./DeleteLabReport.jsx";
 import CreateTestOrderPopup from "./CreateTestOrderPopup.jsx";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
@@ -641,29 +641,44 @@ const LabReport = () => {
             </Listbox>
           </div>
           <div className="flex items-center gap-3 flex-grow md:flex-grow-0">
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
-              <input
-                type="text"
-                placeholder="Search patient name, test type, or order ID.."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
-              />
-            </div>
-            <button
-              onClick={openFilterPopup}
-              className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
-            >
-              <Filter size={18} className="text-[#0EFF7B] dark:text-[#0EFF7B]" />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                Filter
-              </span>
-            </button>
-          </div>
+  <div className="relative w-full md:w-72">
+    <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#066A3A] dark:text-[#0EFF7B]" />
+    <input
+      type="text"
+      placeholder="Search patient name, test type, or order ID.."
+      value={searchTerm}
+      onChange={(e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+      }}
+      className="w-full 
+        bg-[#E6F7EF] dark:bg-[#0EFF7B1A]
+        placeholder-[#3B8F6A]
+        pl-10 pr-4 py-2 rounded-[40px]
+        border-[1px] border-[#08994A]
+        dark:border-[#0EFF7B1A]
+        text-[#044D2B] dark:text-[#5CD592]
+        text-sm focus:outline-none"
+    />
+  </div>
+
+  <button
+    onClick={openFilterPopup}
+    className="relative group 
+      bg-[#E6F7EF] dark:bg-[#0EFF7B1A]
+      border border-[#08994A]
+      rounded-[20px] w-[32px] h-[32px]
+      flex items-center justify-center
+      text-[#044D2B] dark:text-white
+      hover:bg-[#CFF1E1]"
+  >
+    <Filter size={18} className="text-[#066A3A] dark:text-[#0EFF7B]" />
+    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+      Filter
+    </span>
+  </button>
+</div>
+
         </div>
 
         {/* ✅ Table */}

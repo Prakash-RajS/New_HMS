@@ -396,7 +396,16 @@ class Patient(models.Model):
         ordering = ["-created_at"]
 
     def save(self, *args, **kwargs):
-        # Store old values before saving
+        # Auto-generate patient_unique_id
+        if not self.patient_unique_id:
+            last = Patient.objects.order_by("id").last()
+            if last and last.patient_unique_id.startswith("PAT"):
+                num = int(last.patient_unique_id.replace("PAT", ""))
+                self.patient_unique_id = f"PAT{num + 1}"
+            else:
+                self.patient_unique_id = "PAT1000"
+        
+        # Track if this is a new emergency patient
         is_new = not self.pk
         old_casualty_status = None
         
@@ -407,46 +416,21 @@ class Patient(models.Model):
             except Patient.DoesNotExist:
                 pass
         
-        # Auto-generate patient_unique_id
-        if not self.patient_unique_id:
-            last = Patient.objects.order_by("id").last()
-            if last and last.patient_unique_id.startswith("PAT"):
-                num = int(last.patient_unique_id.replace("PAT", ""))
-                self.patient_unique_id = f"PAT{num + 1}"
-            else:
-                self.patient_unique_id = "PAT1000"
+        # Call the original save method
+        super().save(*args, **kwargs)
         
         # Update patient_type based on casualty_status
         if self.casualty_status:
             status_lower = self.casualty_status.lower()
             
-            # If status is completed, set as out-patient
             if status_lower == "completed":
                 self.patient_type = "out-patient"
-            # If status is NOT completed, set as in-patient
             else:
                 self.patient_type = "in-patient"
         
-        # Call the original save method
-        super().save(*args, **kwargs)
-        
-        # Create history record in these cases:
-        from .models import PatientHistory
-        
-        should_create_history = False
-        
-        # Case 1: New registration
-        if is_new and self.casualty_status:
-            should_create_history = True
-        
-        # Case 2: Patient moved back to in-patient from out-patient
-        elif (old_casualty_status and self.casualty_status and 
-              old_casualty_status.lower() == "completed" and 
-              self.casualty_status.lower() != "completed"):
-            should_create_history = True
-        
-        # Create history record if needed
-        if should_create_history and self.casualty_status:
+        # Create history record for new emergency patients
+        if is_new and self.casualty_status and 'emergency' in self.casualty_status.lower():
+            from .models import PatientHistory
             PatientHistory.objects.create(
                 patient=self,
                 patient_name=self.full_name,
@@ -458,7 +442,19 @@ class Patient(models.Model):
         # Update staff statistics if staff is assigned
         if self.staff:
             self.staff.update_statistics(save=True)
-            print(f"✅ Updated patient count for staff {self.staff.full_name} after patient assignment")
+        
+        # Trigger dashboard update for emergency patients
+        if self.casualty_status and 'emergency' in self.casualty_status.lower():
+            self.trigger_dashboard_update()
+    
+    def trigger_dashboard_update(self):
+        """Trigger dashboard update when emergency patient is added"""
+        try:
+            # You can add WebSocket or cache invalidation here
+            # For now, we'll print a log
+            print(f"🚨 Emergency patient added: {self.full_name} - Dashboard should update")
+        except Exception as e:
+            print(f"Error triggering dashboard update: {e}")
 
             
 class PatientHistory(models.Model):
@@ -785,6 +781,8 @@ class AmbulanceUnit(models.Model):
     unit_number = models.CharField(max_length=50, unique=True)  # e.g. "AMB-09"
     vehicle_make = models.CharField(max_length=100, blank=True, null=True)
     vehicle_model = models.CharField(max_length=100, blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)  # ADDED: Contact phone
+    contact_number = models.CharField(max_length=20, blank=True, null=True)  # Alternative field
     in_service = models.BooleanField(default=True)
     notes = models.TextField(blank=True, null=True)
 
@@ -818,6 +816,8 @@ class Dispatch(models.Model):
     dispatcher = models.CharField(max_length=150)
     call_type = models.CharField(max_length=30, choices=CALL_TYPE_CHOICES, default="Emergency")
     location = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)  # ADDED: Dispatch contact phone
+    contact_number = models.CharField(max_length=20, blank=True, null=True)  # Alternative field
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default="Standby")
 
     class Meta:
@@ -835,7 +835,6 @@ class Dispatch(models.Model):
         return f"{self.dispatch_id} - {self.unit}"
 
 
-
 class Trip(models.Model):
     TRIP_STATUS = [
         ("Completed", "Completed"),
@@ -851,7 +850,7 @@ class Trip(models.Model):
     
     # CHANGED: Now a proper ForeignKey to Patient
     patient = models.ForeignKey(
-        Patient,
+        "Patient",  # Use string reference if Patient is in same file
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -860,6 +859,7 @@ class Trip(models.Model):
 
     pickup_location = models.CharField(max_length=255, blank=True, null=True)
     destination = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)  # ADDED: Trip contact phone
     start_time = models.DateTimeField(blank=True, null=True)
     end_time = models.DateTimeField(blank=True, null=True)
     mileage = models.CharField(max_length=50, blank=True, null=True)
@@ -882,6 +882,7 @@ class Trip(models.Model):
     def __str__(self):
         patient_name = self.patient.full_name if self.patient else "No Patient"
         return f"{self.trip_id} - {patient_name}"
+
 
 
 class SecuritySettings(models.Model):
@@ -1303,12 +1304,15 @@ class Surgery(models.Model):
     STATUS_SUCCESS = "success"
     STATUS_CANCELLED = "cancelled"
     STATUS_FAILED = "failed"
+    STATUS_EMERGENCY = "emergency"
 
     STATUS_CHOICES = [
         (STATUS_PENDING, "Pending"),
         (STATUS_SUCCESS, "Success"),
         (STATUS_CANCELLED, "Cancelled"),
         (STATUS_FAILED, "Failed"),
+        (STATUS_EMERGENCY, "Emergency"),
+
     ]
 
     patient = models.ForeignKey(

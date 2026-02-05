@@ -214,6 +214,7 @@ import {
   Ambulance,
   User,
   ShieldCheck,
+  Calendar
 } from "lucide-react";
 
 // This is now just the raw menu structure – search logic moved to Header
@@ -222,7 +223,7 @@ export const menuItems = [
   { name: "Appointments", path: "/appointments", icon: CalendarDays },
   {
     name: "Patients",
-    path: "/patients",
+    path: "/patients/ipd-opd",
     icon: Users,
     dropdown: [
       { name: "New Registration", path: "/patients/new-registration", icon: User },
@@ -244,11 +245,18 @@ export const menuItems = [
         paths: ["/patients/profile", "/patients/profile/details"],
         icon: ClipboardList,
       },
+       {
+        name: "Treatment Charges",
+        path: "/patients/treatment-charges",
+        icon: DollarSign,
+        permission: "treatment_charges",
+      },
+
     ],
   },
   {
     name: "Administration",
-    path: "/Administration",
+    path: "/Administration/Departments",
     icon: Building2,
     dropdown: [
       { name: "Departments", path: "/Administration/Departments", icon: Building2 },
@@ -263,12 +271,12 @@ export const menuItems = [
         path: "/Administration/BedList",
         icon: Bed,
       },
-      // { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
+      { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
     ],
   },
   {
     name: "Pharmacy",
-    path: "/Pharmacy",
+    path: "/Pharmacy/Stock-Inventory",
     icon: Pill,
     dropdown: [
       { name: "Stock & Inventory", path: "/Pharmacy/Stock-Inventory", icon: Boxes },
@@ -288,11 +296,14 @@ export const menuItems = [
         icon: Users,
       },
       { name: "MedicineAllocation", path: "/Doctors-Nurse/MedicineAllocation", icon: Pill },
+      {
+        name:"Appointment Calendar", path:"appointments/calendar",icon:Calendar,
+      }
     ],
   },
   {
     name: "Clinical Resources",
-    path: "/ClinicalResources",
+    path: "/ClinicalResources/Laboratory/LaboratoryReports",
     icon: Microscope,
     dropdown: [
       { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },

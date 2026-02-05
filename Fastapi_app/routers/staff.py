@@ -11,6 +11,11 @@ import traceback
 from Fastapi_app.routers.notifications import NotificationService
 from pathlib import Path as PathLib
 from django.db import close_old_connections, connection
+from fastapi.responses import FileResponse
+
+import os
+
+router = APIRouter()
  
 def check_db_connection():
     """Ensure database connection is alive"""
@@ -39,7 +44,9 @@ def safe_getattr(obj, attr, default=None):
         return getattr(obj, attr, default)
     except (AttributeError, DatabaseError):
         return default
-
+BASE_DIR = os.path.abspath("Fastapi_app/Staff_documents")
+class DownloadCertificateRequest(BaseModel):
+    path: str
 # ---------- Pydantic Schemas ----------
 class StaffResponse(BaseModel):
     id: int
@@ -802,3 +809,38 @@ async def update_all_staff_statistics():
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/download-certificate")
+async def download_certificate(data: DownloadCertificateRequest):
+    # ✅ Take only first file if multiple paths exist
+    raw_path = data.path.split(",")[0]
+
+    # ✅ Clean unwanted characters
+    cleaned_path = (
+        raw_path
+        .replace("“", "")
+        .replace("”", "")
+        .replace('"', "")
+        .strip()
+    )
+
+    abs_file_path = os.path.abspath(cleaned_path)
+
+    # ✅ Security check
+    if not abs_file_path.startswith(BASE_DIR):
+        raise HTTPException(status_code=403, detail="Invalid file path")
+
+    if not os.path.exists(abs_file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    filename = os.path.basename(abs_file_path)
+
+    return FileResponse(
+        path=abs_file_path,
+        filename=filename,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

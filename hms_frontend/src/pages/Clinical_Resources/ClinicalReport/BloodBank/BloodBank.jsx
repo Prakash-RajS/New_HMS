@@ -345,17 +345,29 @@ const BloodBank = () => {
 
   /* ---------- Filtering Logic ---------- */
   const filteredBloodTypes = allBloodTypes.filter((b) => {
-    if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter)
+  // Status filter
+  if (bloodStatusFilter !== "All" && b.status !== bloodStatusFilter) {
+    return false;
+  }
+
+  // Blood search – strict matching
+  if (bloodSearch.trim()) {
+    const searchTerm = bloodSearch.trim().toUpperCase();
+    
+    // Valid blood groups (case-insensitive)
+    const validBloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+    
+    // If user typed something not in valid list → no match
+    if (!validBloodGroups.some(bg => bg.toUpperCase().includes(searchTerm))) {
       return false;
-    if (
-      bloodSearch &&
-      !b.blood_type.toLowerCase().includes(bloodSearch.toLowerCase()) &&
-      !b.status.toLowerCase().includes(bloodSearch.toLowerCase()) &&
-      !String(b.available_units).includes(bloodSearch)
-    )
-      return false;
-    return true;
-  });
+    }
+    
+    // Exact or partial match on blood_type only
+    return b.blood_type.toUpperCase().includes(searchTerm);
+  }
+
+  return true;
+});
 
   const filteredDonors = allDonors.filter((d) => {
     // Blood type filter

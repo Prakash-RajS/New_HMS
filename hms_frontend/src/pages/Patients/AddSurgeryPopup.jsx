@@ -13,7 +13,13 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     description: "",
     scheduled_date: "",
     scheduled_time: "",
+    status: "pending", // Default status
   });
+   const SURGERY_STATUSES = [
+  { value: "pending", label: "Pending" },
+  { value: "emergency", label: "Emergency" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -308,7 +314,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
       // Show warning toast only once with simplified message
       if (!toastShownRef.current) {
         const toastMessage = errorData.detail?.detail || 
-                            "Duplicate surgery found. Please use a different type.";
+                            "Duplicate surgery found.";
         warningToast(toastMessage);
         toastShownRef.current = true;
       }
@@ -373,7 +379,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     
     // Return simplified duplicate error message
     if (fieldName === "surgery_type" && showDuplicateError) {
-      return "This surgery type already exists for the selected patient, doctor, and date.";
+      return "This surgery already exists for the selected patient, doctor, and date.";
     }
     
     // CRITICAL FIX: Always return a string, never an object
@@ -449,7 +455,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
         doctor_id: parseInt(formData.doctor_id),
         surgery_type: formData.surgery_type.trim(),
         description: formData.description.trim() || null,
-        status: "pending",
+        status: formData.status,
         scheduled_date: `${formData.scheduled_date}T${formData.scheduled_time}:00`
       };
 
@@ -710,6 +716,52 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
                 </div>
               )}
             </div>
+            <div className="col-span-1">
+  <label className="text-sm text-black dark:text-white">
+    Status <span className="text-red-700">*</span>
+  </label>
+ 
+  <Listbox
+    value={formData.status}
+    onChange={(v) => handleInputChange("status", v)}
+  >
+    <div className="relative mt-1">
+      <Listbox.Button
+        className="w-full h-[33px] px-3 pr-3 rounded-[8px] border
+                   bg-gray-100 dark:bg-transparent
+                   text-left text-[14px] leading-[16px]
+                   flex items-center justify-between
+                   border-[#0EFF7B] dark:border-[#3A3A3A]"
+      >
+        <span className="block truncate text-black dark:text-[#0EFF7B]">
+          {SURGERY_STATUSES.find(s => s.value === formData.status)?.label}
+        </span>
+        <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+      </Listbox.Button>
+ 
+      <Listbox.Options
+        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto
+                   rounded-[12px] bg-gray-100 dark:bg-black
+                   shadow-lg z-50 border border-[#0EFF7B]"
+      >
+        {SURGERY_STATUSES.map((status) => (
+          <Listbox.Option
+            key={status.value}
+            value={status.value}
+            className={({ active }) =>
+              `cursor-pointer select-none py-2 px-3 text-sm rounded-md
+               ${active
+                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                 : "text-black dark:text-white"}`
+            }
+          >
+            {status.label}
+          </Listbox.Option>
+        ))}
+      </Listbox.Options>
+    </div>
+  </Listbox>
+</div>
             
             {/* Surgery Date - Row 2, Column 1 */}
             <div className="col-span-1">

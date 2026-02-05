@@ -1043,7 +1043,8 @@
 
 // export default Profile;
 // hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
-// hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
+// hms_frontend/src/pages/Home/Profile.jsx - Complete updated file
+// hms_frontend/src/pages/Home/Profile.jsx - Complete updated file
 import React, { useState, useEffect } from "react";
 import {
   FaEnvelope,
@@ -1052,7 +1053,8 @@ import {
   FaMapMarkerAlt,
   FaEye,
   FaEyeSlash,
-  FaClock,
+  FaTimes,
+  FaUpload,
 } from "react-icons/fa";
 import ProfileImage from "../../assets/image.png";
 import { successToast, errorToast } from "../../components/Toast";
@@ -1071,8 +1073,18 @@ const Profile = () => {
   const [error, setError] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [originalImage, setOriginalImage] = useState(ProfileImage);
-  const [currentTime, setCurrentTime] = useState("");
   const [fileError, setFileError] = useState("");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [removePicture, setRemovePicture] = useState(false);
+  const [temporaryImage, setTemporaryImage] = useState(null); // Track temporary image changes
+  
+  // Country list for dropdown
+  const [countries] = useState([
+    "United States", "United Kingdom", "Canada", "Australia", "India",
+    "Germany", "France", "Japan", "China", "Brazil", "Singapore",
+    "Malaysia", "South Korea", "United Arab Emirates", "Saudi Arabia",
+    "South Africa", "Mexico", "Italy", "Spain", "Other"
+  ]);
   
   // State for form submission validation errors
   const [fieldErrors, setFieldErrors] = useState({
@@ -1101,7 +1113,7 @@ const Profile = () => {
     department: "",
     joinedDate: "",
     location: "",
-    timezone: "",
+    country: "",
   });
 
   const [profileData, setProfileData] = useState({
@@ -1112,7 +1124,7 @@ const Profile = () => {
     department: "",
     joinedDate: "",
     location: "",
-    timezone: "",
+    country: "",
   });
 
   const [profileImage, setProfileImage] = useState(ProfileImage);
@@ -1153,112 +1165,142 @@ const Profile = () => {
     }
     
     setSelectedFile(file);
+    setRemovePicture(false); // If user uploads new file, don't remove picture
+    
+    // Create temporary URL for preview
+    const url = URL.createObjectURL(file);
+    setTemporaryImage(url);
+    
+    // Force re-render of file input
+    if (e.target) {
+      e.target.value = '';
+    }
+  };
+
+  // Remove profile picture
+  const handleRemoveProfilePicture = () => {
+    setSelectedFile(null);
+    setTemporaryImage(ProfileImage); // Show default image immediately
+    setFileError('');
+    setRemovePicture(true); // Set flag to remove picture from backend
+    
+    // Clear any uploaded file
+    const fileInput = document.getElementById('profile-upload');
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   // Fetch current staff profile via /me/
- // Fetch current staff profile via /me/
-const fetchProfile = async () => {
-  setLoading(true);
-  setError("");
-  try {
-    console.log("Fetching profile...");
+  const fetchProfile = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      console.log("Fetching profile...");
 
-    const res = await api.get("/profile/me/");
-    const data = res.data;  // Full UserMeResponse
+      const res = await api.get("/profile/me/");
+      const data = res.data;  // Full UserMeResponse
 
-    console.log("Profile API Response:", data);  // Keep for debugging
+      console.log("Profile API Response:", data);
 
-    // ✅ Extract from nested 'profile' object
-    const profile = data.profile || {};  // Fallback if no profile
+      // ✅ Extract from nested 'profile' object
+      const profile = data.profile || {};  // Fallback if no profile
 
-    const location =
-      [profile.address, profile.city, profile.country].filter(Boolean).join(", ") ||
-      "Not provided";
+      // Use only country for location (not the full address)
+      const location = profile.country || "Not provided";
+      const country = profile.country || "";
 
-    const joinedDate = profile.date_of_joining
-      ? new Date(profile.date_of_joining).toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })
-      : "Not provided";
+      const joinedDate = profile.date_of_joining
+        ? new Date(profile.date_of_joining).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })
+        : "Not provided";
 
-    // ✅ Use nested profile_picture (full URL from backend)
-    let imageUrl = ProfileImage;
-    if (profile.profile_picture) {
-      imageUrl = profile.profile_picture;
-      console.log("Profile picture URL from API:", imageUrl);
+      // ✅ Use nested profile_picture (full URL from backend)
+      let imageUrl = ProfileImage;
+      if (profile.profile_picture) {
+        imageUrl = profile.profile_picture;
+        console.log("Profile picture URL from API:", imageUrl);
+      }
+
+      setProfileImage(imageUrl);
+      setOriginalImage(imageUrl);
+
+      // Format phone number for display
+      const phoneNumber = profile.phone || "";
+      const formattedPhone = phoneNumber ? `${phoneNumber}` : "";
+
+      const newProfileData = {
+        name: profile.full_name || "",
+        email: profile.email || "",
+        phone: formattedPhone,
+        role: profile.designation || data.role || "",
+        department: profile.department || "",
+        joinedDate,
+        location: location,
+        country: country,
+      };
+
+      // Set both current and original data
+      setProfileData(newProfileData);
+      setOriginalProfileData(newProfileData);
+
+      // Profile completion calculation (use nested fields)
+      const fields = [
+        profile.full_name,
+        profile.email,
+        profile.phone,
+        profile.designation,
+        profile.department,
+        profile.date_of_joining,
+        profile.country,
+        profile.profile_picture
+      ];
+      
+      const filled = fields.filter(field => {
+        // For profile_picture, check if it's not the default image
+        if (field === profile.profile_picture) {
+          return field && !field.includes('image.png');
+        }
+        return field && field !== "Not provided" && field !== "";
+      }).length;
+      
+      setProfileCompletion(Math.round((filled / fields.length) * 100));
+    } catch (err) {
+      console.error("Fetch profile error:", err);
+      if (err.response?.status === 401) {
+        setError("Session expired. Please login again.");
+        errorToast("Session expired. Please login again.");
+        setTimeout(() => {
+          if (window.location.pathname !== '/') {
+            window.location.href = '/';
+          }
+        }, 2000);
+      } else if (err.response?.status === 404) {
+        setError("Profile not found. Please contact administrator.");
+      } else {
+        setError("Failed to load profile. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setProfileImage(imageUrl);
-    setOriginalImage(imageUrl);
-
-    // Format phone number for display
-    const phoneNumber = profile.phone || "";
-    const formattedPhone = phoneNumber ? `${phoneNumber}` : "";
-
-    const newProfileData = {
-      name: profile.full_name || "",
-      email: profile.email || "",
-      phone: formattedPhone,
-      role: profile.designation || data.role || "",  // Fallback to top-level role if needed
-      department: profile.department || "",
-      joinedDate,
-      location,
-      timezone: profile.timezone || "",
-    };
-
-    // Set both current and original data
-    setProfileData(newProfileData);
-    setOriginalProfileData(newProfileData);
-
-    // Profile completion calculation (use nested fields)
-    const fields = [
-      profile.full_name,
-      profile.email,
-      profile.phone,
-      profile.designation,
-      profile.department,
-      profile.date_of_joining,
-      profile.address || profile.city || profile.country,
-      profile.timezone,
-    ];
-    const filled = fields.filter(Boolean).length;
-    setProfileCompletion(Math.round((filled / 8) * 100));
-  } catch (err) {
-    // ... (error handling unchanged)
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Update current time every second with 12-hour format + timezone name
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const timeString = now.toLocaleTimeString("en-US", {
-        hour12: true,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZoneName: "short",
-      });
-      setCurrentTime(timeString);
+    const closeDropdown = (e) => {
+      if (!e.target.closest(".relative")) setShowCountryDropdown(false);
     };
-
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    document.addEventListener("click", closeDropdown);
+    return () => document.removeEventListener("click", closeDropdown);
   }, []);
 
-  // Preview image on file select
   useEffect(() => {
-    if (selectedFile) {
-      const url = URL.createObjectURL(selectedFile);
-      setProfileImage(url);
-      return () => URL.revokeObjectURL(url);
+    if (temporaryImage && temporaryImage !== ProfileImage) {
+      return () => URL.revokeObjectURL(temporaryImage);
     }
-  }, [selectedFile]);
+  }, [temporaryImage]);
 
   useEffect(() => {
     fetchProfile();
@@ -1376,11 +1418,11 @@ const fetchProfile = async () => {
   const validatePhoneFormat = (value) => {
     if (!value.trim()) return "";
 
-    // Remove all non-digits
-    const digitsOnly = value.replace(/\D/g, "");
+    // Must start with +countrycode<space>
+    const phoneRegex = /^\+\d{1,3}\s\d{10}$/;
 
-    if (!/^\d{10}$/.test(digitsOnly)) {
-      return "Phone number must be exactly 10 digits";
+    if (!phoneRegex.test(value)) {
+      return "Enter mobile number with country code and space (e.g., +91 9876543210)";
     }
 
     return "";
@@ -1393,8 +1435,7 @@ const fetchProfile = async () => {
   };
 
   const validateLocationFormat = (value) => {
-    if (/[0-9]/.test(value)) return "Location should not contain numbers";
-    if (value.trim() && value !== "Not provided" && !/^[A-Za-z\s,.'-]{2,}$/.test(value)) return "Please enter a valid location (letters and spaces only)";
+    if (!value.trim()) return "Please select a country";
     return "";
   };
 
@@ -1466,10 +1507,25 @@ const fetchProfile = async () => {
       processedValue = value.charAt(0).toUpperCase() + value.slice(1);
     }
     
-    setProfileData((prev) => ({ ...prev, [field]: processedValue }));
+    // For location field, update both location and country
+    if (field === "location") {
+      setProfileData(prev => ({ 
+        ...prev, 
+        [field]: processedValue,
+        country: processedValue
+      }));
+    } else {
+      setProfileData(prev => ({ ...prev, [field]: processedValue }));
+    }
     
     // Clear format validation error when user starts typing
     setValidationErrors(prev => ({
+      ...prev,
+      [field]: ""
+    }));
+    
+    // Clear field error when user starts typing
+    setFieldErrors(prev => ({
       ...prev,
       [field]: ""
     }));
@@ -1525,114 +1581,82 @@ const fetchProfile = async () => {
     return requiredValid && formatValid;
   };
 
-  // Clear field errors when input changes
-  const clearFieldError = (fieldName) => {
-    setFieldErrors(prev => ({
-      ...prev,
-      [fieldName]: ""
-    }));
-  };
-
   // Edit Toggle - FIXED: Revert to original data when canceling
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel edit mode - revert all changes
-      setProfileData({...originalProfileData});
+      setProfileData({ ...originalProfileData });
       setSelectedFile(null);
-      setProfileImage(originalImage);
-      setFileError(''); // Clear file error
-      // Clear all field errors
-      setFieldErrors({
-        name: "",
-        email: "",
-        phone: "",
-        role: "",
-        location: ""
-      });
-      setValidationErrors({
-        name: "",
-        email: "",
-        phone: "",
-        role: "",
-        location: ""
-      });
+      setTemporaryImage(null); // Clear temporary image
+      setProfileImage(originalImage); // Reset to original image
+      setRemovePicture(false);
+      setFileError('');
+      setFieldErrors({ name: "", email: "", phone: "", role: "", location: "" });
+      setValidationErrors({ name: "", email: "", phone: "", role: "", location: "" });
     }
     setIsEditing(!isEditing);
   };
 
   // Save Changes
   const handleSaveChanges = async () => {
-    // Validate fields before submitting
     if (!validateFields()) {
       errorToast("Please fix all validation errors before saving");
       return;
     }
 
     const formData = new FormData();
-    if (selectedFile) formData.append("profile_picture", selectedFile);
+
+    // Profile picture handling
+    if (removePicture) {
+      // Send special flag to backend to remove profile picture
+      formData.append("remove_profile_picture", "true");
+    } else if (selectedFile) {
+      formData.append("profile_picture", selectedFile);
+    }
+
+    // Other fields
     if (profileData.name) formData.append("full_name", profileData.name);
     if (profileData.email) formData.append("email", profileData.email);
-    if (profileData.phone) {
-      formData.append("phone", profileData.phone);
-    }
+    if (profileData.phone) formData.append("phone", profileData.phone);
     if (profileData.role) formData.append("designation", profileData.role);
 
-    // Parse location back to address, city, country
-    const parts = profileData.location.split(",").map((p) => p.trim());
-    formData.append("address", parts[0] || "");
-    if (parts[1]) formData.append("city", parts[1]);
-    if (parts[2]) formData.append("country", parts[2]);
+    // Send only country (not full location string)
+    if (profileData.country) {
+      formData.append("country", profileData.country);
+    }
 
     try {
       const response = await api.put("/profile/update/me/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      
-      // Update profile image with the new URL from response
+
+      console.log("Update response:", response.data);
+
+      // Update image from backend response
       if (response.data.profile_picture) {
         setProfileImage(response.data.profile_picture);
         setOriginalImage(response.data.profile_picture);
+      } else {
+        // If no profile_picture in response, use default
+        setProfileImage(ProfileImage);
+        setOriginalImage(ProfileImage);
       }
-      
-      await fetchProfile();
-      setIsEditing(false);
-      // Clear field errors on successful save
-      setFieldErrors({
-        name: "",
-        email: "",
-        phone: "",
-        role: "",
-        location: ""
-      });
-      setValidationErrors({
-        name: "",
-        email: "",
-        phone: "",
-        role: "",
-        location: ""
-      });
-      successToast("Profile updated successfully!");
-      window.location.reload(); // Auto refresh the whole page after successful update
 
+      await fetchProfile();               // refresh everything
+      setIsEditing(false);
+      setRemovePicture(false);
+      setSelectedFile(null);
+      setTemporaryImage(null); // Clear temporary image
+      setFieldErrors({ name: "", email: "", phone: "", role: "", location: "" });
+      setValidationErrors({ name: "", email: "", phone: "", role: "", location: "" });
+
+      successToast("Profile updated successfully!");
     } catch (err) {
       console.error("Update error:", err);
-      
-      // Check authentication error
       if (err.response?.status === 401) {
         errorToast("Session expired. Please login again.");
-        
-        // Redirect to login after a delay
-        setTimeout(() => {
-          if (window.location.pathname !== '/') {
-            window.location.href = '/';
-          }
-        }, 2000);
+        setTimeout(() => window.location.href = '/', 2000);
       } else {
-        const errorMsg =
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Update failed";
-        errorToast(errorMsg);
+        errorToast(err.response?.data?.detail || "Update failed");
       }
     }
   };
@@ -1685,6 +1709,9 @@ const fetchProfile = async () => {
       }
     }
   };
+
+  // Determine which image to display
+  const displayImage = temporaryImage || profileImage;
 
   // Loading / Error states
   if (loading)
@@ -1778,28 +1805,43 @@ const fetchProfile = async () => {
             {/* Left */}
             <div className="flex flex-col mt-4 items-center w-1/2">
               <div className="flex flex-col items-center space-y-4">
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover object-center border-2 border-[#0EFF7B] shadow-[0px_0px_40px_5px_#0EFF7B80]"
-                  onError={(e) => {
-                    console.error("Error loading profile image:", profileImage);
-                    // Fallback to default image if the URL fails
-                    e.target.src = ProfileImage;
-                  }}
-                />
+                <div className="relative">
+                  <img
+                    src={displayImage}
+                    alt="Profile"
+                    className="w-24 h-24 rounded-full object-cover object-center border-2 border-[#0EFF7B] shadow-[0px_0px_40px_5px_#0EFF7B80]"
+                    onError={(e) => {
+                      console.error("Error loading profile image:", displayImage);
+                      e.target.src = ProfileImage;
+                    }}
+                  />
+                  {isEditing && displayImage !== ProfileImage && (
+                    <button
+                      onClick={handleRemoveProfilePicture}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all duration-200"
+                      title="Remove profile picture"
+                    >
+                      <FaTimes size={12} />
+                    </button>
+                  )}
+                </div>
                 {isEditing && (
                   <div className="flex flex-col items-center">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={handleFileChange}
-                      className="mt-2 text-sm file:mr-2 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-gradient-to-r file:from-[#025126] file:to-[#0D7F41] file:text-white"
-                    />
+                    <label className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-3 py-1 rounded-lg text-white text-xs cursor-pointer hover:opacity-90 transition-opacity duration-200 mb-1">
+                      <FaUpload className="inline mr-1" />
+                      Browse
+                      <input
+                        type="file"
+                        id="profile-upload"
+                        accept="image/jpeg,image/jpg,image/png"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
                     {fileError && (
                       <p className="text-red-500 text-xs mt-1">{fileError}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500">
                       Supported formats: JPG, JPEG, PNG (Max 5MB)
                     </p>
                   </div>
@@ -1819,17 +1861,17 @@ const fetchProfile = async () => {
                   </div>
                 </div>
               </div>
-              {/* Buttons - they will cause container to expand if needed */}
+              {/* Buttons */}
               <div className="flex flex-wrap justify-center gap-2 mt-6">
                 <button
                   onClick={handleEditToggle}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap"
+                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap transition-opacity duration-200"
                 >
                   {isEditing ? "Cancel" : "Edit Profile"}
                 </button>
                 <button
                   onClick={handleChangePassword}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap"
+                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-4 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 text-sm whitespace-nowrap transition-opacity duration-200"
                 >
                   Change password
                 </button>
@@ -1865,7 +1907,7 @@ const fetchProfile = async () => {
                 </div>
                 <div className="bg-gray-300 dark:bg-gray-700 rounded-full h-3">
                   <div
-                    className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full"
+                    className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500"
                     style={{ width: `${profileCompletion}%` }}
                   ></div>
                 </div>
@@ -1932,23 +1974,6 @@ const fetchProfile = async () => {
                 type: "text",
                 readOnly: true,
               },
-              { 
-                label: "Location", 
-                field: "location", 
-                type: "text", 
-                required: true,
-                formatError: validationErrors.location,
-                requiredError: fieldErrors.location
-              },
-              {
-                label: "Time",
-                field: "currentTime",
-                type: "text",
-                readOnly: true,
-                icon: (
-                  <FaClock className="text-[#08994A] dark:text-[#0EFF7B] text-lg" />
-                ),
-              },
             ].map(({ label, field, type, readOnly, icon, required, formatError, requiredError }) => (
               <div key={field} className="flex flex-col">
                 <div className="flex items-center mb-1">
@@ -1967,22 +1992,14 @@ const fetchProfile = async () => {
                   )}
                   <input
                     type={type}
-                    value={
-                      field === "currentTime" ? currentTime : profileData[field]
-                    }
+                    value={profileData[field]}
                     onChange={(e) => {
-                      if (field === "currentTime") return;
-
-                      if (field === "phone") {
-                        handleInputChange(field, e.target.value.replace(/\D/g, ""));
-                      } else {
-                        handleInputChange(field, e.target.value);
-                      }
+                      handleInputChange(field, e.target.value);
                     }}
                     readOnly={!isEditing || readOnly}
                     className={`w-full ${icon ? "pl-9" : "pl-2"} p-2 rounded-lg ${
                       isEditing && !readOnly
-                        ? "bg-gray-100 dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B]"
+                        ? "bg-gray-100 dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B] focus:outline-none transition-all duration-200"
                         : "bg-gray-100 dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
                     }`}
                   />
@@ -2000,12 +2017,62 @@ const fetchProfile = async () => {
               </div>
             ))}
 
+            {/* Location field with custom dropdown */}
+            <div className="flex flex-col">
+              <div className="flex items-center mb-1">
+                <label className="text-sm">Location</label>
+                {isEditing && <span className="text-red-500 ml-1">*</span>}
+              </div>
+
+              <div className="relative">
+                <FaMapMarkerAlt className="absolute left-3 top-3 text-[#0EFF7B]" />
+                <button
+                  type="button"
+                  disabled={!isEditing}
+                  onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                  className={`w-full text-left pl-9 pr-8 py-2 rounded-lg border border-[#0EFF7B] bg-black text-white flex items-center justify-between ${!isEditing && "opacity-70 cursor-not-allowed"}`}
+                >
+                  <span>{profileData.location || "Select"}</span>
+                  <span className="text-[#0EFF7B]">▾</span>
+                </button>
+
+                {isEditing && showCountryDropdown && (
+                  <div className="absolute z-50 bottom-full mb-2 w-full rounded-lg bg-black border border-[#0EFF7B] shadow-lg max-h-56 overflow-y-auto">
+                    {countries.map((country) => (
+                      <div
+                        key={country}
+                        onClick={() => {
+                          handleInputChange("location", country);
+                          setShowCountryDropdown(false);
+                        }}
+                        className={`px-4 py-2 cursor-pointer text-white hover:bg-[#0EFF7B]/20 ${profileData.location === country && "bg-[#0EFF7B]/30"}`}
+                      >
+                        {country}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {isEditing && validationErrors.location && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.location}</p>
+              )}
+              {isEditing && fieldErrors.location && !validationErrors.location && (
+                <p className="text-red-500 text-xs mt-1">{fieldErrors.location}</p>
+              )}
+            </div>
+
             {isEditing && (
               <div className="col-span-2 flex justify-end mt-4">
                 <button
                   onClick={handleSaveChanges}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={Object.values(validationErrors).some(error => error !== "")}
+                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 disabled:opacity-50"
+                  disabled={
+                    Object.values(validationErrors).some(e => e !== "") ||
+                    Object.values(fieldErrors).some(e => e !== "") ||
+                    !profileData.name || !profileData.email || !profileData.phone ||
+                    !profileData.role || !profileData.location
+                  }
                 >
                   Save changes
                 </button>
@@ -2013,116 +2080,116 @@ const fetchProfile = async () => {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Password Modal */}
-      {showPasswordModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px]">
-            <div className="w-[400px] bg-gray-100 dark:bg-black rounded-[19px] p-6 relative">
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "20px",
-                  padding: "2px",
-                  background:
-                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "xor",
-                  maskComposite: "exclude",
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              />
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
-                  Change Password
-                </h3>
-                <button
-                  onClick={() => setShowPasswordModal(false)}
-                  className="text-[#0EFF7B] p-1"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm mb-1">New Password</label>
-                  <div className="relative">
-                    <input
-                      type={showNewPassword ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
-                      placeholder="Enter new password"
-                    />
-                    <button
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-3 text-[#0EFF7B]"
-                    >
-                      {showNewPassword ? <FaEye /> : <FaEyeSlash />}
-                    </button>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Confirm Password</label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent"
-                      placeholder="Confirm password"
-                    />
-                    <button
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-3 text-[#0EFF7B]"
-                    >
-                      {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
-                    </button>
-                  </div>
-                </div>
-                {passwordError && (
-                  <p className="text-red-500 text-sm">{passwordError}</p>
-                )}
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowPasswordModal(false);
-                    setPasswordError("");
+        {/* Password Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+            <div className="rounded-[20px] p-[1px]">
+              <div className="w-[400px] bg-gray-100 dark:bg-black rounded-[19px] p-6 relative">
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    borderRadius: "20px",
+                    padding: "2px",
+                    background:
+                      "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                    WebkitMask:
+                      "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                    pointerEvents: "none",
+                    zIndex: 0,
                   }}
-                  className="px-4 py-2 border rounded text-black dark:text-white"
-                >
-                  Reset
-                </button>
-                <button
-                  onClick={handlePasswordSubmit}
-                  className="px-4 py-2 bg-gradient-to-r from-[#025126] to-[#0D7F41] text-white rounded border-b-2 border-[#0EFF7B]"
-                >
-                  Change Password
-                </button>
+                />
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-black dark:text-[#0EFF7B]">
+                    Change Password
+                  </h3>
+                  <button
+                    onClick={() => setShowPasswordModal(false)}
+                    className="text-[#0EFF7B] p-1 hover:opacity-80 transition-opacity duration-200"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent focus:ring-2 focus:ring-[#0EFF7B] focus:outline-none transition-all duration-200"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-3 text-[#0EFF7B] hover:opacity-80 transition-opacity duration-200"
+                      >
+                        {showNewPassword ? <FaEye /> : <FaEyeSlash />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full px-3 py-2 rounded border dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent focus:ring-2 focus:ring-[#0EFF7B] focus:outline-none transition-all duration-200"
+                        placeholder="Confirm password"
+                      />
+                      <button
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        className="absolute right-3 top-3 text-[#0EFF7B] hover:opacity-80 transition-opacity duration-200"
+                      >
+                        {showConfirmPassword ? <FaEye /> : <FaEyeSlash />}
+                      </button>
+                    </div>
+                  </div>
+                  {passwordError && (
+                    <p className="text-red-500 text-sm">{passwordError}</p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setPasswordError("");
+                    }}
+                    className="px-4 py-2 border rounded text-black dark:text-white hover:opacity-80 transition-opacity duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePasswordSubmit}
+                    className="px-4 py-2 bg-gradient-to-r from-[#025126] to-[#0D7F41] text-white rounded border-b-2 border-[#0EFF7B] hover:opacity-90 transition-opacity duration-200"
+                  >
+                    Change Password
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 };

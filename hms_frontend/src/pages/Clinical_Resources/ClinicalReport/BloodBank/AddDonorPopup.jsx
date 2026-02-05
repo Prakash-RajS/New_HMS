@@ -4,7 +4,7 @@ import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
-import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
+import api from "../../../../utils/axiosConfig";
 
 const AddDonorPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -16,178 +16,132 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     last_donation_date: null,
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({});           // Submit-time errors
   const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
 
-  /* Format Date → YYYY-MM-DD for API */
+  // Format date → YYYY-MM-DD for API
   const formatDateForAPI = (date) => {
     if (!date || !(date instanceof Date) || isNaN(date)) return null;
     return date.toISOString().split("T")[0];
   };
 
-  // Levenshtein distance for typo detection
-  const levenshtein = (a, b) => {
-    const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
-      Array.from({ length: a.length + 1 }, (_, j) =>
-        i === 0 ? j : j === 0 ? i : 0
-      )
-    );
-  
-    for (let i = 1; i <= b.length; i++) {
-      for (let j = 1; j <= a.length; j++) {
-        matrix[i][j] =
-          b[i - 1] === a[j - 1]
-            ? matrix[i - 1][j - 1]
-            : Math.min(
-                matrix[i - 1][j - 1] + 1,
-                matrix[i][j - 1] + 1,
-                matrix[i - 1][j] + 1
-              );
-      }
-    }
-    return matrix[b.length][a.length];
-  };
-  
-  // Real-time format validation functions (for typing)
-  const validateNameFormat = (value) => {
-    if (/[0-9]/.test(value)) return "Name should not contain numbers";
-    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid name";
-    return "";
-  };
+  // List of blocked disposable/fake domains
+  const blockedDomains = [
+    "mailinator.com",
+    "tempmail.com",
+    "yopmail.com",
+    "10minutemail.com",
+    "guerrillamail.com",
+    "throwawaymail.com",
+    "fakeemail.com",
+    "temp-mail.org",
+    "dispostable.com",
+    "maildrop.cc",
+    "example.com",
+    "test.com",
+    "domain.com",
+    "fake.com",
+    "dummy.com",
+  ];
 
+  // Real-time email validation (blocks invalid domains)
   const validateEmailFormat = (value) => {
-    const email = value.trim();
-    if (!email) return "";
+  const email = value.trim().toLowerCase();
+  if (!email) return "";
 
-    // 1️⃣ Basic structure check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address (e.g., user@domain.com)";
-    }
+  // 1. Basic RFC-like structure
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Please enter a valid email address (e.g., name@company.com)";
+  }
 
-    // 2️⃣ Suspicious formatting
-    if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
-      return "Invalid email format";
-    }
+  const [, domain] = email.split("@");
+  const domainParts = domain.split(".");
 
-    const [localPart, domain] = email.toLowerCase().split("@");
+  // 2. Block purely numeric domains
+  if (/^\d+$/.test(domainParts[0])) {
+    return "Invalid domain name - domain cannot be purely numeric";
+  }
 
-    // 3️⃣ Local-part sanity
-    if (localPart.length < 2) {
-      return "Email username is too short";
-    }
+  // 3. TLD must be alphabetic and at least 2 chars
+  const tld = domainParts[domainParts.length - 1];
+  if (tld.length < 2 || !/^[a-z]+$/.test(tld)) {
+    return "Invalid domain name - please use a valid email domain";
+  }
 
-    if (/(.)\1{5,}/.test(localPart)) {
-      return "Email appears to be invalid";
-    }
+  // 4. Block known disposable/fake domains
+  const blockedDomains = [
+    "mailinator.com", "tempmail.com", "yopmail.com", "10minutemail.com",
+    "guerrillamail.com", "throwawaymail.com", "fakeemail.com", "temp-mail.org",
+    "dispostable.com", "maildrop.cc", "example.com", "test.com", "domain.com",
+    "123.com", "123.in", "fake.com", "dummy.com"
+  ];
 
-    if (/(\.\.|__|--|\+\+)/.test(localPart)) {
-      return "Email contains invalid characters";
-    }
+  if (blockedDomains.some(d => domain === d || domain.endsWith("." + d))) {
+    return "Invalid domain name - disposable or fake email not allowed";
+  }
 
-    // 4️⃣ Disposable / fake domains (hard block)
-    const invalidDomains = [
-      "email.com",
-      "example.com",
-      "test.com",
-      "domain.com",
-      "mailinator.com",
-      "tempmail.com",
-      "guerrillamail.com",
-      "10minutemail.com",
-      "yopmail.com",
-      "fakeemail.com",
-      "temp-mail.org",
-      "throwawayemail.com",
-      "dispostable.com",
-      "maildrop.cc"
-    ];
+  // 5. Suspicious length or patterns
+  if (domain.length < 5) {
+    return "Domain name is too short";
+  }
 
-    if (invalidDomains.includes(domain)) {
-      return "Disposable or invalid email domains are not allowed";
-    }
+  if (domain.includes("..") || domain.includes(".@") || domain.includes("@.")) {
+    return "Invalid email format";
+  }
 
-    // 5️⃣ Dynamic typo detection for major providers
-    const providers = [
-      "gmail.com",
-      "yahoo.com",
-      "outlook.com",
-      "hotmail.com",
-      "icloud.com"
-    ];
+  return "";
+};
 
-    for (const provider of providers) {
-      const distance = levenshtein(domain, provider);
-
-      // distance 1–2 = very likely a typo
-      if (distance > 0 && distance <= 2) {
-        return `Did you mean ${localPart}@${provider}?`;
-      }
-    }
-
-    // 6️⃣ TLD sanity (not restrictive)
-    const tld = domain.split(".").pop();
-    if (tld.length < 2) {
-      return "Please use a valid domain extension";
-    }
-
-    return "";
-  };
-
-  /* Real-time format validation functions */
+  // Real-time format validation for all fields
   const validateFieldFormat = (field, value) => {
     switch (field) {
       case "donor_name":
         if (!value) return "";
-        if (!/^[A-Za-z\s]*$/.test(value)) {
-          return "Name can only contain letters and spaces";
+        if (/[0-9]/.test(value)) return "Name should not contain numbers";
+        if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) {
+          return "Please enter a valid name";
         }
         return "";
-      
+
       case "phone":
         if (!value) return "";
-        if (!/^\d*$/.test(value)) {
-          return "Phone must contain only digits";
-        }
-        if (value.length > 10) {
-          return "Phone cannot exceed 10 digits";
-        }
-        // Show error while typing if less than 10 digits
+        if (!/^\d*$/.test(value)) return "Phone must contain only digits";
+        if (value.length > 10) return "Phone cannot exceed 10 digits";
         if (value.length > 0 && value.length < 10) {
           return "Phone must be exactly 10 digits";
         }
         return "";
-      
+
       case "email":
         return validateEmailFormat(value);
-      
+
       default:
         return "";
     }
   };
 
-  /* Validate form on submission */
+  // Full form validation on submit
   const validateForm = () => {
     const newErrors = {};
 
-    // Name validation - only letters and spaces
+    // Donor Name
     if (!formData.donor_name.trim()) {
       newErrors.donor_name = "Donor name is required";
     } else if (formData.donor_name.trim().length < 2) {
       newErrors.donor_name = "Name must be at least 2 characters";
-    } else if (!/^[A-Za-z\s]+$/.test(formData.donor_name)) {
+    } else if (!/^[A-Za-z\s]+$/.test(formData.donor_name.trim())) {
       newErrors.donor_name = "Name can only contain letters and spaces";
     }
 
-    // Phone validation - EXACTLY 10 digits
+    // Phone - exactly 10 digits
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone)) {
+    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
       newErrors.phone = "Phone must be exactly 10 digits";
     }
 
-    // Email validation - NOW REQUIRED
+    // Email - required + valid domain
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
     } else {
@@ -197,24 +151,21 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
       }
     }
 
-    // Gender validation
-    if (!formData.gender) {
-      newErrors.gender = "Gender is required";
-    }
-
-    // Blood type validation
-    if (!formData.blood_type) {
-      newErrors.blood_type = "Blood type is required";
-    }
+    // Gender & Blood Type
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.blood_type) newErrors.blood_type = "Blood type is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  /* Submit Handler */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+
+    if (!validateForm()) {
+      errorToast("Please fix the errors in the form");
+      return;
+    }
 
     setLoading(true);
 
@@ -222,184 +173,69 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
       donor_name: formData.donor_name.trim(),
       gender: formData.gender,
       blood_type: formData.blood_type,
-      phone: formData.phone,
-      email: formData.email.trim(), // Email is now required
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
       last_donation_date: formatDateForAPI(formData.last_donation_date),
     };
 
     try {
       const response = await api.post("/api/donors/add", payload);
 
-      successToast("Donor added successfully!");
-      onClose();
-      if (typeof onAdd === "function") onAdd();
+      if (response.status === 201 || response.status === 200) {
+        successToast("Donor added successfully!");
+        onClose();
+        if (typeof onAdd === "function") onAdd();
+      } else {
+        throw new Error("Unexpected response from server");
+      }
     } catch (error) {
       console.error("Add donor error:", error);
+
       let errorMessage = "Failed to add donor";
-      
+
       if (error.response) {
-        if (error.response.status === 401 || error.response.status === 403) {
-          errorMessage = "Session expired. Please login again.";
-        } else if (error.response.status === 400) {
+        if (error.response.status === 400) {
           const result = error.response.data;
           if (result.detail) {
-            errorMessage = Array.isArray(result.detail)
-              ? result.detail.map((e) => `${e.loc?.join(" → ")}: ${e.msg}`).join("\n")
-              : result.detail;
-          } else {
-            errorMessage = "Invalid donor data. Please check all fields.";
+            if (typeof result.detail === "string") {
+              errorMessage = result.detail;
+            } else if (Array.isArray(result.detail)) {
+              errorMessage = result.detail.map(e => e.msg || e).join("\n");
+            }
+          } else if (result.email) {
+            errorMessage = result.email[0] || "Invalid email address";
           }
         } else if (error.response.status === 409) {
-          errorMessage = error.response.data?.detail || "Donor with this email already exists";
-        } else {
-          errorMessage = error.response.data?.detail || errorMessage;
+          errorMessage = "Donor with this phone or email already exists";
         }
-      } else if (error.request) {
-        errorMessage = "Network error. Please check your connection.";
       }
-      
+
       errorToast(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  /* Handle Donor Name Change - Auto-capitalize */
-  const handleDonorNameChange = (e) => {
-    let value = e.target.value;
-    
-    // Auto-capitalize first letter of each word
-    if (value) {
-      value = value.replace(/\b\w/g, char => char.toUpperCase());
-    }
-    
-    setFormData({ ...formData, donor_name: value });
-    
-    // Clear required error when user starts typing
-    if (errors.donor_name) {
-      setErrors(prev => ({ ...prev, donor_name: "" }));
-    }
-    
-    // Real-time format validation
-    const formatError = validateFieldFormat("donor_name", value);
-    if (formatError) {
-      setFormatErrors(prev => ({ ...prev, donor_name: formatError }));
-    } else {
-      setFormatErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.donor_name;
-        return newErrors;
-      });
-    }
-  };
+  // Handle changes with real-time validation
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
 
-  /* Handle Phone Change */
-  const handlePhoneChange = (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, phone: value });
-    
-    // Clear required error when user starts typing
-    if (errors.phone) {
-      setErrors(prev => ({ ...prev, phone: "" }));
+    // Clear submit-time error when typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
     }
-    
-    // Real-time format validation
-    const formatError = validateFieldFormat("phone", value);
-    if (formatError) {
-      setFormatErrors(prev => ({ ...prev, phone: formatError }));
-    } else {
-      setFormatErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.phone;
-        return newErrors;
-      });
-    }
-  };
 
-  /* Handle Email Change */
-  const handleEmailChange = (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, email: value });
-    
-    // Clear required error when user starts typing
-    if (errors.email) {
-      setErrors(prev => ({ ...prev, email: "" }));
-    }
-    
     // Real-time format validation
-    const formatError = validateFieldFormat("email", value);
-    if (formatError) {
-      setFormatErrors(prev => ({ ...prev, email: formatError }));
-    } else {
-      setFormatErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.email;
-        return newErrors;
-      });
-    }
-  };
-
-  /* Handle Blur - final validation */
-  const handleBlur = (field) => {
-    // Perform final format validation on blur
-    const value = formData[field];
     const formatError = validateFieldFormat(field, value);
-    
-    if (formatError) {
-      setFormatErrors(prev => ({ ...prev, [field]: formatError }));
-    }
-  };
-
-  /* Reusable Dropdown Component */
-  const Dropdown = ({ label, value, onChange, options, error }) => (
-    <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
-      <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button 
-            className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
-            disabled={loading}
-          >
-            <span className="block truncate">{value || "Select"}</span>
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
-            </span>
-          </Listbox.Button>
-          <Listbox.Options className="absolute z-50 mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
-            {options.map((option) => (
-              <Listbox.Option
-                key={option}
-                value={option}
-                className={({ active }) =>
-                  `cursor-pointer select-none py-2 px-3 text-sm ${active
-                    ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                  }`
-                }
-              >
-                {({ selected }) => (
-                  <span className={selected ? "font-medium text-[#0EFF7B]" : ""}>
-                    {option}
-                  </span>
-                )}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-      {error && <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{error}</p>}
-    </div>
-  );
-
-  // Helper to determine which error to show
-  const getFieldError = (field) => {
-    // Show format errors in real-time
-    if (formatErrors[field]) {
-      return formatErrors[field];
-    }
-    
-    // Show required errors only on form submission
-    return errors[field] || "";
+    setFormatErrors(prev => {
+      const newErrors = { ...prev };
+      if (formatError) {
+        newErrors[field] = formatError;
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
   };
 
   const genders = ["Male", "Female", "Other"];
@@ -423,7 +259,6 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
             </button>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-2 gap-6">
               {/* Donor Name */}
@@ -434,23 +269,20 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 <input
                   type="text"
                   value={formData.donor_name}
-                  onChange={handleDonorNameChange}
-                  onBlur={() => {
-                    // Trim whitespace on blur
-                    if (formData.donor_name) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        donor_name: prev.donor_name.trim() 
-                      }));
-                    }
-                    handleBlur("donor_name");
-                  }}
+                  onChange={(e) => handleChange("donor_name", e.target.value)}
                   placeholder="Enter full name"
                   disabled={loading}
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
-                {getFieldError("donor_name") && (
-                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("donor_name")}</p>
+                {formatErrors.donor_name && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {formatErrors.donor_name}
+                  </p>
+                )}
+                {errors.donor_name && !formatErrors.donor_name && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {errors.donor_name}
+                  </p>
                 )}
               </div>
 
@@ -462,18 +294,25 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={handlePhoneChange}
-                  onBlur={() => handleBlur("phone")}
+                  onChange={(e) => handleChange("phone", e.target.value)}
                   placeholder="e.g. 9876543210"
+                  maxLength={10}
                   disabled={loading}
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
-                {getFieldError("phone") && (
-                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("phone")}</p>
+                {formatErrors.phone && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {formatErrors.phone}
+                  </p>
+                )}
+                {errors.phone && !formatErrors.phone && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {errors.phone}
+                  </p>
                 )}
               </div>
 
-              {/* Email - NOW REQUIRED */}
+              {/* Email */}
               <div>
                 <label className="text-sm text-black dark:text-white">
                   Email Address <span className="text-red-500">*</span>
@@ -481,63 +320,103 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={handleEmailChange}
-                  onBlur={() => {
-                    // Trim whitespace on blur
-                    if (formData.email) {
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        email: prev.email.trim() 
-                      }));
-                    }
-                    handleBlur("email");
-                  }}
-                  placeholder="example@domain.com"
+                  onChange={(e) => handleChange("email", e.target.value)}
+                  placeholder="example@company.com"
                   disabled={loading}
                   className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
-                {getFieldError("email") && (
-                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">{getFieldError("email")}</p>
+                {formatErrors.email && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {formatErrors.email}
+                  </p>
+                )}
+                {errors.email && !formatErrors.email && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {errors.email}
+                  </p>
                 )}
               </div>
 
-              {/* Gender */}
-              <Dropdown
-                label={<>Gender <span className="text-red-500">*</span></>}
-                value={formData.gender}
-                onChange={(val) => {
-                  setFormData({ ...formData, gender: val });
-                  if (errors.gender) {
-                    setErrors(prev => ({ ...prev, gender: "" }));
-                  }
-                }}
-                options={genders}
-                error={errors.gender} // Only required error for dropdown
-              />
+              {/* Gender & Blood Type */}
+              <div>
+                <label className="text-sm text-black dark:text-white">
+                  Gender <span className="text-red-500">*</span>
+                </label>
+                <Listbox
+                  value={formData.gender}
+                  onChange={(val) => handleChange("gender", val)}
+                >
+                  <Listbox.Button className="w-[228px] h-[32px] mt-1 px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                    {formData.gender || "Select Gender"}
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-[#0EFF7B] pointer-events-none" />
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute z-50 mt-1 w-[228px] max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
+                    {["Male", "Female", "Other"].map((g) => (
+                      <Listbox.Option
+                        key={g}
+                        value={g}
+                        className={({ active }) =>
+                          `cursor-pointer select-none py-2 px-3 text-sm ${
+                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                          }`
+                        }
+                      >
+                        {g}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+                {errors.gender && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {errors.gender}
+                  </p>
+                )}
+              </div>
 
-              {/* Blood Type */}
-              <Dropdown
-                label={<>Blood Type <span className="text-red-500">*</span></>}
-                value={formData.blood_type}
-                onChange={(val) => {
-                  setFormData({ ...formData, blood_type: val });
-                  if (errors.blood_type) {
-                    setErrors(prev => ({ ...prev, blood_type: "" }));
-                  }
-                }}
-                options={bloodTypes}
-                error={errors.blood_type} // Only required error for dropdown
-              />
+              <div>
+                <label className="text-sm text-black dark:text-white">
+                  Blood Type <span className="text-red-500">*</span>
+                </label>
+                <Listbox
+                  value={formData.blood_type}
+                  onChange={(val) => handleChange("blood_type", val)}
+                >
+                  <Listbox.Button className="w-[228px] h-[32px] mt-1 px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                    {formData.blood_type || "Select Blood Type"}
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-[#0EFF7B] pointer-events-none" />
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute z-50 mt-1 w-[228px] max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
+                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                      <Listbox.Option
+                        key={bt}
+                        value={bt}
+                        className={({ active }) =>
+                          `cursor-pointer select-none py-2 px-3 text-sm ${
+                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                          }`
+                        }
+                      >
+                        {bt}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+                {errors.blood_type && (
+                  <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
+                    {errors.blood_type}
+                  </p>
+                )}
+              </div>
 
               {/* Last Donation Date */}
-              <div className="relative">
+              <div className="relative col-span-2">
                 <label className="text-sm text-black dark:text-white">
                   Last Donation Date <span className="text-gray-500">(Optional)</span>
                 </label>
                 <DatePicker
                   selected={formData.last_donation_date}
                   onChange={(date) => setFormData({ ...formData, last_donation_date: date })}
-                  dateFormat="MM/dd/yyyy"
+                  dateFormat="dd/MM/yyyy"
                   placeholderText="Select date"
                   maxDate={new Date()}
                   showYearDropdown
@@ -545,30 +424,15 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   yearDropdownItemNumber={15}
                   isClearable
                   disabled={loading}
-                  className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+                  className="w-full h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                   wrapperClassName="w-full"
                   popperClassName="z-50"
                 />
-                <div className="absolute right-3 top-9 pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-500 dark:text-[#0EFF7B]">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
               </div>
             </div>
 
-            {/* Information Note */}
-            <div className="mt-5 p-3 rounded bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                <strong>Note:</strong> Donor status is auto-calculated. New donors are "Not Eligible" until 6 months after their last donation.
-              </p>
-            </div>
-
             {/* Buttons */}
-            <div className="flex justify-center gap-4 mt-6">
+            <div className="flex justify-center gap-4 mt-8">
               <button
                 type="button"
                 onClick={onClose}

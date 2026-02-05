@@ -53,7 +53,7 @@ class SurgeryCreate(BaseModel):
     doctor_id: int
     surgery_type: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
-    status: Literal["pending", "success", "cancelled", "failed"] = "pending"
+    status: Literal["pending", "success", "cancelled", "failed", "emergency"] = "pending"
     scheduled_date: datetime = Field(..., description="Scheduled date and time")
 
     @validator("surgery_type")
@@ -87,7 +87,7 @@ class SurgeryUpdate(BaseModel):
     doctor_id: Optional[int] = None
     surgery_type: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
-    status: Optional[Literal["pending", "success", "cancelled", "failed"]] = None
+    status: Optional[Literal["pending", "success", "cancelled", "failed", "emergency"]] = None
     price: Optional[float] = Field(None, ge=0, description="Surgery price")
     scheduled_date: Optional[datetime] = None
 
@@ -311,7 +311,7 @@ async def create_surgery(payload: SurgeryCreate):
                     raise DuplicateEntryException(
                         field="surgery_type",
                         value=payload.surgery_type,
-                        message=f"A surgery of type '{payload.surgery_type}' is already scheduled for this patient and doctor at {payload.scheduled_date}"
+                        message=f"Surgery of '{payload.surgery_type}' is already scheduled for this patient and doctor at {payload.scheduled_date}"
                     )
                 
                 surgery = Surgery.objects.create(
