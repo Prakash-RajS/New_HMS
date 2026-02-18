@@ -844,3 +844,58 @@ async def download_certificate(data: DownloadCertificateRequest):
             "Content-Disposition": f'attachment; filename="{filename}"'
         }
     )
+
+# -----------------------------
+# Get Unique Specializations by Department
+# -----------------------------
+@router.get("/specializations/")
+async def get_specializations_by_department(department_id: Optional[int] = None):
+    """
+    Get unique specializations for a department
+    If department_id is provided, return specializations for that department
+    Otherwise return all unique specializations
+    """
+    try:
+        @sync_to_async
+        def get_specializations_sync():
+            ensure_db_connection()
+            try:
+                # Base queryset - exclude null/empty specializations
+                queryset = Staff.objects.exclude(
+                    specialization__isnull=True
+                ).exclude(
+                    specialization__exact=''
+                )
+                
+                # Filter by department if provided
+                if department_id:
+                    queryset = queryset.filter(department_id=department_id)
+                
+                # Get unique specializations, order alphabetically
+                specializations = queryset.values_list(
+                    'specialization', flat=True
+                ).distinct().order_by('specialization')
+                
+                # Format as list of objects
+                result = []
+                for spec in specializations:
+                    if spec and spec.strip():
+                        result.append({
+                            'id': spec,
+                            'name': spec,
+                            'specialization': spec
+                        })
+                
+                return result
+                
+            except Exception as e:
+                print(f"Error in get_specializations_sync: {str(e)}")
+                return []
+
+        specializations = await get_specializations_sync()
+        return specializations
+        
+    except Exception as e:
+        print(f"Error in get_specializations_by_department: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error fetching specializations: {str(e)}")

@@ -1434,7 +1434,7 @@ const OverviewTab = ({ data, navigate }) => {
 
       {/* Active In-Patients */}
       <DashboardCard
-        title="Active In-Patients"
+        title="Admitted Patients"
         change={`${patients.today?.admitted || 0} admitted today`}
         value={patients.active_inpatients || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
@@ -1442,27 +1442,38 @@ const OverviewTab = ({ data, navigate }) => {
 
       {/* Emergency Cases */}
       <DashboardCard
-        title="Emergency Cases"
-        change="Immediate attention"
-        value={appointments.today?.emergency || "0"}
-        onClick={() => navigate("/appointments")}
-      />
+  title="Emergency Cases"
+  change={`${patients.emergency_patients || 0} emergencies`}
+  value={patients.emergency_patients || "0"}
+  onClick={() => navigate("/patients/ipd-opd")}
+/>
+
 
       {/* Bed Occupancy */}
       <DashboardCard
         title="Bed Occupancy"
         change={`${beds.available || 0} available`}
         value={`${beds.occupancy_rate || 0}%`}
-        onClick={() => navigate("/administration/bed-management")}
+        onClick={() => navigate("/Administration/RoomManagement")}
       />
 
       {/* Lab Reports */}
-      <DashboardCard
-        title="Lab Reports"
-        change={`${lab.today || 0} today`}
-        value={lab.status?.pending || "0"}
-        onClick={() => navigate("/lab-reports")}
-      />
+      {/* Lab Reports */}
+<DashboardCard
+  title="Lab Reports"
+  change={`${lab.today || 0} today`}
+  value={
+    <div className="flex items-baseline gap-2">
+      <span className="text-3xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
+        {lab.status?.pending || "0"}
+      </span>
+      <span className="text-sm text-gray-500 dark:text-gray-400">
+        (Pending)
+      </span>
+    </div>
+  }
+  onClick={() => navigate("/ClinicalResources/Laboratory/LaboratoryReports")}
+/>
     </div>
   );
 };
@@ -1481,7 +1492,7 @@ const PatientRecordTab = ({ data, navigate }) => {
       />
 
       <DashboardCard
-        title="Active Patients"
+        title="Admitted Patients"
         change={`${patients.weekly?.admitted || 0} this week ↑`}
         value={patients.active_inpatients || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
@@ -1641,14 +1652,18 @@ const EmergencyCases = ({ data }) => {
 
       <div className="flex justify-between items-center mb-2 relative z-10">
         <h3 className="text-xl text-black dark:text-white font-semibold">
-          Emergency Cases
+          Emergency Cases 
         </h3>
       </div>
 
       <div className="flex flex-col mt-3 relative z-10">
         <span className="text-4xl font-bold text-[#FF4D4D] mb-3">
-          {emergencyCases}
-        </span>
+  {emergencyCases} 
+  <span className="text-sm text-gray-500 font-normal ml-2">
+    (Today)
+  </span>
+</span>
+
         <div className="w-full h-[6px] rounded-full bg-[#023D1E] overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-[#FF4D4D] to-[#0EFF7B] rounded-full transition-all duration-500"
@@ -1700,7 +1715,7 @@ const ConsultationStats = ({ data }) => {
 
       <div className="flex justify-between items-center mb-3 relative z-10">
         <h3 className="text-xl text-black dark:text-white font-semibold">
-          Consultation
+          Appointment Consultation
         </h3>
         <div className="flex flex-col items-end text-right">
           <span className="text-sm text-[#0EFF7B]">Today ↑</span>
@@ -1715,7 +1730,7 @@ const ConsultationStats = ({ data }) => {
           {consultationToday.toLocaleString()}
         </span>
         <span className="text-xs text-gray-400 ml-2">
-          +{Math.floor(consultationToday * 0.1)}
+          (Today)
         </span>
       </div>
 

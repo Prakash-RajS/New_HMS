@@ -214,7 +214,8 @@ import {
   Ambulance,
   User,
   ShieldCheck,
-  Calendar
+  Calendar,
+  Stethoscope,
 } from "lucide-react";
 
 // This is now just the raw menu structure – search logic moved to Header
@@ -251,6 +252,12 @@ export const menuItems = [
         icon: DollarSign,
         permission: "treatment_charges",
       },
+      {
+              name: "Surgeries",
+              path: "/patients/surgeries",
+              icon: Stethoscope,
+              permission: "surgeries",
+            },
 
     ],
   },
@@ -285,7 +292,7 @@ export const menuItems = [
   },
   {
     name: "Doctors / Nurse",
-    path: "/Doctors-Nurse",
+    path: "/Doctors-Nurse/AddDoctorNurse",
     icon: ShieldCheck,
     dropdown: [
       { name: "Add Doctor / Nurse", path: "/Doctors-Nurse/AddDoctorNurse", icon: User },

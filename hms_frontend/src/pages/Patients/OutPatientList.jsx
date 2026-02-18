@@ -981,7 +981,7 @@ const AppointmentListOPD = () => {
   const endItem = Math.min(page * perPage, total);
 
   return (
-    <div className="mt-[80px] mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -1026,7 +1026,7 @@ const AppointmentListOPD = () => {
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
             <span className="font-inter font-normal font-[Helvetica] text-[14px] text-gray-600 dark:text-[#A0A0A0]">
-              Today's Total
+              Total
             </span>
             <span className="w-6 h-6 flex items-center font-[Helvetica] text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#0D2016] dark:bg-[#14DC6F]">
               {total}

@@ -631,7 +631,7 @@ import {
 import { Listbox } from "@headlessui/react";
 import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
 import { successToast, errorToast } from "../../components/Toast";
-import api from "../../utils/axiosConfig"; // Import axios
+import api from "../../utils/axiosConfig";
 
 const ProfileSection = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -649,39 +649,141 @@ const ProfileSection = () => {
 
   const [profiles, setProfiles] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [specialists, setSpecialists] = useState([]);
+  const [specialistsLoading, setSpecialistsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Get API base URL from environment variable
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
-  // Helper function to get profile picture URL - USING API_BASE for images
+  // Helper function to get profile picture URL
   const getProfilePictureUrl = (profilePicturePath) => {
     if (!profilePicturePath) return null;
 
-    console.log("Processing profile picture path:", profilePicturePath);
-
-    // If it's already a full URL, return as is
     if (profilePicturePath.startsWith("http")) {
       return profilePicturePath;
     }
 
-    // If it starts with /Fastapi_app/, construct full backend URL
     if (profilePicturePath.startsWith("/static/")) {
       return `${API_BASE}${profilePicturePath}`;
     }
 
-    // If it's a file path, extract the filename and construct the full backend URL
     const filename = profilePicturePath.split("/").pop();
     if (filename) {
-      // Use full backend URL from environment variable
       return `${API_BASE}/static/staffs_pictures/${filename}`;
     }
 
     return null;
   };
 
-  // Fetch all staff from backend - USING api.get() for API calls
+  // Fetch only active departments
+  const fetchActiveDepartments = async () => {
+    setDepartmentsLoading(true);
+    try {
+      const response = await api.get("/patients/departments?status=active");
+      const data = response.data;
+      
+      let departmentsList = [];
+      if (Array.isArray(data.departments)) {
+        departmentsList = data.departments;
+      } else if (Array.isArray(data)) {
+        departmentsList = data;
+      } else if (Array.isArray(data.results)) {
+        departmentsList = data.results;
+      }
+
+      const formattedDepartments = departmentsList
+        .filter(dept => {
+          const status = (dept.status || dept.is_active || dept.active || '').toString().toLowerCase();
+          return status === 'active' || status === '1' || status === 'true' || status === '';
+        })
+        .map((dept) => dept.name || dept.department_name || dept.label || 'Unnamed Department')
+        .filter(name => name && name !== 'Unnamed Department')
+        .sort();
+
+      setDepartments(formattedDepartments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      // Fallback: Extract from profiles
+      const uniqueDepts = [...new Set(profiles.map(p => p.department).filter(d => d && d !== "N/A"))].sort();
+      setDepartments(uniqueDepts);
+    } finally {
+      setDepartmentsLoading(false);
+    }
+  };
+
+  // Fetch specializations by department
+  const fetchSpecializationsByDepartment = async (departmentName) => {
+    if (!departmentName) {
+      setSpecialists([]);
+      return;
+    }
+    
+    setSpecialistsLoading(true);
+    try {
+      // First try to get department ID from name
+      let departmentId = null;
+      try {
+        const deptResponse = await api.get(`/patients/departments/?name=${encodeURIComponent(departmentName)}`);
+        const deptData = deptResponse.data;
+        if (Array.isArray(deptData) && deptData.length > 0) {
+          departmentId = deptData[0].id;
+        } else if (deptData.departments && deptData.departments.length > 0) {
+          departmentId = deptData.departments[0].id;
+        }
+      } catch (e) {
+        console.log("Could not fetch department ID:", e);
+      }
+
+      // Fetch specializations for the department
+      let specializationsList = [];
+      
+      if (departmentId) {
+        try {
+          const response = await api.get(`/staff/specializations/?department_id=${departmentId}`);
+          const data = response.data;
+          
+          if (Array.isArray(data)) {
+            specializationsList = data;
+          } else if (Array.isArray(data.specializations)) {
+            specializationsList = data.specializations;
+          } else if (Array.isArray(data.results)) {
+            specializationsList = data.results;
+          }
+        } catch (e) {
+          console.log("Specializations endpoint not available, falling back to profile data");
+        }
+      }
+
+      // Fallback: Filter from profiles
+      if (specializationsList.length === 0) {
+        const filteredProfiles = profiles.filter(p => p.department === departmentName);
+        specializationsList = [...new Set(
+          filteredProfiles
+            .map(p => p.qualification)
+            .filter(s => s && s !== "N/A")
+        )].map(spec => ({ name: spec }));
+      }
+
+      const formattedSpecializations = specializationsList
+        .filter(spec => spec && (spec.name || spec))
+        .map((spec) => ({
+          id: spec.id || spec.name || spec,
+          name: spec.name || spec,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setSpecialists(formattedSpecializations);
+    } catch (error) {
+      console.error("Error fetching specializations:", error);
+      setSpecialists([]);
+    } finally {
+      setSpecialistsLoading(false);
+    }
+  };
+
+  // Fetch all staff from backend
   useEffect(() => {
     const fetchProfiles = async () => {
       setLoading(true);
@@ -694,15 +796,13 @@ const ProfileSection = () => {
         
         const data = response.data;
 
-        console.log("Fetched staff data:", data); // Debug log
-        console.log("API Base URL for images:", API_BASE); // Debug log
-
         // Transform to match frontend format
         const transformed = data.map((staff) => ({
           id: staff.id,
           name: staff.full_name || "Unknown",
           qualification: staff.specialization || "N/A",
           department: staff.department || "N/A",
+          department_id: staff.department_id || null,
           joinDate: staff.date_of_joining
             ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
             : "N/A",
@@ -715,28 +815,15 @@ const ProfileSection = () => {
               ? "Nurses"
               : "Other Staff"
             : "Other Staff",
-          profilePicture: staff.profile_picture, // Include profile picture
-          // Include all original data for editing
+          profilePicture: staff.profile_picture,
           originalData: staff,
         }));
 
         setProfiles(transformed);
-
-        // Extract unique departments and specialists (exclude N/A)
-        const uniqueDepartments = [
-          ...new Set(
-            transformed.map((p) => p.department).filter((d) => d && d !== "N/A")
-          ),
-        ].sort();
-        const uniqueSpecialists = [
-          ...new Set(
-            transformed
-              .map((p) => p.qualification)
-              .filter((s) => s && s !== "N/A")
-          ),
-        ].sort();
-        setDepartments(uniqueDepartments);
-        setSpecialists(uniqueSpecialists);
+        
+        // Fetch active departments after profiles are loaded
+        await fetchActiveDepartments();
+        
       } catch (err) {
         errorToast("Failed to load profiles.");
         console.error(err);
@@ -747,8 +834,40 @@ const ProfileSection = () => {
     fetchProfiles();
   }, []);
 
+  // Handle department change
+  const handleDepartmentChange = async (value) => {
+    setFiltersData((prev) => ({ 
+      ...prev, 
+      department: value,
+      specialist: "" // Reset specialist when department changes
+    }));
+    setCurrentPage(1);
+    
+    // Fetch specializations for the selected department
+    if (value) {
+      await fetchSpecializationsByDepartment(value);
+    } else {
+      setSpecialists([]);
+    }
+  };
+
+  const handleSpecialistChange = (value) => {
+    setFiltersData((prev) => ({ ...prev, specialist: value }));
+    setCurrentPage(1);
+  };
+
+  const handleClearFilters = () => {
+    setFiltersData({
+      department: "",
+      specialist: "",
+    });
+    setSpecialists([]);
+    setCurrentPage(1);
+  };
+
   const filteredProfiles = useMemo(() => {
     return profiles.filter((profile) => {
+      // Search filter
       if (
         searchTerm &&
         !(
@@ -758,18 +877,23 @@ const ProfileSection = () => {
       ) {
         return false;
       }
+      
+      // Department filter
       if (
         filtersData.department &&
         profile.department !== filtersData.department
       ) {
         return false;
       }
+      
+      // Specialist filter
       if (
         filtersData.specialist &&
         profile.qualification !== filtersData.specialist
       ) {
         return false;
       }
+      
       return true;
     });
   }, [profiles, searchTerm, filtersData]);
@@ -792,19 +916,6 @@ const ProfileSection = () => {
     }
   };
 
-  const handleFilterChange = (field, value) => {
-    setFiltersData((prev) => ({ ...prev, [field]: value }));
-    setCurrentPage(1);
-  };
-
-  const handleClearFilters = () => {
-    setFiltersData({
-      department: "",
-      specialist: "",
-    });
-    setCurrentPage(1);
-  };
-
   const handleEditProfile = (profile) => {
     setSelectedProfile(profile.originalData);
     setShowEditPopup(true);
@@ -812,15 +923,13 @@ const ProfileSection = () => {
 
   const handleUpdateProfile = async (updatedData) => {
     try {
-      // Update the profile in the backend - USING api.put() for API calls
       const response = await api.put(
         `/staff/update/${updatedData.id}/`,
-        updatedData // This should be FormData in your actual implementation
+        updatedData
       );
 
       if (response.status === 200) {
         successToast("Profile updated successfully");
-        // Refresh the profiles - USING api.get() for API calls
         const fetchResponse = await api.get("/staff/all/");
         const data = fetchResponse.data;
         const transformed = data.map((staff) => ({
@@ -828,6 +937,7 @@ const ProfileSection = () => {
           name: staff.full_name || "Unknown",
           qualification: staff.specialization || "N/A",
           department: staff.department || "N/A",
+          department_id: staff.department_id || null,
           joinDate: staff.date_of_joining
             ? new Date(staff.date_of_joining).toLocaleDateString("en-GB")
             : "N/A",
@@ -840,7 +950,7 @@ const ProfileSection = () => {
               ? "Nurses"
               : "Other Staff"
             : "Other Staff",
-          profilePicture: staff.profile_picture, // Include profile picture
+          profilePicture: staff.profile_picture,
           originalData: staff,
         }));
         setProfiles(transformed);
@@ -853,77 +963,116 @@ const ProfileSection = () => {
     }
   };
 
-  const Dropdown = ({ placeholder, value, onChange, options }) => (
-    <div className="relative">
-      <Listbox
-        value={value || ""}
-        onChange={(val) => onChange(val === placeholder ? "" : val)}
-      >
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] 
-                       bg-gray-100 dark:bg-[#000000] text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]"
-            style={{
-              borderColor: "#3C3C3C",
-              boxShadow: "0px 0px 4px 0px #0EFF7B",
-            }}
-          >
-            <span className="block truncate">{value || placeholder}</span>
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <svg
-                className="h-4 w-4 text-[#08994A] dark:text-[#0EFF7B]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </span>
-          </Listbox.Button>
+  // Enhanced Dropdown component with loading and disabled states
+  const Dropdown = ({ 
+    placeholder, 
+    value, 
+    onChange, 
+    options, 
+    loading = false,
+    disabled = false 
+  }) => {
+    // Handle both array of strings and array of objects
+    const displayOptions = options.map(opt => 
+      typeof opt === 'object' ? opt.name : opt
+    ).filter(opt => opt && opt !== '');
 
-          <Listbox.Options
-            className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            <Listbox.Option
-              key="default"
-              value={placeholder}
-              className="cursor-pointer select-none py-2 px-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33]"
+    const displayValue = value || placeholder;
+
+    return (
+      <div className="relative">
+        <Listbox
+          value={value || ""}
+          onChange={(val) => onChange(val === placeholder ? "" : val)}
+          disabled={disabled || loading}
+        >
+          <div className="relative mt-1 w-[228px]">
+            <Listbox.Button
+              className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border 
+                ${disabled || loading 
+                  ? 'border-gray-300 bg-gray-100 dark:bg-gray-900 opacity-50 cursor-not-allowed' 
+                  : 'border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-[#000000]'
+                } 
+                text-[#08994A] dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] z-[100]`}
+              style={{
+                borderColor: disabled ? '#9CA3AF' : '#3C3C3C',
+                boxShadow: disabled ? 'none' : '0px 0px 4px 0px #0EFF7B',
+              }}
             >
-              {placeholder}
-            </Listbox.Option>
-            {options.map((option, idx) => (
-              <Listbox.Option
-                key={idx}
-                value={option}
-                className={({ active, selected }) =>
-                  `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                    active
-                      ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
-                      : "text-black dark:text-white"
-                  } ${
-                    selected
-                      ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                      : ""
-                  }`
-                }
+              <span className="block truncate">
+                {loading ? 'Loading...' : displayValue}
+              </span>
+              <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                <svg
+                  className={`h-4 w-4 ${disabled ? 'text-gray-400' : 'text-[#08994A] dark:text-[#0EFF7B]'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </span>
+            </Listbox.Button>
+
+            {!loading && !disabled && (
+              <Listbox.Options
+                className="absolute mt-1 w-full max-h-60 rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A] overflow-auto z-[100]"
+                style={{
+                  scrollbarWidth: "thin",
+                  msOverflowStyle: "auto",
+                  scrollbarColor: "#0EFF7B #1E1E1E",
+                }}
               >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
-    </div>
-  );
+                <Listbox.Option
+                  key="default"
+                  value={placeholder}
+                  className={({ active }) =>
+                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                      active
+                        ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                        : "text-gray-600 dark:text-gray-400"
+                    }`
+                  }
+                >
+                  {placeholder}
+                </Listbox.Option>
+                {displayOptions.length === 0 ? (
+                  <div className="py-2 px-2 text-sm text-gray-500 text-center">
+                    No options available
+                  </div>
+                ) : (
+                  displayOptions.map((option, idx) => (
+                    <Listbox.Option
+                      key={idx}
+                      value={option}
+                      className={({ active, selected }) =>
+                        `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                          active
+                            ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
+                            : "text-black dark:text-white"
+                        } ${
+                          selected
+                            ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
+                            : ""
+                        }`
+                      }
+                    >
+                      {option}
+                    </Listbox.Option>
+                  ))
+                )}
+              </Listbox.Options>
+            )}
+          </div>
+        </Listbox>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -1022,17 +1171,24 @@ const ProfileSection = () => {
       {/* Search and Filter */}
       <div className="flex justify-between items-center mb-6 relative z-30">
         <div className="flex gap-4">
+          {/* FIXED: Department dropdown - Only active departments */}
           <Dropdown
             placeholder="Select Department"
             value={filtersData.department}
-            onChange={(val) => handleFilterChange("department", val)}
+            onChange={handleDepartmentChange}
             options={departments}
+            loading={departmentsLoading}
+            disabled={departmentsLoading}
           />
+          
+          {/* FIXED: Specialist dropdown - Dependent on department selection */}
           <Dropdown
-            placeholder="Select Specialist"
+            placeholder={!filtersData.department ? "Select department first" : "Select Specialist"}
             value={filtersData.specialist}
-            onChange={(val) => handleFilterChange("specialist", val)}
+            onChange={handleSpecialistChange}
             options={specialists}
+            loading={specialistsLoading}
+            disabled={!filtersData.department || specialistsLoading}
           />
         </div>
         <div className="flex gap-4">
@@ -1040,7 +1196,7 @@ const ProfileSection = () => {
             <Search size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                     Search
               </span>
@@ -1059,7 +1215,7 @@ const ProfileSection = () => {
             <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
                     Filter
               </span>
@@ -1104,18 +1260,18 @@ const ProfileSection = () => {
               <Dropdown
                 placeholder="Select Department"
                 value={filtersData.department}
-                onChange={(val) =>
-                  setFiltersData((prev) => ({ ...prev, department: val }))
-                }
+                onChange={handleDepartmentChange}
                 options={departments}
+                loading={departmentsLoading}
+                disabled={departmentsLoading}
               />
               <Dropdown
-                placeholder="Select Specialist"
+                placeholder={!filtersData.department ? "Select department first" : "Select Specialist"}
                 value={filtersData.specialist}
-                onChange={(val) =>
-                  setFiltersData((prev) => ({ ...prev, specialist: val }))
-                }
+                onChange={handleSpecialistChange}
                 options={specialists}
+                loading={specialistsLoading}
+                disabled={!filtersData.department || specialistsLoading}
               />
             </div>
 
@@ -1166,7 +1322,7 @@ const ProfileSection = () => {
                 {profile.type}
               </div>
 
-              {/* Profile Picture - USING getProfilePictureUrl with API_BASE */}
+              {/* Profile Picture */}
               <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden border-2 border-[#0EFF7B] bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
                 {profile.profilePicture ? (
                   <img
@@ -1174,14 +1330,7 @@ const ProfileSection = () => {
                     alt={`${profile.name}'s profile`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.log(
-                        "Profile image failed to load:",
-                        profile.profilePicture,
-                        "Full URL:",
-                        getProfilePictureUrl(profile.profilePicture)
-                      );
                       e.target.style.display = "none";
-                      // Fallback to icon when image fails to load
                       const parent = e.target.parentElement;
                       const fallback = document.createElement("div");
                       fallback.className =
@@ -1244,7 +1393,7 @@ const ProfileSection = () => {
                 <span>Edit</span>
                 <span className="absolute right-5 right-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">Edit</span>
               </button>
               <button
@@ -1258,7 +1407,7 @@ const ProfileSection = () => {
                 View profile
                 <span className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">View Profile</span>
               </button>
               

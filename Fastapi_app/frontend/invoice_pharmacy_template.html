@@ -8,14 +8,24 @@
 
 @page { size: A4; margin: 0; }
 html, body { margin: 0; padding: 0; }
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Regular.ttf") format("truetype");
+    font-weight: normal;
+}
 
+@font-face {
+    font-family: "Inter";
+    src: url("fonts/Inter-Bold.ttf") format("truetype");
+    font-weight: bold;
+}
 :root {
     --green: #045C32;
     --green-mid: #0AA45F;
     --green-light: #E8FFF3;
     --green-grad2: #58D7A3;
     --border-gray: #CFCFCF;
-    --font-main: "Segoe UI", Arial, sans-serif;
+    --font-main: "Inter", sans-serif;
 }
 
 body {
@@ -74,7 +84,7 @@ body {
 
 .header-wrapper {
     display: grid;
-    grid-template-columns: 300px auto;
+    grid-template-columns: 340px auto;
     width: 100%;
     position: relative;
 }
@@ -102,6 +112,8 @@ body {
     font-size: 32px;
     font-weight: 800;
     margin-bottom: 4px;
+    line-height: 1.15;        /* FIX: prevents letter overlap */
+    letter-spacing: 0.5px; 
 }
 
 .header-left-address {
@@ -468,6 +480,11 @@ body {
 .footer-strip div:last-child {
     border-right: none;
 }
+@media print {
+    .header-left-title {
+        line-height: 1.25;
+    }
+}
 </style>
 </head>
 
@@ -620,22 +637,27 @@ body {
 
         <div class="totals-container">
 
-            <div class="total-line">
-                <div class="label">Subtotal</div>
-                <div class="value">{{ "%.2f"|format(invoice.subtotal) }}</div>
-            </div>
+    <div class="total-line">
+        <div class="label">Subtotal</div>
+        <div class="value">{{ "%.2f"|format(invoice.subtotal) }}</div>
+    </div>
 
-            <div class="total-line">
-                <div class="label">Tax ({{ tax_percent }}%)</div>
-                <div class="value">{{ "%.2f"|format(tax_total) }}</div>
-            </div>
+    <div class="total-line">
+        <div class="label">CGST ({{ "%.2f"|format(cgst_percent) }}%)</div>
+        <div class="value">{{ "%.2f"|format(cgst_amount) }}</div>
+    </div>
 
-            <div class="total-line">
-                <div class="label">Discount</div>
-                <div class="value">{{ "%.2f"|format(invoice.discount_amount) }}</div>
-            </div>
+    <div class="total-line">
+        <div class="label">SGST ({{ "%.2f"|format(sgst_percent) }}%)</div>
+        <div class="value">{{ "%.2f"|format(sgst_amount) }}</div>
+    </div>
 
-        </div>
+    <div class="total-line">
+        <div class="label">Discount</div>
+        <div class="value">{{ "%.2f"|format(invoice.discount_amount) }}</div>
+    </div>
+
+</div>
 
         <div class="grand-total-wrap">
             <div class="grand-pill">

@@ -1,4 +1,4 @@
-//// src/components/AddAppointmentPopup.jsx
+// src/components/AddAppointmentPopup.jsx
 import React, { useState, useEffect } from "react";
 import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
@@ -14,15 +14,17 @@ const getTodayDate = () => {
   return `${year}-${month}-${day}`;
 };
 
-// ── Get default time ───────────────────────────────────
+// ── Get default time (current time + 5 minutes) ─────────────────
 const getDefaultTime = () => {
   const now = new Date();
+  // Add 5 minutes to current time to ensure it's in the future
+  now.setMinutes(now.getMinutes() + 5);
   const hour = String(now.getHours()).padStart(2, '0');
   const minute = String(now.getMinutes()).padStart(2, '0');
   return `${hour}:${minute}`;
 };
 
-export default function AddAppointmentPopup({ onClose, onSuccess }) {
+export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = false, appointmentData = null }) {
   // Add validation state
   const [validationErrors, setValidationErrors] = useState({}); // Format validation
   const [fieldErrors, setFieldErrors] = useState({}); // Required field validation (submit only)
@@ -38,8 +40,30 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     appointment_type: "",
     status: "new", // Set default status
     appointment_date: getTodayDate(), // ✅ Changed to today's date
-    appointment_time: getDefaultTime(), // Use current time as default
+    appointment_time: getDefaultTime(), // Use current time + 5 minutes as default
   });
+
+  // ── For edit mode, prefill the form ──────────────────────────────
+  useEffect(() => {
+    if (isEditMode && appointmentData) {
+      console.log("Editing appointment data:", appointmentData);
+      setFormData({
+        patient_name: appointmentData.patient_name || "",
+        department_id: appointmentData.department_id?.toString() || "",
+        staff_id: appointmentData.staff_id?.toString() || "",
+        room_no: appointmentData.room_no || "",
+        phone_no: appointmentData.phone_no || "",
+        appointment_type: appointmentData.appointment_type || "",
+        status: appointmentData.status || "new",
+        appointment_date: appointmentData.appointment_date || getTodayDate(),
+        appointment_time: appointmentData.appointment_time || getDefaultTime(),
+      });
+      
+      // Clear any existing errors when prefilling
+      setValidationErrors({});
+      setFieldErrors({});
+    }
+  }, [isEditMode, appointmentData]);
 
   // ── Dropdown data ───────────────────────────────────────────────────
   const [departments, setDepartments] = useState([]); // [{id, name}]
@@ -92,14 +116,22 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
     return "";
   };
 
-  const validateAppointmentDateTime = () => {
-    if (!formData.appointment_date) return "Appointment date is required";
-    if (!formData.appointment_time) return "Appointment time is required";
+  const validateAppointmentDateTime = (date, time, isEditMode = false) => {
+    if (!date) return "Appointment date is required";
+    if (!time) return "Appointment time is required";
     
-    const selectedDate = new Date(`${formData.appointment_date}T${formData.appointment_time}`);
+    const selectedDateTime = new Date(`${date}T${time}:00`);
     const now = new Date();
     
-    if (selectedDate < now) return "Appointment date and time cannot be in the past";
+    // Floor to minute level
+    const apptMin = Math.floor(selectedDateTime.getTime() / 60000) * 60000;
+    const nowMin = Math.floor(now.getTime() / 60000) * 60000;
+    
+    // In edit mode, allow past dates/times (existing appointments)
+    if (!isEditMode && apptMin < nowMin) {
+      return "Appointment date and time cannot be in the past";
+    }
+    
     return "";
   };
 
@@ -236,7 +268,11 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       patient_name: validatePatientNameFormat(formData.patient_name),
       phone_no: validatePhoneFormat(formData.phone_no),
       appointment_time: validateTimeFormat(formData.appointment_time),
-      appointment_date_time: validateAppointmentDateTime()
+      appointment_date_time: validateAppointmentDateTime(
+        formData.appointment_date, 
+        formData.appointment_time,
+        isEditMode
+      )
     };
     
     // Filter out empty error messages
@@ -286,13 +322,18 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
           const data = response.data;
           const beds = data.flatMap((group) =>
             group.beds
-              .filter((bed) => !bed.is_occupied)
               .map((bed) => ({
                 id: `${group.bedGroup}-${bed.bed_number}`,
                 name: `${group.bedGroup}-${bed.bed_number}`,
+                is_occupied: bed.is_occupied
               }))
           );
-          setAvailableBeds(beds);
+          // In edit mode, include all beds (even occupied ones)
+          // In add mode, only show available beds
+          const filteredBeds = isEditMode 
+            ? beds 
+            : beds.filter(bed => !bed.is_occupied);
+          setAvailableBeds(filteredBeds);
         }
       })
       .catch((error) => {
@@ -304,7 +345,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
       });
     
     return () => (mounted = false);
-  }, []);
+  }, [isEditMode]);
 
   // ── Load doctors when department changes ───────────────────────────
   useEffect(() => {
@@ -336,85 +377,183 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
   }, [formData.department_id]);
 
   // ── Save handler with validation ───────────────────────────────────
-  const handleSave = async () => {
-    if (!validateForm()) {
-      errorToast("Please fix all validation errors before saving");
+ const handleSave = async () => {
+  if (!validateForm()) {
+    errorToast("Please fix all validation errors before saving");
+    return;
+  }
+
+  setSaving(true);
+  try {
+    // For add mode only: Strict duplicate check (TC_44)
+    if (!isEditMode) {
+      try {
+        // Normalize data
+        const normalizedPatientName = formData.patient_name.trim().toLowerCase();
+        const normalizedPhone = formData.phone_no;
+        
+        console.log("=== DUPLICATE CHECK ===");
+        console.log("Patient:", normalizedPatientName);
+        console.log("Phone:", normalizedPhone);
+        console.log("Date:", formData.appointment_date);
+        console.log("Time:", formData.appointment_time);
+        
+        // Try to fetch appointments
+        let allAppointments = [];
+        try {
+          const response = await api.get("/appointments/list_appointments");
+          allAppointments = response.data || [];
+          console.log("Total appointments fetched:", allAppointments.length);
+        } catch (fetchError) {
+          console.error("Failed to fetch appointments:", fetchError);
+          // Continue without duplicate check
+        }
+        
+        // Only check duplicates if we have appointments data
+        if (allAppointments.length > 0) {
+          // 1. Check for EXACT duplicate (same patient, phone, date, AND time)
+          const exactDuplicate = allAppointments.some(appointment => {
+            const appointmentPatientName = (appointment.patient_name || "").trim().toLowerCase();
+            const appointmentPhone = appointment.phone_no || "";
+            const appointmentDate = appointment.appointment_date || "";
+            const appointmentTime = appointment.appointment_time || "";
+            
+            const isExactDuplicate = (
+              appointmentPatientName === normalizedPatientName &&
+              appointmentPhone === normalizedPhone &&
+              appointmentDate === formData.appointment_date &&
+              appointmentTime === formData.appointment_time
+            );
+            
+            if (isExactDuplicate) {
+              console.log("EXACT DUPLICATE FOUND!");
+            }
+            
+            return isExactDuplicate;
+          });
+          
+          if (exactDuplicate) {
+            errorToast("❌ Cannot create appointment: An exact duplicate already exists for this patient with the same phone number at the same time");
+            setSaving(false);
+            return;
+          }
+          
+          // 2. Check for same patient and phone on same day (NEW LOGIC)
+          const sameDayAppointments = allAppointments.filter(appointment => {
+            const appointmentPatientName = (appointment.patient_name || "").trim().toLowerCase();
+            const appointmentPhone = appointment.phone_no || "";
+            const appointmentDate = appointment.appointment_date || "";
+            
+            return (
+              appointmentPatientName === normalizedPatientName &&
+              appointmentPhone === normalizedPhone &&
+              appointmentDate === formData.appointment_date
+            );
+          });
+          
+          console.log("Same patient/phone/day appointments found:", sameDayAppointments.length);
+          
+          if (sameDayAppointments.length > 0) {
+            // ⚠️ CRITICAL: Prevent creation if same patient & phone on same day
+            const existingTimes = sameDayAppointments
+              .map(a => a.appointment_time || "Unknown time")
+              .join(', ');
+            
+            errorToast(`❌ Cannot create appointment: Patient already has ${sameDayAppointments.length} appointment(s) today at ${existingTimes}`);
+            setSaving(false);
+            return;
+          }
+          
+          // 3. Optional: Check for same patient and phone (any date) - just info
+          const anyDateAppointments = allAppointments.filter(appointment => {
+            const appointmentPatientName = (appointment.patient_name || "").trim().toLowerCase();
+            const appointmentPhone = appointment.phone_no || "";
+            
+            return (
+              appointmentPatientName === normalizedPatientName &&
+              appointmentPhone === normalizedPhone
+            );
+          });
+          
+          if (anyDateAppointments.length > 0) {
+            // Just show info, don't block
+            errorToast(`ℹ️ Note: This patient has ${anyDateAppointments.length} previous appointment(s)`);
+          }
+        }
+        
+      } catch (duplicateError) {
+        console.error("Duplicate check failed:", duplicateError);
+        // Don't block on duplicate check errors
+      }
+    }
+
+    // ✅ CORRECTED PAYLOAD
+    const payload = {
+      patient_name: formData.patient_name.trim(),
+      department_id: Number(formData.department_id),
+      staff_id: Number(formData.staff_id),
+      room_no: formData.room_no,
+      phone_no: formData.phone_no,
+      appointment_type: formData.appointment_type,
+      appointment_date: formData.appointment_date,
+      appointment_time: formData.appointment_time,
+      status: formData.status,
+    };
+
+    console.log("Sending payload to backend:", payload);
+
+    let res;
+    if (isEditMode && appointmentData?.id) {
+      // Update existing appointment (TC_97)
+      res = await api.put(`/appointments/${appointmentData.id}`, payload);
+      successToast("✅ Appointment updated successfully!");
+    } else {
+      // Create new appointment
+      res = await api.post("/appointments/create_appointment", payload);
+      successToast("✅ Appointment added successfully!");
+    }
+
+    onSuccess?.();
+    onClose?.();
+    
+  } catch (error) {
+    console.error("Save error:", error);
+    
+    // Handle duplicate error from backend (status 409)
+    if (error.response?.status === 409) {
+      errorToast(error.response?.data?.detail || "❌ Duplicate appointment found by server");
       return;
     }
-
-    setSaving(true);
-    try {
-      // Duplicate check
-      try {
-        const duplicateCheck = await api.post("/appointments/check_duplicate", {
-          patient_name: formData.patient_name.trim(),
-          phone_no: formData.phone_no,
-          appointment_date: formData.appointment_date,
-        });
-        
-        if (duplicateCheck.data.exists) {
-          errorToast("An appointment already exists for this patient with the same phone number and date");
-          setSaving(false);
-          return;
-        }
-      } catch (duplicateError) {
-        console.warn("Duplicate check failed, proceeding anyway:", duplicateError);
-        // Continue with creation even if duplicate check fails
-      }
-
-      // ✅ CORRECTED PAYLOAD - Match backend expectations
-      const payload = {
-        patient_name: formData.patient_name.trim(),
-        department_id: Number(formData.department_id),
-        staff_id: Number(formData.staff_id),
-        room_no: formData.room_no, // ← Use room_no not bed_id
-        phone_no: formData.phone_no,
-        appointment_type: formData.appointment_type,
-        appointment_date: formData.appointment_date,
-        appointment_time: formData.appointment_time,
-        status: formData.status, // ← Include status field
-      };
-
-      console.log("Sending payload:", payload);
-
-      const res = await api.post("/appointments/create_appointment", payload);
-
-      successToast("Appointment added successfully!");
-      onSuccess?.();
-      onClose?.();
+    
+    // Handle validation errors
+    if (error.response?.status === 422) {
+      const errorData = error.response.data;
+      console.error("Validation errors:", errorData);
       
-    } catch (error) {
-      console.error("Save error:", error);
-      
-      // Check for validation errors
-      if (error.response?.status === 422) {
-        const errorData = error.response.data;
-        console.error("Validation errors:", errorData);
-        
-        // Display validation errors from backend
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            // Handle Pydantic validation errors
-            const errors = {};
-            errorData.detail.forEach(err => {
-              const field = err.loc?.[1] || 'general';
-              errors[field] = err.msg;
-            });
-            setValidationErrors(errors);
-            errorToast("Please fix the validation errors");
-          } else {
-            errorToast(errorData.detail);
-          }
+      if (errorData.detail) {
+        if (Array.isArray(errorData.detail)) {
+          const errors = {};
+          errorData.detail.forEach(err => {
+            const field = err.loc?.[1] || 'general';
+            errors[field] = err.msg;
+          });
+          setValidationErrors(errors);
+          errorToast("❌ Please fix the validation errors");
         } else {
-          errorToast("Validation failed. Please check your inputs.");
+          errorToast("❌ " + errorData.detail);
         }
       } else {
-        errorToast(error.response?.data?.detail || error.message || "Something went wrong. Please try again.");
+        errorToast("❌ Validation failed. Please check your inputs.");
       }
-    } finally {
-      setSaving(false);
+    } else if (error.response?.status === 404) {
+      errorToast("❌ Doctor or Department not found");
+    } else {
+      errorToast("❌ " + (error.response?.data?.detail || error.message || "Failed to save appointment"));
     }
-  };
+  } finally {
+    setSaving(false);
+  }
+};
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
@@ -450,7 +589,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-              Add Appointment
+              {isEditMode ? "Edit Appointment" : "Add Appointment"}
             </h3>
             <button
               onClick={onClose}
@@ -671,7 +810,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                                  ? "bg-[#0EFF7B33] text-[#0EFF7B]"
                                  : "text-black dark:text-white"
                              }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                             ${selected ? "bg-[#0EFF7B] !text-white dark:!text-black font-semibold" : ""}`
                           }
                           style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                         >
@@ -811,12 +950,25 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                       <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]">
+                  <Listbox.Options 
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black 
+                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
                     {["new", "normal", "severe"].map((v) => (
                       <Listbox.Option
                         key={v}
                         value={v}
-                        className="cursor-pointer py-2 px-2 text-sm"
+                        className={({ active, selected }) =>
+                          `cursor-pointer select-none py-2 px-2 text-sm rounded-md
+                           ${
+                             active
+                               ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                               : "text-black dark:text-white"
+                           }
+                           ${selected ? "bg-[#0EFF7B] !text-white dark:!text-black font-semibold" : ""}`
+                        }
+                        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                       >
                         {v === "new" ? "New" : v === "normal" ? "Normal" : "Severe"}
                       </Listbox.Option>
@@ -846,7 +998,7 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
                   }
                   onFocus={() => setFocusedField("appointment_date")}
                   onBlur={() => setFocusedField(null)}
-                  min={new Date().toISOString().split("T")[0]} // ✅ upcoming dates only
+                  min={isEditMode ? "" : new Date().toISOString().split("T")[0]} // ✅ Only restrict for new appointments
                   className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
                             bg-gray-100 dark:bg-transparent outline-none
                             text-black dark:text-[#0EFF7B] cursor-pointer
@@ -880,65 +1032,64 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
             </div>
 
             {/* Appointment Time */}
-<div>
-  <label className="text-sm text-black dark:text-white">
-    Appointment Time <span className="text-red-700">*</span>
-  </label>
+            <div>
+              <label className="text-sm text-black dark:text-white">
+                Appointment Time <span className="text-red-700">*</span>
+              </label>
 
-  <input
-    type="time"
-    value={formData.appointment_time}
-    onChange={(e) => handleInputChange("appointment_time", e.target.value)}
-    onFocus={() => setFocusedField("appointment_time")}
-    onBlur={() => setFocusedField(null)}
-    className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-      outline-none text-black dark:text-[#0EFF7B]
-      appearance-none
-      ${focusedField === "appointment_time"
-        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-        : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-  />
+              <input
+                type="time"
+                value={formData.appointment_time}
+                onChange={(e) => handleInputChange("appointment_time", e.target.value)}
+                onFocus={() => setFocusedField("appointment_time")}
+                onBlur={() => setFocusedField(null)}
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+                  outline-none text-black dark:text-[#0EFF7B]
+                  appearance-none
+                  ${focusedField === "appointment_time"
+                    ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                    : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+              />
 
-  <style>{`
-    /* Chrome, Edge, Safari */
-    input[type="time"]::-webkit-calendar-picker-indicator {
-      filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
-      cursor: pointer;
-    }
+              <style>{`
+                /* Chrome, Edge, Safari */
+                input[type="time"]::-webkit-calendar-picker-indicator {
+                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+                  cursor: pointer;
+                }
 
-    /* Firefox */
-    input[type="time"]::-moz-calendar-picker-indicator {
-      filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
-      cursor: pointer;
-    }
+                /* Firefox */
+                input[type="time"]::-moz-calendar-picker-indicator {
+                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+                  cursor: pointer;
+                }
 
-    /* Force same icon color in both themes */
-    input[type="time"] {
-      color-scheme: light;
-    }
+                /* Force same icon color in both themes */
+                input[type="time"] {
+                  color-scheme: light;
+                }
 
-    .dark input[type="time"] {
-      color-scheme: light;
-    }
-  `}</style>
+                .dark input[type="time"] {
+                  color-scheme: light;
+                }
+              `}</style>
 
-  {validationErrors.appointment_time && (
-    <div className="mt-1">
-      <span className="text-red-700 dark:text-red-500 text-xs">
-        {validationErrors.appointment_time}
-      </span>
-    </div>
-  )}
+              {validationErrors.appointment_time && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">
+                    {validationErrors.appointment_time}
+                  </span>
+                </div>
+              )}
 
-  {fieldErrors.appointment_time && !validationErrors.appointment_time && (
-    <div className="mt-1">
-      <span className="text-red-700 dark:text-red-500 text-xs">
-        {fieldErrors.appointment_time}
-      </span>
-    </div>
-  )}
-</div>
-
+              {fieldErrors.appointment_time && !validationErrors.appointment_time && (
+                <div className="mt-1">
+                  <span className="text-red-700 dark:text-red-500 text-xs">
+                    {fieldErrors.appointment_time}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           
           {/* Combined date-time validation error */}
@@ -952,21 +1103,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess }) {
           <div className="flex justify-center gap-2 mt-8">
             <button
               onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
-                         text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                         shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving || Object.values(validationErrors).some(error => error !== "")}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
-                         bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-                         shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
-                         hover:scale-105 transition disabled:opacity-70"
+              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
             >
-              {saving ? "Saving…" : "Add Appointment"}
+              {saving ? "Saving…" : (isEditMode ? "Update Appointment" : "Add Appointment")}
             </button>
           </div>
         </div>

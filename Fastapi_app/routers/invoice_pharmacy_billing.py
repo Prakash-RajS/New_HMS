@@ -689,6 +689,10 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
             amount_in_words=amount_words,
             tax_total=tax_total,
             tax_percent=float(data.cgst_percent + data.sgst_percent),
+            cgst_percent=float(data.cgst_percent),  # ✅ Add this
+            sgst_percent=float(data.sgst_percent),  # ✅ Add this
+            cgst_amount=float(db_invoice.cgst_amount),  # ✅ Add this
+            sgst_amount=float(db_invoice.sgst_amount),  # ✅ Add this
         )
 
         pdf_filename = f"{db_invoice.bill_no}.pdf"

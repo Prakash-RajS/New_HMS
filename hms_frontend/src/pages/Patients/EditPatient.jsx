@@ -328,7 +328,6 @@ const handlePhoneChange = (value) => {
     "New",
     "Normal",
     "Severe",
-    "Critical",
     "Completed",
     "Cancelled",
   ];

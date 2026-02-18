@@ -355,7 +355,6 @@ const handleDelete = async (id) => {
       date: "",
     });
     setCurrentPage(1);
-    setShowFilterPopup(false);
   };
 
   // === Dropdown component ===

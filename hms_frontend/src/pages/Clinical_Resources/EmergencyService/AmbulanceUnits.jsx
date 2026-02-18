@@ -437,17 +437,18 @@ import { successToast, errorToast } from "../../../components/Toast.jsx";
 const ErrorMessage = ({ field, errors, submitted, isCreateMode, form }) => {
   if (!errors[field]) return null;
   
-  // Show format errors immediately, required errors only after submission
-  const isFormatError = errors[field].includes("must be") || 
-                       errors[field].includes("cannot") || 
-                       errors[field].includes("seems") ||
-                       errors[field].includes("valid") ||
-                       errors[field].includes("at least") ||
-                       errors[field].includes("maximum") ||
-                       errors[field].includes("Phone") ||
-                       errors[field].includes("digits");
+  // In create mode, show ALL errors immediately while typing
+  // In edit mode, show errors only after submission
+  if (isCreateMode) {
+    return (
+      <div className="mt-1 text-red-500 text-xs">
+        <span>{errors[field]}</span>
+      </div>
+    );
+  }
   
-  if (isFormatError || submitted) {
+  // Edit mode: only show after submission
+  if (submitted) {
     return (
       <div className="mt-1 text-red-500 text-xs">
         <span>{errors[field]}</span>
@@ -625,17 +626,58 @@ const AmbulanceUnitsModal = ({
         if (!/^[A-Za-z0-9\-_]+$/.test(value.trim())) return "Unit number can only contain letters, numbers, hyphens and underscores";
         return "";
         
-      case "vehicle_make":
-        if (!value.trim()) return "Vehicle make is required";
-        if (value.trim().length < 2) return "Vehicle make must be at least 2 characters";
-        if (value.trim().length > 50) return "Vehicle make cannot exceed 50 characters";
-        return "";
-        
-      case "vehicle_model":
-        if (!value.trim()) return "Vehicle model is required";
-        if (value.trim().length < 2) return "Vehicle model must be at least 2 characters";
-        if (value.trim().length > 50) return "Vehicle model cannot exceed 50 characters";
-        return "";
+     case "vehicle_make":
+  if (!value.trim()) return "Vehicle make is required";
+  
+  const makeValue = value.trim();
+  
+  if (makeValue.length < 2) return "Vehicle make must be at least 2 characters";
+  if (makeValue.length > 50) return "Vehicle make cannot exceed 50 characters";
+  
+  // ✅ Must start with CAPITAL letter
+  if (!/^[A-Z]/.test(makeValue)) {
+    return "Vehicle make must start with a capital letter";
+  }
+  
+  // Only letters, spaces, and hyphens (NO numbers for make)
+  if (!/^[A-Z][A-Za-z\s-]*$/.test(makeValue)) {
+    return "Vehicle make can only contain letters, spaces, and hyphens";
+  }
+  
+  // Must have at least 2 letters
+  const letterCount = (makeValue.match(/[A-Za-z]/g) || []).length;
+  if (letterCount < 2) {
+    return "Vehicle make must contain at least 2 letters";
+  }
+  
+  return "";
+  
+case "vehicle_model":
+  if (!value.trim()) return "Vehicle model is required";
+  
+  const modelValue = value.trim();
+  
+  if (modelValue.length < 2) return "Vehicle model must be at least 2 characters";
+  if (modelValue.length > 50) return "Vehicle model cannot exceed 50 characters";
+  
+  // ✅ Must start with CAPITAL letter
+  if (!/^[A-Z]/.test(modelValue)) {
+    return "Vehicle model must start with a capital letter";
+  }
+  
+  // Can contain letters, numbers, spaces, hyphens
+  if (!/^[A-Z][A-Za-z0-9\s-]*$/.test(modelValue)) {
+    return "Vehicle model can only contain letters, numbers, spaces, and hyphens";
+  }
+  
+  // Must have at least 1 letter
+  const modelLetterCount = (modelValue.match(/[A-Za-z]/g) || []).length;
+  if (modelLetterCount < 1) {
+    return "Vehicle model must contain at least 1 letter";
+  }
+  
+  return "";
+
         
       case "phone":
         // Phone is optional, but validate if provided

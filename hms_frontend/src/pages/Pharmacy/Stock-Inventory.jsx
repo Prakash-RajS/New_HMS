@@ -3070,13 +3070,22 @@ const StockInventory = () => {
 
   // Format validation functions (show while typing)
   const validateDosageFormat = (dosage) => {
-    if (!dosage || dosage.trim() === "") return "";
-    const dosageRegex = /^(\d+(\.\d+)?\s*(mg|g|ml|L|IU|µg|mcg|%)?(\/\d+(\.\d+)?\s*(mg|g|ml|L)?)?)$/i;
-    if (!dosageRegex.test(dosage.trim())) {
-      return "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
+  if (!dosage || dosage.trim() === "") return "";
+  
+  const trimmedDosage = dosage.trim();
+  
+  // ✅ Units are now REQUIRED (no ? after unit group)
+  const dosageRegex = /^(\d+(\.\d+)?)\s*(mg|g|ml|L|IU|µg|mcg|%)(\s*\/\s*\d+(\.\d+)?\s*(mg|g|ml|L)?)?$/i;
+  
+  if (!dosageRegex.test(trimmedDosage)) {
+    if (/^\d+(\.\d+)?$/.test(trimmedDosage)) {
+      return "Please include dosage unit (e.g., mg, ml, g, %, IU)";
     }
-    return "";
-  };
+    return "Please enter a valid dosage format (e.g., 500mg, 10ml, 5mg/5ml)";
+  }
+  
+  return "";
+};
 
   const validateProductNameFormat = (value) => {
     if (!value || value.trim() === "") return "";
@@ -3099,17 +3108,50 @@ const StockInventory = () => {
   };
 
   // NEW: Duplicate Vendor ID validation (TC_130)
-  const validateVendorIdFormat = (value, currentId = null) => {
+  const validateVendorIdFormat = (value, currentVendorName = "", currentId = null) => {
     if (!value || value.trim() === "") return "";
-    
-    // Check for duplicate vendor ID across all vendors
-    const isDuplicate = inventoryData.some(item => 
-      item.vendorCode === value.trim() && item.id !== currentId
-    );
-    
-    if (isDuplicate) {
-      return "Vendor ID already exists. Each vendor should have a unique ID.";
+
+    const trimmedId = value.trim();
+    const trimmedVendorName = currentVendorName.trim().toLowerCase();
+
+    // Check 1: Is this vendor NAME already registered with a DIFFERENT vendor ID?
+    // e.g. "Paracetmol" already has ID "1" — trying to use ID "3" should be blocked
+    const vendorNameConflict = inventoryData.some(item => {
+      if (currentId && item.id === currentId) return false; // skip current record
+      return (
+        item.vendor.trim().toLowerCase() === trimmedVendorName &&
+        item.vendorCode !== trimmedId
+      );
+    });
+
+    if (vendorNameConflict) {
+      // Find what ID this vendor already uses
+      const existingEntry = inventoryData.find(item =>
+        item.vendor.trim().toLowerCase() === trimmedVendorName &&
+        (currentId ? item.id !== currentId : true)
+      );
+      return `Vendor "${currentVendorName.trim()}" is already registered with ID "${existingEntry?.vendorCode}". Use the same ID.`;
     }
+
+    // Check 2: Is this vendor ID already taken by a DIFFERENT vendor NAME?
+    // e.g. ID "1" is used by "Paracetmol" — "Apollo" cannot also use ID "1"
+    const vendorIdConflict = inventoryData.some(item => {
+      if (currentId && item.id === currentId) return false; // skip current record
+      return (
+        item.vendorCode === trimmedId &&
+        item.vendor.trim().toLowerCase() !== trimmedVendorName
+      );
+    });
+
+    if (vendorIdConflict) {
+      const existingEntry = inventoryData.find(item =>
+        item.vendorCode === trimmedId &&
+        item.vendor.trim().toLowerCase() !== trimmedVendorName &&
+        (currentId ? item.id !== currentId : true)
+      );
+      return `Vendor ID "${trimmedId}" is already used by "${existingEntry?.vendor}".`;
+    }
+
     return "";
   };
 
@@ -3215,6 +3257,7 @@ const StockInventory = () => {
       const transformedData = data.map((item) => ({
         id: item.id,
         name: item.product_name,
+        itemCode: item.item_code, 
         dosage: item.dosage || "",
         category: item.category,
         batch: item.batch_number,
@@ -3365,7 +3408,11 @@ const StockInventory = () => {
       product_name: validateProductNameFormat(formData.product_name),
       dosage: validateDosageFormat(formData.dosage),
       batch_number: validateBatchNumberFormat(formData.batch_number, isEditForm ? editStockId : null),
-      vendor_id: validateVendorIdFormat(formData.vendor_id, isEditForm ? editStockId : null),
+       vendor_id: validateVendorIdFormat(
+        formData.vendor_id,
+        formData.vendor || "",
+        isEditForm ? editStockId : null
+      ),
       quantity: isEditForm ? "" : validateQuantityFormat(formData.quantity),
       add_quantity: isEditForm ? validateAddQuantityFormat(formData.add_quantity) : "",
       unit_price: validateUnitPriceFormat(formData.unit_price),
@@ -3411,8 +3458,24 @@ const StockInventory = () => {
       case "batch_number":
         formatError = validateBatchNumberFormat(value);
         break;
+ 
       case "vendor_id":
-        formatError = validateVendorIdFormat(value);
+        formatError = validateVendorIdFormat(value, newStock.vendor, null);
+        break;
+           case "vendor":
+        // Re-validate vendor_id when vendor name changes
+        if (newStock.vendor_id) {
+          const vendorIdError = validateVendorIdFormat(newStock.vendor_id, value, null);
+          if (vendorIdError) {
+            setValidationErrors(prev => ({ ...prev, vendor_id: vendorIdError }));
+          } else {
+            setValidationErrors(prev => {
+              const next = { ...prev };
+              delete next.vendor_id;
+              return next;
+            });
+          }
+        }
         break;
       case "quantity":
         formatError = validateQuantityFormat(value);
@@ -3481,8 +3544,8 @@ const StockInventory = () => {
       case "batch_number":
         formatError = validateBatchNumberFormat(value, editStockId);
         break;
-      case "vendor_id":
-        formatError = validateVendorIdFormat(value, editStockId);
+       case "vendor_id":
+        formatError = validateVendorIdFormat(value, editStock.vendor, editStockId);
         break;
       case "add_quantity":
         formatError = validateAddQuantityFormat(value);
@@ -4537,6 +4600,7 @@ const StockInventory = () => {
                 </th>
                 {[
                   { label: "Name", key: "name" },
+                  { label: "Item Code", key: "itemCode" },
                   { label: "Dosage", key: "dosage" },
                   { label: "Categories", key: "category" },
                   { label: "Batch number", key: "batch" },
@@ -4622,6 +4686,12 @@ const StockInventory = () => {
                       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
                     >
                       {row.name}
+                    </td>
+                    <td
+                      className="px-3 py-3 text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      {row.itemCode}
                     </td>
                     <td
                       className="px-3 py-3 text-black dark:text-white"

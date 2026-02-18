@@ -3079,6 +3079,7 @@ const fetchData = useCallback(async () => {
         units={units}
         dispatches={dispatchData}
         patients={patientList}
+        existingTrips={tripData}
       />
 
       <AmbulanceUnitsModal

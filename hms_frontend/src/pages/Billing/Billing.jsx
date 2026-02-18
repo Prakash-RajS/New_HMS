@@ -2644,41 +2644,41 @@ const BillingManagement = () => {
     return "text-gray-600 dark:text-gray-400";
   };
 
-  // Debug Function
-  const runDebugChecks = () => {
-    console.log("=== DEBUG BILLING DATA ===");
-    console.log("Pharmacy invoices:", invoiceData.length);
-    console.log("Hospital invoices:", hospitalInvoiceData.length);
+  // // Debug Function
+  // const runDebugChecks = () => {
+  //   console.log("=== DEBUG BILLING DATA ===");
+  //   console.log("Pharmacy invoices:", invoiceData.length);
+  //   console.log("Hospital invoices:", hospitalInvoiceData.length);
     
-    const pharmacyInsurance = invoiceData.filter(item => {
-      const pm = item.paymentMethod?.toString().toLowerCase() || '';
-      return pm.includes('insurance') || pm === 'insurance';
-    });
+  //   const pharmacyInsurance = invoiceData.filter(item => {
+  //     const pm = item.paymentMethod?.toString().toLowerCase() || '';
+  //     return pm.includes('insurance') || pm === 'insurance';
+  //   });
     
-    const hospitalInsurance = hospitalInvoiceData.filter(item => {
-      const pm = item.paymentMethod?.toString().toLowerCase() || '';
-      return pm.includes('insurance') || pm === 'insurance';
-    });
+  //   const hospitalInsurance = hospitalInvoiceData.filter(item => {
+  //     const pm = item.paymentMethod?.toString().toLowerCase() || '';
+  //     return pm.includes('insurance') || pm === 'insurance';
+  //   });
     
-    console.log("Pharmacy insurance invoices:", pharmacyInsurance.length);
-    console.log("Hospital insurance invoices:", hospitalInsurance.length);
+  //   console.log("Pharmacy insurance invoices:", pharmacyInsurance.length);
+  //   console.log("Hospital insurance invoices:", hospitalInsurance.length);
     
-    const pharmacyToday = invoiceData.filter(item => isToday(item.date));
-    const hospitalToday = hospitalInvoiceData.filter(item => isToday(item.date));
+  //   const pharmacyToday = invoiceData.filter(item => isToday(item.date));
+  //   const hospitalToday = hospitalInvoiceData.filter(item => isToday(item.date));
     
-    console.log("Pharmacy today's bills:", pharmacyToday.length);
-    console.log("Hospital today's bills:", hospitalToday.length);
+  //   console.log("Pharmacy today's bills:", pharmacyToday.length);
+  //   console.log("Hospital today's bills:", hospitalToday.length);
     
-    // Show sample of insurance invoices
-    if (pharmacyInsurance.length > 0) {
-      console.log("Sample pharmacy insurance invoice:", pharmacyInsurance[0]);
-    }
-    if (hospitalInsurance.length > 0) {
-      console.log("Sample hospital insurance invoice:", hospitalInsurance[0]);
-    }
+  //   // Show sample of insurance invoices
+  //   if (pharmacyInsurance.length > 0) {
+  //     console.log("Sample pharmacy insurance invoice:", pharmacyInsurance[0]);
+  //   }
+  //   if (hospitalInsurance.length > 0) {
+  //     console.log("Sample hospital insurance invoice:", hospitalInsurance[0]);
+  //   }
     
-    successToast("Debug data logged to console");
-  };
+  //   successToast("Debug data logged to console");
+  // };
 
   // ========== RENDER ==========
 
@@ -2712,13 +2712,13 @@ const BillingManagement = () => {
       ></div>
       
       {/* Debug Button */}
-      <button 
+      {/* <button 
         onClick={runDebugChecks}
         className="fixed bottom-4 right-4 bg-red-500 text-white p-2 rounded z-50 opacity-50 hover:opacity-100 text-xs"
         style={{zIndex: 1000}}
       >
         Debug Data
-      </button>
+      </button> */}
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mt-4 mb-6 relative z-10">
@@ -3088,7 +3088,7 @@ const BillingManagement = () => {
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex items-center justify-between h-full mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+                  <div className="flex items-center justify-between h-full mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
                     <div className="text-sm text-black dark:text-white">
                       Page{" "}
                       <span className="text-[#08994A] dark:text-[#0EFF7B] font-medium">{currentPage}</span>{" "}
@@ -3369,7 +3369,7 @@ const BillingManagement = () => {
                   </div>
 
                   {/* Pagination */}
-                  <div className="flex items-center justify-between h-full mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+                  <div className="flex items-center justify-between h-full mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
                     <div className="text-sm text-black dark:text-white">
                       Page{" "}
                       <span className="text-[#08994A] dark:text-[#0EFF7B] font-medium">{hospitalCurrentPage}</span>{" "}

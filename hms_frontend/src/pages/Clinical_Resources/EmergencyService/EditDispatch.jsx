@@ -486,7 +486,7 @@ const EditDispatchModal = ({
         });
       } else {
         setForm({
-          unit_id: units[0]?.id || "",
+          unit_id: "",
           dispatcher: "",
           call_type: "Emergency",
           status: "Standby",

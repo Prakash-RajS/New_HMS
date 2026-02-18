@@ -1518,7 +1518,7 @@
 
 // export default Bill;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Search, Trash2, Plus, Calendar } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig";
@@ -1548,6 +1548,7 @@ const Bill = () => {
   const [duplicateError, setDuplicateError] = useState("");
   const [medicineLookup, setMedicineLookup] = useState({});
   const [itemCodeInputs, setItemCodeInputs] = useState({});
+  const [stockData, setStockData] = useState({});
 
   const paymentTypes = [
     "Full Payment",
@@ -1565,26 +1566,89 @@ const Bill = () => {
     "Insurance Claim",
   ];
 
+  // ============== VALIDATION FUNCTIONS ==============
+  const validateTaxPercentage = useCallback((value) => {
+    if (!value || value === "") return "Tax percentage is required";
+
+    const cleanValue = value.toString().replace("%", "");
+    const taxNum = parseFloat(cleanValue);
+
+    if (isNaN(taxNum)) {
+      return "Tax must be a valid number";
+    }
+
+    if (taxNum < 1) {
+      return "Tax percentage cannot be less than 1%";
+    }
+
+    if (taxNum > 100) {
+      return "Tax percentage cannot exceed 100%";
+    }
+
+    return "";
+  }, []);
+
+  const validateQuantity = useCallback((value) => {
+    const qty = parseFloat(value);
+    if (value !== "" && (isNaN(qty) || qty <= 0)) {
+      return "Quantity must be greater than 0";
+    }
+    return "";
+  }, []);
+
+  const validateDiscount = useCallback((value) => {
+    if (!value) return "";
+    const cleanValue = value.toString().replace("%", "");
+    const discNum = parseFloat(cleanValue);
+    if (isNaN(discNum)) {
+      return "Discount must be a valid number";
+    }
+    if (discNum < 0) {
+      return "Discount cannot be negative";
+    }
+    if (discNum > 100) {
+      return "Discount cannot exceed 100%";
+    }
+    return "";
+  }, []);
+
+  // ============== HELPER FUNCTIONS ==============
+  const formatDateToDisplay = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+  };
+
+  const getTodayDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (today.getMonth() + 1).toString().padStart(2, "0");
+    const day = today.getDate().toString().padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const calculateItemTotal = useCallback((item) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unitPrice) || 0;
+    const disc = parseFloat(item.discount?.replace("%", "")) || 0;
+    const tax = parseFloat(item.tax?.replace("%", "")) || 10;
+
+    const base = qty * price;
+    const afterDiscount = base - (base * disc) / 100;
+    const finalTotal = afterDiscount + (afterDiscount * tax) / 100;
+
+    return { ...item, total: finalTotal.toFixed(2) };
+  }, []);
+
+  // ============== API CALLS ==============
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
+    fetchStockData();
   }, []);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredPatients(patients);
-    } else {
-      setFilteredPatients(
-        patients.filter(
-          (p) =>
-            p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.patient_unique_id
-              ?.toLowerCase()
-              .includes(searchQuery.toLowerCase()),
-        ),
-      );
-    }
-  }, [searchQuery, patients]);
 
   const fetchPatients = async () => {
     try {
@@ -1612,6 +1676,25 @@ const Bill = () => {
     }
   };
 
+  const fetchStockData = async () => {
+    try {
+      const res = await api.get("/stock/list");
+      const stockMap = {};
+      (res.data || []).forEach((item) => {
+        if (item.item_code) {
+          stockMap[item.item_code] = {
+            quantity: item.quantity || 0,
+            product_name: item.product_name,
+            status: item.status,
+          };
+        }
+      });
+      setStockData(stockMap);
+    } catch (err) {
+      console.error("Failed to load stock data:", err);
+    }
+  };
+
   const fetchPatientDetails = async (uniqueId) => {
     try {
       const res = await api.get(`/patients/${uniqueId}`);
@@ -1621,192 +1704,122 @@ const Bill = () => {
     }
   };
 
-  const formatDateToDisplay = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, "0");
-    const month = (date.getMonth() + 1).toString().padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
+  const fetchBillingItems = useCallback(
+    async (patientId, fromDate = "", toDate = "") => {
+      if (!patientId) return;
+      setLoading(true);
+      try {
+        let url = `/pharmacy-billing/${patientId}/`;
+        const params = new URLSearchParams();
+        if (fromDate) params.append("date_from", fromDate);
+        if (toDate) params.append("date_to", toDate);
+        if (params.toString()) url += `?${params.toString()}`;
 
-  const getTodayDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = (today.getMonth() + 1).toString().padStart(2, "0");
-    const day = today.getDate().toString().padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
+        const res = await api.get(url);
 
-  const fetchBillingItems = async (patientId, fromDate = "", toDate = "") => {
-    if (!patientId) return;
-    setLoading(true);
-    try {
-      let url = `/pharmacy-billing/${patientId}/`;
-      const params = new URLSearchParams();
-      if (fromDate) params.append("date_from", fromDate);
-      if (toDate) params.append("date_to", toDate);
-      if (params.toString()) url += `?${params.toString()}`;
+        const medicineItems = (res.data.items || [])
+          .filter((item) => item.medicine_name || item.name_of_drug)
+          .map((item, i) => ({
+            id: item.allocation_id || Date.now() + i,
+            allocation_id: item.allocation_id,
+            sNo: (i + 1).toString(),
+            itemCode: item.item_code || "N/A",
+            name: item.medicine_name || item.name_of_drug || "",
+            rackNo: item.rack_no || "",
+            shelfNo: item.shelf_no || "",
+            quantity: item.quantity ? String(item.quantity) : "1",
+            unitPrice: item.unit_price ? String(item.unit_price) : "0.00",
+            discount: "0%",
+            tax: "10%",
+            total: "0.00",
+            doctorName: item.doctor_name || "N/A",
+            allocationDate: item.allocation_date || "",
+            frequency: item.frequency || "",
+            isFromAPI: true,
+          }));
 
-      const res = await api.get(url);
+        setBillingItems(medicineItems.map((item) => calculateItemTotal(item)));
 
-      const medicineItems = (res.data.items || [])
-        .filter((item) => item.medicine_name || item.name_of_drug)
-        .map((item, i) => ({
-          id: item.allocation_id || Date.now() + i,
-          allocation_id: item.allocation_id,
-          sNo: (i + 1).toString(),
-          itemCode: item.item_code || "N/A",
-          name: item.medicine_name || item.name_of_drug || "",
-          rackNo: item.rack_no || "",
-          shelfNo: item.shelf_no || "",
-          quantity: item.quantity ? String(item.quantity) : "1",
-          unitPrice: item.unit_price ? String(item.unit_price) : "0.00",
-          discount: "0%",
-          tax: "10%",
-          total: "0.00",
-          doctorName: item.doctor_name || "N/A",
-          allocationDate: item.allocation_date || "",
-          frequency: item.frequency || "",
-          isFromAPI: true, // Mark as auto-filled
-        }));
-
-      // Calculate totals after setting items
-      setBillingItems(medicineItems.map((item) => calculateItemTotal(item)));
-
-      if (medicineItems.length === 0) {
-        errorToast("No medicine allocations found for this patient");
+        if (medicineItems.length === 0) {
+          errorToast("No medicine allocations found for this patient");
+        }
+      } catch (err) {
+        console.error("Error loading medicines:", err);
+        setBillingItems([]);
+        errorToast("Failed to load medicine allocations");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error loading medicines:", err);
-      setBillingItems([]);
-      errorToast("Failed to load medicine allocations");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [calculateItemTotal],
+  );
 
-  // Helper to calculate single item total
-  const calculateItemTotal = (item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const price = parseFloat(item.unitPrice) || 0;
-    const disc = parseFloat(item.discount.replace("%", "")) || 0;
-    const tax = parseFloat(item.tax.replace("%", "")) || 10;
+  const fetchMedicineDetails = useCallback(
+    async (itemCode) => {
+      if (!itemCode.trim()) return null;
+      if (medicineLookup[itemCode]) return medicineLookup[itemCode];
 
-    const base = qty * price;
-    const afterDiscount = base - (base * disc) / 100;
-    const finalTotal = afterDiscount + (afterDiscount * tax) / 100;
+      try {
+        const res = await api.get(
+          `/medicine_allocation/medicine-by-code/${itemCode.trim()}`,
+        );
+        const data = res.data;
+        setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
 
-    return { ...item, total: finalTotal.toFixed(2) };
-  };
+        const stock = stockData[itemCode.trim()];
+        if (stock) {
+          if (stock.quantity === 0 || stock.status === "outofstock") {
+            errorToast(`⚠️ ${data.drug_name || "Medicine"} is OUT OF STOCK!`);
+          } else if (stock.quantity < 10) {
+            errorToast(
+              `⚠️ LOW STOCK: Only ${stock.quantity} units of ${data.drug_name || "medicine"} available`,
+            );
+          }
+        }
 
-  const handlePatientSelect = async (patient) => {
-    setPatientInfo({
-      patientName: patient.full_name || "",
-      patientID: patient.patient_unique_id || "",
-      doctorName: "",
-      paymentType: "Full Payment",
-      paymentStatus: "Paid",
-      paymentMode: "Cash",
-    });
-    setSelectedPatientId(patient.id);
-    setSearchQuery("");
-    setDateFrom("");
-    setDateTo("");
-    await fetchPatientDetails(patient.patient_unique_id);
-    await fetchBillingItems(patient.id);
-  };
-
-  const handleInputChange = (value, field) => {
-    setPatientInfo((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleDateChange = (type, value) => {
-    const today = getTodayDate();
-    if (type === "from") {
-      if (value > today) {
-        errorToast("'From' date cannot be in the future");
-        return;
+        return data;
+      } catch (err) {
+        if (err.response?.status === 404) {
+          errorToast(`No medicine found with item code: ${itemCode}`);
+        }
+        return null;
       }
-      if (dateTo && value > dateTo) {
-        errorToast("'From' date cannot be after 'To' date");
-        return;
-      }
-      setDateFrom(value);
-    } else if (type === "to") {
-      if (value > today) {
-        errorToast("'To' date cannot be in the future");
-        return;
-      }
-      if (dateFrom && value < dateFrom) {
-        errorToast("'To' date cannot be before 'From' date");
-        return;
-      }
-      setDateTo(value);
-    }
+    },
+    [medicineLookup, stockData],
+  );
 
-    if (selectedPatientId) {
-      fetchBillingItems(
-        selectedPatientId,
-        type === "from" ? value : dateFrom,
-        type === "to" ? value : dateTo,
+  // ============== SEARCH FILTER ==============
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredPatients(patients);
+    } else {
+      setFilteredPatients(
+        patients.filter(
+          (p) =>
+            p.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.patient_unique_id
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()),
+        ),
       );
     }
-  };
+  }, [searchQuery, patients]);
 
-  const handleClearDates = () => {
-    setDateFrom("");
-    setDateTo("");
-    if (selectedPatientId) fetchBillingItems(selectedPatientId);
-  };
-
-  const handleAddMedicine = () => {
-    if (!selectedPatientId) {
-      errorToast("Please select a patient first");
-      return;
-    }
-
-    const newItem = {
-      id: Date.now(),
-      allocation_id: null,
-      sNo: (billingItems.length + 1).toString(),
-      itemCode: "",
-      name: "",
-      rackNo: "",
-      shelfNo: "",
-      quantity: "",
-      unitPrice: "",
-      discount: "0%",
-      tax: "10%",
-      total: "0.00",
-      doctorName: "",
-      allocationDate: new Date().toISOString().split("T")[0],
-      frequency: "",
-      isFromAPI: false, // Manually added → editable
+  // ============== DOCTORS FETCH ==============
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const res = await api.get("/staff/all/");
+        setDoctors(res.data || []);
+      } catch (err) {
+        console.error("Failed to load doctors:", err);
+        errorToast("Failed to load doctor list");
+      }
     };
+    fetchDoctors();
+  }, []);
 
-    setBillingItems((prev) => [...prev, newItem]);
-  };
-
-  const fetchMedicineDetails = async (itemCode) => {
-    if (!itemCode.trim()) return null;
-    if (medicineLookup[itemCode]) return medicineLookup[itemCode];
-
-    try {
-      const res = await api.get(
-        `/medicine_allocation/medicine-by-code/${itemCode.trim()}`,
-      );
-      const data = res.data;
-      setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
-      return data;
-    } catch (err) {
-      if (err.response?.status === 404) {
-        errorToast(`No medicine found with item code: ${itemCode}`);
-      }
-      return null;
-    }
-  };
-
+  // ============== ITEM CODE LOOKUP ==============
   useEffect(() => {
     const timer = setTimeout(async () => {
       for (const [index, code] of Object.entries(itemCodeInputs)) {
@@ -1835,119 +1848,326 @@ const Bill = () => {
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [itemCodeInputs]);
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const res = await api.get("/staff/all/"); // ← adjust endpoint if different
-        setDoctors(res.data || []);
-      } catch (err) {
-        console.error("Failed to load doctors:", err);
-        errorToast("Failed to load doctor list");
-      }
-    };
-    fetchDoctors();
+  }, [itemCodeInputs, fetchMedicineDetails, calculateItemTotal]);
+
+  // ============== EVENT HANDLERS ==============
+  const handlePatientSelect = useCallback(
+    async (patient) => {
+      setPatientInfo({
+        patientName: patient.full_name || "",
+        patientID: patient.patient_unique_id || "",
+        doctorName: "",
+        paymentType: "Full Payment",
+        paymentStatus: "Paid",
+        paymentMode: "Cash",
+      });
+      setSelectedPatientId(patient.id);
+      setSearchQuery("");
+      setDateFrom("");
+      setDateTo("");
+      setDuplicateError("");
+      await fetchPatientDetails(patient.patient_unique_id);
+      await fetchBillingItems(patient.id);
+    },
+    [fetchBillingItems],
+  );
+
+  const handleInputChange = useCallback((value, field) => {
+    setPatientInfo((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleBillingChange = (index, field, value) => {
-    setDuplicateError("");
-
-    if (field === "quantity") {
-      const qty = parseFloat(value);
-      if (value !== "" && (isNaN(qty) || qty <= 0)) {
-        errorToast("Quantity must be greater than 0");
-        return;
+  const handleDoctorChange = useCallback(
+    (value) => {
+      handleInputChange(value, "doctorName");
+      if (value) {
+        successToast(`Doctor ${value} selected successfully`);
       }
-    }
+    },
+    [handleInputChange],
+  );
 
-    if (field === "itemCode") {
-      setItemCodeInputs((prev) => ({ ...prev, [index]: value }));
-    }
+  const handleClearDoctor = useCallback(() => {
+    handleInputChange("", "doctorName");
+  }, [handleInputChange]);
 
-    setBillingItems((prev) => {
-      const updated = [...prev];
-      const item = { ...updated[index] };
+  const handleDateChange = useCallback(
+    (type, value) => {
+      const today = getTodayDate();
 
-      if (field === "itemCode" && value.trim() !== item.itemCode) {
-        const duplicateIndex = updated.findIndex(
-          (it, i) =>
-            i !== index &&
-            it.itemCode === value.trim() &&
-            it.allocation_id !== item.allocation_id,
+      if (type === "from") {
+        if (value > today) {
+          errorToast("'From' date cannot be in the future");
+          return;
+        }
+        if (dateTo && value > dateTo) {
+          errorToast("'From' date cannot be after 'To' date");
+          return;
+        }
+        setDateFrom(value);
+      } else if (type === "to") {
+        if (value > today) {
+          errorToast("'To' date cannot be in the future");
+          return;
+        }
+        if (dateFrom && value < dateFrom) {
+          errorToast("'To' date cannot be before 'From' date");
+          return;
+        }
+        setDateTo(value);
+      }
+
+      if (selectedPatientId) {
+        fetchBillingItems(
+          selectedPatientId,
+          type === "from" ? value : dateFrom,
+          type === "to" ? value : dateTo,
         );
-        if (duplicateIndex !== -1) {
-          setDuplicateError(`Duplicate item code "${value}" already exists.`);
-          return prev;
-        }
-
-        item.itemCode = value.trim();
-        if (value.trim() !== prev[index].itemCode) {
-          item.name = "";
-          item.rackNo = "";
-          item.shelfNo = "";
-          item.unitPrice = "0.00";
-          item.isFromAPI = false;
-        }
-      } else {
-        item[field] = value;
       }
+    },
+    [selectedPatientId, dateFrom, dateTo, fetchBillingItems],
+  );
 
-      if ((field === "discount" || field === "tax") && value) {
-        const regex = /^(\d+(\.\d+)?%?|%?)$/;
-        if (!regex.test(value)) {
+  const handleClearDates = useCallback(() => {
+    setDateFrom("");
+    setDateTo("");
+    if (selectedPatientId) fetchBillingItems(selectedPatientId);
+  }, [selectedPatientId, fetchBillingItems]);
+
+  const handleAddMedicine = useCallback(() => {
+    if (!selectedPatientId) {
+      errorToast("Please select a patient first");
+      return;
+    }
+
+    const newItem = {
+      id: Date.now(),
+      allocation_id: null,
+      sNo: (billingItems.length + 1).toString(),
+      itemCode: "",
+      name: "",
+      rackNo: "",
+      shelfNo: "",
+      quantity: "",
+      unitPrice: "",
+      discount: "0%",
+      tax: "10%",
+      total: "0.00",
+      doctorName: "",
+      allocationDate: new Date().toISOString().split("T")[0],
+      frequency: "",
+      isFromAPI: false,
+    };
+
+    setBillingItems((prev) => [...prev, newItem]);
+  }, [selectedPatientId, billingItems.length]);
+
+  const handleBillingChange = useCallback(
+    (index, field, value) => {
+      setDuplicateError("");
+
+      // Validation based on field
+      if (field === "quantity") {
+        const error = validateQuantity(value);
+        if (error) {
+          errorToast(error);
+          return;
+        }
+
+        // Check stock
+        const qty = parseFloat(value);
+        const currentItem = billingItems[index];
+        const stock = stockData[currentItem?.itemCode];
+
+        if (stock && qty > stock.quantity) {
           errorToast(
-            `${field === "discount" ? "Discount" : "Tax"} must be a number with optional %`,
+            `⚠️ Insufficient stock! Requested: ${qty}, Available: ${stock.quantity}`,
           );
-          return prev;
+          return;
         }
-        if (!value.includes("%") && value !== "") item[field] = value + "%";
       }
 
-      updated[index] = calculateItemTotal(item);
-      return updated;
-    });
-  };
+      if (field === "discount") {
+        const error = validateDiscount(value);
+        if (error) {
+          errorToast(error);
+          return;
+        }
+      }
 
-  const handleRemoveItem = (index) => {
+      if (field === "tax") {
+        const error = validateTaxPercentage(value);
+        if (error) {
+          errorToast(error);
+          return;
+        }
+      }
+
+      if (field === "itemCode") {
+        setItemCodeInputs((prev) => ({ ...prev, [index]: value }));
+      }
+
+      setBillingItems((prev) => {
+        const updated = [...prev];
+        const item = { ...updated[index] };
+
+        if (field === "itemCode" && value.trim() !== item.itemCode) {
+          const duplicateIndex = updated.findIndex(
+            (it, i) =>
+              i !== index &&
+              it.itemCode === value.trim() &&
+              it.allocation_id !== item.allocation_id,
+          );
+          if (duplicateIndex !== -1) {
+            setDuplicateError(`Duplicate item code "${value}" already exists.`);
+            return prev;
+          }
+
+          item.itemCode = value.trim();
+          if (value.trim() !== prev[index].itemCode) {
+            item.name = "";
+            item.rackNo = "";
+            item.shelfNo = "";
+            item.unitPrice = "0.00";
+            item.isFromAPI = false;
+          }
+        } else {
+          item[field] = value;
+        }
+
+        if ((field === "discount" || field === "tax") && value) {
+          const regex = /^(\d+(\.\d+)?%?|%?)$/;
+          if (!regex.test(value)) {
+            errorToast(
+              `${field === "discount" ? "Discount" : "Tax"} must be a number with optional %`,
+            );
+            return prev;
+          }
+          if (!value.includes("%") && value !== "") {
+            item[field] = value + "%";
+          }
+        }
+
+        updated[index] = calculateItemTotal(item);
+        return updated;
+      });
+    },
+    [
+      billingItems,
+      stockData,
+      validateQuantity,
+      validateDiscount,
+      validateTaxPercentage,
+      calculateItemTotal,
+    ],
+  );
+
+  const handleRemoveItem = useCallback((index) => {
     setDuplicateError("");
     setBillingItems((prev) =>
       prev
         .filter((_, i) => i !== index)
         .map((item, i) => ({ ...item, sNo: (i + 1).toString() })),
     );
-  };
+  }, []);
 
-  const calculateTotals = () => {
+  const handleCancel = useCallback(() => {
+    setPatientInfo({
+      patientName: "",
+      patientID: "",
+      doctorName: "",
+      paymentType: "Full Payment",
+      paymentStatus: "Paid",
+      paymentMode: "Cash",
+    });
+    setSelectedPatientId(null);
+    setFullPatient(null);
+    setBillingItems([]);
+    setDateFrom("");
+    setDateTo("");
+    setDuplicateError("");
+    successToast("Bill generation cancelled");
+  }, []);
+
+  // ============== CALCULATIONS ==============
+  const calculateTotals = useCallback(() => {
+    if (
+      !billingItems ||
+      !Array.isArray(billingItems) ||
+      billingItems.length === 0
+    ) {
+      return {
+        subTotal: "0.00",
+        cgst: "0.00",
+        sgst: "0.00",
+        discountAmt: "0.00",
+        net: "0.00",
+        avgTaxPercent: 10, // Default
+      };
+    }
+
+    // Calculate subtotal (sum of all item totals)
     const subTotal = billingItems.reduce(
-      (sum, item) => sum + parseFloat(item.total || 0),
+      (sum, item) => sum + (parseFloat(item.total) || 0),
       0,
     );
-    const cgst = subTotal * 0.05;
-    const sgst = subTotal * 0.05;
+
+    // Calculate total discount amount
     const discountAmt = billingItems.reduce((sum, item) => {
-      const disc = parseFloat(item.discount.replace("%", "")) || 0;
+      const disc = parseFloat(item.discount?.replace("%", "")) || 0;
       const base =
         (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0);
       return sum + (base * disc) / 100;
     }, 0);
-    const net = subTotal + cgst + sgst - discountAmt;
+
+    // Calculate weighted average tax percentage
+    let totalTaxableAmount = 0;
+    let weightedTaxSum = 0;
+
+    billingItems.forEach((item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.unitPrice) || 0;
+      const disc = parseFloat(item.discount?.replace("%", "")) || 0;
+      const itemTax = parseFloat(item.tax?.replace("%", "")) || 10;
+
+      const base = qty * price;
+      const afterDiscount = base - (base * disc) / 100;
+
+      totalTaxableAmount += afterDiscount;
+      weightedTaxSum += afterDiscount * itemTax;
+    });
+
+    const avgTaxPercent =
+      totalTaxableAmount > 0 ? weightedTaxSum / totalTaxableAmount : 10;
+
+    // Split the average tax equally between CGST and SGST
+    const halfTax = avgTaxPercent / 2;
+
+    // Calculate base before tax (subtract existing tax from subtotal)
+    const baseBeforeTax = subTotal / (1 + avgTaxPercent / 100);
+
+    const cgst = baseBeforeTax * (halfTax / 100);
+    const sgst = baseBeforeTax * (halfTax / 100);
+
+    const net = subTotal; // Subtotal already includes tax
+
     return {
       subTotal: subTotal.toFixed(2),
       cgst: cgst.toFixed(2),
       sgst: sgst.toFixed(2),
       discountAmt: discountAmt.toFixed(2),
       net: net.toFixed(2),
+      avgTaxPercent: avgTaxPercent.toFixed(2),
     };
-  };
+  }, [billingItems]);
 
-  const generateBill = async () => {
-    // ... (unchanged logic from original)
-    // All validation and API calls remain exactly as before
+  // ============== BILL GENERATION ==============
+  const generateBill = useCallback(async () => {
     if (!selectedPatientId || !fullPatient) {
       errorToast("Please select a patient first.");
       return;
     }
 
+    // Check for duplicate item codes
     const itemCodes = billingItems
       .map((item) => item.itemCode)
       .filter((code) => code.trim() !== "");
@@ -1959,29 +2179,48 @@ const Bill = () => {
       return;
     }
 
-    const allocationIds = billingItems
-      .map((item) => item.allocation_id)
-      .filter((id) => id !== null);
+    // Check for invalid tax percentages
+    const invalidTaxItems = billingItems.filter((item) => {
+      const taxVal = parseFloat(item.tax);
+      return isNaN(taxVal) || taxVal < 1 || taxVal > 100;
+    });
 
-    const itemsToSend = billingItems.map((item, index) => ({
-      sl_no: index + 1,
-      item_code: item.itemCode || "N/A",
-      drug_name: item.name || "",
-      rack_no: item.rackNo || "",
-      shelf_no: item.shelfNo || "",
-      quantity: parseInt(item.quantity) || 0,
-      unit_price: parseFloat(item.unitPrice) || 0,
-      discount_pct: parseFloat(item.discount.replace("%", "")) || 0,
-      tax_pct: parseFloat(item.tax.replace("%", "")) || 10,
-      allocation_id: item.allocation_id || null,
-    }));
+    if (invalidTaxItems.length > 0) {
+      errorToast(
+        `⚠️ Invalid tax percentage found. Tax must be between 1% and 100%`,
+      );
+      return;
+    }
 
-    if (itemsToSend.some((item) => item.quantity <= 0)) {
+    // Check for zero quantity
+    if (billingItems.some((item) => (parseInt(item.quantity) || 0) <= 0)) {
       errorToast("All items must have quantity greater than 0");
       return;
     }
 
+    const allocationIds = billingItems
+      .map((item) => item.allocation_id)
+      .filter((id) => id !== null);
+
+    const itemsToSend = billingItems.map((item, index) => {
+      const itemTaxPct = parseFloat(item.tax?.replace("%", "")) || 10;
+
+      return {
+        sl_no: index + 1,
+        item_code: item.itemCode || "N/A",
+        drug_name: item.name || "",
+        rack_no: item.rackNo || "",
+        shelf_no: item.shelfNo || "",
+        quantity: parseInt(item.quantity) || 0,
+        unit_price: parseFloat(item.unitPrice) || 0,
+        discount_pct: parseFloat(item.discount?.replace("%", "")) || 0,
+        tax_pct: itemTaxPct,
+        allocation_id: item.allocation_id || null,
+      };
+    });
+
     const totals = calculateTotals();
+    const halfTax = parseFloat(totals.avgTaxPercent) / 2;
 
     const invoiceData = {
       patient_name: patientInfo.patientName,
@@ -1998,14 +2237,39 @@ const Bill = () => {
       payment_mode: patientInfo.paymentMode,
       bill_date: new Date().toISOString().split("T")[0],
       discount_amount: parseFloat(totals.discountAmt) || 0,
-      cgst_percent: 5,
-      sgst_percent: 5,
+      cgst_percent: halfTax, // ✅ Now uses calculated value
+      sgst_percent: halfTax, // ✅ Now uses calculated value
       items: itemsToSend,
       allocation_ids: allocationIds,
     };
 
     setGeneratingBill(true);
     try {
+      // Pre-validate stock before API call
+      const stockIssues = [];
+      billingItems.forEach((item) => {
+        const stock = stockData[item.itemCode];
+        const requestedQty = parseInt(item.quantity) || 0;
+
+        if (!stock) {
+          stockIssues.push(
+            `${item.name || item.itemCode}: Stock data not available`,
+          );
+        } else if (stock.quantity === 0 || stock.status === "outofstock") {
+          stockIssues.push(`${item.name || item.itemCode}: OUT OF STOCK`);
+        } else if (requestedQty > stock.quantity) {
+          stockIssues.push(
+            `${item.name || item.itemCode}: Need ${requestedQty}, Available ${stock.quantity}`,
+          );
+        }
+      });
+
+      if (stockIssues.length > 0) {
+        errorToast(`⚠️ Stock Issues:\n${stockIssues.join("\n")}`);
+        setGeneratingBill(false);
+        return;
+      }
+
       const stockCheckResponse = await api.get(
         `/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
         {
@@ -2026,7 +2290,7 @@ const Bill = () => {
               `${i.medicine_name}: Need ${i.quantity_needed}, Available ${i.quantity_available}`,
           )
           .join("\n");
-        errorToast(`Insufficient stock:\n${msg}`);
+        errorToast(`⚠️ Insufficient stock:\n${msg}`);
         setGeneratingBill(false);
         return;
       }
@@ -2034,6 +2298,7 @@ const Bill = () => {
       const response = await api.post("/pharmacy/create-invoice", invoiceData, {
         responseType: "blob",
       });
+
       const blob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
@@ -2046,33 +2311,25 @@ const Bill = () => {
     } finally {
       setGeneratingBill(false);
     }
-  };
-
-  const handleCancel = () => {
-    setPatientInfo({
-      patientName: "",
-      patientID: "",
-      doctorName: "",
-      paymentType: "Full Payment",
-      paymentStatus: "Paid",
-      paymentMode: "Cash",
-    });
-    setSelectedPatientId(null);
-    setFullPatient(null);
-    setBillingItems([]);
-    setDateFrom("");
-    setDateTo("");
-    setDuplicateError("");
-    successToast("Bill generation cancelled");
-  };
+  }, [
+    selectedPatientId,
+    fullPatient,
+    billingItems,
+    patientInfo,
+    staffInfo,
+    dateFrom,
+    dateTo,
+    stockData,
+    calculateTotals,
+    handleCancel,
+  ]);
 
   const totals = calculateTotals();
-  const mainDoctor = billingItems.length > 0 ? billingItems[0].doctorName : "";
+  const mainDoctor = billingItems.length > 0 ? billingItems[0]?.doctorName : "";
 
   return (
     <div className="w-full max-w-screen-2xl mb-4 mx-auto">
       <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-6 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
-        {/* Gradient overlays unchanged */}
         <div
           className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
           style={{
@@ -2134,13 +2391,27 @@ const Bill = () => {
             <div className="relative min-w-[140px] w-[160px] lg:w-[180px]">
               <Listbox
                 value={patientInfo.patientName}
-                onChange={(v) =>
-                  patients.find((p) => p.full_name === v) &&
-                  handlePatientSelect(patients.find((p) => p.full_name === v))
-                }
+                onChange={(v) => {
+                  const patient = patients.find((p) => p.full_name === v);
+                  if (patient) handlePatientSelect(patient);
+                }}
               >
                 <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
                   {patientInfo.patientName || "Select Name"}
+                  <svg
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 9l6 6 6-6"
+                    />
+                  </svg>
                 </Listbox.Button>
 
                 <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
@@ -2160,15 +2431,29 @@ const Bill = () => {
             <div className="relative min-w-[140px] w-[160px] lg:w-[180px]">
               <Listbox
                 value={patientInfo.patientID}
-                onChange={(v) =>
-                  patients.find((p) => p.patient_unique_id === v) &&
-                  handlePatientSelect(
-                    patients.find((p) => p.patient_unique_id === v),
-                  )
-                }
+                onChange={(v) => {
+                  const patient = patients.find(
+                    (p) => p.patient_unique_id === v,
+                  );
+                  if (patient) handlePatientSelect(patient);
+                }}
               >
                 <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
                   {patientInfo.patientID || "Select ID"}
+                  <svg
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 9l6 6 6-6"
+                    />
+                  </svg>
                 </Listbox.Button>
 
                 <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica]">
@@ -2186,6 +2471,7 @@ const Bill = () => {
             </div>
           </div>
 
+          {/* Date inputs with dd.mm.yyyy format */}
           <div className="flex flex-row flex-wrap items-center gap-4 w-full justify-end">
             {/* From Date */}
             <div className="relative min-w-[180px]">
@@ -2195,20 +2481,28 @@ const Bill = () => {
               >
                 From Date
               </label>
-              <input
-                id="dateFrom"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => handleDateChange("from", e.target.value)}
-                max={getTodayDate()}
-                className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-3 text-sm text-[#08994A] dark:text-white cursor-pointer"
-              />
-              {dateFrom && (
-                <div className="mt-1 text-xs font-medium text-[#08994A] dark:text-[#0EFF7B]">
-                  Selected: {formatDateToDisplay(dateFrom).replace(/\./g, "-")}{" "}
-                  {/* shows 01-02-26 */}
-                </div>
-              )}
+              <div className="relative">
+                <input
+                  id="dateFrom"
+                  type="text"
+                  value={dateFrom ? formatDateToDisplay(dateFrom) : ""}
+                  placeholder="dd.mm.yyyy"
+                  readOnly
+                  onClick={() =>
+                    document.getElementById("dateFromPicker")?.showPicker()
+                  }
+                  className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-3 pr-10 text-sm text-[#08994A] dark:text-white cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none" />
+                <input
+                  id="dateFromPicker"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => handleDateChange("from", e.target.value)}
+                  max={getTodayDate()}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
             </div>
 
             {/* To Date */}
@@ -2219,16 +2513,29 @@ const Bill = () => {
               >
                 To Date
               </label>
-              <input
-                id="dateTo"
-                type="date"
-                value={dateTo}
-                onChange={(e) => handleDateChange("to", e.target.value)}
-                max={getTodayDate()}
-                dateFormat="dd-MM-yy"
-                min={dateFrom}
-                className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-3 text-sm text-[#08994A] dark:text-white cursor-pointer"
-              />
+              <div className="relative">
+                <input
+                  id="dateTo"
+                  type="text"
+                  value={dateTo ? formatDateToDisplay(dateTo) : ""}
+                  placeholder="dd.mm.yyyy"
+                  readOnly
+                  onClick={() =>
+                    document.getElementById("dateToPicker")?.showPicker()
+                  }
+                  className="h-[33.5px] w-full bg-transparent rounded-[8.38px] border-[1.05px] border-[#0EFF7B] px-3 pr-10 text-sm text-[#08994A] dark:text-white cursor-pointer"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none" />
+                <input
+                  id="dateToPicker"
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => handleDateChange("to", e.target.value)}
+                  max={getTodayDate()}
+                  min={dateFrom}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+              </div>
             </div>
 
             <button
@@ -2336,19 +2643,9 @@ const Bill = () => {
               <div className="relative">
                 <Listbox
                   value={patientInfo.doctorName}
-                  onChange={(value) => {
-                    handleInputChange(value, "doctorName");
-                    successToast(`Doctor ${value} selected successfully`);
-                  }}
+                  onChange={handleDoctorChange}
                 >
-                  <Listbox.Button
-                    className="
-        w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
-        bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white
-        shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-        transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative
-      "
-                  >
+                  <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
                     {patientInfo.doctorName || mainDoctor || "Select Doctor"}
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2366,14 +2663,10 @@ const Bill = () => {
                     </svg>
                   </Listbox.Button>
 
-                  <Listbox.Options
-                    className="
-        absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C]
-        rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica] top-[100%] left-0
-      "
-                  >
+                  <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica] top-[100%] left-0">
                     <Listbox.Option
                       value=""
+                      onClick={handleClearDoctor}
                       className="cursor-pointer select-none p-2 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]"
                     >
                       Clear / No Doctor
@@ -2401,29 +2694,7 @@ const Bill = () => {
                   value={patientInfo.paymentMode}
                   onChange={(value) => handleInputChange(value, "paymentMode")}
                 >
-                  <Listbox.Button
-                    className="
-                      w-full
-                      h-[33.5px]
-                      rounded-[8.38px]
-                      border-[1.05px]
-                      border-[#0EFF7B] dark:border-[#3C3C3C]
-                      bg-[#F5F6F5] dark:bg-black
-                      text-[#08994A] dark:text-white
-                      shadow-[0_0_2.09px_#0EFF7B]
-                      outline-none
-                      focus:border-[#0EFF7B]
-                      focus:shadow-[0_0_4px_#0EFF7B]
-                      transition-all
-                      duration-300
-                      px-3
-                      pr-8
-                      font-[Helvetica]
-                      text-sm
-                      text-left
-                      relative
-                    "
-                  >
+                  <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
                     {patientInfo.paymentMode}
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2440,35 +2711,12 @@ const Bill = () => {
                       />
                     </svg>
                   </Listbox.Button>
-                  <Listbox.Options
-                    className="
-                      absolute
-                      z-10
-                      mt-1
-                      w-full
-                      bg-gray-100 dark:bg-black
-                      border border-[#0EFF7B] dark:border-[#3C3C3C]
-                      rounded-md
-                      shadow-lg
-                      max-h-60
-                      overflow-auto
-                      text-sm
-                      font-[Helvetica]
-                      top-[100%]
-                      left-0
-                    "
-                  >
+                  <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica] top-[100%] left-0">
                     {paymentModes.map((mode) => (
                       <Listbox.Option
                         key={mode}
                         value={mode}
-                        className="
-                          cursor-pointer
-                          select-none
-                          p-2
-                          text-[#08994A] dark:text-white
-                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-                        "
+                        className="cursor-pointer select-none p-2 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]"
                       >
                         {mode}
                       </Listbox.Option>
@@ -2484,19 +2732,7 @@ const Bill = () => {
                   value={patientInfo.paymentType}
                   onChange={(value) => handleInputChange(value, "paymentType")}
                 >
-                  <Listbox.Button
-                    className="
-                      w-full h-[33.5px] rounded-[8.38px]
-                      border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
-                      bg-[#F5F6F5] dark:bg-black
-                      text-[#08994A] dark:text-white
-                      shadow-[0_0_2.09px_#0EFF7B]
-                      outline-none
-                      focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-                      transition-all duration-300
-                      px-3 pr-8 font-[Helvetica] text-sm text-left relative
-                    "
-                  >
+                  <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
                     {patientInfo.paymentType || "Full Payment"}
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2513,23 +2749,12 @@ const Bill = () => {
                       />
                     </svg>
                   </Listbox.Button>
-                  <Listbox.Options
-                    className="
-                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
-                      border border-[#0EFF7B] dark:border-[#3C3C3C]
-                      rounded-md shadow-lg max-h-60 overflow-auto
-                      text-sm font-[Helvetica] top-[100%] left-0
-                    "
-                  >
+                  <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica] top-[100%] left-0">
                     {paymentTypes.map((type) => (
                       <Listbox.Option
                         key={type}
                         value={type}
-                        className="
-                          cursor-pointer select-none p-2
-                          text-[#08994A] dark:text-white
-                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-                        "
+                        className="cursor-pointer select-none p-2 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]"
                       >
                         {type}
                       </Listbox.Option>
@@ -2547,19 +2772,7 @@ const Bill = () => {
                     handleInputChange(value, "paymentStatus")
                   }
                 >
-                  <Listbox.Button
-                    className="
-                      w-full h-[33.5px] rounded-[8.38px]
-                      border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
-                      bg-[#F5F6F5] dark:bg-black
-                      text-[#08994A] dark:text-white
-                      shadow-[0_0_2.09px_#0EFF7B]
-                      outline-none
-                      focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-                      transition-all duration-300
-                      px-3 pr-8 font-[Helvetica] text-sm text-left relative
-                    "
-                  >
+                  <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
                     {patientInfo.paymentStatus || "Paid"}
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2576,23 +2789,12 @@ const Bill = () => {
                       />
                     </svg>
                   </Listbox.Button>
-                  <Listbox.Options
-                    className="
-                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
-                      border border-[#0EFF7B] dark:border-[#3C3C3C]
-                      rounded-md shadow-lg max-h-60 overflow-auto
-                      text-sm font-[Helvetica] top-[100%] left-0
-                    "
-                  >
+                  <Listbox.Options className="absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-md shadow-lg max-h-60 overflow-auto text-sm font-[Helvetica] top-[100%] left-0">
                     {paymentStatuses.map((status) => (
                       <Listbox.Option
                         key={status}
                         value={status}
-                        className="
-                          cursor-pointer select-none p-2
-                          text-[#08994A] dark:text-white
-                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-                        "
+                        className="cursor-pointer select-none p-2 text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]"
                       >
                         {status}
                       </Listbox.Option>
@@ -2657,24 +2859,46 @@ const Bill = () => {
                       />
                     </td>
                     <td className="p-2">
-                      <input
-                        type="text"
-                        value={item.itemCode}
-                        onChange={(e) =>
-                          handleBillingChange(i, "itemCode", e.target.value)
-                        }
-                        onBlur={(e) => handleItemCodeBlur?.(i, e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" &&
-                          handleItemCodeBlur?.(i, e.target.value)
-                        }
-                        className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                        style={{
-                          border: "2px solid #0EFF7B1A",
-                          boxShadow: "0px 0px 2px 0px #0EFF7B",
-                        }}
-                        placeholder="Enter item code"
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={item.itemCode}
+                          onChange={(e) =>
+                            handleBillingChange(i, "itemCode", e.target.value)
+                          }
+                          className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
+                            item.itemCode &&
+                            stockData[item.itemCode]?.quantity === 0
+                              ? "border-red-500 dark:border-red-500"
+                              : item.itemCode &&
+                                  stockData[item.itemCode]?.quantity < 10
+                                ? "border-yellow-500 dark:border-yellow-500"
+                                : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
+                          }`}
+                          style={{
+                            border: "2px solid",
+                            boxShadow: "0px 0px 2px 0px #0EFF7B",
+                          }}
+                          placeholder="Enter item code"
+                        />
+                        {item.itemCode && stockData[item.itemCode] && (
+                          <div className="absolute -bottom-4 right-0 text-[10px] font-bold px-1 rounded">
+                            {stockData[item.itemCode].quantity === 0 ? (
+                              <span className="text-red-600 dark:text-red-400">
+                                OUT
+                              </span>
+                            ) : stockData[item.itemCode].quantity < 10 ? (
+                              <span className="text-yellow-600 dark:text-yellow-400">
+                                Stock: {stockData[item.itemCode].quantity}
+                              </span>
+                            ) : (
+                              <span className="text-green-600 dark:text-green-400">
+                                ✓
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2">
                       <input
@@ -2760,6 +2984,7 @@ const Bill = () => {
                           border: "2px solid #0EFF7B1A",
                           boxShadow: "0px 0px 2px 0px #0EFF7B",
                         }}
+                        min="1"
                       />
                     </td>
                     <td className="p-2">
@@ -2776,6 +3001,8 @@ const Bill = () => {
                           border: "2px solid #0EFF7B1A",
                           boxShadow: "0px 0px 2px 0px #0EFF7B",
                         }}
+                        step="0.01"
+                        min="0"
                       />
                     </td>
                     <td className="p-2">
@@ -2785,26 +3012,46 @@ const Bill = () => {
                         onChange={(e) =>
                           handleBillingChange(i, "discount", e.target.value)
                         }
-                        className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
+                        className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
+                          parseFloat(item.discount) > 100 ||
+                          parseFloat(item.discount) < 0
+                            ? "border-red-500 dark:border-red-500"
+                            : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
+                        }`}
                         style={{
-                          border: "2px solid #0EFF7B1A",
+                          border: "2px solid",
                           boxShadow: "0px 0px 2px 0px #0EFF7B",
                         }}
+                        placeholder="0%"
                       />
                     </td>
                     <td className="p-2">
-                      <input
-                        type="text"
-                        value={item.tax}
-                        onChange={(e) =>
-                          handleBillingChange(i, "tax", e.target.value)
-                        }
-                        className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
-                        style={{
-                          border: "2px solid #0EFF7B1A",
-                          boxShadow: "0px 0px 2px 0px #0EFF7B",
-                        }}
-                      />
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={item.tax}
+                          onChange={(e) =>
+                            handleBillingChange(i, "tax", e.target.value)
+                          }
+                          className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
+                            parseFloat(item.tax) > 100 ||
+                            parseFloat(item.tax) < 1
+                              ? "border-red-500 dark:border-red-500"
+                              : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
+                          }`}
+                          style={{
+                            border: "2px solid",
+                            boxShadow: "0px 0px 2px 0px #0EFF7B",
+                          }}
+                          placeholder="10%"
+                        />
+                        {(parseFloat(item.tax) > 100 ||
+                          parseFloat(item.tax) < 1) && (
+                          <span className="absolute -bottom-4 left-0 text-[10px] text-red-500 whitespace-nowrap">
+                            Must be 1-100%
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2">
                       <input
@@ -2830,12 +3077,15 @@ const Bill = () => {
             </table>
           )}
 
-          {/* Add button, totals, generate/cancel buttons - unchanged */}
           <div className="flex justify-end mt-4">
             <button
               onClick={handleAddMedicine}
               disabled={!selectedPatientId}
-              className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] ${selectedPatientId ? "bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white hover:scale-105" : "bg-gray-300 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"} font-medium text-[14px] transition`}
+              className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] ${
+                selectedPatientId
+                  ? "bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white hover:scale-105"
+                  : "bg-gray-300 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+              } font-medium text-[14px] transition`}
             >
               <Plus
                 size={18}
@@ -2852,10 +3102,16 @@ const Bill = () => {
                 <span>Sub total</span> <span>{totals.subTotal}</span>
               </div>
               <div className="flex justify-between bg-[#F5F6F5] dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-2 text-[#08994A] dark:text-white">
-                <span>CGST (5%)</span> <span>{totals.cgst}</span>
+                <span>
+                  CGST ({(parseFloat(totals.avgTaxPercent) / 2).toFixed(2)}%)
+                </span>
+                <span>{totals.cgst}</span>
               </div>
               <div className="flex justify-between bg-[#F5F6F5] dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-2 text-[#08994A] dark:text-white">
-                <span>SGST (5%)</span> <span>{totals.sgst}</span>
+                <span>
+                  SGST ({(parseFloat(totals.avgTaxPercent) / 2).toFixed(2)}%)
+                </span>
+                <span>{totals.sgst}</span>
               </div>
               <div className="flex justify-between bg-[#F5F6F5] dark:bg-[#0EFF7B1A] border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md p-2 text-[#08994A] dark:text-white">
                 <span>Discount amount</span> <span>{totals.discountAmt}</span>
@@ -2880,7 +3136,17 @@ const Bill = () => {
             <button
               onClick={generateBill}
               disabled={
-                generatingBill || billingItems.length === 0 || duplicateError
+                generatingBill ||
+                billingItems.length === 0 ||
+                duplicateError ||
+                billingItems.some(
+                  (item) =>
+                    parseFloat(item.tax) > 100 ||
+                    parseFloat(item.tax) < 1 ||
+                    parseFloat(item.discount) > 100 ||
+                    parseFloat(item.discount) < 0 ||
+                    (parseInt(item.quantity) || 0) <= 0,
+                )
               }
               className="flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >

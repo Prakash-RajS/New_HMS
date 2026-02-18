@@ -1394,6 +1394,7 @@
 //     </div>
 //   );
 // }
+// src/pages/Doctor/MedicineAllocation.jsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Edit, Trash2 } from "lucide-react";
@@ -1401,7 +1402,8 @@ import { successToast, errorToast } from "../../components/Toast.jsx";
 import EditMedicineAllocationPopup from "./EditMedicineAllocationPopup";
 import DeleteMedicinePopup from "./DeleteMedicinePopup";
 import { useNavigate } from "react-router-dom";
-import api from "../../utils/axiosConfig"; // Import axios config
+import api from "../../utils/axiosConfig";
+import { Loader2 } from "lucide-react";
 
 export default function ViewPatientProfile() {
   const navigate = useNavigate();
@@ -1435,9 +1437,29 @@ export default function ViewPatientProfile() {
   const [deletingMedicine, setDeletingMedicine] = useState(null);
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [isDeletePopupOpen, setIsDeletePopupOpen] = useState(false);
-
   const [testTypes, setTestTypes] = useState([]);
   const [loadingTestTypes, setLoadingTestTypes] = useState(true);
+  const [stockLoading, setStockLoading] = useState(false);
+
+  // ================ TC-068: Temperature Unit Consistency Fix ================
+  // Format temperature consistently in Celsius
+  const formatTemperature = (temp) => {
+    if (!temp) return "N/A";
+    
+    // Convert to number if it's a string
+    const temperature = typeof temp === 'string' ? parseFloat(temp) : temp;
+    if (isNaN(temperature)) return "N/A";
+    
+    // If temperature is above 50, assume it's in Fahrenheit and convert to Celsius
+    if (temperature > 50) {
+      const celsius = ((temperature - 32) * 5 / 9).toFixed(1);
+      return `${celsius}°C`;
+    }
+    
+    // Already in Celsius
+    return `${temperature}°C`;
+  };
+  // ================ End of TC-068 Fix ================
 
   useEffect(() => {
     fetchDepartments();
@@ -1445,6 +1467,13 @@ export default function ViewPatientProfile() {
     fetchStock();
     fetchTestTypes();
   }, []);
+
+  // Refresh stock when patient is selected to ensure latest data
+  useEffect(() => {
+    if (patientDbId) {
+      fetchStock();
+    }
+  }, [patientDbId]);
 
   const displayValue = (value) => {
     if (
@@ -1463,16 +1492,17 @@ export default function ViewPatientProfile() {
       setLoadingTestTypes(true);
       const response = await api.get("/labreports/test-types/");
       const data = response.data;
-      
+
       const testTypesArray = data.test_types || data || [];
       setTestTypes(testTypesArray);
     } catch (error) {
       console.error("Error fetching test types:", error);
       setTestTypes([]);
-      
-      // Handle axios error response
+
       if (error.response) {
-        errorToast(`Failed to fetch test types: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to fetch test types: ${error.response.data?.detail || error.message}`,
+        );
       } else {
         errorToast("Failed to load test types. Please try again.");
       }
@@ -1481,70 +1511,149 @@ export default function ViewPatientProfile() {
     }
   };
 
-  // Extract unique medicine names from stock
+  // ================ TC-069: Medicine Count Consistency Fix ================
+  // Enhanced fetchStock to get ALL active medicines
+  const fetchStock = async () => {
+    try {
+      setStockLoading(true);
+      console.log("=== FETCHING ALL STOCK FOR MEDICINE ALLOCATION ===");
+      
+      // Get all stock items without filtering on frontend
+      const response = await api.get("/medicine_allocation/stock/list");
+      
+      let stockItems = response.data;
+      console.log("Raw stock items from API:", stockItems?.length || 0);
+      
+      // Ensure we have an array
+      if (!Array.isArray(stockItems)) {
+        console.error("Stock data is not an array:", stockItems);
+        stockItems = [];
+      }
+      
+      // Log detailed stock information for debugging
+      console.log("Total stock items:", stockItems.length);
+      
+      const uniqueMedicineNames = [...new Set(
+        stockItems
+          .map(item => item.product_name)
+          .filter(name => name && name.trim() !== "")
+      )];
+      
+      console.log("Unique medicine names in stock:", uniqueMedicineNames.length);
+      console.log("Medicine names:", uniqueMedicineNames);
+      
+      // Check for medicines with quantity
+      const medicinesWithStock = stockItems.filter(item => 
+        item.quantity && parseInt(item.quantity) > 0
+      );
+      console.log("Medicines with positive stock:", medicinesWithStock.length);
+      
+      // Check for zero stock medicines
+      const zeroStockMedicines = stockItems.filter(item => 
+        !item.quantity || parseInt(item.quantity) === 0
+      );
+      console.log("Medicines with zero stock:", zeroStockMedicines.length);
+      
+      setStockData(stockItems);
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+      if (error.response) {
+        console.error("Stock API error response:", error.response.data);
+        errorToast(`Failed to load stock data: ${error.response.data?.detail || error.message}`);
+      } else {
+        errorToast("Failed to load stock data. Please refresh.");
+      }
+      setStockData([]);
+    } finally {
+      setStockLoading(false);
+    }
+  };
+
+  // Get ALL unique medicine names - no filtering, show everything from stock
   const medicineNames = useMemo(() => {
-    return [...new Set(stockData.map(s => s.product_name).filter(Boolean))].sort();
+    const names = stockData
+      .map(item => item.product_name)
+      .filter(name => name && name.trim() !== "")
+      .filter((value, index, self) => self.indexOf(value) === index) // Unique only
+      .sort((a, b) => a.localeCompare(b));
+    
+    console.log("✅ Medicine dropdown will show:", names.length, "medicines");
+    return names;
   }, [stockData]);
 
-  // Map medicine names to their available dosages
+  // Check if medicine has any stock available (for visual indication)
+  const isMedicineInStock = useCallback((medicineName) => {
+    return stockData.some(item => 
+      item.product_name === medicineName && 
+      item.quantity && 
+      parseInt(item.quantity) > 0
+    );
+  }, [stockData]);
+
+  // Dosage map for available dosages per medicine
   const dosageMap = useMemo(() => {
     const map = {};
-    stockData.forEach(s => {
+    stockData.forEach((s) => {
       if (s.product_name && s.dosage) {
         if (!map[s.product_name]) map[s.product_name] = new Set();
         map[s.product_name].add(s.dosage);
       }
     });
-    Object.keys(map).forEach(k => {
+    Object.keys(map).forEach((k) => {
       map[k] = [...map[k]].sort();
     });
     return map;
   }, [stockData]);
 
   // Get available stock quantity for a specific medicine and dosage
-  const getAvailableQuantity = useCallback((medicineName, dosage) => {
-    if (!medicineName || !dosage) return 0;
-    
-    const stockItem = stockData.find(s => 
-      s.product_name === medicineName && s.dosage === dosage
-    );
-    
-    return stockItem ? stockItem.quantity : 0;
-  }, [stockData]);
+  const getAvailableQuantity = useCallback(
+    (medicineName, dosage) => {
+      if (!medicineName || !dosage) return 0;
+
+      const stockItem = stockData.find(
+        (s) => s.product_name === medicineName && s.dosage === dosage
+      );
+
+      return stockItem ? parseInt(stockItem.quantity) || 0 : 0;
+    },
+    [stockData],
+  );
+  // ================ End of TC-069 Fix ================
 
   const frequencyOptions = ["Morning", "Afternoon", "Evening", "Night"];
 
   const toBinary = useCallback((selected) => {
-  if (!selected) return "";
-  
-  // Handle both array and string inputs
-  const frequencies = Array.isArray(selected) ? selected : [selected].filter(Boolean);
-  
-  if (frequencies.length === 0) return "";
-  
-  const bin = [0, 0, 0, 0];
-  frequencies.forEach((s) => {
-    if (s === "Morning") bin[0] = 1;
-    else if (s === "Afternoon") bin[1] = 1;
-    else if (s === "Evening") bin[2] = 1;
-    else if (s === "Night") bin[3] = 1;
-  });
-  return bin.join(" ");
-}, []);
+    if (!selected) return "";
+
+    const frequencies = Array.isArray(selected)
+      ? selected
+      : [selected].filter(Boolean);
+
+    if (frequencies.length === 0) return "";
+
+    const bin = [0, 0, 0, 0];
+    frequencies.forEach((s) => {
+      if (s === "Morning") bin[0] = 1;
+      else if (s === "Afternoon") bin[1] = 1;
+      else if (s === "Evening") bin[2] = 1;
+      else if (s === "Night") bin[3] = 1;
+    });
+    return bin.join(" ");
+  }, []);
 
   const toNames = useCallback((binaryStr) => {
     if (Array.isArray(binaryStr)) {
       return binaryStr;
     }
-    
+
     if (!binaryStr) {
       return [];
     }
-    
-    if (typeof binaryStr === 'string') {
+
+    if (typeof binaryStr === "string") {
       const trimmed = binaryStr.trim();
       if (trimmed === "") return [];
-      
+
       const bin = trimmed.split(" ").map(Number);
       const selected = [];
       if (bin[0]) selected.push("Morning");
@@ -1553,18 +1662,16 @@ export default function ViewPatientProfile() {
       if (bin[3]) selected.push("Night");
       return selected;
     }
-    
+
     return [];
   }, []);
 
-  // Auto-calculate quantity based on frequency and duration
   const calculateQuantity = useCallback((frequency, duration) => {
     if (!frequency || frequency.length === 0 || !duration) return "";
-    
-    // Parse duration (e.g., "5 days", "2 weeks", "1 month")
+
     const durationStr = duration.toString().toLowerCase();
     let days = 0;
-    
+
     if (durationStr.includes("day")) {
       days = parseInt(durationStr) || 0;
     } else if (durationStr.includes("week")) {
@@ -1572,18 +1679,16 @@ export default function ViewPatientProfile() {
       days = weeks * 7;
     } else if (durationStr.includes("month")) {
       const months = parseInt(durationStr) || 0;
-      days = months * 30; // Approximate
+      days = months * 30;
     } else {
-      // Try to parse as number of days
       days = parseInt(durationStr) || 0;
     }
-    
+
     if (days <= 0) return "";
-    
-    // Calculate total doses
+
     const dosesPerDay = frequency.length;
     const totalDoses = days * dosesPerDay;
-    
+
     return totalDoses.toString();
   }, []);
 
@@ -1598,7 +1703,7 @@ export default function ViewPatientProfile() {
             .includes(searchQuery.toLowerCase()) ||
           patient.patient_unique_id
             ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
+            .includes(searchQuery.toLowerCase()),
       );
       setFilteredPatients(filtered);
     }
@@ -1611,42 +1716,71 @@ export default function ViewPatientProfile() {
     } catch (error) {
       console.error("Error fetching departments:", error);
       if (error.response) {
-        errorToast(`Failed to fetch departments: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to fetch departments: ${error.response.data?.detail || error.message}`,
+        );
       }
     }
   };
 
   const fetchPatients = async () => {
     try {
-      const response = await api.get("/medicine_allocation/edit");
+      console.log("=== FETCHING PATIENTS FOR MEDICINE ALLOCATION ===");
+
+      const response = await api.get("/patients/", {
+        params: { limit: 100 },
+      });
+
       let data = response.data;
-      
       let patientsList = [];
-      if (Array.isArray(data)) {
-        patientsList = data;
-      } else if (data.patients && Array.isArray(data.patients)) {
-        patientsList = data.patients;
-      } else if (data && typeof data === "object") {
-        patientsList = [data];
-      }
       
-      setPatients(patientsList);
-      setFilteredPatients(patientsList);
+      if (data.patients && Array.isArray(data.patients)) {
+        patientsList = data.patients;
+      } else if (Array.isArray(data)) {
+        patientsList = data;
+      }
+
+      console.log("Total patients from API:", patientsList.length);
+
+      const filteredPatientsList = patientsList.filter((patient) => {
+        const status = patient.casualty_status;
+        if (status === "Completed" || status === "Cancelled") {
+          console.log(
+            `❌ Excluding ${status.toLowerCase()} patient: ${patient.full_name}`,
+          );
+          return false;
+        }
+        return true;
+      });
+
+      console.log(
+        "After filtering completed/cancelled patients:",
+        filteredPatientsList.length,
+      );
+
+      const uniquePatients = [];
+      const seenIds = new Set();
+
+      filteredPatientsList.forEach((patient) => {
+        const patientId = patient.patient_unique_id || patient.id;
+        if (!seenIds.has(patientId)) {
+          seenIds.add(patientId);
+          uniquePatients.push(patient);
+        }
+      });
+
+      console.log("Final patient list count:", uniquePatients.length);
+      setPatients(uniquePatients);
+      setFilteredPatients(uniquePatients);
     } catch (error) {
       console.error("Error fetching patients:", error);
       if (error.response) {
-        errorToast(`Failed to fetch patients: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to fetch patients: ${error.response.data?.detail || error.message}`,
+        );
+      } else {
+        errorToast("Failed to fetch patients. Please try again.");
       }
-    }
-  };
-
-  const fetchStock = async () => {
-    try {
-      const response = await api.get("/stock/list");
-      setStockData(response.data);
-    } catch (error) {
-      console.error("Error fetching stock:", error);
-      errorToast("Failed to load stock data");
     }
   };
 
@@ -1665,15 +1799,15 @@ export default function ViewPatientProfile() {
     if (!patientDbId) return;
     try {
       const response = await api.get(
-        `/medicine_allocation/${patientDbId}/medicine-allocations/`
+        `/medicine_allocation/${patientDbId}/medicine-allocations/`,
       );
-      
+
       const data = response.data;
-      const processedData = (data || []).map(item => ({
+      const processedData = (data || []).map((item) => ({
         ...item,
-        frequency: toNames(item.frequency || "")
+        frequency: toNames(item.frequency || ""),
       }));
-      
+
       setMedicineHistory(processedData);
     } catch (error) {
       console.error("Error fetching medicine history:", error);
@@ -1699,92 +1833,103 @@ export default function ViewPatientProfile() {
     setSearchQuery("");
   };
 
-  const handlePatientFieldChange = useCallback((field, value) => {
-    if (field === "patientName" && value) {
-      const selectedPatient = patients.find((p) => p.full_name === value);
-      if (selectedPatient) {
-        handlePatientSelect(selectedPatient);
+  const handlePatientFieldChange = useCallback(
+    (field, value) => {
+      if (field === "patientName" && value) {
+        const selectedPatient = patients.find((p) => p.full_name === value);
+        if (selectedPatient) {
+          handlePatientSelect(selectedPatient);
+        }
+      } else if (field === "patientID" && value) {
+        const selectedPatient = patients.find(
+          (p) => p.patient_unique_id === value,
+        );
+        if (selectedPatient) {
+          handlePatientSelect(selectedPatient);
+        }
+      } else if (field === "department" && value) {
+        setPatientInfo((prev) => ({
+          ...prev,
+          department: value,
+        }));
       }
-    } else if (field === "patientID" && value) {
-      const selectedPatient = patients.find(
-        (p) => p.patient_unique_id === value
-      );
-      if (selectedPatient) {
-        handlePatientSelect(selectedPatient);
-      }
-    } else if (field === "department" && value) {
-      setPatientInfo((prev) => ({
-        ...prev,
-        department: value,
-      }));
-    }
-  }, [patients]);
+    },
+    [patients],
+  );
 
-  const handleInputChange = useCallback((e, index, type) => {
-    const { name, value } = e.target;
-    
-    if (type === "medicine") {
-      setMedicineData((prev) => {
-        const newData = [...prev];
-        const updatedItem = { ...newData[index], [name]: value };
-        
-        if (name === "medicineName") {
-          // Reset dosage when medicine changes
-          updatedItem.dosage = "";
-          updatedItem.quantity = "";
-        }
-        
-        if (name === "dosage") {
-          // Check if enough stock is available
-          const availableQty = getAvailableQuantity(updatedItem.medicineName, value);
-          if (availableQty === 0) {
-            errorToast(`No stock available for ${updatedItem.medicineName} - ${value}`);
+  const handleInputChange = useCallback(
+    (e, index, type) => {
+      const { name, value } = e.target;
+
+      if (type === "medicine") {
+        setMedicineData((prev) => {
+          const newData = [...prev];
+          const updatedItem = { ...newData[index], [name]: value };
+
+          if (name === "medicineName") {
+            updatedItem.dosage = "";
+            updatedItem.quantity = "";
           }
-        }
-        
-        // Auto-calculate quantity when frequency or duration changes
-        if (name === "duration" || name === "frequency") {
-          // Note: frequency is handled separately, so we need to get current frequency
-          if (name === "duration") {
-            const currentFrequency = newData[index].frequency || [];
-            const calculatedQty = calculateQuantity(currentFrequency, value);
-            if (calculatedQty) {
-              updatedItem.quantity = calculatedQty;
+
+          if (name === "dosage") {
+            const availableQty = getAvailableQuantity(
+              updatedItem.medicineName,
+              value,
+            );
+            if (availableQty === 0) {
+              errorToast(
+                `No stock available for ${updatedItem.medicineName} - ${value}`,
+              );
             }
           }
+
+          if (name === "duration" || name === "frequency") {
+            if (name === "duration") {
+              const currentFrequency = newData[index].frequency || [];
+              const calculatedQty = calculateQuantity(currentFrequency, value);
+              if (calculatedQty) {
+                updatedItem.quantity = calculatedQty;
+              }
+            }
+          }
+
+          newData[index] = updatedItem;
+          return newData;
+        });
+      } else if (type === "labTest") {
+        setLabTests((prev) => {
+          const newTests = [...prev];
+          newTests[index] = { ...newTests[index], [name]: value };
+          return newTests;
+        });
+      }
+    },
+    [getAvailableQuantity, calculateQuantity],
+  );
+
+  const handleFrequencyChange = useCallback(
+    (index, selected) => {
+      setMedicineData((prev) => {
+        const newData = [...prev];
+        const currentItem = newData[index];
+
+        newData[index] = { ...currentItem, frequency: selected };
+
+        if (currentItem.duration) {
+          const calculatedQty = calculateQuantity(
+            selected,
+            currentItem.duration,
+          );
+          if (calculatedQty) {
+            newData[index].quantity = calculatedQty;
+          }
         }
-        
-        newData[index] = updatedItem;
+
         return newData;
       });
-    } else if (type === "labTest") {
-      setLabTests((prev) => {
-        const newTests = [...prev];
-        newTests[index] = { ...newTests[index], [name]: value };
-        return newTests;
-      });
-    }
-  }, [getAvailableQuantity, calculateQuantity]);
-
-  const handleFrequencyChange = useCallback((index, selected) => {
-    setMedicineData((prev) => {
-      const newData = [...prev];
-      const currentItem = newData[index];
-      
-      // Update frequency
-      newData[index] = { ...currentItem, frequency: selected };
-      
-      // Auto-calculate quantity if duration is set
-      if (currentItem.duration) {
-        const calculatedQty = calculateQuantity(selected, currentItem.duration);
-        if (calculatedQty) {
-          newData[index].quantity = calculatedQty;
-        }
-      }
-      
-      return newData;
-    });
-  }, [calculateQuantity]);
+    },
+    [calculateQuantity],
+  );
 
   const addMedicineEntry = useCallback(() => {
     setMedicineData((prev) => [
@@ -1819,39 +1964,42 @@ export default function ViewPatientProfile() {
       errorToast("Please select a patient");
       return;
     }
-    
-    // Validate stock availability before submission
+
     for (const med of medicineData) {
-      if (med.medicineName && med.dosage) {
+      if (med.medicineName && med.dosage && med.quantity) {
         const availableQty = getAvailableQuantity(med.medicineName, med.dosage);
         const requestedQty = parseInt(med.quantity) || 0;
-        
+
         if (requestedQty > availableQty) {
-          errorToast(`Insufficient stock for ${med.medicineName} - ${med.dosage}. Available: ${availableQty}, Requested: ${requestedQty}`);
+          errorToast(
+            `Insufficient stock for ${med.medicineName} - ${med.dosage}. Available: ${availableQty}, Requested: ${requestedQty}`,
+          );
           return;
         }
       }
     }
-    
+
     setLoading(true);
     try {
       const response = await api.post(
         `/medicine_allocation/${patientDbId}/allocations/`,
         {
-          medicines: medicineData.map((med) => ({
-            medicine_name: med.medicineName,
-            dosage: med.dosage,
-            quantity: med.quantity,
-            frequency: toBinary(med.frequency),
-            duration: med.duration,
-            time: med.time,
-          })).filter(med => med.medicine_name.trim() !== ""),
+          medicines: medicineData
+            .map((med) => ({
+              medicine_name: med.medicineName,
+              dosage: med.dosage,
+              quantity: med.quantity,
+              frequency: toBinary(med.frequency),
+              duration: med.duration,
+              time: med.time,
+            }))
+            .filter((med) => med.medicine_name.trim() !== ""),
           lab_test_types: labTests
             .map((test) => test.labTest)
             .filter((test) => test && test.trim() !== ""),
-        }
+        },
       );
-      
+
       const result = response.data;
       const newHistoryEntries = result.medicines.map((med) => ({
         id: med.id,
@@ -1866,17 +2014,24 @@ export default function ViewPatientProfile() {
         frequency: med.frequency,
         lab_test_type: med.lab_test_type,
       }));
-      setMedicineHistory((prev) => [...newHistoryEntries.map(item => ({...item, frequency: toNames(item.frequency)})), ...prev]);
       
-      // Refresh stock data after allocation
+      setMedicineHistory((prev) => [
+        ...newHistoryEntries.map((item) => ({
+          ...item,
+          frequency: toNames(item.frequency),
+        })),
+        ...prev,
+      ]);
+
       await fetchStock();
-      
       handleClear();
       successToast("Medicines allocated successfully!");
     } catch (error) {
       console.error("Error allocating medicines:", error);
       if (error.response) {
-        errorToast(`Failed to allocate medicines: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to allocate medicines: ${error.response.data?.detail || error.message}`,
+        );
       } else {
         errorToast("Failed to allocate medicines. Please try again.");
       }
@@ -1900,22 +2055,25 @@ export default function ViewPatientProfile() {
     setLabTests([{ id: Date.now(), labTest: "" }]);
   }, []);
 
-  const handleEditMedicine = useCallback((medicine) => {
-    let freqArray = [];
-    if (medicine.frequency) {
-      if (Array.isArray(medicine.frequency)) {
-        freqArray = medicine.frequency;
-      } else if (typeof medicine.frequency === 'string') {
-        freqArray = toNames(medicine.frequency);
+  const handleEditMedicine = useCallback(
+    (medicine) => {
+      let freqArray = [];
+      if (medicine.frequency) {
+        if (Array.isArray(medicine.frequency)) {
+          freqArray = medicine.frequency;
+        } else if (typeof medicine.frequency === "string") {
+          freqArray = toNames(medicine.frequency);
+        }
       }
-    }
-    
-    setEditingMedicine({
-      ...medicine, 
-      frequency: freqArray
-    });
-    setIsEditPopupOpen(true);
-  }, [toNames]);
+
+      setEditingMedicine({
+        ...medicine,
+        frequency: freqArray,
+      });
+      setIsEditPopupOpen(true);
+    },
+    [toNames],
+  );
 
   const handleDeleteMedicine = useCallback((medicine) => {
     setDeletingMedicine(medicine);
@@ -1933,15 +2091,18 @@ export default function ViewPatientProfile() {
           frequency: toBinary(updatedData.frequency),
           duration: updatedData.duration,
           time: updatedData.time,
-        }
+        },
       );
-      
+
       await fetchMedicineHistory(patientDbId);
+      await fetchStock(); // Refresh stock after update
       successToast("Medicine allocation updated successfully!");
     } catch (error) {
       console.error("Error updating medicine:", error);
       if (error.response) {
-        errorToast(`Failed to update medicine: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to update medicine: ${error.response.data?.detail || error.message}`,
+        );
       } else {
         errorToast("Failed to update medicine allocation");
       }
@@ -1951,15 +2112,18 @@ export default function ViewPatientProfile() {
   const handleConfirmDelete = async () => {
     try {
       await api.delete(
-        `/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`
+        `/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`,
       );
-      
+
       await fetchMedicineHistory(patientDbId);
+      await fetchStock(); // Refresh stock after deletion
       successToast("Medicine allocation deleted successfully!");
     } catch (error) {
       console.error("Error deleting medicine:", error);
       if (error.response) {
-        errorToast(`Failed to delete medicine: ${error.response.data?.detail || error.message}`);
+        errorToast(
+          `Failed to delete medicine: ${error.response.data?.detail || error.message}`,
+        );
       } else {
         errorToast("Failed to delete medicine allocation");
       }
@@ -1969,50 +2133,63 @@ export default function ViewPatientProfile() {
     }
   };
 
-  const patientNames = useMemo(() => 
-    patients
-      .map((patient) => patient?.full_name)
-      .filter((name) => name && name.trim() !== "")
-      .filter((name, index, self) => self.indexOf(name) === index),
-    [patients]
+  const patientNames = useMemo(
+    () =>
+      patients
+        .map((patient) => patient?.full_name)
+        .filter((name) => name && name.trim() !== "")
+        .filter((name, index, self) => self.indexOf(name) === index),
+    [patients],
   );
 
-  const patientIDs = useMemo(() => 
-    patients
-      .map((patient) => patient?.patient_unique_id)
-      .filter((id) => id && id.trim() !== "")
-      .filter((id, index, self) => self.indexOf(id) === index),
-    [patients]
+  const patientIDs = useMemo(
+    () =>
+      patients
+        .map((patient) => patient?.patient_unique_id)
+        .filter((id) => id && id.trim() !== "")
+        .filter((id, index, self) => self.indexOf(id) === index),
+    [patients],
   );
 
-  const departmentNames = useMemo(() => 
-    departments
-      .map((dept) => dept?.name)
-      .filter((name) => name && name.trim() !== "")
-      .filter((name, index, self) => self.indexOf(name) === index),
-    [departments]
+  const departmentNames = useMemo(
+    () =>
+      departments
+        .map((dept) => dept?.name)
+        .filter((name) => name && name.trim() !== "")
+        .filter((name, index, self) => self.indexOf(name) === index),
+    [departments],
   );
 
-  const CustomInput = useCallback(({ label, name, value, index, placeholder, type = "text", readOnly = false }) => {
-    const handleChange = (e) => {
-      const newValue = type === "number" ? parseInt(e.target.value) || "" : e.target.value;
-      const fakeEvent = { target: { name, value: newValue } };
-      handleInputChange(fakeEvent, index, "medicine");
-    };
+  const CustomInput = useCallback(
+    ({
+      label,
+      name,
+      value,
+      index,
+      placeholder,
+      type = "text",
+      readOnly = false,
+    }) => {
+      const handleChange = (e) => {
+        const newValue =
+          type === "number" ? parseInt(e.target.value) || "" : e.target.value;
+        const fakeEvent = { target: { name, value: newValue } };
+        handleInputChange(fakeEvent, index, "medicine");
+      };
 
-    return (
-      <div className="relative">
-        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-          {label}
-        </label>
-        <input
-          type={type}
-          name={name}
-          value={value}
-          onChange={handleChange}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          className={`
+      return (
+        <div className="relative">
+          <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+            {label}
+          </label>
+          <input
+            type={type}
+            name={name}
+            value={value}
+            onChange={handleChange}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={`
             w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
             border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
             text-black dark:text-white text-sm leading-none
@@ -2022,171 +2199,222 @@ export default function ViewPatientProfile() {
             ${!value ? "text-gray-500" : ""}
             ${readOnly ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : ""}
           `}
-        />
-      </div>
-    );
-  }, [handleInputChange]);
+          />
+        </div>
+      );
+    },
+    [handleInputChange],
+  );
 
-  const MedicineDropdown = useCallback(({ label, name, value, options, index }) => {
-    const handleChange = (selectedValue) => {
-      const fakeEvent = { target: { name, value: selectedValue } };
-      handleInputChange(fakeEvent, index, "medicine");
-    };
+  // ================ TC-069: Updated MedicineDropdown to show ALL medicines ================
+  const MedicineDropdown = useCallback(
+    ({ label, name, value, options, index }) => {
+      const handleChange = (selectedValue) => {
+        const fakeEvent = { target: { name, value: selectedValue } };
+        handleInputChange(fakeEvent, index, "medicine");
+      };
 
-    return (
-      <div className="relative">
-        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-          {label}
-        </label>
-        <Listbox value={value} onChange={handleChange}>
-          {({ open }) => (
-            <>
-              <Listbox.Button
-                className={`
-                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                  border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-                  text-black dark:text-white text-left text-sm leading-none
-                  shadow-[0_0_2.09px_#0EFF7B] outline-none
-                  transition-all duration-300 font-[Helvetica]
-                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
-                  ${!value ? "text-gray-500" : ""}
-                `}
-              >
-                <span className="block truncate">
-                  {value || `Select ${label.toLowerCase()}`}
-                </span>
-                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                  <ChevronDown
-                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                      open ? "rotate-180" : ""
-                    }`}
-                  />
-                </span>
-              </Listbox.Button>
-              <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-                {options.length > 0 ? (
-                  options.map((option) => (
-                    <Listbox.Option
-                      key={option}
-                      value={option}
-                      className={({ active, selected }) =>
-                        `
-                          cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
-                          ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                          ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                          hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                        `
-                      }
-                    >
-                      {option}
-                    </Listbox.Option>
-                  ))
-                ) : (
-                  <div className="py-2 px-3 text-sm text-gray-500 text-center">
-                    No {label.toLowerCase()} available
-                  </div>
-                )}
-              </Listbox.Options>
-            </>
-          )}
-        </Listbox>
-      </div>
-    );
-  }, [handleInputChange]);
-
-  const DosageDropdown = useCallback(({ label, name, value, medicineName, index }) => {
-    const dosages = medicineName ? (dosageMap[medicineName] || []) : [];
-    
-    const handleChange = (selectedValue) => {
-      const fakeEvent = { target: { name, value: selectedValue } };
-      handleInputChange(fakeEvent, index, "medicine");
-    };
-
-    return (
-      <div className="relative">
-        <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-          {label}
-        </label>
-        <Listbox value={value} onChange={handleChange} disabled={!medicineName || dosages.length === 0}>
-          {({ open }) => (
-            <>
-              <Listbox.Button
-                className={`
+      return (
+        <div className="relative">
+          <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+            {label}
+          </label>
+          <Listbox 
+            value={value} 
+            onChange={handleChange}
+            disabled={stockLoading}
+          >
+            {({ open }) => (
+              <>
+                <Listbox.Button
+                  className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
                   border-gray-300 dark:border-[#3C3C3C] 
-                  ${!medicineName || dosages.length === 0 ? 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed' : 'bg-gray-100 dark:bg-black'}
+                  ${stockLoading ? 'bg-gray-200 dark:bg-gray-800 cursor-wait' : 'bg-gray-100 dark:bg-black'}
                   text-black dark:text-white text-left text-sm leading-none
                   shadow-[0_0_2.09px_#0EFF7B] outline-none
                   transition-all duration-300 font-[Helvetica]
                   ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                   ${!value ? "text-gray-500" : ""}
                 `}
-              >
-                <span className="block truncate">
-                  {!medicineName ? "Select medicine first" : 
-                   dosages.length === 0 ? "No dosages available" :
-                   value || `Select ${label.toLowerCase()}`}
-                </span>
-                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                  <ChevronDown
-                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                      open ? "rotate-180" : ""
-                    }`}
-                  />
-                </span>
-              </Listbox.Button>
-              {medicineName && dosages.length > 0 && (
-                <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-                  {dosages.map((dosage) => {
-                    const availableQty = getAvailableQuantity(medicineName, dosage);
-                    return (
-                      <Listbox.Option
-                        key={dosage}
-                        value={dosage}
-                        disabled={availableQty === 0}
-                        className={({ active, selected, disabled }) =>
-                          `
+                >
+                  <span className="block truncate">
+                    {stockLoading ? "Loading medicines..." : (value || `Select ${label.toLowerCase()}`)}
+                  </span>
+                  <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                    {stockLoading ? (
+                      <div className="h-4 w-4 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                          open ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                  </span>
+                </Listbox.Button>
+                {!stockLoading && options.length > 0 && (
+                  <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                    {options.map((option) => {
+                      const inStock = isMedicineInStock(option);
+                      return (
+                        <Listbox.Option
+                          key={option}
+                          value={option}
+                          className={({ active, selected }) => `
+                            cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
+                            ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                            ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                            ${!inStock ? "opacity-50" : ""}
+                            hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                          `}
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{option}</span>
+                            {!inStock && (
+                              <span className="text-xs text-red-500 ml-2">
+                                Out of Stock
+                              </span>
+                            )}
+                            {inStock && (
+                              <span className="text-xs text-green-500 ml-2">
+                                In Stock
+                              </span>
+                            )}
+                          </div>
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                )}
+                {!stockLoading && options.length === 0 && (
+                  <div className="absolute mt-1 w-full rounded-[8px] bg-gray-100 dark:bg-black shadow-lg border border-gray-300 dark:border-[#3C3C3C] py-2 px-3 text-sm text-gray-500 text-center">
+                    No medicines available in stock
+                  </div>
+                )}
+              </>
+            )}
+          </Listbox>
+          {!stockLoading && options.length > 0 && (
+            <div className="mt-1 text-xs text-gray-500">
+              Total medicines: {options.length}
+            </div>
+          )}
+        </div>
+      );
+    },
+    [handleInputChange, isMedicineInStock, stockLoading],
+  );
+  // ================ End of TC-069 MedicineDropdown Fix ================
+
+  const DosageDropdown = useCallback(
+    ({ label, name, value, medicineName, index }) => {
+      const dosages = medicineName ? dosageMap[medicineName] || [] : [];
+
+      const handleChange = (selectedValue) => {
+        const fakeEvent = { target: { name, value: selectedValue } };
+        handleInputChange(fakeEvent, index, "medicine");
+      };
+
+      return (
+        <div className="relative">
+          <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+            {label}
+          </label>
+          <Listbox
+            value={value}
+            onChange={handleChange}
+            disabled={!medicineName || dosages.length === 0}
+          >
+            {({ open }) => (
+              <>
+                <Listbox.Button
+                  className={`
+                  relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                  border-gray-300 dark:border-[#3C3C3C] 
+                  ${!medicineName || dosages.length === 0 ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : "bg-gray-100 dark:bg-black"}
+                  text-black dark:text-white text-left text-sm leading-none
+                  shadow-[0_0_2.09px_#0EFF7B] outline-none
+                  transition-all duration-300 font-[Helvetica]
+                  ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                  ${!value ? "text-gray-500" : ""}
+                `}
+                >
+                  <span className="block truncate">
+                    {!medicineName
+                      ? "Select medicine first"
+                      : dosages.length === 0
+                        ? "No dosages available"
+                        : value || `Select ${label.toLowerCase()}`}
+                  </span>
+                  <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                    <ChevronDown
+                      className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                        open ? "rotate-180" : ""
+                      }`}
+                    />
+                  </span>
+                </Listbox.Button>
+                {medicineName && dosages.length > 0 && (
+                  <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                    {dosages.map((dosage) => {
+                      const availableQty = getAvailableQuantity(
+                        medicineName,
+                        dosage,
+                      );
+                      return (
+                        <Listbox.Option
+                          key={dosage}
+                          value={dosage}
+                          disabled={availableQty === 0}
+                          className={({ active, selected, disabled }) =>
+                            `
                             cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                             ${active && !disabled ? "bg-[#0EFF7B33] text-[#0EFF7B]" : ""}
                             ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
                             ${disabled ? "opacity-50 cursor-not-allowed text-gray-500" : "text-black dark:text-white"}
                             hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                           `
-                        }
-                      >
-                        <div className="flex justify-between items-center">
-                          <span>{dosage}</span>
-                          <span className={`text-xs ${availableQty === 0 ? 'text-red-500' : 'text-green-500'}`}>
-                            Stock: {availableQty}
-                          </span>
-                        </div>
-                      </Listbox.Option>
-                    );
-                  })}
-                </Listbox.Options>
-              )}
-            </>
-          )}
-        </Listbox>
-      </div>
-    );
-  }, [dosageMap, getAvailableQuantity, handleInputChange]);
+                          }
+                        >
+                          <div className="flex justify-between items-center">
+                            <span>{dosage}</span>
+                            <span
+                              className={`text-xs ${availableQty === 0 ? "text-red-500" : "text-green-500"}`}
+                            >
+                              Stock: {availableQty}
+                            </span>
+                          </div>
+                        </Listbox.Option>
+                      );
+                    })}
+                  </Listbox.Options>
+                )}
+              </>
+            )}
+          </Listbox>
+        </div>
+      );
+    },
+    [dosageMap, getAvailableQuantity, handleInputChange],
+  );
 
-  const MultiFrequencyDropdown = useCallback(({ index, selected, onChange }) => {
-    const handleChange = (selectedOptions) => {
-      onChange(selectedOptions);
-    };
+  const MultiFrequencyDropdown = useCallback(
+    ({ index, selected, onChange }) => {
+      const handleChange = (selectedOptions) => {
+        onChange(selectedOptions);
+      };
 
-    return (
-      <div className="relative">
-        <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-          Frequency
-        </label>
-        <Listbox value={selected} onChange={handleChange} multiple>
-          {({ open }) => (
-            <>
-              <Listbox.Button
-                className={`
+      return (
+        <div className="relative">
+          <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+            Frequency
+          </label>
+          <Listbox value={selected} onChange={handleChange} multiple>
+            {({ open }) => (
+              <>
+                <Listbox.Button
+                  className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
                   border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                   text-black dark:text-white text-left text-sm leading-none
@@ -2195,9 +2423,81 @@ export default function ViewPatientProfile() {
                   ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                   ${!selected || selected.length === 0 ? "text-gray-500" : ""}
                 `}
+                >
+                  <span className="block truncate">
+                    {selected && selected.length > 0
+                      ? selected.join(", ")
+                      : "Select frequencies"}
+                  </span>
+                  <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                    <ChevronDown
+                      className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                        open ? "rotate-180" : ""
+                      }`}
+                    />
+                  </span>
+                </Listbox.Button>
+                <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                  {frequencyOptions.map((option) => (
+                    <Listbox.Option
+                      key={option}
+                      value={option}
+                      className={({ active, selected: isSelected }) =>
+                        `
+                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica] flex items-center
+                        ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
+                        ${isSelected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
+                      `
+                      }
+                    >
+                      {({ selected: isSelected }) => (
+                        <>
+                          <span
+                            className={`mr-2 ${isSelected ? "text-[#0EFF7B]" : ""}`}
+                          >
+                            {isSelected ? "✓" : ""}
+                          </span>
+                          {option}
+                        </>
+                      )}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </>
+            )}
+          </Listbox>
+        </div>
+      );
+    },
+    [],
+  );
+
+  const PatientNameDropdown = useCallback(
+    () => (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+          Patient Name
+        </label>
+        <Listbox
+          value={patientInfo.patientName}
+          onChange={(value) => handlePatientFieldChange("patientName", value)}
+        >
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
+                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
+                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+                text-black dark:text-white text-left text-sm leading-none
+                shadow-[0_0_2.09px_#0EFF7B] outline-none
+                transition-all duration-300 font-[Helvetica]
+                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
+                ${!patientInfo.patientName ? "text-gray-500" : ""}
+              `}
               >
                 <span className="block truncate">
-                  {selected && selected.length > 0 ? selected.join(", ") : "Select frequencies"}
+                  {patientInfo.patientName || "Select patient name"}
                 </span>
                 <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
                   <ChevronDown
@@ -2208,113 +2508,51 @@ export default function ViewPatientProfile() {
                 </span>
               </Listbox.Button>
               <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-                {frequencyOptions.map((option) => (
-                  <Listbox.Option
-                    key={option}
-                    value={option}
-                    className={({ active, selected: isSelected }) =>
-                      `
-                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica] flex items-center
-                        ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                        ${isSelected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                      `
-                    }
-                  >
-                    {({ selected: isSelected }) => (
-                      <>
-                        <span className={`mr-2 ${isSelected ? "text-[#0EFF7B]" : ""}`}>
-                          {isSelected ? "✓" : ""}
-                        </span>
-                        {option}
-                      </>
-                    )}
-                  </Listbox.Option>
-                ))}
-              </Listbox.Options>
-            </>
-          )}
-        </Listbox>
-      </div>
-    );
-  }, []);
-
-  const PatientNameDropdown = useCallback(() => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-        Patient Name
-      </label>
-      <Listbox
-        value={patientInfo.patientName}
-        onChange={(value) => handlePatientFieldChange("patientName", value)}
-      >
-        {({ open }) => (
-          <>
-            <Listbox.Button
-              className={`
-                relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
-                text-black dark:text-white text-left text-sm leading-none
-                shadow-[0_0_2.09px_#0EFF7B] outline-none
-                transition-all duration-300 font-[Helvetica]
-                ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
-                ${!patientInfo.patientName ? "text-gray-500" : ""}
-              `}
-            >
-              <span className="block truncate">
-                {patientInfo.patientName || "Select patient name"}
-              </span>
-              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                <ChevronDown
-                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {patientNames.length > 0 ? (
-                patientNames.map((name) => (
-                  <Listbox.Option
-                    key={name}
-                    value={name}
-                    className={({ active, selected }) =>
-                      `
+                {patientNames.length > 0 ? (
+                  patientNames.map((name) => (
+                    <Listbox.Option
+                      key={name}
+                      value={name}
+                      className={({ active, selected }) =>
+                        `
                         cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
                         ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
                         hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                       `
-                    }
-                  >
-                    {name}
-                  </Listbox.Option>
-                ))
-              ) : (
-                <div className="py-2 px-3 text-sm text-gray-500 text-center">
-                  No patients found
-                </div>
-              )}
-            </Listbox.Options>
-          </>
-        )}
-      </Listbox>
-    </div>
-  ), [patientInfo.patientName, patientNames, handlePatientFieldChange]);
+                      }
+                    >
+                      {name}
+                    </Listbox.Option>
+                  ))
+                ) : (
+                  <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                    No patients found
+                  </div>
+                )}
+              </Listbox.Options>
+            </>
+          )}
+        </Listbox>
+      </div>
+    ),
+    [patientInfo.patientName, patientNames, handlePatientFieldChange],
+  );
 
-  const PatientIDDropdown = useCallback(() => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-        Patient ID
-      </label>
-      <Listbox
-        value={patientInfo.patientID}
-        onChange={(value) => handlePatientFieldChange("patientID", value)}
-      >
-        {({ open }) => (
-          <>
-            <Listbox.Button
-              className={`
+  const PatientIDDropdown = useCallback(
+    () => (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+          Patient ID
+        </label>
+        <Listbox
+          value={patientInfo.patientID}
+          onChange={(value) => handlePatientFieldChange("patientID", value)}
+        >
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
@@ -2323,61 +2561,64 @@ export default function ViewPatientProfile() {
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!patientInfo.patientID ? "text-gray-500" : ""}
               `}
-            >
-              <span className="block truncate">
-                {patientInfo.patientID || "Select patient ID"}
-              </span>
-              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                <ChevronDown
-                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {patientIDs.length > 0 ? (
-                patientIDs.map((id) => (
-                  <Listbox.Option
-                    key={id}
-                    value={id}
-                    className={({ active, selected }) =>
-                      `
+              >
+                <span className="block truncate">
+                  {patientInfo.patientID || "Select patient ID"}
+                </span>
+                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </span>
+              </Listbox.Button>
+              <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                {patientIDs.length > 0 ? (
+                  patientIDs.map((id) => (
+                    <Listbox.Option
+                      key={id}
+                      value={id}
+                      className={({ active, selected }) =>
+                        `
                         cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
                         ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
                         hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                       `
-                    }
-                  >
-                    {id}
-                  </Listbox.Option>
-                ))
-              ) : (
-                <div className="py-2 px-3 text-sm text-gray-500 text-center">
-                  No patient IDs found
-                </div>
-              )}
-            </Listbox.Options>
-          </>
-        )}
-      </Listbox>
-    </div>
-  ), [patientInfo.patientID, patientIDs, handlePatientFieldChange]);
+                      }
+                    >
+                      {id}
+                    </Listbox.Option>
+                  ))
+                ) : (
+                  <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                    No patient IDs found
+                  </div>
+                )}
+              </Listbox.Options>
+            </>
+          )}
+        </Listbox>
+      </div>
+    ),
+    [patientInfo.patientID, patientIDs, handlePatientFieldChange],
+  );
 
-  const DepartmentDropdown = useCallback(() => (
-    <div className="relative">
-      <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-        Department
-      </label>
-      <Listbox
-        value={patientInfo.department}
-        onChange={(value) => handlePatientFieldChange("department", value)}
-      >
-        {({ open }) => (
-          <>
-            <Listbox.Button
-              className={`
+  const DepartmentDropdown = useCallback(
+    () => (
+      <div className="relative">
+        <label className="block text-sm font-medium mb-1 text-black dark:text-white">
+          Department
+        </label>
+        <Listbox
+          value={patientInfo.department}
+          onChange={(value) => handlePatientFieldChange("department", value)}
+        >
+          {({ open }) => (
+            <>
+              <Listbox.Button
+                className={`
                 relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
                 border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
                 text-black dark:text-white text-left text-sm leading-none
@@ -2386,50 +2627,104 @@ export default function ViewPatientProfile() {
                 ${open ? "border-[#0EFF7B] shadow-[0_0_4px_#0EFF7B]" : ""}
                 ${!patientInfo.department ? "text-gray-500" : ""}
               `}
-            >
-              <span className="block truncate">
-                {patientInfo.department || "Select department"}
-              </span>
-              <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
-                <ChevronDown
-                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
-                    open ? "rotate-180" : ""
-                  }`}
-                />
-              </span>
-            </Listbox.Button>
-            <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
-              {departmentNames.length > 0 ? (
-                departmentNames.map((dept) => (
-                  <Listbox.Option
-                    key={dept}
-                    value={dept}
-                    className={({ active, selected }) =>
-                      `
+              >
+                <span className="block truncate">
+                  {patientInfo.department || "Select department"}
+                </span>
+                <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                      open ? "rotate-180" : ""
+                    }`}
+                  />
+                </span>
+              </Listbox.Button>
+              <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
+                {departmentNames.length > 0 ? (
+                  departmentNames.map((dept) => (
+                    <Listbox.Option
+                      key={dept}
+                      value={dept}
+                      className={({ active, selected }) =>
+                        `
                         cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
                         ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
                         ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
                         hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                       `
-                    }
-                  >
-                    {dept}
-                  </Listbox.Option>
-                ))
-              ) : (
-                <div className="py-2 px-3 text-sm text-gray-500 text-center">
-                  No departments found
-                </div>
-              )}
-            </Listbox.Options>
-          </>
-        )}
-      </Listbox>
-    </div>
-  ), [patientInfo.department, departmentNames, handlePatientFieldChange]);
+                      }
+                    >
+                      {dept}
+                    </Listbox.Option>
+                  ))
+                ) : (
+                  <div className="py-2 px-3 text-sm text-gray-500 text-center">
+                    No departments found
+                  </div>
+                )}
+              </Listbox.Options>
+            </>
+          )}
+        </Listbox>
+      </div>
+    ),
+    [patientInfo.department, departmentNames, handlePatientFieldChange],
+  );
+
+  // ================ TC-069: Debug Component (Remove in production) ================
+  const StockDebugInfo = () => {
+    if (process.env.NODE_ENV !== 'development') return null;
+    
+    const uniqueMedicineCount = [...new Set(stockData.map(s => s.product_name).filter(Boolean))].length;
+    const totalStockItems = stockData.length;
+    
+    return (
+      <div className="mt-4 p-3 border border-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-xs">
+        <details>
+          <summary className="font-bold text-yellow-700 dark:text-yellow-300 cursor-pointer">
+            Debug: Stock Information (TC-069)
+          </summary>
+          <div className="mt-2 space-y-1 text-gray-700 dark:text-gray-300">
+            <p>Total stock items from API: {totalStockItems}</p>
+            <p>Unique medicine names: {uniqueMedicineCount}</p>
+            <p>Medicines in dropdown: {medicineNames.length}</p>
+            <p>Loading: {stockLoading ? 'Yes' : 'No'}</p>
+            <div className="max-h-40 overflow-auto mt-2">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-yellow-500">
+                    <th className="text-left">Medicine Name</th>
+                    <th className="text-left">Dosage</th>
+                    <th className="text-left">Quantity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockData.slice(0, 20).map((item, idx) => (
+                    <tr key={idx} className="border-b border-yellow-500/30">
+                      <td>{item.product_name}</td>
+                      <td>{item.dosage}</td>
+                      <td>{item.quantity}</td>
+                    </tr>
+                  ))}
+                  {stockData.length > 20 && (
+                    <tr>
+                      <td colSpan="3" className="text-center py-1">
+                        ... and {stockData.length - 20} more items
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </details>
+      </div>
+    );
+  };
+  // ================ End of Debug Component ================
 
   return (
-    <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col relative font-[Helvetica]">
       {/* Gradient Background and Border */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -2513,7 +2808,7 @@ export default function ViewPatientProfile() {
         </div>
       </div>
 
-      {/* Patient Profile Section */}
+      {/* Patient Profile Section - TC-068: Temperature unit fixed to show °C */}
       <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
         <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
           <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
@@ -2523,12 +2818,14 @@ export default function ViewPatientProfile() {
                 alt={fullPatient.full_name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextElementSibling.style.display = "flex";
                 }}
               />
             ) : null}
-            <div className={`w-full h-full flex items-center justify-center bg-gray-200 ${fullPatient?.photo_url ? 'hidden' : 'flex'}`}>
+            <div
+              className={`w-full h-full flex items-center justify-center bg-gray-200 ${fullPatient?.photo_url ? "hidden" : "flex"}`}
+            >
               <svg
                 className="w-[60px] h-[60px] text-[#0EFF7B]"
                 fill="currentColor"
@@ -2543,8 +2840,8 @@ export default function ViewPatientProfile() {
             {fullPatient?.gender === "Female"
               ? "Mrs."
               : fullPatient?.gender === "Male"
-              ? "Mr."
-              : ""}{" "}
+                ? "Mr."
+                : ""}{" "}
             {fullPatient?.full_name ||
               patientInfo.patientName ||
               "Select a patient"}
@@ -2573,9 +2870,7 @@ export default function ViewPatientProfile() {
               {
                 label: "Department",
                 value:
-                  fullPatient?.department ||
-                  patientInfo.department ||
-                  "N/A",
+                  fullPatient?.department || patientInfo.department || "N/A",
               },
               { label: "Bed Number", value: fullPatient?.room_number || "N/A" },
               {
@@ -2608,13 +2903,26 @@ export default function ViewPatientProfile() {
                 View more information
               </span>
               <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-[10px] h-[10px]">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="white"
+                  className="w-[10px] h-[10px]"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
-                <span className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
+                <span
+                  className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
+                    transition-all duration-150"
+                >
                   View more
                 </span>
               </div>
@@ -2622,6 +2930,7 @@ export default function ViewPatientProfile() {
           </div>
         </div>
         <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
+        {/* ================ TC-068 FIX: Temperature in °C ================ */}
         <div className="text-[14px] flex justify-center gap-3 sm:gap-6 mt-4 lg:mt-0">
           <div className="flex flex-col items-center space-y-3">
             <div className="flex flex-col items-center space-y-1">
@@ -2648,12 +2957,11 @@ export default function ViewPatientProfile() {
               Temperature
             </span>
             <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
-              {fullPatient?.body_temperature
-                ? `${fullPatient.body_temperature}°F`
-                : "N/A"}
+              {formatTemperature(fullPatient?.body_temperature)}
             </span>
           </div>
         </div>
+        {/* ================ End of TC-068 FIX ================ */}
       </div>
 
       {/* Medicine Allocation Form */}
@@ -2661,6 +2969,33 @@ export default function ViewPatientProfile() {
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
           Medicine Allocation
         </h2>
+        
+        {/* ================ TC-069: Stock status indicator ================ */}
+        <div className="mb-2 flex justify-between items-center">
+          <div className="text-sm">
+            <span className="text-gray-600 dark:text-gray-400">Available medicines: </span>
+            <span className="font-bold text-[#0EFF7B]">{medicineNames.length}</span>
+            {stockLoading && (
+              <span className="ml-2 text-xs text-gray-500">
+                <Loader2 className="inline h-3 w-3 animate-spin" /> Loading...
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={fetchStock}
+            className="text-xs text-[#0EFF7B] hover:underline flex items-center gap-1"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 4v6h-6" />
+              <path d="M1 20v-6h6" />
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+            </svg>
+            Refresh Stock
+          </button>
+        </div>
+        {/* ================ End of TC-069 indicator ================ */}
+
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <PatientNameDropdown />
@@ -2686,10 +3021,12 @@ export default function ViewPatientProfile() {
                         className="relative group text-green-500 hover:text-green-600 text-xl"
                       >
                         +
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
+                    transition-all duration-150"
+                        >
                           Add
                         </span>
                       </button>
@@ -2701,10 +3038,12 @@ export default function ViewPatientProfile() {
                         className="relative group text-red-500 hover:text-red-700 text-xl"
                       >
                         ×
-                        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
+                    transition-all duration-150"
+                        >
                           Close
                         </span>
                       </button>
@@ -2712,6 +3051,7 @@ export default function ViewPatientProfile() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {/* ================ TC-069: Using updated MedicineDropdown that shows ALL medicines ================ */}
                   <MedicineDropdown
                     label="Medicine Name"
                     name="medicineName"
@@ -2719,6 +3059,8 @@ export default function ViewPatientProfile() {
                     options={medicineNames}
                     index={index}
                   />
+                  {/* ================ End of TC-069 ================ */}
+                  
                   <DosageDropdown
                     label="Dosage"
                     name="dosage"
@@ -2738,7 +3080,9 @@ export default function ViewPatientProfile() {
                   <MultiFrequencyDropdown
                     index={index}
                     selected={med.frequency}
-                    onChange={(selected) => handleFrequencyChange(index, selected)}
+                    onChange={(selected) =>
+                      handleFrequencyChange(index, selected)
+                    }
                   />
                   <CustomInput
                     label="Duration"
@@ -2760,7 +3104,9 @@ export default function ViewPatientProfile() {
                     <span className="text-gray-600 dark:text-gray-400">
                       Available stock:{" "}
                     </span>
-                    <span className={`font-medium ${getAvailableQuantity(med.medicineName, med.dosage) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span
+                      className={`font-medium ${getAvailableQuantity(med.medicineName, med.dosage) > 0 ? "text-green-600" : "text-red-600"}`}
+                    >
                       {getAvailableQuantity(med.medicineName, med.dosage)}
                     </span>
                   </div>
@@ -2795,7 +3141,7 @@ export default function ViewPatientProfile() {
                             className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
                   border-gray-300 dark:border-[#3C3C3C] 
-                  ${loadingTestTypes ? 'bg-gray-200 dark:bg-gray-800 cursor-not-allowed' : 'bg-gray-100 dark:bg-black'}
+                  ${loadingTestTypes ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : "bg-gray-100 dark:bg-black"}
                   text-black dark:text-white text-left text-sm leading-none
                   shadow-[0_0_2.09px_#0EFF7B] outline-none
                   transition-all duration-300 font-[Helvetica]
@@ -2805,15 +3151,18 @@ export default function ViewPatientProfile() {
                 `}
                           >
                             <span className="block truncate">
-                              {loadingTestTypes ? "Loading test types..." : (test.labTest || "Select lab test")}
+                              {loadingTestTypes
+                                ? "Loading test types..."
+                                : test.labTest || "Select lab test"}
                             </span>
                             <span className="absolute right-3 inset-y-0 flex items-center pointer-events-none">
                               {loadingTestTypes ? (
                                 <div className="h-4 w-4 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
                               ) : (
                                 <ChevronDown
-                                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${open ? "rotate-180" : ""
-                                    }`}
+                                  className={`h-4 w-4 text-[#0EFF7B] transition-transform duration-200 ${
+                                    open ? "rotate-180" : ""
+                                  }`}
                                 />
                               )}
                             </span>
@@ -2856,10 +3205,12 @@ export default function ViewPatientProfile() {
                     className="relative group text-green-500 mt-5 hover:text-green-600 text-xl"
                   >
                     +
-                    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    <span
+                      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
           px-3 py-1 text-xs rounded-md shadow-md
           bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-          transition-all duration-150">
+          transition-all duration-150"
+                    >
                       Add
                     </span>
                   </button>
@@ -2871,10 +3222,12 @@ export default function ViewPatientProfile() {
                     className="relative group text-red-500 mt-5 hover:text-red-700 text-xl"
                   >
                     ×
-                    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    <span
+                      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
           px-3 py-1 text-xs rounded-md shadow-md
           bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-          transition-all duration-150">
+          transition-all duration-150"
+                    >
                       Close
                     </span>
                   </button>
@@ -2930,13 +3283,27 @@ export default function ViewPatientProfile() {
                   key={item.id || index}
                   className="border border-gray-200 dark:border-gray-700 text-center text Black dark:text-[#FFFFFF] hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D] bg-gray-100 dark:bg-black"
                 >
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.patient_name)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.patient_id)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.doctor)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.allocation_date)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.medicine_name)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.dosage)}</td>
-                  <td className="py-1.5 px-2 sm:px-3">{displayValue(item.duration)}</td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.patient_name)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.patient_id)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.doctor)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.allocation_date)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.medicine_name)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.dosage)}
+                  </td>
+                  <td className="py-1.5 px-2 sm:px-3">
+                    {displayValue(item.duration)}
+                  </td>
                   <td className="py-1.5 px-2 sm:px-3">
                     {item.frequency && item.frequency.length > 0 ? (
                       <span className="text-[#0EFF7B] font-medium">
@@ -2962,10 +3329,12 @@ export default function ViewPatientProfile() {
                         className="relative group text-blue-500 hover:text-blue-700 transition-colors"
                       >
                         <Edit size={16} />
-                        <span className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
                           px-3 py-1 text-xs rounded-md shadow-md
                           bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                          transition-all duration-150">
+                          transition-all duration-150"
+                        >
                           Edit
                         </span>
                       </button>
@@ -2974,10 +3343,12 @@ export default function ViewPatientProfile() {
                         className="relative group text-red-500 hover:text-red-700 transition-colors"
                       >
                         <Trash2 size={16} />
-                        <span className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
+                        <span
+                          className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
                           px-3 py-1 text-xs rounded-md shadow-md
                           bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                          transition-all duration-150">
+                          transition-all duration-150"
+                        >
                           Delete
                         </span>
                       </button>
@@ -2994,6 +3365,10 @@ export default function ViewPatientProfile() {
           )}
         </div>
       </div>
+
+      {/* ================ TC-069: Debug Component (Remove in production) ================ */}
+      <StockDebugInfo />
+      {/* ================ End of Debug Component ================ */}
 
       {isEditPopupOpen && editingMedicine && (
         <EditMedicineAllocationPopup

@@ -1045,7 +1045,7 @@
 // hms_frontend/src/pages/Home/Profile.jsx - Cookie-based authentication
 // hms_frontend/src/pages/Home/Profile.jsx - Complete updated file
 // hms_frontend/src/pages/Home/Profile.jsx - Complete updated file
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaEnvelope,
   FaPhone,
@@ -1077,6 +1077,7 @@ const Profile = () => {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [removePicture, setRemovePicture] = useState(false);
   const [temporaryImage, setTemporaryImage] = useState(null); // Track temporary image changes
+  const countryDropdownRef = useRef(null);
   
   // Country list for dropdown
   const [countries] = useState([
@@ -1289,12 +1290,18 @@ const Profile = () => {
   };
 
   useEffect(() => {
-    const closeDropdown = (e) => {
-      if (!e.target.closest(".relative")) setShowCountryDropdown(false);
-    };
-    document.addEventListener("click", closeDropdown);
-    return () => document.removeEventListener("click", closeDropdown);
-  }, []);
+  const closeDropdown = (e) => {
+    if (
+      countryDropdownRef.current &&
+      !countryDropdownRef.current.contains(e.target)
+    ) {
+      setShowCountryDropdown(false);
+    }
+  };
+
+  document.addEventListener("mousedown", closeDropdown);
+  return () => document.removeEventListener("mousedown", closeDropdown);
+}, []);
 
   useEffect(() => {
     if (temporaryImage && temporaryImage !== ProfileImage) {
@@ -2024,7 +2031,7 @@ const Profile = () => {
                 {isEditing && <span className="text-red-500 ml-1">*</span>}
               </div>
 
-              <div className="relative">
+              <div className="relative" ref={countryDropdownRef}>
                 <FaMapMarkerAlt className="absolute left-3 top-3 text-[#0EFF7B]" />
                 <button
                   type="button"

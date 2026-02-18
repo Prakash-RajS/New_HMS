@@ -88,55 +88,6 @@ DATABASES = {
     }
 }
 # DATABASES = {
-#      "default": {
-#          "ENGINE": "django.db.backends.mysql",
-#          "NAME": "hms_project_prod_db", 
-#          "USER": "hms_prod_user",
-#          "PASSWORD": "StrongProdPass@123",
-#          "HOST": "hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com",
-#          "PORT": "3306",
-#          "CONN_MAX_AGE": 300,
-#          "OPTIONS": {
-#             "connect_timeout": 5,
-#             "read_timeout": 20,
-#             "write_timeout": 20,
-#             "charset": "utf8mb4",
-#         },
-#      }
-#  }
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "hms_project_prod_db",
-#         "USER": "hms_prod_user",
-#         "PASSWORD": "StrongProdPass@123",
-#         "HOST": "hms-project-db.c54840ii8psl.us-east-2.rds.amazonaws.com",
-#         "PORT": "3306",
-#         "CONN_MAX_AGE": 60,  # 🔥 IMPORTANT
-#         "OPTIONS": {
-#             "connect_timeout": 10,
-#             "read_timeout": 30,
-#             "write_timeout": 30,
-#             "charset": "utf8mb4",
-#         },
-#     }
-#}
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'hms_database',
-#         'USER': 'admin',
-#         'PASSWORD': 'StacklyDB2026',
-#         'HOST': 'hms-prod-database.c54840ii8psl.us-east-2.rds.amazonaws.com',
-#         'PORT': '3306',
-#         'CONN_MAX_AGE': 60,   # 🔥 VERY IMPORTANT
-#         'OPTIONS': {
-#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-#         }
-#     }
-# }
-
-# DATABASES = {
 #     "default": {
 #         "ENGINE": "django.db.backends.mysql",
 #         "NAME": "hms_db",
@@ -144,8 +95,12 @@ DATABASES = {
 #         "PASSWORD": "Hms@2026_Test!",
 #         "HOST": "localhost",
 #         "PORT": "3306",
-#         "OPTIONS": { "charset": "utf8mb4" },
-#         "CONN_MAX_AGE": 0,  # Explicitly set to avoid persistence issues
+#         "OPTIONS": {
+#             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+#             "charset": "utf8mb4",
+#             "connect_timeout": 10,
+#         },
+#         "CONN_MAX_AGE": 60,  # ✅ important
 #     }
 # }
 

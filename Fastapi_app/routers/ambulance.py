@@ -675,6 +675,8 @@ import asyncio
 from HMS_backend.models import AmbulanceUnit, Dispatch, Trip, Patient
 
 from django.db import close_old_connections, connection
+from django.db.models import Q
+from datetime import timedelta
 
 # ------------------- Database Health Check -------------------
 def check_db_connection():
@@ -881,6 +883,42 @@ async def safe_delete(model, obj_id: int, name: str):
     if deleted[0] == 0:
         raise HTTPException(status_code=404, detail=f"{name} not found")
     return deleted
+
+# ==============================================
+# Helper function to check for duplicate trips
+# ==============================================
+async def check_duplicate_trip(dispatch_id: Optional[int], unit_id: Optional[int], 
+                               start_time: Optional[datetime], end_time: Optional[datetime],
+                               exclude_trip_id: Optional[int] = None):
+    """
+    Check if there's already a trip with the same dispatch and unit during overlapping time period
+    """
+    if not dispatch_id or not unit_id or not start_time:
+        return False
+    
+    # If no end time provided, assume a default duration of 2 hours for overlap checking
+    effective_end = end_time
+    if not effective_end:
+        effective_end = start_time + timedelta(hours=2)
+    
+    # Build query for overlapping trips
+    query = Q(dispatch_id=dispatch_id, unit_id=unit_id)
+    
+    # Exclude the current trip if updating
+    if exclude_trip_id:
+        query &= ~Q(id=exclude_trip_id)
+    
+    # Check for overlapping time periods
+    # Condition: New trip overlaps with existing trip if:
+    # new_start < existing_end AND new_end > existing_start
+    overlapping_trips = await sync_to_async(lambda: list(
+        Trip.objects.filter(query).filter(
+            Q(start_time__lt=effective_end) & 
+            (Q(end_time__isnull=True) | Q(end_time__gt=start_time))
+        )
+    ))()
+    
+    return len(overlapping_trips) > 0
 
 # ==============================================
 # Notification Helper Functions
@@ -1158,7 +1196,7 @@ async def delete_dispatch(dispatch_id: int):
     await notify_dispatch_deleted(dispatch_id, dispatch_id_str)
 
 # ==============================================
-# Trip Endpoints – FULLY FIXED
+# Trip Endpoints – FIXED with duplicate validation
 # ==============================================
 @router.get("/trips", response_model=List[TripResponse])
 async def list_trips():
@@ -1204,6 +1242,20 @@ async def list_trips():
 @router.post("/trips", response_model=TripResponse, status_code=201)
 async def create_trip(payload: TripCreate):
     try:
+        # Check for duplicate trip first
+        is_duplicate = await check_duplicate_trip(
+            dispatch_id=payload.dispatch_id,
+            unit_id=payload.unit_id,
+            start_time=payload.start_time,
+            end_time=payload.end_time
+        )
+        
+        if is_duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A trip with this dispatcher and unit already exists during this time period. Please choose a different time, dispatcher, or unit."
+            )
+        
         # Fetch related objects
         dispatch = None
         if payload.dispatch_id:
@@ -1266,6 +1318,21 @@ async def create_trip(payload: TripCreate):
 @router.put("/trips/{trip_id}", response_model=TripResponse)
 async def update_trip(trip_id: int, payload: TripUpdate):
     try:
+        # Check for duplicate trip (excluding current trip)
+        is_duplicate = await check_duplicate_trip(
+            dispatch_id=payload.dispatch_id,
+            unit_id=payload.unit_id,
+            start_time=payload.start_time,
+            end_time=payload.end_time,
+            exclude_trip_id=trip_id
+        )
+        
+        if is_duplicate:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A trip with this dispatcher and unit already exists during this time period. Please choose a different time, dispatcher, or unit."
+            )
+        
         t = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.get(id=trip_id))[1])()
         if payload.dispatch_id is not None:
             t.dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=payload.dispatch_id))[1])() if payload.dispatch_id else None

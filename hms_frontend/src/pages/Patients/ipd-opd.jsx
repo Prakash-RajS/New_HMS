@@ -808,6 +808,13 @@ const AppointmentListIPD = () => {
   const [filterDoctors, setFilterDoctors] = useState([]);
   const [loadingFilterDepts, setLoadingFilterDepts] = useState(true);
   const [loadingFilterDocs, setLoadingFilterDocs] = useState(false);
+  
+  // Add state for patient counts from backend
+  const [patientCounts, setPatientCounts] = useState({
+    total: 0,
+    inPatient: 0,
+    outPatient: 0
+  });
 
   const [filters, setFilters] = useState({
     patientName: "",
@@ -824,22 +831,61 @@ const AppointmentListIPD = () => {
   // Status filters - removed "Completed"
   const statusFilters = ["All", "New", "Normal", "Severe", "Cancelled"];
 
-  // Calculate counts based on patient type
-  const calculatePatientCounts = useMemo(() => {
-    if (allAppointments.length === 0) {
-      return { inPatientCount: 0, outPatientCount: 0 };
+  // ---------- FETCH PATIENT COUNTS FROM BACKEND ----------
+  const fetchPatientCounts = async () => {
+    try {
+      // You might need to create a new endpoint for counts, or use existing one with limit=1 to get total
+      // For now, we'll fetch a small batch to get total count from response
+      const response = await api.get("/patients/", {
+        params: { limit: 1, page: 1 }
+      });
+      
+      const json = response.data;
+      
+      // Get in-patients count (excluding completed/discharged)
+      const inPatientResponse = await api.get("/patients/", {
+        params: { 
+          limit: 1, 
+          page: 1,
+          type: "in-patient" 
+        }
+      });
+      
+      // Get out-patients count
+      const outPatientResponse = await api.get("/patients/", {
+        params: { 
+          limit: 1, 
+          page: 1,
+          type: "out-patient" 
+        }
+      });
+      
+      // For OPD (completed/discharged) you might want to use your /opd endpoint
+      const opdResponse = await api.get("/patients/opd", {
+        params: { limit: 1, page: 1 }
+      });
+      
+      setPatientCounts({
+        total: json.total || 0,
+        inPatient: inPatientResponse.data.total || 0,
+        outPatient: outPatientResponse.data.total || 0
+        // If you want OPD count separately, you can add it here
+      });
+      
+    } catch (e) {
+      console.error("Error fetching patient counts:", e);
+      // Fallback to frontend calculation if backend fails
+      if (allAppointments.length > 0) {
+        const inCount = allAppointments.filter(p => p.patient_type === "in-patient" && p.status !== "Completed").length;
+        const outCount = allAppointments.filter(p => p.patient_type === "out-patient").length;
+        setPatientCounts({
+          total: inCount + outCount,
+          inPatient: inCount,
+          outPatient: outCount
+        });
+      }
     }
-    
-    const inPatientCount = allAppointments.filter(patient => 
-      patient.patient_type === "in-patient" && patient.status !== "Completed"
-    ).length;
-    
-    const outPatientCount = allAppointments.filter(patient => 
-      patient.patient_type === "out-patient"
-    ).length;
-    
-    return { inPatientCount, outPatientCount };
-  }, [allAppointments]);
+  };
 
   // ---------- FETCH ALL DATA ----------
   const fetchAllData = async () => {
@@ -873,15 +919,17 @@ const AppointmentListIPD = () => {
         treatment: p.appointment_type || "N/A",
         discharge: p.discharge || "Pending",
         status: p.casualty_status || "Active",
-        patient_type: p.patient_type || "in-patient", // Add patient_type from backend
+        patient_type: p.patient_type || "in-patient",
         photo_url: p.photo_url || null,
       }));
 
       console.log("Total patients fetched:", mapped.length);
-      console.log("Sample patients:", mapped.slice(0, 3));
       
       // Store ALL patients
       setAllAppointments(mapped);
+      
+      // Fetch patient counts from backend
+      await fetchPatientCounts();
       
       // Apply initial filter based on activeTab
       applyClientSideFilter(mapped, activeTab);
@@ -897,130 +945,115 @@ const AppointmentListIPD = () => {
 
   // ---------- CLIENT-SIDE FILTERING FUNCTION ----------
   const applyClientSideFilter = (allPatients, patientType) => {
-  if (!allPatients || allPatients.length === 0) {
-    setAppointments([]);
-    setTotal(0);
-    setPages(1);
-    return;
-  }
-  
-  let filteredData = [...allPatients];
-  
-  // Apply patient type filter based on activeTab
-  if (patientType === "In-Patients") {
-    filteredData = filteredData.filter(patient => 
-      patient.patient_type === "in-patient" && patient.status !== "Completed"
-    );
-  } else if (patientType === "Out-Patients") {
-    filteredData = filteredData.filter(patient => 
-      patient.patient_type === "out-patient"
-    );
-  }
-  
-  // Apply status filter
-  if (activeFilter && activeFilter !== "All") {
-    filteredData = filteredData.filter(patient => {
-      return patient.status === activeFilter;
-    });
-  }
-  
-  // Apply search filter
-  if (search) {
-    const searchLower = search.toLowerCase();
-    filteredData = filteredData.filter(patient => 
-      patient.patient.toLowerCase().includes(searchLower) || 
-      (patient.patientId && patient.patientId.toLowerCase().includes(searchLower))
-    );
-  }
-  
-  // Apply other filters from filter popup
-  if (filters.patientName) {
-    const nameLower = filters.patientName.toLowerCase();
-    filteredData = filteredData.filter(patient => 
-      patient.patient.toLowerCase().includes(nameLower)
-    );
-  }
-  
-  if (filters.patientId) {
-    filteredData = filteredData.filter(patient => 
-      patient.patientId && patient.patientId.includes(filters.patientId)
-    );
-  }
-  
-  // FIXED: Department filter - find department name from ID
-  if (filters.department && filters.department !== "") {
-    // Try to get department name from filterDepartments
-    let deptNameToMatch = filters.department;
+    if (!allPatients || allPatients.length === 0) {
+      setAppointments([]);
+      setTotal(0);
+      setPages(1);
+      return;
+    }
     
-    // If filterDepartments is populated, try to find the department
-    if (filterDepartments.length > 0) {
-      const foundDept = filterDepartments.find(dept => 
-        dept.id === filters.department || 
-        dept.department_id === filters.department
+    let filteredData = [...allPatients];
+    
+    // Apply patient type filter based on activeTab
+    if (patientType === "In-Patients") {
+      filteredData = filteredData.filter(patient => 
+        patient.patient_type === "in-patient" && patient.status !== "Completed"
       );
+    } else if (patientType === "Out-Patients") {
+      filteredData = filteredData.filter(patient => 
+        patient.patient_type === "out-patient"
+      );
+    }
+    
+    // Apply status filter
+    if (activeFilter && activeFilter !== "All") {
+      filteredData = filteredData.filter(patient => {
+        return patient.status === activeFilter;
+      });
+    }
+    
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredData = filteredData.filter(patient => 
+        patient.patient.toLowerCase().includes(searchLower) || 
+        (patient.patientId && patient.patientId.toLowerCase().includes(searchLower))
+      );
+    }
+    
+    // Apply other filters from filter popup
+    if (filters.patientName) {
+      const nameLower = filters.patientName.toLowerCase();
+      filteredData = filteredData.filter(patient => 
+        patient.patient.toLowerCase().includes(nameLower)
+      );
+    }
+    
+    if (filters.patientId) {
+      filteredData = filteredData.filter(patient => 
+        patient.patientId && patient.patientId.includes(filters.patientId)
+      );
+    }
+    
+    // Department filter
+    if (filters.department && filters.department !== "") {
+      let deptNameToMatch = filters.department;
       
-      if (foundDept) {
-        // Use the department name for comparison
-        deptNameToMatch = foundDept.name || foundDept.department_name || filters.department;
+      if (filterDepartments.length > 0) {
+        const foundDept = filterDepartments.find(dept => 
+          dept.id === filters.department || 
+          dept.department_id === filters.department
+        );
+        
+        if (foundDept) {
+          deptNameToMatch = foundDept.name || foundDept.department_name || filters.department;
+        }
+      }
+      
+      filteredData = filteredData.filter(patient => 
+        patient.department === deptNameToMatch
+      );
+    }
+    
+    // Doctor filter
+    if (filters.doctor && filters.doctor !== "") {
+      filteredData = filteredData.filter(patient => 
+        patient.doctor === filters.doctor || 
+        patient.doctor.includes(filters.doctor)
+      );
+    }
+    
+    if (filters.status && filters.status !== "") {
+      filteredData = filteredData.filter(patient => 
+        patient.status === filters.status
+      );
+    }
+    
+    if (filters.date) {
+      try {
+        const filterDate = new Date(filters.date).toLocaleDateString("en-GB");
+        filteredData = filteredData.filter(patient => 
+          patient.date === filterDate
+        );
+      } catch (e) {
+        console.error("Date filter error:", e);
       }
     }
     
-    console.log("Filtering by department:", deptNameToMatch);
-    filteredData = filteredData.filter(patient => 
-      patient.department === deptNameToMatch
-    );
-  }
-  
-  // FIXED: Doctor filter - handle potential ID vs name mismatch
-  if (filters.doctor && filters.doctor !== "") {
-    filteredData = filteredData.filter(patient => 
-      patient.doctor === filters.doctor || 
-      patient.doctor.includes(filters.doctor)
-    );
-  }
-  
-  if (filters.status && filters.status !== "") {
-    filteredData = filteredData.filter(patient => 
-      patient.status === filters.status
-    );
-  }
-  
-  if (filters.date) {
-    try {
-      const filterDate = new Date(filters.date).toLocaleDateString("en-GB");
-      filteredData = filteredData.filter(patient => 
-        patient.date === filterDate
-      );
-    } catch (e) {
-      console.error("Date filter error:", e);
+    // Calculate pagination
+    const totalFiltered = filteredData.length;
+    const totalPages = Math.ceil(totalFiltered / perPage);
+    const currentPage = Math.min(page, totalPages || 1);
+    const startIndex = (currentPage - 1) * perPage;
+    const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
+    
+    setAppointments(paginatedData);
+    setTotal(totalFiltered);
+    setPages(totalPages || 1);
+    if (currentPage !== page) {
+      setPage(currentPage);
     }
-  }
-  
-  // Calculate pagination
-  const totalFiltered = filteredData.length;
-  const totalPages = Math.ceil(totalFiltered / perPage);
-  const currentPage = Math.min(page, totalPages || 1);
-  const startIndex = (currentPage - 1) * perPage;
-  const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
-  
-  console.log("Filter results:", {
-    departmentFilter: filters.department,
-    filteredCount: totalFiltered,
-    showing: paginatedData.length,
-    samplePatients: paginatedData.slice(0, 3).map(p => ({
-      name: p.patient,
-      department: p.department,
-      status: p.status
-    }))
-  });
-  
-  setAppointments(paginatedData);
-  setTotal(totalFiltered);
-  setPages(totalPages || 1);
-  if (currentPage !== page) {
-    setPage(currentPage);
-  }
-};
+  };
 
   // Initial load - fetch ALL data
   useEffect(() => {
@@ -1283,7 +1316,7 @@ const AppointmentListIPD = () => {
         </button>
       </div>
 
-      {/* Today's Total - Updated with correct patient type counts */}
+      {/* Today's Total - Using backend counts */}
       <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">
@@ -1291,7 +1324,7 @@ const AppointmentListIPD = () => {
               Today's Total
             </span>
             <span className="w-6 h-6 flex items-center font-[Helvetica] text-[12px] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#0D2016] dark:bg-[#14DC6F]">
-              {calculatePatientCounts.inPatientCount + calculatePatientCounts.outPatientCount}
+              {patientCounts.total}
             </span>
           </div>
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
@@ -1300,7 +1333,7 @@ const AppointmentListIPD = () => {
               In-Patients
             </span>
             <span className="w-6 h-6 flex items-center text-[12px] font-[Helvetica] text-white justify-center gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#080C4C] dark:bg-[#0D7F41]">
-              {calculatePatientCounts.inPatientCount}
+              {patientCounts.inPatient}
             </span>
           </div>
           <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
@@ -1309,7 +1342,7 @@ const AppointmentListIPD = () => {
               Out-Patients
             </span>
             <span className="w-6 h-6 flex items-center font-[Helvetica] justify-center text-[12px] text-white gap-1 opacity-100 rounded-[20px] p-1 text-xs font-normal bg-[#7D3737] dark:bg-[#D97706]">
-              {calculatePatientCounts.outPatientCount}
+              {patientCounts.outPatient}
             </span>
           </div>
         </div>
@@ -1405,7 +1438,7 @@ const AppointmentListIPD = () => {
       ) : (
         <div className="overflow-x-hidden overflow-y-hidden">
           <table className="w-full text-left text-sm">
-            <thead className="text-[#0EFF7B] dark:text-[#0EFF7B] bg-gray-200 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+            <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
               <tr>
                 <th className="py-3 px-2">
                   <input
@@ -1664,7 +1697,13 @@ const AppointmentListIPD = () => {
                   label="Status"
                   value={filters.status}
                   onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={["New", "Normal", "Severe", "Cancelled"]} // Removed "Completed"
+                  options={[
+    "Active",
+    "New",
+    "Normal",
+    "Severe",
+    "Cancelled",
+  ]}
                 />
                 <div>
                   <label className="text-sm text-black dark:text-white">

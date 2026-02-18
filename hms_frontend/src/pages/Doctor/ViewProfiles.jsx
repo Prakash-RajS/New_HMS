@@ -478,7 +478,6 @@
 //   );
 // };
 
-// export default DoctorProfile;
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -804,24 +803,48 @@ const DoctorProfile = () => {
     }
   };
   // Parse certificates from comma-separated string
-  const parseCertificates = (certificatesString) => {
-    if (!certificatesString || certificatesString.trim() === '') {
-      return [];
+  // Parse certificates from comma-separated string with proper file names
+const parseCertificates = (certificatesString) => {
+  if (!certificatesString || certificatesString.trim() === '') {
+    return [];
+  }
+  
+  const certificatePaths = certificatesString.split(',').map(path => path.trim());
+  
+  return certificatePaths.map((path, index) => {
+    // Extract the original file name from the path
+    const fullPath = path;
+    const fileName = path.split('/').pop();
+    
+    // Try to get the original file name (it might be in the path structure)
+    // Sometimes the path is like: certificates/doctor_id/OriginalFileName_timestamp.ext
+    let displayName = fileName;
+    
+    // If the file name has timestamp pattern, try to extract original name
+    // Common patterns: "MBBS_Certificate_1234567890.pdf" -> "MBBS_Certificate.pdf"
+    if (fileName.includes('_')) {
+      const parts = fileName.split('_');
+      // Check if last part is timestamp (all digits before extension)
+      const lastPart = parts[parts.length - 1];
+      const hasTimestamp = /^\d+\..+$/.test(lastPart) || /^\d+$/.test(lastPart.split('.')[0]);
+      
+      if (hasTimestamp) {
+        // Remove the timestamp part
+        parts.pop();
+        displayName = parts.join('_');
+      }
     }
-   
-    const certificatePaths = certificatesString.split(',').map(path => path.trim());
-   
-    return certificatePaths.map((path, index) => {
-      const fileName = getFileNameFromPath(path);
-     
-      return {
-        id: index + 1,
-        name: fileName,
-        originalPath: path,
-        cleanPath: path
-      };
-    });
-  };
+    
+    return {
+      id: index + 1,
+      name: displayName,
+      originalPath: path,
+      fullPath: path,
+      displayName: displayName,
+      originalName: fileName
+    };
+  });
+};
  
   const handleViewCertificate = (certificate) => {
     const filePath = certificate.originalPath;
@@ -830,50 +853,161 @@ const DoctorProfile = () => {
     window.open(fileUrl, "_blank");
   };
   // Handle download certificate
- const handleDownloadCertificate = async (certificate) => {
+// FIXED: Force download with multiple fallback methods
+const handleDownloadCertificate = async (certificate) => {
   try {
-    if (!certificate?.originalPath) {
-      errorToast("Certificate file not found.");
-      return;
+    // Show loading toast
+    successToast("Preparing download...");
+    
+    const filePath = certificate.fullPath || certificate.originalPath || certificate.path;
+    
+    // Handle both string paths and object paths
+    let finalPath = '';
+    if (typeof filePath === 'string') {
+      finalPath = filePath;
+    } else if (filePath?.path) {
+      finalPath = filePath.path;
     }
-
-    const response = await api.post(
-      "/staff/download-certificate",
-      { path: certificate.originalPath },
-      { responseType: "blob" }
-    );
-
-    const blob = new Blob([response.data]);
-    const url = window.URL.createObjectURL(blob);
-
-    const filename = certificate.originalPath
-      .split(",")[0]
-      .split("/")
-      .pop()
-      .replace(/["“”]/g, "")
-      .trim();
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", filename);
-
+    
+    // Clean up the path - remove any leading slashes
+    finalPath = finalPath.replace(/^\/+/, '');
+    
+    // Get the file name
+    let fileName = certificate.displayName || certificate.name || certificate.originalName || 'certificate';
+    
+    // Ensure file has extension
+    if (!fileName.includes('.')) {
+      // Try to determine extension from path
+      const pathParts = finalPath.split('.');
+      if (pathParts.length > 1) {
+        const ext = pathParts.pop();
+        fileName += `.${ext}`;
+      } else {
+        fileName += '.pdf'; // Default to PDF
+      }
+    }
+    
+    console.log("Downloading:", { finalPath, fileName });
+    
+    // METHOD 1: Using fetch with blob (most reliable)
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/${finalPath}`, {
+        headers,
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        
+        // Create blob URL
+        const blobUrl = window.URL.createObjectURL(blob);
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = fileName;
+        link.style.display = 'none';
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+        }, 100);
+        
+        successToast("Download started");
+        return;
+      }
+    } catch (fetchError) {
+      console.log("Fetch method failed, trying next method...", fetchError);
+    }
+    
+    // METHOD 2: Using axios or api instance
+    try {
+      const response = await api.get(`/${finalPath}`, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/octet-stream'
+        }
+      });
+      
+      const blob = new Blob([response.data]);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
+      
+      successToast("Download started");
+      return;
+    } catch (axiosError) {
+      console.log("Axios method failed, trying next method...", axiosError);
+    }
+    
+    // METHOD 3: Using iframe (fallback for PDFs)
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/${finalPath}?download=true&t=${Date.now()}`;
+      
+      iframe.src = downloadUrl;
+      
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+      
+      successToast("Download started");
+      return;
+    } catch (iframeError) {
+      console.log("Iframe method failed", iframeError);
+    }
+    
+    // METHOD 4: Direct link with download attribute (last resort)
+    const directUrl = `${import.meta.env.VITE_API_BASE_URL}/${finalPath}`;
+    const link = document.createElement('a');
+    link.href = directUrl;
+    link.download = fileName;
+    link.target = '_blank'; // This might cause preview, but it's last resort
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
-    window.URL.revokeObjectURL(url);
-
-    successToast("Certificate downloaded successfully");
-  } catch (err) {
-    console.error("Download error:", err);
-    errorToast(
-      err.response?.data?.detail ||
-      "Failed to download certificate"
-    );
+    
+    setTimeout(() => {
+      document.body.removeChild(link);
+    }, 100);
+    
+  } catch (error) {
+    console.error("All download methods failed:", error);
+    errorToast("Failed to download. Please try right-click and 'Save link as...'");
+    
+    // Final fallback: Open in new tab and let user save manually
+    const filePath = certificate.fullPath || certificate.originalPath || certificate.path;
+    let finalPath = typeof filePath === 'string' ? filePath : filePath?.path || '';
+    finalPath = finalPath.replace(/^\/+/, '');
+    const fileUrl = `${import.meta.env.VITE_API_BASE_URL}/${finalPath}`;
+    
+    window.open(fileUrl, '_blank');
+    errorToast("File opened in new tab. Please use right-click → Save as...");
   }
 };
-
-
  
   // UPDATED: Dropdown component with error support
   const Dropdown = ({

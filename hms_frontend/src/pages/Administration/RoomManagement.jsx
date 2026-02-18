@@ -155,9 +155,16 @@ const RoomManagement = () => {
   };
 
   const handleEditClick = (room) => {
-    setRoomToEdit(room);
-    setShowEditPopup(true);
-  };
+  // ❌ Do not allow edit if bed is Available
+  if (room.status === "Available") {
+    errorToast("Editing is not allowed for available bed groups");
+    return;
+  }
+
+  // ✅ Allow edit only when Not Available
+  setRoomToEdit(room);
+  setShowEditPopup(true);
+};
 
   const handleDischargeClick = (room) => {
     setDischargeRoom(room);

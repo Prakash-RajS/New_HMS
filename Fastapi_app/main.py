@@ -277,24 +277,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Explicitly allow your frontend origin
-    allow_credentials=True,  # ✅ REQUIRED for cookies
-    allow_methods=["*"],  # Allow all methods
+    allow_origins=[            # if you later add https
+        "http://localhost:5173",              # dev - vite
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
         "Authorization",
         "Accept",
-        "Origin",
         "X-Requested-With",
-        "X-CSRF-Token",
-        "Set-Cookie",  # ✅ Allow Set-Cookie header
+        "Set-Cookie",
+        "Cookie",
     ],
-    expose_headers=[
-        "Set-Cookie",  # ✅ Expose Set-Cookie header to frontend
-        "Authorization",
-        "Content-Type",
-    ],
-    max_age=600,  # Cache preflight requests for 10 minutes
+    expose_headers=["Set-Cookie", "Authorization"],
+    max_age=86400,  # 24 hours
 )
 
 # ==================== STATIC FILES ====================

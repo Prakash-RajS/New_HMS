@@ -1360,12 +1360,12 @@ const menuItems = [
         icon: Bed,
         permission: "room_management",
       },
-      {
-        name: "Staff Management",
-        path: "/Administration/StaffManagement",
-        icon: UserCog,
-        permission: "staff_management",
-      },
+      // {
+      //   name: "Staff Management",
+      //   path: "/Administration/StaffManagement",
+      //   icon: UserCog,
+      //   permission: "staff_management",
+      // },
     ],
   },
   // Pharmacy
@@ -1481,6 +1481,7 @@ const menuItems = [
 const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const currentPath = location.pathname.toLowerCase();
 
   const hasDropdown = item.dropdown && item.dropdown.length > 0;
 
@@ -1498,13 +1499,20 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
     return null;
   }
 
+  // Case-insensitive path matching
   const isParentActive = item.paths
-    ? item.paths.some((p) => location.pathname.startsWith(p))
-    : location.pathname.startsWith(item.path);
+    ? item.paths.some(p => currentPath.startsWith(p.toLowerCase()))
+    : currentPath.startsWith(item.path.toLowerCase());
 
   const isExactActive = item.paths
-    ? item.paths.includes(location.pathname)
-    : location.pathname === item.path;
+    ? item.paths.some(p => currentPath === p.toLowerCase())
+    : currentPath === item.path.toLowerCase();
+
+  useEffect(() => {
+    if (isParentActive) {
+      setIsOpen(true);
+    }
+  }, [isParentActive]);
 
   const Icon = item.icon;
   const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
@@ -1573,31 +1581,40 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
       ) : (
         <NavLink
           to={item.path}
-          className={({ isActive }) =>
-            `w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
+          className={({ isActive }) => {
+            // For NavLink, we need to handle case-insensitive matching
+            const isNavLinkActive = isActive || 
+              (item.paths ? item.paths.some(p => currentPath === p.toLowerCase()) : currentPath === item.path.toLowerCase());
+            
+            return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
             ${
-              isActive
+              isNavLinkActive
                 ? "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] text-white shadow-[0px_2px_8px_0px_#0EFF7B40]"
                 : "text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-black hover:bg-gradient-to-r hover:from-[#0EFF7B] hover:to-[#08994A] hover:shadow-[0px_2px_8px_0px_#0EFF7B40]"
-            }`
-          }
+            }`;
+          }}
         >
-          {({ isActive }) => (
-            <>
-              <Icon
-                className={`${iconSizeClass} ${
-                  isActive
-                    ? "text-white"
-                    : "text-[#08994A] dark:text-emerald-500"
-                }`}
-              />
-              {!isCollapsed && (
-                <span className={`${textSizeClass} font-[Helvetica]`}>
-                  {item.name}
-                </span>
-              )}
-            </>
-          )}
+          {({ isActive }) => {
+            const isActiveState = isActive || 
+              (item.paths ? item.paths.some(p => currentPath === p.toLowerCase()) : currentPath === item.path.toLowerCase());
+            
+            return (
+              <>
+                <Icon
+                  className={`${iconSizeClass} ${
+                    isActiveState
+                      ? "text-white"
+                      : "text-[#08994A] dark:text-emerald-500"
+                  }`}
+                />
+                {!isCollapsed && (
+                  <span className={`${textSizeClass} font-[Helvetica]`}>
+                    {item.name}
+                  </span>
+                )}
+              </>
+            );
+          }}
         </NavLink>
       )}
     </li>
@@ -1801,4 +1818,4 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       )}
     </div>
   );
-}
+} 

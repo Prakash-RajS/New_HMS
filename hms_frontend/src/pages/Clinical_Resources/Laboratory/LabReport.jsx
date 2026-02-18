@@ -308,29 +308,29 @@ const LabReport = () => {
   };
 
   // Download the lab report
-  const handleDownloadReport = (filePath, orderId) => {
-    if (!filePath) {
-      errorToast("No lab report file available to download.");
-      return;
-    }
+  // Download the lab report - FIXED VERSION
+const handleDownloadReport = (filePath, orderId, testType) => {
+  if (!filePath) {
+    errorToast("No lab report file available to download.");
+    return;
+  }
 
-    try {
-      // Extract just the filename from /uploads/lab_reports/xxx.pdf
-      const filename = filePath.split("/").pop();
-      
-      // Use the dedicated download endpoint
-      const downloadUrl = `/labreports/download/${filename}`;
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `Lab_Report_${orderId}.pdf`;  // Suggested filename
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Error triggering download:", error);
-      errorToast("Failed to download lab report");
-    }
-  };
+  try {
+    // Use the download endpoint with report ID (similar to working example)
+    const downloadUrl = `${API_BASE}/labreports/${orderId}/download`; // Use orderId as report ID
+    
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `Lab_Report_${testType || orderId}.pdf`; // Suggested filename
+    link.target = '_blank'; // Add target blank like working example
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Error triggering download:", error);
+    errorToast("Failed to download lab report");
+  }
+};
 
   // === Status Counts ===
   const statusCounts = {
@@ -651,7 +651,7 @@ const LabReport = () => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
+                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#00000] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
               />
             </div>
             <button
@@ -765,16 +765,16 @@ const LabReport = () => {
                           {/* Download Button */}
                           <div className="relative group">
                             <button
-                              onClick={() =>
-                                handleDownloadReport(order.filePath, order.orderId)
-                              }
-                              className="flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
-                            >
-                              <Download
-                                size={18}
-                                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                              />
-                            </button>
+  onClick={() =>
+    handleDownloadReport(order.filePath, order.id, order.testType) // Pass order.id and testType
+  }
+  className="flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
+>
+  <Download
+    size={18}
+    className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+  />
+</button>
                             <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
                               Download Report
                             </span>

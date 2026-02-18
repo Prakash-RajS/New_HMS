@@ -355,7 +355,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const consultationTypes = ["General", "Specialist", "Emergency"];
   const appointmentTypes = ["In-person", "Online", "Follow-up"];
-  const casualtyTypes = ["Yes", "No"];
+  const casualtyTypes = ["Normal", "Severe"];
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateFullnameFormat = (value) => {
@@ -402,104 +402,159 @@ export default function NewRegistration({ isSidebarOpen }) {
     return matrix[b.length][a.length];
   };
 
-  // Enhanced email validation for TC_097
-  const validateEmailFormat = (value) => {
-    const email = value.trim();
-    if (!email) return "Email is required";
+  // ✅ FIXED: Enhanced email validation for TC_097 - blocks araa@a.com
+  // ✅ FIXED: Enhanced email validation with TLD length limits
+const validateEmailFormat = (value) => {
+  const email = value.trim();
+  if (!email) return "Email is required";
 
-    // Enhanced email validation regex
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address (e.g., user@domain.com)";
+  // Check for minimum length
+  if (email.length < 5) {
+    return "Email is too short";
+  }
+
+  // Check for maximum length (RFC 5321)
+  if (email.length > 254) {
+    return "Email is too long (maximum 254 characters)";
+  }
+
+  // Check for @ symbol
+  if (!email.includes('@')) {
+    return "Email must contain @ symbol";
+  }
+
+  // Split into local and domain parts
+  const parts = email.split('@');
+  if (parts.length !== 2) {
+    return "Email must contain exactly one @ symbol";
+  }
+
+  const [localPart, domain] = parts;
+
+  // Local part validation
+  if (localPart.length < 1) {
+    return "Email username cannot be empty";
+  }
+  
+  // Local part max length (RFC 5321)
+  if (localPart.length > 64) {
+    return "Email username is too long (maximum 64 characters)";
+  }
+
+  // Domain validation - must contain at least one dot
+  if (!domain.includes('.')) {
+    return "Domain must contain a dot (e.g., domain.com)";
+  }
+
+  // Domain parts validation
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) {
+    return "Invalid domain format";
+  }
+
+  // Domain name max length (RFC 1035)
+  if (domain.length > 255) {
+    return "Domain name is too long (maximum 255 characters)";
+  }
+
+  // TLD validation - must be between 2 and 6 characters (common TLDs)
+  const tld = domainParts[domainParts.length - 1];
+  if (tld.length < 2) {
+    return "Please use a valid domain extension (e.g., .com, .org)";
+  }
+  
+  // ✅ NEW: Maximum TLD length validation
+  // Most common TLDs are 2-6 characters (.com, .org, .net, .info, .travel, etc.)
+  // Very long TLDs like .something are usually invalid
+  if (tld.length > 6) {
+    return "Domain extension is too long (maximum 6 characters, e.g., .com, .org)";
+  }
+
+  // Check for consecutive dots in domain
+  if (domain.includes('..')) {
+    return "Domain cannot contain consecutive dots";
+  }
+
+  // Strict regex validation for complete email format
+  // Updated regex to enforce reasonable TLD length (2-6 chars)
+  const strictEmailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,6}$/;
+  
+  if (!strictEmailRegex.test(email)) {
+    return "Please enter a valid email address (e.g., user@domain.com)";
+  }
+
+  // Check for common invalid patterns
+  const invalidPatterns = [
+    /\.\./, // No double dots anywhere
+    /@\./, // No @ immediately followed by dot
+    /\.@/, // No dot immediately before @
+    /^\./, // Cannot start with dot
+    /\.$/, // Cannot end with dot
+    /@.*@/, // Multiple @ symbols
+    /[<>()[\]\\,;:\s]/, // No special characters
+  ];
+
+  for (const pattern of invalidPatterns) {
+    if (pattern.test(email)) {
+      return "Invalid email format";
     }
+  }
 
-    // Check for common invalid patterns
-    const invalidPatterns = [
-      /\.\./, // No double dots
-      /@\./, // No @ immediately followed by dot
-      /\.@/, // No dot immediately before @
-      /^\./, // Cannot start with dot
-      /\.$/, // Cannot end with dot
-    ];
+  // Block single-letter domains (like a.com, b.org)
+  if (domainParts[0].length < 2) {
+    return "Domain name must be at least 2 characters";
+  }
 
-    for (const pattern of invalidPatterns) {
-      if (pattern.test(email)) {
-        return "Invalid email format";
-      }
+  // Block common invalid/placeholder domains
+  const blockedDomains = [
+    "example.com",
+    "test.com",
+    "domain.com",
+    "invalid.com",
+    "123.com",
+    "abc.com",
+    "xyz.com",
+    "gm.com",
+    "gmail.con",
+    "gmail.cm",
+    "gmailcom",
+    "email.com",
+    "mail.com",
+    "mailinator.com",
+    "tempmail.com",
+    "guerrillamail.com",
+    "10minutemail.com",
+    "yopmail.com",
+    "fakeemail.com",
+    "temp-mail.org",
+    "throwawayemail.com",
+    "dispostable.com",
+    "maildrop.cc"
+  ];
+
+  if (blockedDomains.includes(domain.toLowerCase())) {
+    return "Please use a valid email domain";
+  }
+
+  // Dynamic typo detection for major providers
+  const providers = [
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "icloud.com",
+    "protonmail.com"
+  ];
+
+  for (const provider of providers) {
+    const distance = levenshtein(domain.toLowerCase(), provider);
+    if (distance > 0 && distance <= 2) {
+      return `Did you mean ${localPart}@${provider}?`;
     }
+  }
 
-    const [localPart, domain] = email.toLowerCase().split('@');
-    
-    // Local part validation
-    if (localPart.length < 1) {
-      return "Email username is too short";
-    }
-    
-    if (localPart.length > 64) {
-      return "Email username is too long";
-    }
-
-    // Domain validation
-    const domainParts = domain.split('.');
-    if (domainParts.length < 2) {
-      return "Invalid domain format";
-    }
-
-    // TLD validation
-    const tld = domainParts[domainParts.length - 1];
-    if (tld.length < 2) {
-      return "Please use a valid domain extension";
-    }
-
-    // Block common invalid/placeholder domains (including test case example)
-    const blockedDomains = [
-      "example.com",
-      "test.com",
-      "domain.com",
-      "invalid.com",
-      "123.com",
-      "gm.com", // This was your test case (1234@gm.com)
-      "gmail.con", // Common typo
-      "gmail.cm",
-      "gmailcom",
-      "email.com",
-      "mail.com",
-      "mailinator.com",
-      "tempmail.com",
-      "guerrillamail.com",
-      "10minutemail.com",
-      "yopmail.com",
-      "fakeemail.com",
-      "temp-mail.org",
-      "throwawayemail.com",
-      "dispostable.com",
-      "maildrop.cc"
-    ];
-
-    if (blockedDomains.includes(domain.toLowerCase())) {
-      return "Please use a valid email domain";
-    }
-
-    // Dynamic typo detection for major providers
-    const providers = [
-      "gmail.com",
-      "yahoo.com",
-      "outlook.com",
-      "hotmail.com",
-      "icloud.com",
-      "protonmail.com"
-    ];
-
-    for (const provider of providers) {
-      const distance = levenshtein(domain, provider);
-      if (distance > 0 && distance <= 2) {
-        return `Did you mean ${localPart}@${provider}?`;
-      }
-    }
-
-    return "";
-  };
+  return "";
+};
 
   const validateWeightFormat = (value) => {
     if (
@@ -614,8 +669,8 @@ export default function NewRegistration({ isSidebarOpen }) {
       "consultType",
       "apptType",
       // "admitDate", // REMOVED - this makes it optional for TC_098
-      "roomNo",
-      "testReport",
+      // "roomNo",
+      // "testReport",
       "casualty",
       "reason",
       "department_id",
@@ -1335,14 +1390,14 @@ export default function NewRegistration({ isSidebarOpen }) {
                 required
                 error={fieldErrors.apptType}
               />
-              <DateField
+              {/* <DateField
                 label="Admit Date"
                 value={formData.admitDate}
                 onChange={handleDateChange("admitDate")}
                 restrictFuture={true}
                 // Removed required prop to make it optional for TC_098
-              />
-              <Dropdown
+              /> */}
+              {/* <Dropdown
                 label="Room / Bed No"
                 value={formData.roomNo}
                 onChange={handleDropdownChange("roomNo")}
@@ -1363,7 +1418,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 placeholder="Details"
                 required
                 error={validationErrors.testReport || fieldErrors.testReport}
-              />
+              /> */}
               <Dropdown
                 label="Casualty"
                 value={formData.casualty}
@@ -1408,6 +1463,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                 <p className="text-red-500 text-xs mt-1">
                   {fieldErrors.reason}
                 </p>
+              
               )}
             </div>
           </div>

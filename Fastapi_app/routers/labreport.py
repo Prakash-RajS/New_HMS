@@ -401,12 +401,32 @@ async def download_lab_report(filename: str):
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     
+    # Get file extension
+    ext = Path(filename).suffix.lower()
+    
+    # Determine media type based on extension
+    media_types = {
+        ".pdf": "application/pdf",
+        ".doc": "application/msword",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+    }
+    
+    media_type = media_types.get(ext, "application/octet-stream")
+    
+    # Ensure filename has extension
+    safe_filename = filename if ext in filename else f"{filename}{ext}"
+    
     # Force download with custom filename
     return FileResponse(
         path=file_path,
-        filename=f"Lab_Report_{filename.split('-')[0]}.pdf",  # Optional: cleaner name, adjust as needed
-        media_type="application/octet-stream",  # Forces download
-        headers={"Content-Disposition": f"attachment; filename=Lab_Report_{filename}"}
+        filename=f"Lab_Report_{safe_filename}",
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f"attachment; filename=\"Lab_Report_{safe_filename}\""
+        }
     )
     
 
@@ -466,14 +486,32 @@ async def download_lab_report(report_id: int):
             if not file_path.exists():
                 raise HTTPException(status_code=404, detail="File not found on server")
         
+        # Get extension
+        ext = file_path.suffix.lower()
+        
+        # Determine media type
+        media_types = {
+            ".pdf": "application/pdf",
+            ".doc": "application/msword",
+            ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".png": "image/png",
+        }
+        
+        media_type = media_types.get(ext, "application/octet-stream")
+        
         # Clean the test type for filename
         clean_test_type = report.test_type.replace(' ', '_').replace('/', '_')
         
         # Force download
         return FileResponse(
             path=file_path,
-            filename=f"Lab_Report_{report_id}_{clean_test_type}{file_path.suffix}",
-            media_type="application/octet-stream"
+            filename=f"Lab_Report_{report_id}_{clean_test_type}{ext}",
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=\"Lab_Report_{report_id}_{clean_test_type}{ext}\""
+            }
         )
         
     except ObjectDoesNotExist:

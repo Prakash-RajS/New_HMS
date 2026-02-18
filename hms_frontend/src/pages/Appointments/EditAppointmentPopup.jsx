@@ -61,6 +61,7 @@ export default function EditAppointmentPopup({
 
   // Validation functions
   const validatePatientNameFormat = (value) => {
+    if (!value.trim()) return "Patient name is required";
     if (value.trim() && !/^[A-Za-z\s'-]+$/.test(value)) 
       return "Name should only contain letters, spaces, hyphens, and apostrophes";
     if (value.trim() && value.trim().length < 2) 
@@ -69,6 +70,7 @@ export default function EditAppointmentPopup({
   };
 
   const validatePhoneFormat = (value) => {
+    if (!value.trim()) return "Phone number is required";
     if (value.trim() && !/^\d{10}$/.test(value)) 
       return "Phone number must be exactly 10 digits";
     
@@ -91,14 +93,24 @@ export default function EditAppointmentPopup({
     return "";
   };
 
-  const validateAppointmentDateTime = () => {
-    if (!formData.appointment_date) return "Appointment date is required";
-    if (!formData.appointment_time) return "Appointment time is required";
+  const validateAppointmentDate = (date) => {
+    if (!date) return "Appointment date is required";
+    return "";
+  };
+
+  const validateAppointmentTime = (time) => {
+    if (!time) return "Appointment time is required";
     
-    const selectedDate = new Date(`${formData.appointment_date}T${formData.appointment_time}`);
-    const now = new Date();
+    // Time format validation
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(time)) return "Please enter a valid time format (HH:MM)";
     
-    if (selectedDate < now) return "Appointment date and time cannot be in the past";
+    return "";
+  };
+
+  // No past check for edit
+  const validateAppointmentDateTime = (date, time) => {
+    if (!date || !time) return "";
     return "";
   };
 
@@ -114,8 +126,10 @@ export default function EditAppointmentPopup({
         .join(' ');
     }
     
-    setFormData(prev => ({ ...prev, [field]: processedValue }));
+    const newFormData = { ...formData, [field]: processedValue };
+    setFormData(newFormData);
     
+    // Clear specific field error when user starts typing
     if (validationErrors[field]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
@@ -124,6 +138,18 @@ export default function EditAppointmentPopup({
       });
     }
     
+    // Clear combined date-time error when either date or time is changed
+    if (field === "appointment_date" || field === "appointment_time") {
+      if (validationErrors.appointment_date_time) {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.appointment_date_time;
+          return newErrors;
+        });
+      }
+    }
+    
+    // Run validation for the changed field
     let formatError = "";
     
     switch (field) {
@@ -134,26 +160,42 @@ export default function EditAppointmentPopup({
         formatError = validatePhoneFormat(processedValue);
         break;
       case "appointment_date":
+        formatError = validateAppointmentDate(processedValue);
+        // Also validate combined date-time if both fields have values
+        if (!formatError && newFormData.appointment_time) {
+          const dateTimeError = validateAppointmentDateTime(
+            processedValue, 
+            newFormData.appointment_time
+          );
+          if (dateTimeError) {
+            setValidationErrors(prev => ({
+              ...prev,
+              appointment_date_time: dateTimeError
+            }));
+          }
+        }
+        break;
       case "appointment_time":
-        formatError = validateAppointmentDateTime();
-        if (formatError) {
-          setValidationErrors(prev => ({
-            ...prev,
-            appointment_date_time: formatError
-          }));
-        } else {
-          setValidationErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors.appointment_date_time;
-            return newErrors;
-          });
+        formatError = validateAppointmentTime(processedValue);
+        // Also validate combined date-time if both fields have values
+        if (!formatError && newFormData.appointment_date) {
+          const dateTimeError = validateAppointmentDateTime(
+            newFormData.appointment_date,
+            processedValue
+          );
+          if (dateTimeError) {
+            setValidationErrors(prev => ({
+              ...prev,
+              appointment_date_time: dateTimeError
+            }));
+          }
         }
         break;
       default:
         break;
     }
     
-    if (formatError && field !== "appointment_date" && field !== "appointment_time") {
+    if (formatError) {
       setValidationErrors(prev => ({
         ...prev,
         [field]: formatError
@@ -377,6 +419,9 @@ export default function EditAppointmentPopup({
 
   // Handle Update
   const handleUpdate = async () => {
+    // Clear all previous errors
+    setValidationErrors({});
+    
     // Check required fields
     const requiredErrors = {};
     if (!formData.patient_name.trim()) requiredErrors.patient_name = "Patient name is required";
@@ -386,31 +431,38 @@ export default function EditAppointmentPopup({
     if (!formData.phone_no) requiredErrors.phone_no = "Phone number is required";
     if (!formData.appointment_type) requiredErrors.appointment_type = "Appointment type is required";
     if (!formData.status) requiredErrors.status = "Status is required";
-    if (!formData.appointment_date) requiredErrors.appointment_date = "Appointment date is required";
-    if (!formData.appointment_time) requiredErrors.appointment_time = "Appointment time is required";
     
-    if (Object.keys(requiredErrors).length > 0) {
-      setValidationErrors(prev => ({ ...prev, ...requiredErrors }));
-      errorToast("Please fill all required fields");
-      return;
+    // Date and time validations - separate validations
+    const dateError = validateAppointmentDate(formData.appointment_date);
+    if (dateError) requiredErrors.appointment_date = dateError;
+    
+    const timeError = validateAppointmentTime(formData.appointment_time);
+    if (timeError) requiredErrors.appointment_time = timeError;
+    
+    // Combined date-time validation (only if both are present and individually valid)
+    if (!dateError && !timeError && formData.appointment_date && formData.appointment_time) {
+      const dateTimeError = validateAppointmentDateTime(
+        formData.appointment_date,
+        formData.appointment_time
+      );
+      if (dateTimeError) {
+        requiredErrors.appointment_date_time = dateTimeError;
+      }
     }
     
     // Check format validation
     const formatErrors = {
       patient_name: validatePatientNameFormat(formData.patient_name),
       phone_no: validatePhoneFormat(formData.phone_no),
-      appointment_date_time: validateAppointmentDateTime()
     };
     
-    const hasFormatErrors = Object.values(formatErrors).some(error => error !== "");
+    // Merge required errors and format errors
+    const allErrors = { ...requiredErrors };
+    if (formatErrors.patient_name) allErrors.patient_name = formatErrors.patient_name;
+    if (formatErrors.phone_no) allErrors.phone_no = formatErrors.phone_no;
     
-    if (hasFormatErrors) {
-      const newErrors = {};
-      if (formatErrors.patient_name) newErrors.patient_name = formatErrors.patient_name;
-      if (formatErrors.phone_no) newErrors.phone_no = formatErrors.phone_no;
-      if (formatErrors.appointment_date_time) newErrors.appointment_date_time = formatErrors.appointment_date_time;
-      
-      setValidationErrors(prev => ({ ...prev, ...newErrors }));
+    if (Object.keys(allErrors).length > 0) {
+      setValidationErrors(allErrors);
       errorToast("Please fix validation errors");
       return;
     }
@@ -579,7 +631,6 @@ export default function EditAppointmentPopup({
                   type="date"
                   value={formData.appointment_date}
                   onChange={(e) => handleInputChange("appointment_date", e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
                   className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
                             border border-[#0EFF7B] dark:border-[#3A3A3A]
                             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
@@ -596,9 +647,9 @@ export default function EditAppointmentPopup({
                   className="absolute right-3 top-3 text-[#0EFF7B] pointer-events-none"
                 />
               </div>
-              {(validationErrors.appointment_date || validationErrors.appointment_date_time) && (
+              {validationErrors.appointment_date && (
                 <div className="text-red-500 text-xs mt-1">
-                  {validationErrors.appointment_date || validationErrors.appointment_date_time}
+                  {validationErrors.appointment_date}
                 </div>
               )}
             </div>
@@ -611,13 +662,36 @@ export default function EditAppointmentPopup({
                 type="time"
                 value={formData.appointment_time}
                 onChange={(e) => handleInputChange("appointment_time", e.target.value)}
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
-                           dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black 
-                           dark:text-[#0EFF7B] outline-none"
+                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+                  outline-none text-black dark:text-[#0EFF7B]
+                  appearance-none ${validationErrors.appointment_time ? 'border-red-500' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}`}
               />
-              {(validationErrors.appointment_time || validationErrors.appointment_date_time) && (
+
+              <style>{`
+                /* Chrome, Edge, Safari */
+                input[type="time"]::-webkit-calendar-picker-indicator {
+                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+                  cursor: pointer;
+                }
+
+                /* Firefox */
+                input[type="time"]::-moz-calendar-picker-indicator {
+                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
+                  cursor: pointer;
+                }
+
+                /* Force same icon color in both themes */
+                input[type="time"] {
+                  color-scheme: light;
+                }
+
+                .dark input[type="time"] {
+                  color-scheme: light;
+                }
+              `}</style>
+              {validationErrors.appointment_time && (
                 <div className="text-red-500 text-xs mt-1">
-                  {validationErrors.appointment_time || validationErrors.appointment_date_time}
+                  {validationErrors.appointment_time}
                 </div>
               )}
             </div>
@@ -721,6 +795,15 @@ export default function EditAppointmentPopup({
               error={validationErrors.appointment_type}
             />
           </div>
+          
+          {/* Combined date-time error message */}
+          {validationErrors.appointment_date_time && (
+            <div className="mt-4 p-2 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="text-red-600 dark:text-red-400 text-sm">
+                {validationErrors.appointment_date_time}
+              </div>
+            </div>
+          )}
           
           <div className="flex justify-center gap-2 mt-8">
             <button
