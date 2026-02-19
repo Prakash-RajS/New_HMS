@@ -1,21 +1,27 @@
 // hms_frontend/src/components/HospitalContext.jsx
 
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useEffect,
-  useCallback,
-} from "react";
-import api, { getMediaUrl } from "../utils/axiosConfig";
-import { useUser } from "../contexts/UserContext"; // ✅ auth context
+import React, { createContext, useState, useContext, useEffect, useCallback } from "react";
+import api from "../utils/axiosConfig";
+import { useUser } from "../contexts/UserContext";
 
 const HospitalContext = createContext();
-
 export const useHospital = () => useContext(HospitalContext);
 
+/**
+ * Normalize logo URL
+ * - If it's already absolute, return as-is
+ * - If relative, prepend API base
+ */
+function normalizeLogo(logo) {
+  if (!logo) return null;
+  if (logo.startsWith("http://") || logo.startsWith("https://")) return logo;
+  // Remove leading slash if any
+  const cleanPath = logo.startsWith("/") ? logo.slice(1) : logo;
+  return `${import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"}/${cleanPath}`;
+}
+
 export const HospitalProvider = ({ children }) => {
-  const { isAuthenticated } = useUser(); // ✅ auth-ready signal
+  const { isAuthenticated } = useUser();
 
   const [hospitalInfo, setHospitalInfo] = useState({
     id: null,
@@ -38,26 +44,23 @@ export const HospitalProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   /**
-   * Fetch hospital info
-   * Runs ONLY after authentication is ready
+   * Fetch hospital info from backend
    */
   const fetchHospitalInfo = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get("/all");
+      const response = await api.get("/settings/all");
       const hospitalData = response.data?.hospital;
 
-      if (!hospitalData) {
-        throw new Error("Invalid hospital response");
-      }
+      if (!hospitalData) throw new Error("Invalid hospital response");
 
+      // Always store absolute logo URL
       setHospitalInfo({
-        id: hospitalData.id || null,
-        logo: hospitalData.logo ? getMediaUrl(hospitalData.logo) : null,
-        hospital_name:
-          hospitalData.hospital_name || "Sravan Multispeciality Hospital",
+        id: hospitalData.id ?? null,
+        logo: normalizeLogo(hospitalData.logo),
+        hospital_name: hospitalData.hospital_name || "Sravan Multispeciality Hospital",
         address: hospitalData.address || "",
         phone: hospitalData.phone || "",
         email: hospitalData.email || "",
@@ -65,59 +68,62 @@ export const HospitalProvider = ({ children }) => {
         emergency_contact: hospitalData.emergency_contact || "",
         website: hospitalData.website || "",
         tagline: hospitalData.tagline || "",
-        established_year: hospitalData.established_year || null,
+        established_year: hospitalData.established_year ?? null,
         registration_number: hospitalData.registration_number || "",
         working_hours: hospitalData.working_hours || {},
-        updated_at: hospitalData.updated_at || null,
+        updated_at: hospitalData.updated_at ?? null,
       });
+
+      // Persist logo in localStorage for fast reload
+      if (hospitalData.logo) localStorage.setItem("hospitalLogo", normalizeLogo(hospitalData.logo));
+
     } catch (err) {
       console.error("Error fetching hospital info:", err);
-
-      // ❗ Ignore 401 (auth flow will handle redirect)
-      if (err.response?.status !== 401) {
-        setError("Failed to load hospital information");
-      }
+      if (err.response?.status !== 401) setError("Failed to load hospital information");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * ✅ Trigger fetch ONLY after login
-   */
+  // On mount or login, fetch hospital info
   useEffect(() => {
     if (isAuthenticated) {
       fetchHospitalInfo();
     } else {
-      // 🔐 Clear hospital data on logout
-      setHospitalInfo((prev) => ({
-        ...prev,
-        id: null,
-        logo: null,
-      }));
+      setHospitalInfo(prev => ({ ...prev, id: null, logo: null }));
     }
   }, [isAuthenticated, fetchHospitalInfo]);
 
-  /**
-   * Update logo locally (instant UI update)
-   */
-  const updateLogo = (logoPath) => {
-    setHospitalInfo((prev) => ({
-      ...prev,
-      logo: logoPath ? getMediaUrl(logoPath) : null,
-    }));
-  };
+  // Immediately load logo from localStorage to prevent flash of default
+  useEffect(() => {
+    const storedLogo = localStorage.getItem("hospitalLogo");
+    if (storedLogo) {
+      setHospitalInfo(prev => ({ ...prev, logo: storedLogo }));
+    }
+  }, []);
 
   /**
-   * Update hospital info locally
+   * Update logo after successful upload
+   * Accepts absolute URL from backend
    */
-  const updateHospitalInfo = (newInfo) => {
-    setHospitalInfo((prev) => ({
+  const updateLogo = useCallback((logoUrl) => {
+    const fullUrl = normalizeLogo(logoUrl);
+    setHospitalInfo(prev => ({ ...prev, logo: fullUrl }));
+    localStorage.setItem("hospitalLogo", fullUrl);
+  }, []);
+
+  /**
+   * Update any hospital info
+   */
+  const updateHospitalInfo = useCallback((newInfo) => {
+    setHospitalInfo(prev => ({
       ...prev,
       ...newInfo,
-      logo: newInfo.logo ? getMediaUrl(newInfo.logo) : prev.logo,
+      logo: newInfo.logo ? normalizeLogo(newInfo.logo) : prev.logo
     }));
-  };
+
+    if (newInfo.logo) localStorage.setItem("hospitalLogo", normalizeLogo(newInfo.logo));
+  }, []);
 
   return (
     <HospitalContext.Provider

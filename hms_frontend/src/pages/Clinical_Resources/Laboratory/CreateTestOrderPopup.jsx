@@ -130,29 +130,35 @@ const CreateTestOrderPopup = ({ onClose, onSave }) => {
   };
 
   const handleSave = async () => {
-    if (validateForm()) {
-      try {
-        // Prepare data for saving
-        const saveData = {
-          ...formData,
-          department:
-            departments.find(
-              (dept) => String(dept.id) === String(formData.department_id)
-            )?.name || formData.department,
-        };
+  if (validateForm()) {
+    try {
+      // Prepare data for saving
+      const saveData = {
+        ...formData,
+        department:
+          departments.find(
+            (dept) => String(dept.id) === String(formData.department_id)
+          )?.name || formData.department,
+      };
 
-        await onSave(saveData);
-        successToast(
-          `Test order for "${formData.patientName}" created successfully!`
-        );
-        onClose();
-      } catch (error) {
-        errorToast("Failed to create test order");
+      await onSave(saveData);
+      successToast(
+        `Test order for "${formData.patientName}" created successfully!`
+      );
+      onClose();
+    } catch (error) {
+      // Check for the specific conflict error (409)
+      if (error.response?.status === 409) {
+        // Show the detailed error message from backend
+        errorToast(error.response?.data?.detail || "Cannot create duplicate test order");
+      } else {
+        errorToast(error.response?.data?.detail || "Failed to create test order");
       }
-    } else {
-      errorToast("Please fix the errors below");
     }
-  };
+  } else {
+    errorToast("Please fix the errors below");
+  }
+};
 
   // Enhanced Dropdown Component
   const Dropdown = ({

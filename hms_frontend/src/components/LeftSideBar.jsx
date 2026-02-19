@@ -1255,6 +1255,7 @@
 // }
 
 // Sidebar.jsx - Fixed Hooks order + hidden scrollbar that appears on hover/scroll
+// Sidebar.jsx - Fixed logo rendering with proper fallback on load error
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
@@ -1297,7 +1298,6 @@ const menuItems = [
     icon: CalendarDays,
     permission: "appointments",
   },
-  // Patients
   {
     name: "Patients",
     path: "/patients",
@@ -1324,10 +1324,10 @@ const menuItems = [
         permission: "patients_profile",
       },
       {
-        name: "Treatment Charges",
-        path: "/patients/treatment-charges",
+        name: "Charges Management",
+        path: "/patients/charges-management",
         icon: DollarSign,
-        permission: "treatment_charges",
+        permission: "charges_management",
       },
       {
         name: "Surgeries",
@@ -1337,7 +1337,6 @@ const menuItems = [
       },
     ],
   },
-  // Administration
   {
     name: "Administration",
     path: "/administration",
@@ -1360,15 +1359,8 @@ const menuItems = [
         icon: Bed,
         permission: "room_management",
       },
-      // {
-      //   name: "Staff Management",
-      //   path: "/Administration/StaffManagement",
-      //   icon: UserCog,
-      //   permission: "staff_management",
-      // },
     ],
   },
-  // Pharmacy
   {
     name: "Pharmacy",
     path: "/pharmacy",
@@ -1388,7 +1380,6 @@ const menuItems = [
       },
     ],
   },
-  // Doctors / Nurse
   {
     name: "Doctors / Nurse",
     path: "/doctors-nurse",
@@ -1424,7 +1415,6 @@ const menuItems = [
       },
     ],
   },
-  // Clinical Resources
   {
     name: "Clinical Resources",
     path: "/clinical-resources",
@@ -1477,7 +1467,7 @@ const menuItems = [
   },
 ];
 
-// Recursive MenuItem component
+// Recursive MenuItem component — unchanged from your working version
 const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -1491,32 +1481,26 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
       )
     : [];
 
-  if (hasDropdown && visibleChildren.length === 0) {
+  if (hasDropdown && visibleChildren.length === 0) return null;
+  if (!hasDropdown && item.permission && !hasPermission(item.permission))
     return null;
-  }
 
-  if (!hasDropdown && item.permission && !hasPermission(item.permission)) {
-    return null;
-  }
-
-  // Case-insensitive path matching
   const isParentActive = item.paths
-    ? item.paths.some(p => currentPath.startsWith(p.toLowerCase()))
+    ? item.paths.some((p) => currentPath.startsWith(p.toLowerCase()))
     : currentPath.startsWith(item.path.toLowerCase());
 
   const isExactActive = item.paths
-    ? item.paths.some(p => currentPath === p.toLowerCase())
+    ? item.paths.some((p) => currentPath === p.toLowerCase())
     : currentPath === item.path.toLowerCase();
 
   useEffect(() => {
-    if (isParentActive) {
-      setIsOpen(true);
-    }
+    if (isParentActive) setIsOpen(true);
   }, [isParentActive]);
 
   const Icon = item.icon;
   const paddingLeft = level === 0 ? "pl-3" : level === 1 ? "pl-6" : "pl-9";
-  const iconSizeClass = level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
+  const iconSizeClass =
+    level === 0 ? "w-[24px] h-[24px]" : "w-[16px] h-[16px]";
   const textSizeClass = level === 0 ? "text-[14px]" : "text-[12px]";
 
   return (
@@ -1582,10 +1566,11 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
         <NavLink
           to={item.path}
           className={({ isActive }) => {
-            // For NavLink, we need to handle case-insensitive matching
-            const isNavLinkActive = isActive || 
-              (item.paths ? item.paths.some(p => currentPath === p.toLowerCase()) : currentPath === item.path.toLowerCase());
-            
+            const isNavLinkActive =
+              isActive ||
+              (item.paths
+                ? item.paths.some((p) => currentPath === p.toLowerCase())
+                : currentPath === item.path.toLowerCase());
             return `w-full h-[40px] flex items-center ${paddingLeft} gap-2 rounded-[8px] transition-all duration-200
             ${
               isNavLinkActive
@@ -1595,9 +1580,11 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
           }}
         >
           {({ isActive }) => {
-            const isActiveState = isActive || 
-              (item.paths ? item.paths.some(p => currentPath === p.toLowerCase()) : currentPath === item.path.toLowerCase());
-            
+            const isActiveState =
+              isActive ||
+              (item.paths
+                ? item.paths.some((p) => currentPath === p.toLowerCase())
+                : currentPath === item.path.toLowerCase());
             return (
               <>
                 <Icon
@@ -1621,30 +1608,117 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   );
 };
 
+// ── SidebarLogo ──────────────────────────────────────────────────────────────
+// Isolated component so logo error state doesn't re-render the whole sidebar.
+// When hospitalInfo.logo changes (e.g. after upload or refresh), we reset the
+// error flag so the new URL gets a fresh attempt.
+// Add this helper function at the top of Sidebar.jsx (outside the component)
+function normalizeLogo(logo) {
+  if (!logo) return null;
+  if (logo.startsWith("http://") || logo.startsWith("https://")) return logo;
+  const origin = window.location.origin;
+  if (logo.startsWith("/media/")) return `${origin}${logo}`;
+  if (logo.startsWith("/")) return `${origin}${logo}`;
+  return `${origin}/media/${logo}`;
+}
+
+// Update the SidebarLogo component
+function SidebarLogo({ hospitalInfo, hospitalLoading, hospitalError }) {
+  const [imgError, setImgError] = useState(false);
+  const [normalizedLogo, setNormalizedLogo] = useState(null);
+
+  // Reset error flag and normalize URL whenever the logo changes
+  useEffect(() => {
+    setImgError(false);
+    if (hospitalInfo.logo) {
+      setNormalizedLogo(normalizeLogo(hospitalInfo.logo));
+    } else {
+      setNormalizedLogo(null);
+    }
+  }, [hospitalInfo.logo]);
+
+  if (hospitalLoading) {
+    return (
+      <div className="w-[118px] h-[36px] flex items-center justify-center bg-gray-200 dark:bg-[#1A1A1A] rounded animate-pulse">
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          Loading...
+        </span>
+      </div>
+    );
+  }
+
+  if (hospitalError) {
+    return (
+      <div className="w-[118px] h-[36px] flex items-center justify-center bg-red-100 dark:bg-red-900/20 rounded">
+        <span className="text-xs text-red-500 dark:text-red-400">Error</span>
+      </div>
+    );
+  }
+
+  // Show hospital logo only when we have a URL AND it hasn't errored
+  if (normalizedLogo && !imgError) {
+    return (
+      <img
+        src={normalizedLogo}
+        alt={hospitalInfo.hospital_name || "Hospital Logo"}
+        className="w-[118px] h-[36px] object-contain"
+        onError={() => {
+          console.warn(
+            "[Sidebar] Hospital logo failed to load:",
+            normalizedLogo,
+          );
+          setImgError(true);
+        }}
+        onLoad={() => {
+          // Successfully loaded - you could log this if needed
+          console.log("[Sidebar] Hospital logo loaded successfully:", normalizedLogo);
+        }}
+      />
+    );
+  }
+
+  // Fallback: default logo
+  return (
+    <img
+      src={LOGO}
+      alt="Default Logo"
+      className="w-[118px] h-[36px] object-contain"
+    />
+  );
+}
+
+// ── Sidebar ──────────────────────────────────────────────────────────────────
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const {
     hasPermission,
     currentUser,
+     permissions,
     loading: permissionsLoading,
   } = usePermissions();
-
+ 
   const {
     hospitalInfo,
     loading: hospitalLoading,
     error: hospitalError,
   } = useHospital();
+    useEffect(() => {
+    if (!permissionsLoading && currentUser) {
+      console.log("👤 Current User:", currentUser);
+      console.log("🔑 Has 'treatment_charges' permission:", hasPermission("treatment_charges"));
+      console.log("🔑 Has 'surgeries' permission:", hasPermission("surgeries"));
+      console.log("📋 All permissions object:", permissions);
+    }
+  }, [permissionsLoading, currentUser]);
 
-  // Show loading state
+
   if (permissionsLoading) {
     return (
       <div
         className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D]
-                 flex flex-col fixed left-0 top-0 transition-all duration-300 z-50
-                 overflow-hidden"
+                 flex flex-col fixed left-0 top-0 transition-all duration-300 z-50 overflow-hidden"
         style={{
           width: isCollapsed ? "80px" : "220px",
           height: "calc(100vh - 110px)",
-          maxHeight: "calc(100vh - 110px)",
         }}
       >
         <div className="flex-1 p-3 flex items-center justify-center">
@@ -1654,12 +1728,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     );
   }
 
-  // Filter top-level items
   const filteredMenuItems = menuItems.filter((item) => {
     if (item.name === "Settings") {
       return currentUser?.is_superuser || currentUser?.role === "admin";
     }
-
     if (!item.dropdown) {
       return !item.permission || hasPermission(item.permission);
     }
@@ -1668,25 +1740,18 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
     );
   });
 
-
-
   return (
     <div
-      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D] 
+      className="mt-[20px] ml-[15px] mb-4 rounded-[8px] bg-gray-100 dark:bg-[#0D0D0D]
                  flex flex-col fixed left-0 top-0 transition-all duration-300 z-50"
       style={{
-  width: isCollapsed ? "80px" : "220px",
-  top: "20px",
-  bottom: "16px",
-  height: "auto",
-  display: "flex",
-  flexDirection: "column",
-}}
-
-      // onMouseEnter={() => setIsHovered(true)}
-      // onMouseLeave={() => setIsHovered(false)}
+        width: isCollapsed ? "80px" : "220px",
+        top: "20px",
+        bottom: "16px",
+        height: "auto",
+      }}
     >
-      {/* Gradient layers */}
+      {/* Gradient border */}
       <div
         className="absolute inset-0 rounded-[8px] p-[1.5px] pointer-events-none"
         style={{
@@ -1698,7 +1763,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
           maskComposite: "exclude",
           zIndex: 1,
         }}
-      ></div>
+      />
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -1706,13 +1771,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
           zIndex: 0,
         }}
-      ></div>
+      />
 
-      {/* Logo and Collapse Button */}
-      <div
-        className="w-full h-[36px] mt-5 mb-2 px-3 flex items-center gap-[7px] py-4 relative z-10 flex-shrink-0"
-        style={{ minHeight: "36px" }}
-      >
+      {/* Logo + collapse button */}
+      <div className="w-full h-[36px] mt-5 mb-2 px-3 flex items-center gap-[7px] py-4 relative z-10 flex-shrink-0">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-[36px] h-[36px] flex items-center justify-center rounded-[4px] border border-[#08994A] dark:border-[#1E1E1E] bg-transparent hover:bg-[#08994A]/10 transition-colors"
@@ -1734,73 +1796,44 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             />
           </svg>
         </button>
+
         {!isCollapsed && (
           <div className="flex items-center ml-2">
-            {hospitalLoading ? (
-              <div className="w-[118px] h-[36px] flex items-center justify-center bg-gray-200 dark:bg-[#1A1A1A] rounded animate-pulse">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  Loading...
-                </span>
-              </div>
-            ) : hospitalError ? (
-              <div className="w-[118px] h-[36px] flex items-center justify-center bg-red-100 dark:bg-red-900/20 rounded">
-                <span className="text-xs text-red-500 dark:text-red-400">
-                  Error
-                </span>
-              </div>
-            ) : hospitalInfo.logo ? (
-              <img
-                src={hospitalInfo.logo}
-                alt={hospitalInfo.hospital_name || "Hospital Logo"}
-                className="w-[118px] h-[36px] object-contain"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = LOGO;
-                }}
-              />
-            ) : (
-              <img
-                src={LOGO}
-                alt="Default Logo"
-                className="w-[118px] h-[36px] object-contain"
-              />
-            )}
+            <SidebarLogo
+              hospitalInfo={hospitalInfo}
+              hospitalLoading={hospitalLoading}
+              hospitalError={hospitalError}
+            />
           </div>
         )}
       </div>
 
-      {/* Menu Items - Scrollable Area */}
+      {/* Menu items */}
       <div className="flex-1 p-3 overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-
-        <div>
-          <ul className="flex flex-col gap-1.5">
-            {filteredMenuItems.map((item, idx) => (
-              <MenuItem
-                key={idx}
-                item={item}
-                isCollapsed={isCollapsed}
-                hasPermission={hasPermission}
-              />
-            ))}
-          </ul>
-          {filteredMenuItems.length === 0 && (
-            <div className="text-center p-4 text-gray-500 dark:text-gray-400">
-              No accessible menu items
-              <div className="text-xs mt-2">
-                User: {currentUser?.username} | Role: {currentUser?.role} |
-                Superuser: {currentUser?.is_superuser ? "Yes" : "No"}
-              </div>
+        <ul className="flex flex-col gap-1.5">
+          {filteredMenuItems.map((item, idx) => (
+            <MenuItem
+              key={idx}
+              item={item}
+              isCollapsed={isCollapsed}
+              hasPermission={hasPermission}
+            />
+          ))}
+        </ul>
+        {filteredMenuItems.length === 0 && (
+          <div className="text-center p-4 text-gray-500 dark:text-gray-400">
+            No accessible menu items
+            <div className="text-xs mt-2">
+              User: {currentUser?.username} | Role: {currentUser?.role} |
+              Superuser: {currentUser?.is_superuser ? "Yes" : "No"}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* User info at bottom */}
+      {/* User info */}
       {!isCollapsed && currentUser && (
-        <div
-          className="p-3 border-t border-gray-200 dark:border-[#2A2A2A] relative z-10 flex-shrink-0"
-          style={{ minHeight: "60px" }}
-        >
+        <div className="p-3 border-t border-gray-200 dark:border-[#2A2A2A] relative z-10 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#0EFF7B] to-[#08994A] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
               {currentUser.username?.charAt(0).toUpperCase() || "U"}
@@ -1818,4 +1851,4 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       )}
     </div>
   );
-} 
+}

@@ -11,47 +11,20 @@ import {
   Calendar,
   Tag,
   FileDigit,
-  Clock,
 } from "lucide-react";
-import api, {
-  uploadFile,
-  getMediaUrl,
-  preloadImage,
-} from "../../utils/axiosConfig.js";
+import api, { uploadFile } from "../../utils/axiosConfig.js";
 import { useHospital } from "../../components/HospitalContext.jsx";
 import { successToast, errorToast } from "../../components/Toast.jsx";
+import { getMediaUrl } from "../../utils/axiosConfig";
 
 export default function HospitalInfo({ data, onUpdate }) {
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const { updateLogo, refreshHospitalInfo } = useHospital();
+  const { updateLogo } = useHospital();
+  // ✅ Removed refreshHospitalInfo — it caused a flicker by briefly
+  //    resetting the logo to null while the fetch was in-flight.
 
   const handleChange = (field, value) => {
-    onUpdate({
-      ...data,
-      [field]: value,
-    });
-  };
-
-  const handleWorkingHoursChange = (day, field, value) => {
-    const workingHours = data.working_hours || {
-      monday: { start: "09:00", end: "18:00", open: true },
-      tuesday: { start: "09:00", end: "18:00", open: true },
-      wednesday: { start: "09:00", end: "18:00", open: true },
-      thursday: { start: "09:00", end: "18:00", open: true },
-      friday: { start: "09:00", end: "18:00", open: true },
-      saturday: { start: "09:00", end: "14:00", open: true },
-      sunday: { start: "09:00", end: "14:00", open: false },
-    };
-    onUpdate({
-      ...data,
-      working_hours: {
-        ...workingHours,
-        [day]: {
-          ...workingHours[day],
-          [field]: field === "open" ? value === "true" : value,
-        },
-      },
-    });
+    onUpdate({ ...data, [field]: value });
   };
 
   const handleLogoUpload = async (e) => {
@@ -59,12 +32,9 @@ export default function HospitalInfo({ data, onUpdate }) {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      errorToast(
-        "Please select an image file (PNG, JPG, JPEG, GIF, SVG, WEBP)",
-      );
+      errorToast("Please select an image file (PNG, JPG, JPEG, GIF, SVG, WEBP)");
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       errorToast("File size should be less than 5MB");
       return;
@@ -73,37 +43,24 @@ export default function HospitalInfo({ data, onUpdate }) {
     try {
       setUploadingLogo(true);
 
-      // Use the uploadFile utility with progress tracking
       const response = await uploadFile(
-  "/hospital/upload-logo",
-  file,
-  (progress) => {
-    console.log(`Upload progress: ${progress}%`);
-  }
-);
+        "/hospital/upload-logo",
+        file,
+        (progress) => console.log(`Upload progress: ${progress}%`),
+      );
 
+      // Backend now returns bare relative path e.g.
+      // "hospital_logo/hospital_logo_20250101_120000.png"
+      const rawLogoPath = response.data.logo_url;
 
-      // Get full media URL using helper
-      const fullLogoUrl = getMediaUrl(response.data.logo_url);
+      // 1. Update the settings page form preview
+      onUpdate({ ...data, logo: rawLogoPath });
 
-      // Update local state
-      onUpdate({
-        ...data,
-        logo: fullLogoUrl,
-      });
-
-      // Update global context
-      if (fullLogoUrl) {
-        updateLogo(fullLogoUrl);
-      }
-
-      // Preload image to ensure it's cached
-      await preloadImage(fullLogoUrl);
+      // 2. Update the sidebar logo via context
+      //    updateLogo calls normalizeLogo → full browser URL
+      updateLogo(rawLogoPath);
 
       successToast("Logo uploaded successfully!");
-
-      // Refresh hospital info to get all updated data
-      await refreshHospitalInfo();
     } catch (error) {
       console.error("Error uploading logo:", error);
       errorToast(error.response?.data?.detail || "Failed to upload logo");
@@ -117,7 +74,7 @@ export default function HospitalInfo({ data, onUpdate }) {
       <div className="flex items-center gap-3">
         <Building className="text-[#08994A]" size={24} />
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Hospital Information  
+          Hospital Information
         </h2>
       </div>
 
@@ -133,14 +90,14 @@ export default function HospitalInfo({ data, onUpdate }) {
               <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3A] flex items-center justify-center overflow-hidden bg-white dark:bg-[#0D0D0D] mb-4">
                 {data.logo ? (
                   <img
-                    src={data.logo}
-                    alt="Hospital Logo"
-                    className="w-full h-full object-contain p-4"
-                    onError={(e) => {
-                      console.error("Failed to load logo in settings");
-                      e.target.style.display = "none";
-                    }}
-                  />
+  src={getMediaUrl(data.logo)}
+  alt="Hospital Logo"
+  className="w-full h-full object-contain p-4"
+  onError={(e) => {
+    console.error("Failed to load logo in settings:", data.logo);
+    e.target.style.display = "none";
+  }}
+/>
                 ) : (
                   <div className="flex flex-col items-center justify-center p-4">
                     <Upload className="text-gray-400 mb-2" size={48} />
@@ -167,7 +124,7 @@ export default function HospitalInfo({ data, onUpdate }) {
                 >
                   {uploadingLogo ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Uploading...
                     </>
                   ) : (
@@ -218,7 +175,6 @@ export default function HospitalInfo({ data, onUpdate }) {
 
         {/* Right Column - Form Fields */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -232,12 +188,10 @@ export default function HospitalInfo({ data, onUpdate }) {
                 <input
                   type="text"
                   value={data.hospital_name || ""}
-                  onChange={(e) =>
-                    handleChange("hospital_name", e.target.value)
-                  }
+                  onChange={(e) => handleChange("hospital_name", e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
                   required
-                  placeholder="Sravan Multispeciality Hospital"
+                  placeholder="Multispeciality Hospital"
                 />
               </div>
             </div>
@@ -296,7 +250,7 @@ export default function HospitalInfo({ data, onUpdate }) {
                   onChange={(e) => handleChange("email", e.target.value)}
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
                   required
-                  placeholder="sravan@gmail.com"
+                  placeholder="example@gmail.com"
                 />
               </div>
             </div>
@@ -354,10 +308,7 @@ export default function HospitalInfo({ data, onUpdate }) {
                   max={new Date().getFullYear()}
                   value={data.established_year || ""}
                   onChange={(e) =>
-                    handleChange(
-                      "established_year",
-                      parseInt(e.target.value) || "",
-                    )
+                    handleChange("established_year", parseInt(e.target.value) || "")
                   }
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
                   placeholder="2026"
@@ -407,70 +358,6 @@ export default function HospitalInfo({ data, onUpdate }) {
               />
             </div>
           </div>
-
-          {/* Working Hours */}
-          {/* <div className="bg-gray-50 dark:bg-[#1A1A1A] rounded-xl p-6 border border-gray-200 dark:border-[#2A2A2A]">
-            <div className="flex items-center gap-2 mb-4">
-              <Clock className="text-[#08994A]" size={20} />
-              <h3 className="font-semibold text-gray-800 dark:text-white">
-                Working Hours
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(
-                data.working_hours || {
-                  monday: { start: "09:00", end: "18:00", open: true },
-                  tuesday: { start: "09:00", end: "18:00", open: true },
-                  wednesday: { start: "09:00", end: "18:00", open: true },
-                  thursday: { start: "09:00", end: "18:00", open: true },
-                  friday: { start: "09:00", end: "18:00", open: true },
-                  saturday: { start: "09:00", end: "14:00", open: true },
-                  sunday: { start: "09:00", end: "14:00", open: false },
-                },
-              ).map(([day, hours]) => (
-                <div key={day} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
-                      {day}
-                    </label>
-                    <select
-                      value={hours.open.toString()}
-                      onChange={(e) =>
-                        handleWorkingHoursChange(day, "open", e.target.value)
-                      }
-                      className="text-sm px-2 py-1 rounded border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] transition-all duration-200"
-                    >
-                      <option value="true">Open</option>
-                      <option value="false">Closed</option>
-                    </select>
-                  </div>
-                  {hours.open && (
-                    <div className="flex gap-2 items-center">
-                      <input
-                        type="time"
-                        value={hours.start}
-                        onChange={(e) =>
-                          handleWorkingHoursChange(day, "start", e.target.value)
-                        }
-                        className="flex-1 px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] transition-all duration-200"
-                      />
-                      <span className="self-center text-gray-500 dark:text-gray-400">
-                        to
-                      </span>
-                      <input
-                        type="time"
-                        value={hours.end}
-                        onChange={(e) =>
-                          handleWorkingHoursChange(day, "end", e.target.value)
-                        }
-                        className="flex-1 px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:outline-none focus:ring-1 focus:ring-[#0EFF7B] transition-all duration-200"
-                      />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div> */}
         </div>
       </div>
     </div>

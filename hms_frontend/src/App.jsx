@@ -51,6 +51,7 @@ import UserSettings from "./pages/Accounts/UserSettings.jsx";
 import Security from "./pages/Accounts/SecuritySettingsPage.jsx";
 import GlobalBackgroundText from "./components/GlobalBackgroundText.jsx";
 import SettingsPage from "./pages/settings/SettingsPage";
+import ChargesManagement from "./pages/Patients/ChargesManagement.jsx";
 
 import { WebSocketProvider } from "./components/WebSocketContext";
 import {
@@ -322,12 +323,22 @@ function AppContent({ contentRef }) {
                   </ProtectedRoute>
                 }
               />
-              <Route
+              {/* <Route
                 path="/patients/treatment-charges"
                 element={
                   <ProtectedRoute>
                     <PermissionGate moduleKey="treatment_charges">
                       <TreatmentCharges />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              /> */}
+              <Route
+                path="/patients/charges-management"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="charges-management">
+                      <ChargesManagement />
                     </PermissionGate>
                   </ProtectedRoute>
                 }

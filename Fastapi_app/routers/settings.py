@@ -47,29 +47,18 @@ def check_admin_permission(current_user: User):
 class AllSettingsResponse(BaseModel):
     hospital: Dict[str, Any]
 
+import traceback
+
 @router.get("/all", response_model=AllSettingsResponse)
-async def get_all_settings(
-    current_user: User = Depends(get_current_user),
-    request: Request = None  # Add this parameter
-):
+async def get_all_settings(current_user: User = Depends(get_current_user)):
     try:
-        # Check admin permission
         check_admin_permission(current_user)
-        
-        # Get hospital settings
         hospital_settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
-        
-        # Prepare logo URL
+
         logo_url = None
         if hospital_settings.logo:
-            # If we have request object, build full URL
-            if request:
-                logo_url = str(request.base_url) + f"media/{hospital_settings.logo}"
-            else:
-                # Fallback to relative path
-                logo_url = f"/media/{hospital_settings.logo}"
-        
-        # Prepare hospital data
+            logo_url = f"/media/{hospital_settings.logo}"
+
         hospital_data = {
             "id": hospital_settings.id,
             "hospital_name": hospital_settings.hospital_name or "Sravan Multispeciality Hospital",
@@ -86,17 +75,13 @@ async def get_all_settings(
             "working_hours": hospital_settings.working_hours or {},
             "updated_at": hospital_settings.updated_at
         }
-        
-        # Get security settings
 
-        
-        return AllSettingsResponse(
-            hospital=hospital_data,
-        )
-        
+        return {"hospital": hospital_data}
+
     except Exception as e:
-        print(f"Error getting all settings: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch settings")
+        print("=== /settings/all ERROR ===")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==========================================================
 # HOSPITAL SETTINGS
@@ -134,46 +119,49 @@ async def update_hospital_info(
 @router.post("/hospital/upload-logo")
 async def upload_hospital_logo(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    request: Request = None  # Add request to construct full URL
 ):
     check_admin_permission(current_user)
-    
-    settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
-    
+
+    settings = await sync_to_async(
+        lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+    )()
+
     # Create uploads directory if it doesn't exist
     upload_dir = Path("media/hospital_logo")
     upload_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Validate file type
     allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'}
     file_extension = Path(file.filename).suffix.lower()
     if file_extension not in allowed_extensions:
         raise HTTPException(status_code=400, detail="Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP")
-    
+
     # Validate file size (5MB max)
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File size exceeds 5MB limit")
-    
+
     # Generate unique filename
     unique_filename = f"hospital_logo_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_extension}"
     file_path = upload_dir / unique_filename
-    
+
     # Save the file
     with open(file_path, "wb") as f:
         f.write(content)
-    
+
     # Update hospital settings with relative path
     relative_path = f"hospital_logo/{unique_filename}"
     settings.logo = relative_path
     await sync_to_async(lambda: (ensure_db_connection(), settings.save())[-1])()
-    
-    # Get the base URL from request
-    # You might need to pass the request object to get the base URL
-    # For now, we'll return relative path and let frontend construct full URL
+
+    # Construct full URL for frontend
+    full_logo_url = f"{request.base_url}media/{relative_path}"
+
     return {
-        "message": "Logo uploaded successfully", 
-        "logo_url": f"/media/{relative_path}",
+        "message": "Logo uploaded successfully",
+        "logo_url": full_logo_url,  # <-- Full URL returned
         "filename": unique_filename
     }
 

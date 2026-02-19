@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, Calendar, ChevronDown, AlertCircle } from "lucide-react";
+import { X, Calendar, ChevronDown, AlertCircle, Clock } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast, warningToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
@@ -15,11 +15,12 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     scheduled_time: "",
     status: "pending", // Default status
   });
-   const SURGERY_STATUSES = [
-  { value: "pending", label: "Pending" },
-  { value: "emergency", label: "Emergency" },
-  { value: "cancelled", label: "Cancelled" },
-];
+  
+  const SURGERY_STATUSES = [
+    { value: "pending", label: "Pending" },
+    { value: "emergency", label: "Emergency" },
+    { value: "cancelled", label: "Cancelled" },
+  ];
 
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -34,6 +35,8 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   
   // Use ref to prevent multiple toast calls
   const toastShownRef = useRef(false);
+  const dateInputRef = useRef(null);
+  const timeInputRef = useRef(null);
 
   // Format validation functions
   const validateSurgeryType = (value) => {
@@ -94,7 +97,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     return isValid;
   };
 
-  // Handle input change
+  // Handle input change - FIXED for date/time fields
   const handleInputChange = (field, value) => {
     let processedValue = value;
     
@@ -102,13 +105,14 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     if (field === "surgery_type") {
       processedValue = value
         .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
     }
     
+    // Update form data
     setFormData(prev => ({ ...prev, [field]: processedValue }));
     
-    // Clear all errors when user starts typing
+    // Clear errors when user starts typing
     if (field === "surgery_type") {
       setShowDuplicateError(false);
       setApiErrors(prev => {
@@ -118,15 +122,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
       });
     }
     
-    // Clear validation errors
-    if (validationErrors[field]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-    
+    // Clear field-specific errors
     if (fieldErrors[field]) {
       setFieldErrors(prev => {
         const newErrors = { ...prev };
@@ -144,29 +140,67 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
       });
     }
     
-    // Perform real-time format validation
+    // Handle date/time fields specially
+    if (field === "scheduled_date" || field === "scheduled_time") {
+      // Clear any existing date/time validation errors
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.scheduled_date_time;
+        return newErrors;
+      });
+      
+      // Clear field-specific errors for date/time
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.scheduled_date;
+        delete newErrors.scheduled_time;
+        return newErrors;
+      });
+      
+      // Get the updated form data with the new value
+      const updatedForm = {
+        ...formData,
+        [field]: processedValue
+      };
+      
+      // Check if both date and time are now present
+      if (updatedForm.scheduled_date && updatedForm.scheduled_time) {
+        // Validate the complete date-time
+        const selectedDate = new Date(`${updatedForm.scheduled_date}T${updatedForm.scheduled_time}`);
+        const now = new Date();
+        
+        if (selectedDate < now) {
+          setValidationErrors(prev => ({
+            ...prev,
+            scheduled_date_time: "Surgery date and time cannot be in the past"
+          }));
+        }
+      } else {
+        // If one is missing, set the appropriate field error
+        if (!updatedForm.scheduled_date) {
+          setFieldErrors(prev => ({
+            ...prev,
+            scheduled_date: "Surgery date is required"
+          }));
+        }
+        if (!updatedForm.scheduled_time) {
+          setFieldErrors(prev => ({
+            ...prev,
+            scheduled_time: "Surgery time is required"
+          }));
+        }
+      }
+      
+      return; // Early return for date/time fields
+    }
+    
+    // Perform real-time format validation for other fields
     let formatError = "";
     
     switch (field) {
       case "surgery_type":
         formatError = validateSurgeryType(processedValue);
         break;
-      case "scheduled_date":
-      case "scheduled_time":
-        formatError = validateDateTime();
-        if (formatError) {
-          setValidationErrors(prev => ({
-            ...prev,
-            scheduled_date_time: formatError
-          }));
-        } else {
-          setValidationErrors(prev => {
-            const newErrors = { ...prev };
-            delete newErrors.scheduled_date_time;
-            return newErrors;
-          });
-        }
-        return; // Early return for date/time fields
       default:
         break;
     }
@@ -176,6 +210,12 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
         ...prev,
         [field]: formatError
       }));
+    } else {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
@@ -211,21 +251,30 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     
     const formatErrors = {
       surgery_type: validateSurgeryType(formData.surgery_type),
-      scheduled_date_time: validateDateTime()
     };
+    
+    // Check date-time validation
+    let dateTimeError = "";
+    if (formData.scheduled_date && formData.scheduled_time) {
+      const selectedDate = new Date(`${formData.scheduled_date}T${formData.scheduled_time}`);
+      const now = new Date();
+      if (selectedDate < now) {
+        dateTimeError = "Surgery date and time cannot be in the past";
+      }
+    }
     
     const newValidationErrors = {};
     if (formatErrors.surgery_type) newValidationErrors.surgery_type = formatErrors.surgery_type;
-    if (formatErrors.scheduled_date_time) newValidationErrors.scheduled_date_time = formatErrors.scheduled_date_time;
+    if (dateTimeError) newValidationErrors.scheduled_date_time = dateTimeError;
     
     setValidationErrors(prev => ({ ...prev, ...newValidationErrors }));
     
-    const formatValid = !Object.values(formatErrors).some(error => error !== "");
+    const formatValid = !Object.values(formatErrors).some(error => error !== "") && !dateTimeError;
     
     return requiredValid && formatValid;
   };
 
-  // Extract error message from error data - FIXED VERSION
+  // Extract error message from error data
   const extractErrorMessage = (errorData) => {
     if (!errorData) return "Unknown error occurred";
     
@@ -272,7 +321,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     return "An error occurred. Please try again.";
   };
 
-  // Handle API error response - FIXED VERSION
+  // Handle API error response
   const handleApiError = (error) => {
     const errorData = error.response?.data;
     const status = error.response?.status;
@@ -371,7 +420,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     }
   };
 
-  // Get combined error for a field - FIXED VERSION
+  // Get combined error for a field
   const getFieldError = (fieldName) => {
     const error = apiErrors[fieldName] || validationErrors[fieldName] || fieldErrors[fieldName];
     
@@ -486,6 +535,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
       description: "",
       scheduled_date: "",
       scheduled_time: "",
+      status: "pending",
     });
     setValidationErrors({});
     setFieldErrors({});
@@ -547,7 +597,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
             </button>
           </div>
           
-          {/* General API Error Display - Now properly contained */}
+          {/* General API Error Display */}
           {apiErrors.general && (
             <div className="mb-4 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
               <div className="flex items-center gap-2">
@@ -716,86 +766,94 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
                 </div>
               )}
             </div>
+
+            {/* Status - Row 2, Column 1 */}
             <div className="col-span-1">
-  <label className="text-sm text-black dark:text-white">
-    Status <span className="text-red-700">*</span>
-  </label>
- 
-  <Listbox
-    value={formData.status}
-    onChange={(v) => handleInputChange("status", v)}
-  >
-    <div className="relative mt-1">
-      <Listbox.Button
-        className="w-full h-[33px] px-3 pr-3 rounded-[8px] border
-                   bg-gray-100 dark:bg-transparent
-                   text-left text-[14px] leading-[16px]
-                   flex items-center justify-between
-                   border-[#0EFF7B] dark:border-[#3A3A3A]"
-      >
-        <span className="block truncate text-black dark:text-[#0EFF7B]">
-          {SURGERY_STATUSES.find(s => s.value === formData.status)?.label}
-        </span>
-        <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-      </Listbox.Button>
- 
-      <Listbox.Options
-        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto
-                   rounded-[12px] bg-gray-100 dark:bg-black
-                   shadow-lg z-50 border border-[#0EFF7B]"
-      >
-        {SURGERY_STATUSES.map((status) => (
-          <Listbox.Option
-            key={status.value}
-            value={status.value}
-            className={({ active }) =>
-              `cursor-pointer select-none py-2 px-3 text-sm rounded-md
-               ${active
-                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                 : "text-black dark:text-white"}`
-            }
-          >
-            {status.label}
-          </Listbox.Option>
-        ))}
-      </Listbox.Options>
-    </div>
-  </Listbox>
-</div>
+              <label className="text-sm text-black dark:text-white">
+                Status <span className="text-red-700">*</span>
+              </label>
+              <Listbox
+                value={formData.status}
+                onChange={(v) => handleInputChange("status", v)}
+              >
+                <div className="relative mt-1">
+                  <Listbox.Button
+                    className="w-full h-[33px] px-3 pr-8 rounded-[8px] border
+                               bg-gray-100 dark:bg-transparent
+                               text-left text-[14px] leading-[16px]
+                               flex items-center justify-between
+                               border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  >
+                    <span className="block truncate text-black dark:text-[#0EFF7B]">
+                      {SURGERY_STATUSES.find(s => s.value === formData.status)?.label}
+                    </span>
+                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto
+                               rounded-[12px] bg-gray-100 dark:bg-black
+                               shadow-lg z-50 border border-[#0EFF7B]"
+                  >
+                    {SURGERY_STATUSES.map((status) => (
+                      <Listbox.Option
+                        key={status.value}
+                        value={status.value}
+                        className={({ active }) =>
+                          `cursor-pointer select-none py-2 px-3 text-sm rounded-md
+                           ${active
+                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                             : "text-black dark:text-white"}`
+                        }
+                      >
+                        {status.label}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
             
-            {/* Surgery Date - Row 2, Column 1 */}
+            {/* Surgery Date - Row 2, Column 2 */}
             <div className="col-span-1">
               <label className="text-sm text-black dark:text-white">
                 Surgery Date <span className="text-red-700">*</span>
               </label>
               <div className="relative mt-1">
                 <input
+                  ref={dateInputRef}
                   type="date"
                   value={formData.scheduled_date}
                   onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
                   onFocus={() => setFocusedField("scheduled_date")}
                   onBlur={() => setFocusedField(null)}
                   min={new Date().toISOString().split("T")[0]}
-                  className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border
+                  className={`w-full h-[33px] px-3 rounded-[8px] border
                             bg-gray-100 dark:bg-transparent outline-none
                             text-black dark:text-[#0EFF7B] cursor-pointer
-                            appearance-none
                             [&::-webkit-calendar-picker-indicator]:opacity-0
-                            [&::-webkit-calendar-picker-indicator]:hidden
+                            [&::-webkit-calendar-picker-indicator]:absolute
+                            [&::-webkit-calendar-picker-indicator]:right-2
+                            [&::-webkit-calendar-picker-indicator]:w-4
+                            [&::-webkit-calendar-picker-indicator]:h-4
+                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
                             ${focusedField === "scheduled_date"
                               ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                              : getFieldError("scheduled_date") 
+                              : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
                                 ? "border-red-500 ring-1 ring-red-500"
                                 : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                             }`}
+                  style={{
+                    colorScheme: 'normal'
+                  }}
                 />
                 <Calendar
                   size={18}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer
                             hover:text-[#0EFF7B]"
                   onClick={() => {
-                    const input = document.querySelector('input[type="date"]');
-                    if (input) input.showPicker();
+                    dateInputRef.current?.showPicker();
                   }}
                 />
               </div>
@@ -809,23 +867,47 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
               )}
             </div>
             
-            {/* Surgery Time - Row 2, Column 2 */}
+            {/* Surgery Time - Row 2, Column 3 */}
             <div className="col-span-1">
               <label className="text-sm text-black dark:text-white">
                 Surgery Time <span className="text-red-700">*</span>
               </label>
-              <input
-                type="time"
-                value={formData.scheduled_time}
-                onChange={(e) => handleInputChange("scheduled_time", e.target.value)}
-                onFocus={() => setFocusedField("scheduled_time")}
-                onBlur={() => setFocusedField(null)}
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                           outline-none text-black dark:text-[#0EFF7B]
-                           ${focusedField === "scheduled_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
-                             getFieldError("scheduled_time") ? "border-red-500 ring-1 ring-red-500" : 
-                             "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-              />
+              <div className="relative mt-1">
+                <input
+                  ref={timeInputRef}
+                  type="time"
+                  value={formData.scheduled_time}
+                  onChange={(e) => handleInputChange("scheduled_time", e.target.value)}
+                  onFocus={() => setFocusedField("scheduled_time")}
+                  onBlur={() => setFocusedField(null)}
+                  className={`w-full h-[33px] px-3 rounded-[8px] border
+                            bg-gray-100 dark:bg-transparent outline-none
+                            text-black dark:text-[#0EFF7B] cursor-pointer
+                            [&::-webkit-calendar-picker-indicator]:opacity-0
+                            [&::-webkit-calendar-picker-indicator]:absolute
+                            [&::-webkit-calendar-picker-indicator]:right-2
+                            [&::-webkit-calendar-picker-indicator]:w-4
+                            [&::-webkit-calendar-picker-indicator]:h-4
+                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                            ${focusedField === "scheduled_time"
+                              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                              : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
+                                ? "border-red-500 ring-1 ring-red-500"
+                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                            }`}
+                  style={{
+                    colorScheme: 'normal'
+                  }}
+                />
+                <Clock
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer
+                            hover:text-[#0EFF7B]"
+                  onClick={() => {
+                    timeInputRef.current?.showPicker();
+                  }}
+                />
+              </div>
               {getFieldError("scheduled_time") && (
                 <div className="mt-1 flex items-center gap-1">
                   <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
@@ -835,9 +917,6 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
                 </div>
               )}
             </div>
-            
-            {/* Empty placeholder - Row 2, Column 3 */}
-            <div className="col-span-1"></div>
             
             {/* Description - Row 3, Column 1, 2 & 3 (spans all 3 columns) */}
             <div className="col-span-3">

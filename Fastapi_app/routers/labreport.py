@@ -168,6 +168,41 @@ async def create_labreport(
     except Patient.DoesNotExist:
         raise HTTPException(status_code=404, detail="Patient not found.")
 
+    # === NEW CODE: Check for existing pending/in-progress reports ===
+    try:
+        @sync_to_async
+        def check_existing_reports():
+            ensure_db_connection()
+            # Check if there's any existing report for this patient with same test type
+            # and status in ['pending', 'inprogress']
+            existing_report = LabReport.objects.filter(
+                patient=patient,
+                test_type__iexact=test_type.strip(),
+                status__in=['pending', 'inprogress']
+            ).first()
+            
+            return existing_report
+        
+        existing_report = await check_existing_reports()
+        
+        if existing_report:
+            # Format the status for display (capitalize first letter)
+            status_display = existing_report.status.capitalize()
+            if existing_report.status == 'inprogress':
+                status_display = 'In Progress'
+                
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"This patient already has a {test_type} report in {status_display} status."
+            )
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log other errors but don't block creation
+        print(f"Error checking existing reports: {e}")
+    # === END NEW CODE ===
+
     try:
         @sync_to_async
         def create_lab():
@@ -240,7 +275,7 @@ async def update_labreport(
     patient_id: Optional[str] = Form(None),
     department: Optional[str] = Form(None),
     test_type: Optional[str] = Form(None),
-    status: Optional[str] = Form(None),
+    status_param: Optional[str] = Form(None),  # Renamed to avoid conflict
     lab_report_file: Optional[UploadFile] = File(None),
 ):
     try:
@@ -254,6 +289,7 @@ async def update_labreport(
         raise HTTPException(status_code=404, detail="Lab Report not found.")
 
     old_status = lab.status
+    old_test_type = lab.test_type  # Store old test type for comparison
     file_path = lab.file_path  # Keep existing if not uploading new
 
     # Handle patient update
@@ -277,10 +313,51 @@ async def update_labreport(
 
     if department:
         lab.department = department.strip()
-    if test_type:
+    
+    # === Check for duplicate pending/in-progress reports when updating test type ===
+    if test_type and test_type.strip() != old_test_type:
+        # If test type is being changed, check for conflicts with other reports
+        try:
+            @sync_to_async
+            def check_existing_reports_for_update():
+                ensure_db_connection()
+                # Check if there's any OTHER report for this patient with same test type
+                # and status in ['pending', 'inprogress']
+                existing_report = LabReport.objects.filter(
+                    patient=lab.patient,
+                    test_type__iexact=test_type.strip(),
+                    status__in=['pending', 'inprogress']
+                ).exclude(id=labreport_id).first()  # Exclude current report
+                
+                return existing_report
+            
+            existing_report = await check_existing_reports_for_update()
+            
+            if existing_report:
+                # Format the status for display
+                status_display = existing_report.status.capitalize()
+                if existing_report.status == 'inprogress':
+                    status_display = 'In Progress'
+                    
+                # Use integer status code directly instead of status.HTTP_409_CONFLICT
+                raise HTTPException(
+                    status_code=409,  # 409 Conflict
+                    detail=f"Cannot update test type. This patient already has a {test_type} report in {status_display} status."
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"Error checking existing reports during update: {e}")
+        
         lab.test_type = test_type.strip()
-    if status:
-        lab.status = status.lower().strip()
+    elif test_type:
+        # Test type unchanged, just assign it
+        lab.test_type = test_type.strip()
+    # === END CHECK ===
+
+    # Use status_param instead of status to avoid conflict
+    if status_param:
+        lab.status = status_param.lower().strip()
 
     # Handle file upload only when status becomes "completed"
     if lab_report_file and lab.status == "completed":

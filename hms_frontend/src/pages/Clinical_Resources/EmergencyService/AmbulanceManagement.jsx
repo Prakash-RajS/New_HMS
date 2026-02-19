@@ -1,3 +1,4 @@
+
 // // src/components/AmbulanceManagement.jsx
 // import React, { useState, useEffect, useCallback, useRef } from "react";
 // import { Listbox } from "@headlessui/react";
@@ -420,53 +421,79 @@
 //   };
 
 //   // ── DATA FETCHING ─────────────────────────────
-//   const fetchData = useCallback(async () => {
-//     if (!isMountedRef.current) return;
+//   // In AmbulanceManagement.jsx fetchData function:
+// const fetchData = useCallback(async () => {
+//   if (!isMountedRef.current) return;
+  
+//   setLoading(true);
+//   setError(null);
+//   try {
+//     const dispatchRes = await api.get("/ambulance/dispatch");
+//     const tripRes = await api.get("/ambulance/trips");
+//     const unitRes = await api.get("/ambulance/units");
+//     const patientRes = await api.get("/ambulance/patients");
+
+//     const dispatches = dispatchRes.data;
+//     const trips = tripRes.data;
+//     const allUnits = unitRes.data;
+//     const patients = patientRes.data;
+
+//     // Map patient phone correctly
+//     const patientsWithPhone = patients.map(patient => ({
+//       ...patient,
+//       phone: patient.phone || patient.phone_number || '+91-XXXXXXXXXX'
+//     }));
+
+//     setPatientList(patientsWithPhone);
     
-//     setLoading(true);
-//     setError(null);
-//     try {
-//       const dispatchRes = await api.get("/ambulance/dispatch");
-//       const tripRes = await api.get("/ambulance/trips");
-//       const unitRes = await api.get("/ambulance/units");
-//       const patientRes = await api.get("/ambulance/patients");
+//     // Add phone numbers to dispatches
+//     const dispatchesWithPhone = dispatches.map(dispatch => ({
+//       ...dispatch,
+//       phone_number: dispatch.phone_number || dispatch.contact_number || '+91-XXXXXXXXXX'
+//     }));
+    
+//     // Add phone numbers to trips
+//     const tripsWithPhone = trips.map(trip => ({
+//       ...trip,
+//       phone_number: trip.phone_number || trip.patient?.phone || '+91-XXXXXXXXXX'
+//     }));
 
-//       const dispatches = dispatchRes.data;
-//       const trips = tripRes.data;
-//       const allUnits = unitRes.data;
-//       const patients = patientRes.data;
+//     // Add phone numbers to ambulance units
+//     const unitsWithPhone = allUnits.map(unit => ({
+//       ...unit,
+//       phone: unit.phone || unit.contact_number || '+91-XXXXXXXXXX'
+//     }));
 
-//       setPatientList(patients);
-//       setDispatchData(dispatches);
-//       setTripData(trips);
-//       setUnitData(allUnits);
-//       setUnits(allUnits);
+//     setDispatchData(dispatchesWithPhone);
+//     setTripData(tripsWithPhone);
+//     setUnitData(unitsWithPhone);
+//     setUnits(unitsWithPhone);
 
-//       // Stats
-//       const total = allUnits.length;
-//       const ready = allUnits.filter((u) => u.in_service).length;
-//       const onRoad = trips.filter((t) => t.status === "En Route").length;
-//       const outOfService = total - ready;
+//     // Stats
+//     const total = unitsWithPhone.length;
+//     const ready = unitsWithPhone.filter((u) => u.in_service).length;
+//     const onRoad = trips.filter((t) => t.status === "En Route").length;
+//     const outOfService = total - ready;
 
-//       setStats({ total, ready, onRoad, outOfService });
-//     } catch (err) {
-//       let errorMessage = "Failed to fetch data.";
-//       if (err.response) {
-//         errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
-//       } else if (err.request) {
-//         errorMessage = "Network error. Please check your connection.";
-//       } else {
-//         errorMessage = err.message || errorMessage;
-//       }
-//       console.error("❌ Error fetching data:", err);
-//       setError(errorMessage);
-//       errorToast(errorMessage);
-//     } finally {
-//       if (isMountedRef.current) {
-//         setLoading(false);
-//       }
+//     setStats({ total, ready, onRoad, outOfService });
+//   } catch (err) {
+//     let errorMessage = "Failed to fetch data.";
+//     if (err.response) {
+//       errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+//     } else if (err.request) {
+//       errorMessage = "Network error. Please check your connection.";
+//     } else {
+//       errorMessage = err.message || errorMessage;
 //     }
-//   }, []);
+//     console.error("❌ Error fetching data:", err);
+//     setError(errorMessage);
+//     errorToast(errorMessage);
+//   } finally {
+//     if (isMountedRef.current) {
+//       setLoading(false);
+//     }
+//   }
+// }, []);
 
 //   // ── LIFECYCLE ─────────────────────────────────
 //   useEffect(() => {
@@ -616,6 +643,25 @@
 //     if (status === "En Route") return "text-blue-600 dark:text-blue-500";
 //     if (status === "Standby") return "text-yellow-600 dark:text-yellow-500";
 //     return "text-gray-600 dark:text-gray-400";
+//   };
+
+//   // Phone call functionality
+//   const handlePhoneCall = (phoneNumber, item) => {
+//     if (!phoneNumber || phoneNumber === '+91-XXXXXXXXXX') {
+//       errorToast("No valid phone number available for this record");
+//       return;
+//     }
+
+//     // Format phone number for tel: protocol
+//     const formattedNumber = phoneNumber.replace(/[\s\-]/g, '');
+    
+//     // Show confirmation dialog
+//     if (window.confirm(`Call ${phoneNumber}?`)) {
+//       window.open(`tel:${formattedNumber}`, '_self');
+      
+//       // Log the call attempt
+//       console.log(`Calling ${phoneNumber} for ${item.dispatch_id || item.trip_id || item.unit_number}`);
+//     }
 //   };
 
 //   // Selection
@@ -1052,6 +1098,7 @@
 //                       { key: "vehicle_make", label: "Make" },
 //                       { key: "vehicle_model", label: "Model" },
 //                       { key: "in_service", label: "Status" },
+//                       { key: "phone", label: "Contact" }, // Added phone column
 //                       { key: "notes", label: "Notes" },
 //                     ].map((c) => (
 //                       <th
@@ -1075,6 +1122,7 @@
 //                       { key: "dispatcher", label: "Dispatcher" },
 //                       { key: "call_type", label: "Type" },
 //                       { key: "location", label: "Location" },
+//                       { key: "phone_number", label: "Phone" }, // Added phone column
 //                       { key: "status", label: "Status" },
 //                     ].map((c) => (
 //                       <th
@@ -1100,6 +1148,7 @@
 //                       { key: "patient_id", label: "Patient" },
 //                       { key: "pickup_location", label: "Pickup" },
 //                       { key: "destination", label: "Dest" },
+//                       { key: "phone_number", label: "Phone" }, // Added phone column
 //                       { key: "start_time", label: "Start" },
 //                       { key: "end_time", label: "End" },
 //                       { key: "mileage", label: "Mileage" },
@@ -1151,8 +1200,12 @@
 //                             {row.in_service ? "Ready" : "Out"}
 //                           </span>
 //                         </td>
+//                         <td className="text-center">
+//                           {row.phone || row.contact_number || "-"}
+//                         </td>
 //                         <td className="text-center">{row.notes || "-"}</td>
 //                         <td className="px-3 py-3 flex justify-center gap-2">
+                         
 //                           <button
 //                             onClick={() => handleOpenEditUnit(row)}
 //                             className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -1210,22 +1263,12 @@
 //                         <td>{row.dispatcher}</td>
 //                         <td>{row.call_type}</td>
 //                         <td>{row.location}</td>
+//                         <td>{row.phone_number || "-"}</td>
 //                         <td className={getStatusColor(row.status)}>
 //                           {row.status}
 //                         </td>
-//                         <td className="px-2 py-3 flex justify-end gap-1">
-//                           {/* <button className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]">
-//                             <Phone
-//                               size={14}
-//                               className="text-[#08994A] dark:text-[#0EFF7B]"
-//                             />
-//                             <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-//                     px-3 py-1 text-xs rounded-md shadow-md
-//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-//                     transition-all duration-150">
-//                     Phone
-//               </span>
-//                           </button> */}
+//                         <td className="px-3 py-3 flex justify-end gap-2">
+                          
 //                           <button
 //                             onClick={() => handleOpenEditDispatch(row)}
 //                             className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -1297,6 +1340,7 @@
 //                         </td>
 //                         <td>{row.pickup_location || "-"}</td>
 //                         <td>{row.destination || "-"}</td>
+//                         <td>{row.phone_number || "-"}</td>
 //                         <td>
 //                           {row.start_time
 //                             ? new Date(row.start_time).toLocaleTimeString()
@@ -1312,6 +1356,23 @@
 //                           {row.status}
 //                         </td>
 //                         <td className="px-3 py-3 flex justify-center gap-2">
+//                           {row.phone_number && row.phone_number !== '+91-XXXXXXXXXX' && (
+//                             <button
+//                               onClick={() => handlePhoneCall(row.phone_number, row)}
+//                               className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+//                             >
+//                               <Phone
+//                                 size={14}
+//                                 className="text-[#08994A] dark:text-[#0EFF7B]"
+//                               />
+//                               <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+//                     px-3 py-1 text-xs rounded-md shadow-md
+//                     bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+//                     transition-all duration-150">
+//                     Call
+//                   </span>
+//                             </button>
+//                           )}
 //                           <button
 //                             onClick={() => handleOpenEditTrip(row)}
 //                             className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -1423,6 +1484,7 @@
 //         units={units}
 //         dispatches={dispatchData}
 //         patients={patientList}
+//         existingTrips={tripData}
 //       />
 
 //       <AmbulanceUnitsModal
@@ -1560,9 +1622,7 @@
 //   );
 // };
 
-// export default AmbulanceManagement;
-
-//// src/components/AmbulanceManagement.jsx
+// src/components/AmbulanceManagement.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Listbox } from "@headlessui/react";
 import MapView from "./MapView";
@@ -1715,6 +1775,13 @@ const AmbulanceManagement = () => {
         if (!isMountedRef.current) return;
         console.error("❌ WebSocket error:", error);
         setConnectionStatus("error");
+        
+        // Retry connection after delay
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            connectWebSocket();
+          }
+        }, 3000);
       };
 
     } catch (error) {
@@ -1730,7 +1797,7 @@ const AmbulanceManagement = () => {
     }
   }, []);
 
-const handleWebSocketMessage = (data) => {
+  const handleWebSocketMessage = (data) => {
   // Skip connection established messages
   if (data.type === "connection_established") {
     console.log("✅ WebSocket connection confirmed");
@@ -1751,9 +1818,9 @@ const handleWebSocketMessage = (data) => {
     case "trip_status_changed":
       // Refresh data when CRUD operations happen
       fetchData();
-      
-      // Show toast notification
-      showNotificationToast(data);
+
+      // ❌ Toast notification disabled
+      // showNotificationToast(data);
       break;
 
     case "location_update":
@@ -1764,17 +1831,20 @@ const handleWebSocketMessage = (data) => {
       break;
 
     case "status_update":
-      showNotificationToast(data);
+      // ❌ Toast notification disabled
+      // showNotificationToast(data);
       break;
 
-    // Add these new message types that backend actually sends
+    // Backend message types
     case "new_dispatch":
     case "new_trip":
     case "trip_completed":
     case "dispatch_status_updated":
     case "dispatch_unit_changed":
       fetchData(); // Refresh data
-      showNotificationToast(data);
+
+      // ❌ Toast notification disabled
+      // showNotificationToast(data);
       break;
 
     default:
@@ -1782,177 +1852,178 @@ const handleWebSocketMessage = (data) => {
       break;
   }
 
-  // Add to notification panel (except for location updates)
+  // ✅ Notification panel still works
   if (data.type !== "location_update" && data.type !== "connection_established") {
     addToNotificationPanel(data);
   }
 };
 
-const showNotificationToast = (data) => {
-  const toastConfigs = {
-    // Unit operations
-    unit_created: {
-      icon: AmbulanceIcon,
-      color: "text-green-500",
-      bgColor: "bg-green-900/30 border-green-500/50",
-      autoClose: 4000,
-    },
-    unit_updated: {
-      icon: AmbulanceIcon,
-      color: "text-yellow-500",
-      bgColor: "bg-yellow-900/30 border-yellow-500/50",
-      autoClose: 4000,
-    },
-    unit_deleted: {
-      icon: AmbulanceIcon,
-      color: "text-red-500",
-      bgColor: "bg-red-900/30 border-red-500/50",
-      autoClose: 4000,
-    },
 
-    // Dispatch operations
-    dispatch_created: {
-      icon: Siren,
-      color: "text-red-500",
-      bgColor: "bg-red-900/30 border-red-500/50",
-      autoClose: 8000,
-      playSound: true,
-    },
-    new_dispatch: { // This is what backend actually sends for new dispatches
-      icon: Siren,
-      color: "text-red-500",
-      bgColor: "bg-red-900/30 border-red-500/50",
-      autoClose: 8000,
-      playSound: true,
-    },
-    dispatch_updated: {
-      icon: Edit,
-      color: "text-yellow-500",
-      bgColor: "bg-yellow-900/30 border-yellow-500/50",
+  const showNotificationToast = (data) => {
+    const toastConfigs = {
+      // Unit operations
+      unit_created: {
+        icon: AmbulanceIcon,
+        color: "text-green-500",
+        bgColor: "bg-green-900/30 border-green-500/50",
+        autoClose: 4000,
+      },
+      unit_updated: {
+        icon: AmbulanceIcon,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-900/30 border-yellow-500/50",
+        autoClose: 4000,
+      },
+      unit_deleted: {
+        icon: AmbulanceIcon,
+        color: "text-red-500",
+        bgColor: "bg-red-900/30 border-red-500/50",
+        autoClose: 4000,
+      },
+
+      // Dispatch operations
+      dispatch_created: {
+        icon: Siren,
+        color: "text-red-500",
+        bgColor: "bg-red-900/30 border-red-500/50",
+        autoClose: 8000,
+        playSound: true,
+      },
+      new_dispatch: { // This is what backend actually sends for new dispatches
+        icon: Siren,
+        color: "text-red-500",
+        bgColor: "bg-red-900/30 border-red-500/50",
+        autoClose: 8000,
+        playSound: true,
+      },
+      dispatch_updated: {
+        icon: Edit,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-900/30 border-yellow-500/50",
+        autoClose: 4000,
+      },
+      dispatch_deleted: {
+        icon: Trash2,
+        color: "text-red-500",
+        bgColor: "bg-red-900/30 border-red-500/50",
+        autoClose: 4000,
+      },
+      dispatch_status_updated: {
+        icon: Clock,
+        color: "text-purple-500",
+        bgColor: "bg-purple-900/30 border-purple-500/50",
+        autoClose: 5000,
+      },
+      dispatch_unit_changed: {
+        icon: AmbulanceIcon,
+        color: "text-orange-500",
+        bgColor: "bg-orange-900/30 border-orange-500/50",
+        autoClose: 5000,
+      },
+
+      // Trip operations
+      trip_created: {
+        icon: AmbulanceIcon,
+        color: "text-blue-500",
+        bgColor: "bg-blue-900/30 border-blue-500/50",
+        autoClose: 5000,
+      },
+      new_trip: { // This is what backend actually sends for new trips
+        icon: AmbulanceIcon,
+        color: "text-blue-500",
+        bgColor: "bg-blue-900/30 border-blue-500/50",
+        autoClose: 5000,
+      },
+      trip_updated: {
+        icon: Edit,
+        color: "text-yellow-500",
+        bgColor: "bg-yellow-900/30 border-yellow-500/50",
+        autoClose: 4000,
+      },
+      trip_deleted: {
+        icon: Trash2,
+        color: "text-red-500",
+        bgColor: "bg-red-900/30 border-red-500/50",
+        autoClose: 4000,
+      },
+      trip_status_changed: {
+        icon: Clock,
+        color: "text-purple-500",
+        bgColor: "bg-purple-900/30 border-purple-500/50",
+        autoClose: 5000,
+      },
+      trip_completed: {
+        icon: CheckCircle,
+        color: "text-green-500",
+        bgColor: "bg-green-900/30 border-green-500/50",
+        autoClose: 5000,
+      },
+
+      // Status updates
+      status_update: {
+        icon: CheckCircle,
+        color: "text-green-500",
+        bgColor: "bg-green-900/30 border-green-500/50",
+        autoClose: 5000,
+      },
+    };
+
+    const config = toastConfigs[data.type] || {
+      icon: Bell,
+      color: "text-gray-500",
+      bgColor: "bg-gray-900/30 border-gray-500/50",
       autoClose: 4000,
-    },
-    dispatch_deleted: {
-      icon: Trash2,
-      color: "text-red-500",
-      bgColor: "bg-red-900/30 border-red-500/50",
-      autoClose: 4000,
-    },
-    dispatch_status_updated: {
-      icon: Clock,
-      color: "text-purple-500",
-      bgColor: "bg-purple-900/30 border-purple-500/50",
-      autoClose: 5000,
-    },
-    dispatch_unit_changed: {
-      icon: AmbulanceIcon,
-      color: "text-orange-500",
-      bgColor: "bg-orange-900/30 border-orange-500/50",
-      autoClose: 5000,
-    },
+    };
 
-    // Trip operations
-    trip_created: {
-      icon: AmbulanceIcon,
-      color: "text-blue-500",
-      bgColor: "bg-blue-900/30 border-blue-500/50",
-      autoClose: 5000,
-    },
-    new_trip: { // This is what backend actually sends for new trips
-      icon: AmbulanceIcon,
-      color: "text-blue-500",
-      bgColor: "bg-blue-900/30 border-blue-500/50",
-      autoClose: 5000,
-    },
-    trip_updated: {
-      icon: Edit,
-      color: "text-yellow-500",
-      bgColor: "bg-yellow-900/30 border-yellow-500/50",
-      autoClose: 4000,
-    },
-    trip_deleted: {
-      icon: Trash2,
-      color: "text-red-500",
-      bgColor: "bg-red-900/30 border-red-500/50",
-      autoClose: 4000,
-    },
-    trip_status_changed: {
-      icon: Clock,
-      color: "text-purple-500",
-      bgColor: "bg-purple-900/30 border-purple-500/50",
-      autoClose: 5000,
-    },
-    trip_completed: {
-      icon: CheckCircle,
-      color: "text-green-500",
-      bgColor: "bg-green-900/30 border-green-500/50",
-      autoClose: 5000,
-    },
+    successToast(
+      <div className="flex items-center gap-3">
+        <config.icon className={`w-6 h-6 ${config.color}`} />
+        <div>
+          <strong className={config.color}>{data.title || formatMessageType(data.type)}</strong>
+          <p className="text-sm text-gray-700">{data.message}</p>
+        </div>
+      </div>,
+      { autoClose: config.autoClose }
+    );
 
-    // Status updates
-    status_update: {
-      icon: CheckCircle,
-      color: "text-green-500",
-      bgColor: "bg-green-900/30 border-green-500/50",
-      autoClose: 5000,
-    },
-  };
-
-  const config = toastConfigs[data.type] || {
-    icon: Bell,
-    color: "text-gray-500",
-    bgColor: "bg-gray-900/30 border-gray-500/50",
-    autoClose: 4000,
-  };
-
-  successToast(
-    <div className="flex items-center gap-3">
-      <config.icon className={`w-6 h-6 ${config.color}`} />
-      <div>
-        <strong className={config.color}>{data.title || formatMessageType(data.type)}</strong>
-        <p className="text-sm text-gray-700">{data.message}</p>
-      </div>
-    </div>,
-    { autoClose: config.autoClose }
-  );
-
-  // Play emergency sound for new dispatches
-  if (config.playSound) {
-    try {
-      const audio = new Audio(
-        "https://assets.mixkit.co/sfx/preview/mixkit-emergency-alert-2951.mp3"
-      );
-      audio.volume = 0.3;
-      audio.play().catch((e) => console.log("Audio play failed:", e));
-    } catch (audioError) {
-      console.log("Audio initialization failed:", audioError);
+    // Play emergency sound for new dispatches
+    if (config.playSound) {
+      try {
+        const audio = new Audio(
+          "https://assets.mixkit.co/sfx/preview/mixkit-emergency-alert-2951.mp3"
+        );
+        audio.volume = 0.3;
+        audio.play().catch((e) => console.log("Audio play failed:", e));
+      } catch (audioError) {
+        console.log("Audio initialization failed:", audioError);
+      }
     }
-  }
-};
-
-// Helper function to format message types for display
-const formatMessageType = (type) => {
-  const typeMap = {
-    unit_created: "Ambulance Unit Created",
-    unit_updated: "Ambulance Unit Updated", 
-    unit_deleted: "Ambulance Unit Deleted",
-    dispatch_created: "New Dispatch Created",
-    new_dispatch: "New Dispatch Created",
-    dispatch_updated: "Dispatch Updated",
-    dispatch_deleted: "Dispatch Cancelled",
-    dispatch_status_updated: "Dispatch Status Updated",
-    dispatch_unit_changed: "Dispatch Unit Changed",
-    trip_created: "New Trip Started",
-    new_trip: "New Trip Started",
-    trip_updated: "Trip Updated",
-    trip_deleted: "Trip Cancelled",
-    trip_status_changed: "Trip Status Updated",
-    trip_completed: "Trip Completed",
-    status_update: "Status Update",
-    location_update: "Location Update"
   };
-  
-  return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
+
+  // Helper function to format message types for display
+  const formatMessageType = (type) => {
+    const typeMap = {
+      unit_created: "Ambulance Unit Created",
+      unit_updated: "Ambulance Unit Updated", 
+      unit_deleted: "Ambulance Unit Deleted",
+      dispatch_created: "New Dispatch Created",
+      new_dispatch: "New Dispatch Created",
+      dispatch_updated: "Dispatch Updated",
+      dispatch_deleted: "Dispatch Cancelled",
+      dispatch_status_updated: "Dispatch Status Updated",
+      dispatch_unit_changed: "Dispatch Unit Changed",
+      trip_created: "New Trip Started",
+      new_trip: "New Trip Started",
+      trip_updated: "Trip Updated",
+      trip_deleted: "Trip Cancelled",
+      trip_status_changed: "Trip Status Updated",
+      trip_completed: "Trip Completed",
+      status_update: "Status Update",
+      location_update: "Location Update"
+    };
+    
+    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
 
   const addToNotificationPanel = (data) => {
     const now = Date.now();
@@ -1984,79 +2055,78 @@ const formatMessageType = (type) => {
   };
 
   // ── DATA FETCHING ─────────────────────────────
-  // In AmbulanceManagement.jsx fetchData function:
-const fetchData = useCallback(async () => {
-  if (!isMountedRef.current) return;
-  
-  setLoading(true);
-  setError(null);
-  try {
-    const dispatchRes = await api.get("/ambulance/dispatch");
-    const tripRes = await api.get("/ambulance/trips");
-    const unitRes = await api.get("/ambulance/units");
-    const patientRes = await api.get("/ambulance/patients");
-
-    const dispatches = dispatchRes.data;
-    const trips = tripRes.data;
-    const allUnits = unitRes.data;
-    const patients = patientRes.data;
-
-    // Map patient phone correctly
-    const patientsWithPhone = patients.map(patient => ({
-      ...patient,
-      phone: patient.phone || patient.phone_number || '+91-XXXXXXXXXX'
-    }));
-
-    setPatientList(patientsWithPhone);
+  const fetchData = useCallback(async () => {
+    if (!isMountedRef.current) return;
     
-    // Add phone numbers to dispatches
-    const dispatchesWithPhone = dispatches.map(dispatch => ({
-      ...dispatch,
-      phone_number: dispatch.phone_number || dispatch.contact_number || '+91-XXXXXXXXXX'
-    }));
-    
-    // Add phone numbers to trips
-    const tripsWithPhone = trips.map(trip => ({
-      ...trip,
-      phone_number: trip.phone_number || trip.patient?.phone || '+91-XXXXXXXXXX'
-    }));
+    setLoading(true);
+    setError(null);
+    try {
+      const dispatchRes = await api.get("/ambulance/dispatch");
+      const tripRes = await api.get("/ambulance/trips");
+      const unitRes = await api.get("/ambulance/units");
+      const patientRes = await api.get("/ambulance/patients");
 
-    // Add phone numbers to ambulance units
-    const unitsWithPhone = allUnits.map(unit => ({
-      ...unit,
-      phone: unit.phone || unit.contact_number || '+91-XXXXXXXXXX'
-    }));
+      const dispatches = dispatchRes.data;
+      const trips = tripRes.data;
+      const allUnits = unitRes.data;
+      const patients = patientRes.data;
 
-    setDispatchData(dispatchesWithPhone);
-    setTripData(tripsWithPhone);
-    setUnitData(unitsWithPhone);
-    setUnits(unitsWithPhone);
+      // Map patient phone correctly
+      const patientsWithPhone = patients.map(patient => ({
+        ...patient,
+        phone: patient.phone || patient.phone_number || '+91-XXXXXXXXXX'
+      }));
 
-    // Stats
-    const total = unitsWithPhone.length;
-    const ready = unitsWithPhone.filter((u) => u.in_service).length;
-    const onRoad = trips.filter((t) => t.status === "En Route").length;
-    const outOfService = total - ready;
+      setPatientList(patientsWithPhone);
+      
+      // Add phone numbers to dispatches
+      const dispatchesWithPhone = dispatches.map(dispatch => ({
+        ...dispatch,
+        phone_number: dispatch.phone_number || dispatch.contact_number || '+91-XXXXXXXXXX'
+      }));
+      
+      // Add phone numbers to trips
+      const tripsWithPhone = trips.map(trip => ({
+        ...trip,
+        phone_number: trip.phone_number || trip.patient?.phone || '+91-XXXXXXXXXX'
+      }));
 
-    setStats({ total, ready, onRoad, outOfService });
-  } catch (err) {
-    let errorMessage = "Failed to fetch data.";
-    if (err.response) {
-      errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
-    } else if (err.request) {
-      errorMessage = "Network error. Please check your connection.";
-    } else {
-      errorMessage = err.message || errorMessage;
+      // Add phone numbers to ambulance units
+      const unitsWithPhone = allUnits.map(unit => ({
+        ...unit,
+        phone: unit.phone || unit.contact_number || '+91-XXXXXXXXXX'
+      }));
+
+      setDispatchData(dispatchesWithPhone);
+      setTripData(tripsWithPhone);
+      setUnitData(unitsWithPhone);
+      setUnits(unitsWithPhone);
+
+      // Stats
+      const total = unitsWithPhone.length;
+      const ready = unitsWithPhone.filter((u) => u.in_service).length;
+      const onRoad = trips.filter((t) => t.status === "En Route").length;
+      const outOfService = total - ready;
+
+      setStats({ total, ready, onRoad, outOfService });
+    } catch (err) {
+      let errorMessage = "Failed to fetch data.";
+      if (err.response) {
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      console.error("❌ Error fetching data:", err);
+      setError(errorMessage);
+      errorToast(errorMessage);
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-    console.error("❌ Error fetching data:", err);
-    setError(errorMessage);
-    errorToast(errorMessage);
-  } finally {
-    if (isMountedRef.current) {
-      setLoading(false);
-    }
-  }
-}, []);
+  }, []);
 
   // ── LIFECYCLE ─────────────────────────────────
   useEffect(() => {
@@ -2103,7 +2173,7 @@ const fetchData = useCallback(async () => {
     )
     .filter((item) => (filterStatus ? item.status === filterStatus : true));
 
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
   const displayedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -2148,6 +2218,14 @@ const fetchData = useCallback(async () => {
 
   const handleDelete = (item) => {
     setSelectedItem(item);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    if (selectedRows.size === 0) {
+      errorToast("Kindly select at least one record to delete.");
+      return;
+    }
     setIsDeleteOpen(true);
   };
 
@@ -2263,28 +2341,50 @@ const fetchData = useCallback(async () => {
     setEditUnitOpen(true);
   };
 
-  const saveDispatch = async (payload) => {
-    const url = editingDispatch
-      ? `/ambulance/dispatch/${editingDispatch.id}`
-      : `/ambulance/dispatch`;
-    try {
-      const res = await (editingDispatch ? api.put(url, payload) : api.post(url, payload));
-      await fetchData();
-      setEditDispatchOpen(false);
-      setEditingDispatch(null);
-      successToast(editingDispatch ? "Dispatch updated!" : "Dispatch created!");
-    } catch (err) {
+  // In AmbulanceManagement.jsx - update the saveDispatch function
+const saveDispatch = async (payload) => {
+  const url = editingDispatch
+    ? `/ambulance/dispatch/${editingDispatch.id}`
+    : `/ambulance/dispatch`;
+  try {
+    const res = await (editingDispatch ? api.put(url, payload) : api.post(url, payload));
+    await fetchData();
+    setEditDispatchOpen(false);
+    setEditingDispatch(null);
+    successToast(editingDispatch ? "Dispatch updated!" : "Dispatch created!");
+    return res.data;
+  } catch (err) {
+    // Check if it's a 422 validation error
+    if (err.response?.status === 422) {
+      // Pass the validation errors to the modal
+      throw err;
+    } else {
+      // For other errors, show toast here
       let errorMessage = editingDispatch ? "Failed to update dispatch!" : "Failed to create dispatch!";
       if (err.response) {
-        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+        const responseData = err.response.data;
+        if (responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            errorMessage = responseData.detail.map(e => e.msg || e).join(', ');
+          } else if (typeof responseData.detail === 'string') {
+            errorMessage = responseData.detail;
+          } else if (responseData.detail?.message) {
+            errorMessage = responseData.detail.message;
+          }
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
       } else if (err.request) {
         errorMessage = "Network error. Please check your connection.";
       } else {
         errorMessage = err.message || errorMessage;
       }
       errorToast(errorMessage);
+      // Re-throw so the modal knows an error occurred
+      throw err;
     }
-  };
+  }
+};
 
   const saveTrip = async (payload) => {
     const url = editingTrip
@@ -2313,32 +2413,62 @@ const fetchData = useCallback(async () => {
     }
   };
 
-  const saveUnit = async (payload) => {
-    const url = editingUnit
-      ? `/ambulance/units/${editingUnit.id}`
-      : `/ambulance/units`;
-    try {
-      const res = await (editingUnit ? api.put(url, payload) : api.post(url, payload));
-      await fetchData();
-      setEditUnitOpen(false);
-      setEditingUnit(null);
-      successToast(
-        editingUnit
-          ? "Unit updated successfully!"
-          : "Unit created successfully!"
-      );
-    } catch (err) {
+  // In AmbulanceManagement.jsx - update the saveUnit function
+// In AmbulanceManagement.jsx - update the saveUnit function
+const saveUnit = async (payload) => {
+  const url = editingUnit
+    ? `/ambulance/units/${editingUnit.id}`
+    : `/ambulance/units`;
+  try {
+    const res = await (editingUnit ? api.put(url, payload) : api.post(url, payload));
+    await fetchData();
+    setEditUnitOpen(false);
+    setEditingUnit(null);
+    successToast(
+      editingUnit
+        ? "Unit updated successfully!"
+        : "Unit created successfully!"
+    );
+    return res.data;
+  } catch (err) {
+    // Check if it's a 409 conflict (duplicate entry)
+    if (err.response?.status === 409) {
+      // Re-throw for modal to handle
+      throw err;
+    } 
+    // Check if it's a 422 validation error
+    else if (err.response?.status === 422) {
+      // Pass the validation errors to the modal
+      throw err;
+    } else {
+      // For other errors, show toast here
       let errorMessage = editingUnit ? "Failed to update unit!" : "Failed to create unit!";
       if (err.response) {
-        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+        // Handle different error formats
+        const responseData = err.response.data;
+        if (responseData.detail) {
+          if (Array.isArray(responseData.detail)) {
+            // FastAPI validation errors come as an array
+            errorMessage = responseData.detail.map(e => e.msg || e).join(', ');
+          } else if (typeof responseData.detail === 'string') {
+            errorMessage = responseData.detail;
+          } else if (responseData.detail?.message) {
+            errorMessage = responseData.detail.message;
+          }
+        } else if (responseData.message) {
+          errorMessage = responseData.message;
+        }
       } else if (err.request) {
         errorMessage = "Network error. Please check your connection.";
       } else {
         errorMessage = err.message || errorMessage;
       }
       errorToast(errorMessage);
+      // Re-throw so the modal knows an error occurred
+      throw err;
     }
-  };
+  }
+};
 
   // ── RENDER ─────────────────────────────────────
   if (loading) return <div className="p-10 text-center">Loading...</div>;
@@ -2346,7 +2476,7 @@ const fetchData = useCallback(async () => {
     return <div className="p-10 text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col overflow-hidden relative">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-4 w-full max-w-[2500px] font-[Helvetica] mx-auto flex flex-col overflow-hidden relative">
       {/* Gradient Border */}
       <div
         style={{
@@ -2550,6 +2680,7 @@ const fetchData = useCallback(async () => {
           </div>
         </div>
       </div>
+
       {/* Tabs */}
       <div className="mb-6 relative z-10">
         <h1 className="text-[20px] font-medium">Transport Management</h1>
@@ -2583,36 +2714,33 @@ const fetchData = useCallback(async () => {
         <div className="mb-4 flex flex-col sm:flex-row justify-between items-center gap-3">
           <h2 className="text-lg font-semibold">{activeTab}</h2>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex items-center gap-2 bg-[#08994A1A] dark:bg-[#0EFF7B1A] rounded-[40px] px-3 py-2 flex-1 sm:flex-initial">
-              <Search
-                size={16}
-                className="text-[#08994A] dark:text-[#0EFF7B]"
-              />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="bg-transparent outline-none text-sm w-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+            {/* Search input with darker background in light mode */}
+            <div className="relative w-48 sm:w-72">
+  <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#066A3A] dark:text-[#0EFF7B]" />
+  
+  <input
+    type="text"
+    placeholder="Search..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full bg-[#CFF7E4] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-[#047857] rounded-[40px] border border-[#066A3A] text-[#064E3B] dark:text-[#08994A] text-sm focus:outline-none"
+  />
+</div>
 
+
+
+            {/* Delete button - now green */}
             <button
-              onClick={() => selectedRows.size > 0 && setIsDeleteOpen(true)}
-              disabled={selectedRows.size === 0}
-              className={`relative group w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] flex items-center justify-center transition ${
-                selectedRows.size > 0
-                  ? "text-red-600 hover:bg-red-100"
-                  : "text-[#0EFF7B]"
-              }`}
+              onClick={handleDeleteClick}
+              className="relative group w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-green-600 hover:bg-green-700 text-white flex items-center justify-center transition"
             >
               <Trash2 size={18} />
               <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
-                    Delete
-                  </span>
+                Delete
+              </span>
             </button>
 
             {activeTab === "Ambulance Units" ? (
@@ -2621,7 +2749,6 @@ const fetchData = useCallback(async () => {
                 className="flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
               >
                 Add Unit
-                
               </button>
             ) : activeTab === "Dispatch Log" ? (
               <button
@@ -2661,7 +2788,7 @@ const fetchData = useCallback(async () => {
                       { key: "vehicle_make", label: "Make" },
                       { key: "vehicle_model", label: "Model" },
                       { key: "in_service", label: "Status" },
-                      { key: "phone", label: "Contact" }, // Added phone column
+                      { key: "phone", label: "Contact" },
                       { key: "notes", label: "Notes" },
                     ].map((c) => (
                       <th
@@ -2671,7 +2798,7 @@ const fetchData = useCallback(async () => {
                       >
                         {c.label}{" "}
                         {sortColumn === c.key &&
-                          (sortOrder === "asc" ? "Up" : "Down")}
+                          (sortOrder === "asc" ? "↑" : "↓")}
                       </th>
                     ))}
                     <th>Action</th>
@@ -2685,7 +2812,7 @@ const fetchData = useCallback(async () => {
                       { key: "dispatcher", label: "Dispatcher" },
                       { key: "call_type", label: "Type" },
                       { key: "location", label: "Location" },
-                      { key: "phone_number", label: "Phone" }, // Added phone column
+                      { key: "phone_number", label: "Phone" },
                       { key: "status", label: "Status" },
                     ].map((c) => (
                       <th
@@ -2695,7 +2822,7 @@ const fetchData = useCallback(async () => {
                       >
                         {c.label}{" "}
                         {sortColumn === c.key &&
-                          (sortOrder === "asc" ? "Up" : "Down")}
+                          (sortOrder === "asc" ? "↑" : "↓")}
                       </th>
                     ))}
                     <th>Action</th>
@@ -2711,7 +2838,7 @@ const fetchData = useCallback(async () => {
                       { key: "patient_id", label: "Patient" },
                       { key: "pickup_location", label: "Pickup" },
                       { key: "destination", label: "Dest" },
-                      { key: "phone_number", label: "Phone" }, // Added phone column
+                      { key: "phone_number", label: "Phone" },
                       { key: "start_time", label: "Start" },
                       { key: "end_time", label: "End" },
                       { key: "mileage", label: "Mileage" },
@@ -2724,7 +2851,7 @@ const fetchData = useCallback(async () => {
                       >
                         {c.label}{" "}
                         {sortColumn === c.key &&
-                          (sortOrder === "asc" ? "Up" : "Down")}
+                          (sortOrder === "asc" ? "↑" : "↓")}
                       </th>
                     ))}
                     <th>Action</th>
@@ -2733,275 +2860,249 @@ const fetchData = useCallback(async () => {
               </tr>
             </thead>
             <tbody>
-              {activeTab === "Ambulance Units"
-                ? sortedData.map((row) => {
-                    const id = row.id;
-                    return (
-                      <tr
-                        key={id}
-                        className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={isRowSelected(id)}
-                            onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                          />
-                        </td>
-                        <td>{row.unit_number}</td>
-                        <td>{row.vehicle_make || "-"}</td>
-                        <td>{row.vehicle_model || "-"}</td>
-                        <td>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              row.in_service
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
-                            {row.in_service ? "Ready" : "Out"}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          {row.phone || row.contact_number || "-"}
-                        </td>
-                        <td className="text-center">{row.notes || "-"}</td>
-                        <td className="px-3 py-3 flex justify-center gap-2">
-                          {/* {row.phone && (
+              {filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan="20" className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    No match found.
+                  </td>
+                </tr>
+              ) : (
+                activeTab === "Ambulance Units"
+                  ? sortedData.map((row) => {
+                      const id = row.id;
+                      return (
+                        <tr
+                          key={id}
+                          className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isRowSelected(id)}
+                              onChange={() => handleRowSelect(id)}
+                              className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            />
+                          </td>
+                          <td>{row.unit_number}</td>
+                          <td>{row.vehicle_make || "-"}</td>
+                          <td>{row.vehicle_model || "-"}</td>
+                          <td>
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                row.in_service
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                  : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                              }`}
+                            >
+                              {row.in_service ? "Ready" : "Out"}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            {row.phone || row.contact_number || "-"}
+                          </td>
+                          <td className="text-center">{row.notes || "-"}</td>
+                          <td className="px-3 py-3 flex justify-center gap-2">
                             <button
-                              onClick={() => handlePhoneCall(row.phone, row)}
+                              onClick={() => handleOpenEditUnit(row)}
                               className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                             >
-                              <Phone
+                              <Edit
                                 size={14}
                                 className="text-[#08994A] dark:text-[#0EFF7B]"
                               />
                               <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Call
-                  </span>
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Edit
+                    </span>
                             </button>
-                          )} */}
-                          <button
-                            onClick={() => handleOpenEditUnit(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Edit
-                              size={14}
-                              className="text-[#08994A] dark:text-[#0EFF7B]"
-                            />
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Trash2
-                              size={14}
-                              className="text-red-600 dark:text-red-500"
-                            />
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                : activeTab === "Dispatch Log"
-                ? sortedData.map((row) => {
-                    const id = row.id;
-                    const unitNumber = row.unit?.unit_number || "-";
-                    return (
-                      <tr
-                        key={id}
-                        className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={isRowSelected(id)}
-                            onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                          />
-                        </td>
-                        <td>{row.dispatch_id}</td>
-                        <td>{new Date(row.timestamp).toLocaleString()}</td>
-                        <td>{unitNumber}</td>
-                        <td>{row.dispatcher}</td>
-                        <td>{row.call_type}</td>
-                        <td>{row.location}</td>
-                        <td>{row.phone_number || "-"}</td>
-                        <td className={getStatusColor(row.status)}>
-                          {row.status}
-                        </td>
-                        <td className="px-3 py-3 flex justify-end gap-2">
-                          {/* {row.phone_number && row.phone_number !== '+91-XXXXXXXXXX' && (
-                            <button 
-                              onClick={() => handlePhoneCall(row.phone_number, row)}
+                            <button
+                              onClick={() => handleDelete(row)}
                               className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                             >
-                              <Phone
+                              <Trash2
+                                size={14}
+                                className="text-red-600 dark:text-red-500"
+                              />
+                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Delete
+                    </span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : activeTab === "Dispatch Log"
+                  ? sortedData.map((row) => {
+                      const id = row.id;
+                      const unitNumber = row.unit?.unit_number || "-";
+                      return (
+                        <tr
+                          key={id}
+                          className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isRowSelected(id)}
+                              onChange={() => handleRowSelect(id)}
+                              className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            />
+                          </td>
+                          <td>{row.dispatch_id}</td>
+                          <td>{new Date(row.timestamp).toLocaleString()}</td>
+                          <td>{unitNumber}</td>
+                          <td>{row.dispatcher}</td>
+                          <td>{row.call_type}</td>
+                          <td>{row.location}</td>
+                          <td>{row.phone_number || "-"}</td>
+                          <td className={getStatusColor(row.status)}>
+                            {row.status}
+                          </td>
+                          <td className="px-3 py-3 flex justify-end gap-2">
+                            <button
+                              onClick={() => handleOpenEditDispatch(row)}
+                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            >
+                              <Edit
                                 size={14}
                                 className="text-[#08994A] dark:text-[#0EFF7B]"
                               />
                               <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Call
-              </span>
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Edit
+                    </span>
                             </button>
-                          )} */}
-                          <button
-                            onClick={() => handleOpenEditDispatch(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Edit
-                              size={14}
-                              className="text-[#08994A] dark:text-[#0EFF7B]"
-                            />
-                            <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Trash2
-                              size={14}
-                              className="text-red-600 dark:text-red-500"
-                            />
-                            <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                : // Trip Log - Now with Action Column
-                  sortedData.map((row) => {
-                    const id = row.id;
-                    const unitNumber = row.unit?.unit_number || "-";
-                    return (
-                      <tr
-                        key={id}
-                        className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
-                      >
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={isRowSelected(id)}
-                            onChange={() => handleRowSelect(id)}
-                            className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                          />
-                        </td>
-                        <td>{row.trip_id}</td>
-                        <td>{row.dispatch?.dispatch_id || "-"}</td>
-                        <td>{unitNumber}</td>
-                        <td>{row.crew || "-"}</td>
-                        <td>
-                          {row.patient ? (
-                            <div className="text-center text-xs">
-                              <div className="font-medium">
-                                {row.patient.patient_unique_id}
-                              </div>
-                              <div className="text-gray-500">
-                                {row.patient.full_name}
-                              </div>
-                            </div>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td>{row.pickup_location || "-"}</td>
-                        <td>{row.destination || "-"}</td>
-                        <td>{row.phone_number || "-"}</td>
-                        <td>
-                          {row.start_time
-                            ? new Date(row.start_time).toLocaleTimeString()
-                            : "-"}
-                        </td>
-                        <td>
-                          {row.end_time
-                            ? new Date(row.end_time).toLocaleTimeString()
-                            : "-"}
-                        </td>
-                        <td>{row.mileage || "-"}</td>
-                        <td className={getStatusColor(row.status)}>
-                          {row.status}
-                        </td>
-                        <td className="px-3 py-3 flex justify-center gap-2">
-                          {row.phone_number && row.phone_number !== '+91-XXXXXXXXXX' && (
                             <button
-                              onClick={() => handlePhoneCall(row.phone_number, row)}
+                              onClick={() => handleDelete(row)}
                               className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
                             >
-                              <Phone
+                              <Trash2
+                                size={14}
+                                className="text-red-600 dark:text-red-500"
+                              />
+                              <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Delete
+                    </span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  : // Trip Log
+                    sortedData.map((row) => {
+                      const id = row.id;
+                      const unitNumber = row.unit?.unit_number || "-";
+                      return (
+                        <tr
+                          key={id}
+                          className="text-center border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] h-[50px]"
+                        >
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={isRowSelected(id)}
+                              onChange={() => handleRowSelect(id)}
+                              className="appearance-none w-5 h-5 ml-3 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+                            />
+                          </td>
+                          <td>{row.trip_id}</td>
+                          <td>{row.dispatch?.dispatch_id || "-"}</td>
+                          <td>{unitNumber}</td>
+                          <td>{row.crew || "-"}</td>
+                          <td>
+                            {row.patient ? (
+                              <div className="text-center text-xs">
+                                <div className="font-medium">
+                                  {row.patient.patient_unique_id}
+                                </div>
+                                <div className="text-gray-500">
+                                  {row.patient.full_name}
+                                </div>
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td>{row.pickup_location || "-"}</td>
+                          <td>{row.destination || "-"}</td>
+                          <td>{row.phone_number || "-"}</td>
+                          <td>
+                            {row.start_time
+                              ? new Date(row.start_time).toLocaleTimeString()
+                              : "-"}
+                          </td>
+                          <td>
+                            {row.end_time
+                              ? new Date(row.end_time).toLocaleTimeString()
+                              : "-"}
+                          </td>
+                          <td>{row.mileage || "-"}</td>
+                          <td className={getStatusColor(row.status)}>
+                            {row.status}
+                          </td>
+                          <td className="px-3 py-3 flex justify-center gap-2">
+                            {row.phone_number && row.phone_number !== '+91-XXXXXXXXXX' && (
+                              <button
+                                onClick={() => handlePhoneCall(row.phone_number, row)}
+                                className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                              >
+                                <Phone
+                                  size={14}
+                                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                                />
+                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Call
+                    </span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleOpenEditTrip(row)}
+                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            >
+                              <Edit
                                 size={14}
                                 className="text-[#08994A] dark:text-[#0EFF7B]"
                               />
                               <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                    Call
-                  </span>
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Edit
+                    </span>
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleOpenEditTrip(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Edit
-                              size={14}
-                              className="text-[#08994A] dark:text-[#0EFF7B]"
-                            />
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Edit
-              </span>
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row)}
-                            className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          >
-                            <Trash2
-                              size={14}
-                              className="text-red-600 dark:text-red-500"
-                            />
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
-                    transition-all duration-150">
-                    Delete
-              </span>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                            <button
+                              onClick={() => handleDelete(row)}
+                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            >
+                              <Trash2
+                                size={14}
+                                className="text-red-600 dark:text-red-500"
+                              />
+                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                      px-3 py-1 text-xs rounded-md shadow-md
+                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                      transition-all duration-150">
+                      Delete
+                    </span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+              )}
             </tbody>
           </table>
         </div>
@@ -3093,126 +3194,121 @@ const fetchData = useCallback(async () => {
       />
 
       {/* Delete Confirmation */}
-    {isDeleteOpen && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-    <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] 
-      ">
+      {isDeleteOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]">
+            <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-6 relative">
+              {/* Border Glow */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "20px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              ></div>
 
-      <div className="w-[400px] bg-gray-100 dark:bg-[#000000E5] rounded-[19px] p-6 relative">
+              <div className="relative z-10">
+                {/* TITLE + CLOSE BUTTON */}
+                <div className="flex justify-between items-center mb-4">
+                  <h2
+                    className="text-black dark:text-white font-medium text-[16px]"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    {selectedItem
+                      ? "Confirm Deletion"
+                      : "Confirm Bulk Deletion"}
+                  </h2>
 
-        {/* Border Glow */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "20px",
-            padding: "2px",
-            background:
-              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-            WebkitMask:
-              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        ></div>
+                  <button
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] 
+                      bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="text-[#08994A] dark:text-white"
+                      width="16"
+                      height="16"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        d="M18 6L6 18M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
 
-        <div className="relative z-10">
+                {/* MESSAGE */}
+                <p
+                  className="text-sm text-black dark:text-white mb-6 text-center"
+                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                >
+                  {selectedItem ? (
+                    <>
+                      Are you sure you want to delete{" "}
+                      <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
+                        {selectedItem.trip_id ||
+                          selectedItem.dispatch_id ||
+                          selectedItem.unit_number}
+                      </span>
+                      ?<br />
+                      This action cannot be undone.
+                    </>
+                  ) : (
+                    <>
+                      Are you sure you want to delete{" "}
+                      <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
+                        {selectedRows.size} selected items
+                      </span>
+                      ?<br />
+                      This action cannot be undone.
+                    </>
+                  )}
+                </p>
 
-          {/* TITLE + CLOSE BUTTON */}
-          <div className="flex justify-between items-center mb-4">
-            <h2
-              className="text-black dark:text-white font-medium text-[16px]"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              {selectedItem
-                ? "Confirm Deletion"
-                : "Confirm Bulk Deletion"}
-            </h2>
+                {/* BUTTONS */}
+                <div className="flex justify-center gap-4">
+                  {/* Cancel */}
+                  <button
+                    onClick={() => setIsDeleteOpen(false)}
+                    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] 
+                      text-white font-medium text-[14px] shadow-[0_2px_12px_0px_#00000040] 
+                      bg-black dark:bg-transparent hover:bg-gray-800 dark:hover:bg-[#3A3A3A] transition"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Cancel
+                  </button>
 
-            <button
-              onClick={() => setIsDeleteOpen(false)}
-              className="w-6 h-6 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] 
-                bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] flex items-center justify-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="text-[#08994A] dark:text-white"
-                width="16"
-                height="16"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  d="M18 6L6 18M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* MESSAGE */}
-          <p
-            className="text-sm text-black dark:text-white mb-6 text-center"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            {selectedItem ? (
-              <>
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
-                  {selectedItem.trip_id ||
-                    selectedItem.dispatch_id ||
-                    selectedItem.unit_number}
-                </span>
-                ?<br />
-                This action cannot be undone.
-              </>
-            ) : (
-              <>
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-[#08994A] dark:text-[#0EFF7B]">
-                  {selectedRows.size} selected items
-                </span>
-                ?<br />
-                This action cannot be undone.
-              </>
-            )}
-          </p>
-
-          {/* BUTTONS */}
-          <div className="flex justify-center gap-4">
-            {/* Cancel */}
-            <button
-              onClick={() => setIsDeleteOpen(false)}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#3C3C3C] 
-                text-white font-medium text-[14px] shadow-[0_2px_12px_0px_#00000040] 
-                bg-black dark:bg-transparent hover:bg-gray-800 dark:hover:bg-[#3A3A3A] transition"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Cancel
-            </button>
-
-            {/* Delete */}
-            <button
-              onClick={confirmDelete}
-              className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center 
-                bg-gradient-to-r from-[#FF4D4D] to-[#B30000] 
-                text-white font-medium text-[14px] hover:scale-105 transition 
-                shadow-[0_2px_12px_0px_#00000040]"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              Delete {selectedItem ? "" : `(${selectedRows.size})`}
-            </button>
+                  {/* Delete */}
+                  <button
+                    onClick={confirmDelete}
+                    className="w-[144px] h-[32px] rounded-[8px] px-3 py-2 flex items-center justify-center 
+                      bg-gradient-to-r from-[#FF4D4D] to-[#B30000] 
+                      text-white font-medium text-[14px] hover:scale-105 transition 
+                      shadow-[0_2px_12px_0px_#00000040]"
+                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                  >
+                    Delete {selectedItem ? "" : `(${selectedRows.size})`}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </div>
   );
 };

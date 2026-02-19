@@ -141,6 +141,29 @@ def medical_test_to_out(test: MedicalTest) -> MedicalTestOut:
 async def create_medical_test(payload: MedicalTestCreate):
     """Create a new medical test"""
     try:
+        # Normalize the test type for checking
+        normalized_test_type = payload.test_type.strip().title()
+        # Example: "mri" → "Mri", "blood test" → "Blood Test"
+        
+        @sync_to_async
+        def check_existing_test():
+            ensure_db_connection()
+            # Check against normalized version
+            return MedicalTest.objects.filter(
+                test_type__iexact=normalized_test_type
+            ).first()
+        
+        existing_test = await check_existing_test()
+        
+        if existing_test:
+            raise HTTPException(
+                status_code=409,
+                detail=f"We already have this test type: {payload.test_type}"
+            )
+        
+        # Optionally save normalized version for consistency
+        payload.test_type = normalized_test_type
+        
         @sync_to_async
         def create_test_with_transaction():
             ensure_db_connection()
@@ -156,6 +179,8 @@ async def create_medical_test(payload: MedicalTestCreate):
 
         test = await create_test_with_transaction()
         return medical_test_to_out(test)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create test: {str(e)}")
 
@@ -218,9 +243,35 @@ async def update_medical_test(test_id: int, payload: MedicalTestUpdate):
     if test is None:
         raise HTTPException(status_code=404, detail="Medical test not found")
 
-    # Update only provided fields
+    # === FIXED: Check for duplicate test type when updating with case-insensitive comparison ===
     if payload.test_type is not None:
-        test.test_type = payload.test_type
+        # Normalize the input for comparison
+        new_test_type = payload.test_type.strip()
+        
+        # Case-insensitive comparison with current test_type
+        if new_test_type.lower() != test.test_type.lower():
+            @sync_to_async
+            def check_existing_test_for_update():
+                ensure_db_connection()
+                # Check if there's any OTHER test with the same test_type (case-insensitive)
+                return MedicalTest.objects.filter(
+                    test_type__iexact=new_test_type  # Case-insensitive lookup
+                ).exclude(id=test_id).first()
+            
+            existing_test = await check_existing_test_for_update()
+            
+            if existing_test:
+                raise HTTPException(
+                    status_code=409,  # Conflict
+                    detail=f"We already have this test type: {payload.test_type}"
+                )
+            
+            # Only update if different (case-insensitive) and no duplicate
+            test.test_type = new_test_type
+        # else: test type is the same (case-insensitive), no need to update or check
+    # === END FIXED CODE ===
+    
+    # Update other fields
     if payload.description is not None:
         test.description = payload.description
     if payload.price is not None:

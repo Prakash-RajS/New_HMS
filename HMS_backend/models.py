@@ -907,50 +907,51 @@ class Permission(models.Model):
     MODULE_CHOICES = [
         # Dashboard
         ("dashboard", "View Dashboard"),
-        
+
         # Appointments
         ("appointments", "Manage Appointments"),
-        
+
         # Patients
         ("patients_view", "View Patients"),
         ("patients_create", "Create Patients"),
         ("patients_edit", "Edit Patients"),
         ("patients_profile", "Patient Profile"),
-        
+        ("treatment_charges", "Treatment Charges"),  # ADD THIS
+        ("surgeries", "Surgeries"),  # ADD THIS
+
         # Administration
         ("departments", "Manage Departments"),
         ("room_management", "Room Management"),
         ("bed_management", "Bed Management"),
         ("staff_management", "Staff Management"),
-        
+
         # Pharmacy
         ("pharmacy_inventory", "Pharmacy Inventory"),
         ("pharmacy_billing", "Pharmacy Billing"),
-        
+
         # Doctors & Nurses
         ("doctors_manage", "Manage Doctors/Nurses"),
         ("medicine_allocation", "Medicine Allocation"),
-        
+
         # Clinical Resources
         ("lab_reports", "Laboratory Reports"),
         ("blood_bank", "Blood Bank"),
         ("ambulance", "Ambulance Management"),
-        
+
         # Billing
         ("billing", "Billing Management"),
-        
+
         # Accounts
         ("user_settings", "User Settings"),
         ("security_settings", "Security Settings"),
-        
+
         # User Management
         ("create_user", "Create User"),
-        
+
         ("settings_access", "Access Settings"),
         ("settings_hospital", "Manage Hospital Info"),
         ("settings_security", "Manage Security Settings"),
         ("settings_general", "Manage General Settings"),
- 
     ]
 
     class Meta:
@@ -964,7 +965,7 @@ class Permission(models.Model):
     def initialize_default_permissions(cls):
         """Initialize default permissions for all roles"""
         roles = ["receptionist", "doctor", "nurse", "billing", "admin"]
-        
+
         default_permissions = {
             "receptionist": [
                 "dashboard", "appointments", "patients_view", "patients_create", 
@@ -972,18 +973,19 @@ class Permission(models.Model):
             ],
             "doctor": [
                 "dashboard", "appointments", "patients_view", "patients_edit", 
-                "patients_profile", "medicine_allocation", "lab_reports"
+                "patients_profile", "medicine_allocation", "lab_reports",
+                "treatment_charges", "surgeries"  # ADD THESE
             ],
             "nurse": [
                 "dashboard", "patients_view", "patients_profile", "medicine_allocation", 
                 "bed_management"
             ],
             "billing": [
-                "dashboard", "billing", "pharmacy_billing"
+                "dashboard", "billing", "pharmacy_billing", "treatment_charges"  # ADD treatment_charges
             ],
             "admin": [choice[0] for choice in cls.MODULE_CHOICES]  # All permissions
         }
-        
+
         for role in roles:
             for module, _ in cls.MODULE_CHOICES:
                 enabled = module in default_permissions.get(role, [])
@@ -1073,6 +1075,15 @@ class HospitalInvoiceHistory(models.Model):
         ("Paid", "Paid"),
         ("Unpaid", "Unpaid"),
         ("Pending", "Pending"),
+        ("Partially Paid", "Partially Paid"),
+    ]
+    
+    PAYMENT_TYPE_CHOICES = [
+        ("Full Payment", "Full Payment"),
+        ("Partial Payment", "Partial Payment"),
+        ("Insurance", "Insurance"),
+        ("Credit", "Credit"),
+        ("Consolidate", "Consolidate"),  # NEW: Added Consolidate type
     ]
 
     invoice_id = models.CharField(max_length=50, unique=True, blank=True)
@@ -1080,9 +1091,16 @@ class HospitalInvoiceHistory(models.Model):
     patient_name = models.CharField(max_length=100)
     patient_id = models.CharField(max_length=50)
     department = models.CharField(max_length=100)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)  # Total amount
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
     payment_method = models.CharField(max_length=50)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Pending")
+    
+    # Payment Type Field
+    payment_type = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_TYPE_CHOICES, 
+        default="Full Payment"
+    )
 
     admission_date = models.DateField(default=timezone.now)
     discharge_date = models.DateField(null=True, blank=True)
@@ -1091,13 +1109,87 @@ class HospitalInvoiceHistory(models.Model):
     email = models.CharField(max_length=100, default="patient@hospital.com")
     address = models.TextField(default="N/A")
 
-    # Removed: invoice_items = models.JSONField(...)
-    tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=18.0)
+    cgst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, null=True, blank=True)
+    cgst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    
+    sgst_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, null=True, blank=True)
+    sgst_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+
+    tax_net_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+    total_tax = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, null=True, blank=True)
+
+    
+    # NEW: Discount fields
+    discount_percent = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.00,
+        null=True, blank=True
+    )
+    discount_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00,
+        null=True, blank=True
+    
+    )
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     payment_date = models.CharField(max_length=50, blank=True, null=True)
     pdf_file = models.FileField(upload_to="generated_invoices/", null=True, blank=True)
 
+    # Partial Payment Fields
+    paid_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Amount paid so far (for partial payments)"
+    )
+    pending_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Remaining amount to be paid"
+    )
+    due_date = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Due date for pending amount (partial payments)"
+    )
+    payment_remarks = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Remarks for partial payment"
+    )
+
+    # NEW: Consolidate Invoice Tracking Fields
+    is_consolidated = models.BooleanField(
+        default=False,
+        help_text="Whether this invoice has been included in a consolidate invoice"
+    )
+    consolidated_invoice_id = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True,
+        help_text="ID of the consolidate invoice that includes this invoice"
+    )
+    consolidated_date = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Date when this invoice was consolidated"
+    )
+    
+    # NEW: Store list of invoice IDs that make up this consolidate invoice
+    consolidate_source_ids = models.TextField(
+        null=True, 
+        blank=True,
+        help_text="JSON array of invoice IDs included in this consolidate invoice"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "hospital_invoice_history"
@@ -1108,22 +1200,66 @@ class HospitalInvoiceHistory(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_id:
-            last = HospitalInvoiceHistory.objects.order_by('-id').first()
+        
+            # ✅ Only check last HS_INV invoice
+            last = HospitalInvoiceHistory.objects.filter(
+                invoice_id__startswith="HS_INV_"
+            ).order_by("-id").first()
+    
             num = 1
-            if last and last.invoice_id.startswith("HS_INV_"):
+            if last and last.invoice_id:
                 try:
                     num = int(last.invoice_id.split("_")[-1]) + 1
                 except:
                     num = 1
+    
             self.invoice_id = f"HS_INV_{num:04d}"
-
-        # Recalculate total amount from items if items exist
-        if self.pk:  # Only if invoice already exists (has items)
-            total = sum(item.amount for item in self.items.all())
-            tax_amount = total * (self.tax_percent / 100)
-            self.amount = total + tax_amount
-
+    
+        # -----------------------------
+        # Payment status logic
+        # -----------------------------
+        if self.payment_type == "Partial Payment":
+            self.pending_amount = self.amount - self.paid_amount
+    
+            if self.paid_amount >= self.amount:
+                self.status = "Paid"
+                self.pending_amount = 0
+            elif self.paid_amount > 0:
+                self.status = "Partially Paid"
+            else:
+                self.status = "Pending"
+        else:
+            if self.status == "Paid":
+                self.paid_amount = self.amount
+            self.pending_amount = 0
+    
         super().save(*args, **kwargs)
+
+
+    @property
+    def is_partial_payment(self):
+        return self.payment_type == "Partial Payment"
+    
+    @property
+    def is_consolidate_invoice(self):
+        return self.payment_type == "Consolidate"
+    
+    @property
+    def payment_progress(self):
+        if self.amount <= 0:
+            return 0
+        return round((self.paid_amount / self.amount) * 100, 2)
+    
+    @property
+    def get_consolidate_source_list(self):
+        """Parse consolidate_source_ids JSON string to list"""
+        import json
+        if self.consolidate_source_ids:
+            try:
+                return json.loads(self.consolidate_source_ids)
+            except:
+                return []
+        return []
 
 class HospitalInvoiceItem(models.Model):
     """Line items for hospital invoices - normalized table"""
@@ -1225,28 +1361,59 @@ class PharmacyInvoiceItem(models.Model):
 # HMS_backend/models.py
 class TreatmentCharge(models.Model):
     PENDING = "PENDING"
+    PARTIALLY_BILLED = "PARTIALLY_BILLED"  # NEW
     BILLED = "BILLED"
     CANCELLED = "CANCELLED"
 
     STATUS_CHOICES = [
         (PENDING, "Pending"),
+        (PARTIALLY_BILLED, "Partially Billed"),  # NEW
         (BILLED, "Billed"),
         (CANCELLED, "Cancelled"),
     ]
 
-    # visit = models.ForeignKey(Visits,on_delete=models.CASCADE,related_name="charges")
-    patient = models.ForeignKey(Patient,on_delete=models.CASCADE,related_name="treatment_charges")
-    description = models.CharField(max_length=255,help_text="Example: Bed charges, Operation theatre, Doctor consultation")
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="treatment_charges")
+    description = models.CharField(max_length=255, help_text="Example: Bed charges, Operation theatre, Doctor consultation")
 
     quantity = models.PositiveIntegerField(default=1)
-    unit_price = models.DecimalField(max_digits=10,decimal_places=2)
-    amount = models.DecimalField(max_digits=12,decimal_places=2,null=True,blank=True,help_text="Optional. Can be auto-calculated.")
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Optional. Can be auto-calculated.")
+    
+    # NEW FIELDS FOR PARTIAL BILLING
+    billed_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Amount already billed/paid"
+    )
+    remaining_amount = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        default=0.00,
+        help_text="Amount still to be billed"
+    )
 
-    status = models.CharField(max_length=10,choices=STATUS_CHOICES,default=PENDING)
+    discount_percent = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.00,
+        null=True, blank=True
+    )
+    
+    # NEW: Tax field for treatment charge
+    tax_percent = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0.00,
+        null=True, blank=True        
+    )
+    
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)  # Changed max_length to 20
 
     hospital_invoice = models.ForeignKey(
         HospitalInvoiceHistory, 
-        on_delete=models.SET_NULL, 
+        on_delete=models.CASCADE, 
         null=True, 
         blank=True,
         related_name="treatment_charges"
@@ -1258,11 +1425,71 @@ class TreatmentCharge(models.Model):
         # Auto-calculate amount if not provided
         if not self.amount or self.amount == 0:
             self.amount = self.quantity * self.unit_price
+        
+        # Auto-calculate remaining amount if not set
+        if not self.remaining_amount and self.amount:
+            self.remaining_amount = self.amount
+        
+        # Update status based on billing
+        if self.billed_amount >= self.amount:
+            self.status = self.BILLED
+            self.remaining_amount = 0
+        elif self.billed_amount > 0:
+            self.status = self.PARTIALLY_BILLED
+            self.remaining_amount = self.amount - self.billed_amount
+        else:
+            self.status = self.PENDING
+        
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.description} - {self.amount}"
+        return f"{self.description} - {self.amount} ({self.status})"
+    
+    @property
+    def billing_progress(self):
+        """Calculate billing progress percentage"""
+        if self.amount <= 0:
+            return 0
+        return round((self.billed_amount / self.amount) * 100, 2)
 
+class PartialPaymentHistory(models.Model):
+    """Track individual partial payment transactions"""
+    invoice = models.ForeignKey(
+        HospitalInvoiceHistory,
+        on_delete=models.CASCADE,
+        related_name="partial_payments"
+    )
+    
+    payment_number = models.PositiveIntegerField(help_text="Payment sequence number")
+    payment_date = models.DateField(default=timezone.now)
+    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = models.CharField(max_length=50)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        db_table = "partial_payment_history"
+        ordering = ['payment_number']
+        verbose_name = "Partial Payment"
+        verbose_name_plural = "Partial Payments"
+
+    def __str__(self):
+        return f"Payment #{self.payment_number} for {self.invoice.invoice_id} - ${self.amount_paid}"
+
+
+# models.py
+class Charge(models.Model):
+    charge = models.CharField(max_length=255)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.charge
+    
 
 class MedicalTest(models.Model):
     test_type = models.CharField(
@@ -1295,8 +1522,6 @@ class MedicalTest(models.Model):
 
     def __str__(self):
         return f"{self.test_name} - {self.test_type}"
-
-
 
         
 class Surgery(models.Model):

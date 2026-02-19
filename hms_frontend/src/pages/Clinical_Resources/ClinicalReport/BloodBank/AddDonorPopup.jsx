@@ -43,55 +43,50 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     "domain.com",
     "fake.com",
     "dummy.com",
+    "123.com",
+    "123.in"
   ];
 
   // Real-time email validation (blocks invalid domains)
   const validateEmailFormat = (value) => {
-  const email = value.trim().toLowerCase();
-  if (!email) return "";
+    const email = value.trim().toLowerCase();
+    if (!email) return "";
 
-  // 1. Basic RFC-like structure
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return "Please enter a valid email address (e.g., name@company.com)";
-  }
+    // 1. Basic RFC-like structure
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return "Please enter a valid email address (e.g., name@company.com)";
+    }
 
-  const [, domain] = email.split("@");
-  const domainParts = domain.split(".");
+    const [, domain] = email.split("@");
+    const domainParts = domain.split(".");
 
-  // 2. Block purely numeric domains
-  if (/^\d+$/.test(domainParts[0])) {
-    return "Invalid domain name - domain cannot be purely numeric";
-  }
+    // 2. Block purely numeric domains
+    if (/^\d+$/.test(domainParts[0])) {
+      return "Invalid domain name - domain cannot be purely numeric";
+    }
 
-  // 3. TLD must be alphabetic and at least 2 chars
-  const tld = domainParts[domainParts.length - 1];
-  if (tld.length < 2 || !/^[a-z]+$/.test(tld)) {
-    return "Invalid domain name - please use a valid email domain";
-  }
+    // 3. TLD must be alphabetic and at least 2 chars
+    const tld = domainParts[domainParts.length - 1];
+    if (tld.length < 2 || !/^[a-z]+$/.test(tld)) {
+      return "Invalid domain name - please use a valid email domain";
+    }
 
-  // 4. Block known disposable/fake domains
-  const blockedDomains = [
-    "mailinator.com", "tempmail.com", "yopmail.com", "10minutemail.com",
-    "guerrillamail.com", "throwawaymail.com", "fakeemail.com", "temp-mail.org",
-    "dispostable.com", "maildrop.cc", "example.com", "test.com", "domain.com",
-    "123.com", "123.in", "fake.com", "dummy.com"
-  ];
+    // 4. Block known disposable/fake domains
+    if (blockedDomains.some(d => domain === d || domain.endsWith("." + d))) {
+      return "Invalid domain name - disposable or fake email not allowed";
+    }
 
-  if (blockedDomains.some(d => domain === d || domain.endsWith("." + d))) {
-    return "Invalid domain name - disposable or fake email not allowed";
-  }
+    // 5. Suspicious length or patterns
+    if (domain.length < 5) {
+      return "Domain name is too short";
+    }
 
-  // 5. Suspicious length or patterns
-  if (domain.length < 5) {
-    return "Domain name is too short";
-  }
+    if (domain.includes("..") || domain.includes(".@") || domain.includes("@.")) {
+      return "Invalid email format";
+    }
 
-  if (domain.includes("..") || domain.includes(".@") || domain.includes("@.")) {
-    return "Invalid email format";
-  }
-
-  return "";
-};
+    return "";
+  };
 
   // Real-time format validation for all fields
   const validateFieldFormat = (field, value) => {
@@ -337,34 +332,41 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 )}
               </div>
 
-              {/* Gender & Blood Type */}
-              <div>
+              {/* Gender Dropdown - FIXED */}
+              <div className="relative">
                 <label className="text-sm text-black dark:text-white">
                   Gender <span className="text-red-500">*</span>
                 </label>
                 <Listbox
                   value={formData.gender}
                   onChange={(val) => handleChange("gender", val)}
+                  disabled={loading}
                 >
-                  <Listbox.Button className="w-[228px] h-[32px] mt-1 px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
-                    {formData.gender || "Select Gender"}
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-[#0EFF7B] pointer-events-none" />
-                  </Listbox.Button>
-                  <Listbox.Options className="absolute z-50 mt-1 w-[228px] max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
-                    {["Male", "Female", "Other"].map((g) => (
-                      <Listbox.Option
-                        key={g}
-                        value={g}
-                        className={({ active }) =>
-                          `cursor-pointer select-none py-2 px-3 text-sm ${
-                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                          }`
-                        }
-                      >
-                        {g}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
+                  <div className="relative mt-1">
+                    <Listbox.Button className="relative w-[228px] h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                      <span className="block truncate">
+                        {formData.gender || "Select Gender"}
+                      </span>
+                      <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                        <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
+                      </span>
+                    </Listbox.Button>
+                    <Listbox.Options className="absolute z-50 mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
+                      {genders.map((g) => (
+                        <Listbox.Option
+                          key={g}
+                          value={g}
+                          className={({ active }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm ${
+                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                            }`
+                          }
+                        >
+                          {g}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
                 </Listbox>
                 {errors.gender && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
@@ -373,33 +375,41 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 )}
               </div>
 
-              <div>
+              {/* Blood Type Dropdown - FIXED */}
+              <div className="relative">
                 <label className="text-sm text-black dark:text-white">
                   Blood Type <span className="text-red-500">*</span>
                 </label>
                 <Listbox
                   value={formData.blood_type}
                   onChange={(val) => handleChange("blood_type", val)}
+                  disabled={loading}
                 >
-                  <Listbox.Button className="w-[228px] h-[32px] mt-1 px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
-                    {formData.blood_type || "Select Blood Type"}
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-[#0EFF7B] pointer-events-none" />
-                  </Listbox.Button>
-                  <Listbox.Options className="absolute z-50 mt-1 w-[228px] max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
-                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
-                      <Listbox.Option
-                        key={bt}
-                        value={bt}
-                        className={({ active }) =>
-                          `cursor-pointer select-none py-2 px-3 text-sm ${
-                            active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
-                          }`
-                        }
-                      >
-                        {bt}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
+                  <div className="relative mt-1">
+                    <Listbox.Button className="relative w-[228px] h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                      <span className="block truncate">
+                        {formData.blood_type || "Select Blood Type"}
+                      </span>
+                      <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                        <ChevronDown className="h-4 w-4 text-gray-500 dark:text-[#0EFF7B]" />
+                      </span>
+                    </Listbox.Button>
+                    <Listbox.Options className="absolute z-50 mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a] shadow-lg border border-gray-300 dark:border-[#3A3A3A]">
+                      {bloodTypes.map((bt) => (
+                        <Listbox.Option
+                          key={bt}
+                          value={bt}
+                          className={({ active }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm ${
+                              active ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]" : "text-black dark:text-white"
+                            }`
+                          }
+                        >
+                          {bt}
+                        </Listbox.Option>
+                      ))}
+                    </Listbox.Options>
+                  </div>
                 </Listbox>
                 {errors.blood_type && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">

@@ -13,29 +13,33 @@ const SecuritySettings = ({ data, onUpdate }) => {
   const [initialized, setInitialized] = useState(false);
 
 
-  const modules = [
-    { key: "dashboard", label: "View Dashboard" },
-    { key: "appointments", label: "Manage Appointments" },
-    { key: "patients_view", label: "View Patients" },
-    { key: "patients_create", label: "Create Patients" },
-    { key: "patients_edit", label: "Edit Patients" },
-    { key: "patients_profile", label: "Patient Profile" },
-    { key: "departments", label: "Manage Departments" },
-    { key: "room_management", label: "Room Management" },
-    { key: "bed_management", label: "Bed Management" },
-    { key: "staff_management", label: "Staff Management" },
-    { key: "pharmacy_inventory", label: "Pharmacy Inventory" },
-    { key: "pharmacy_billing", label: "Pharmacy Billing" },
-    { key: "doctors_manage", label: "Manage Doctors/Nurses" },
-    { key: "medicine_allocation", label: "Medicine Allocation" },
-    { key: "lab_reports", label: "Laboratory Reports" },
-    { key: "blood_bank", label: "Blood Bank" },
-    { key: "ambulance", label: "Ambulance Management" },
-    { key: "billing", label: "Billing Management" },
-    { key: "user_settings", label: "User Settings" },
-    { key: "security_settings", label: "Security Settings" },
-    { key: "create_user", label: "Create User Accounts" },
-  ];
+  // In SecuritySettings.jsx, update the modules array:
+
+const modules = [
+  { key: "dashboard", label: "View Dashboard" },
+  { key: "appointments", label: "Manage Appointments" },
+  { key: "patients_view", label: "View Patients" },
+  { key: "patients_create", label: "Create Patients" },
+  { key: "patients_edit", label: "Edit Patients" },
+  { key: "patients_profile", label: "Patient Profile" },
+  { key: "treatment_charges", label: "Treatment Charges" },  // ADD THIS
+  { key: "surgeries", label: "Surgeries" },  // ADD THIS
+  { key: "departments", label: "Manage Departments" },
+  { key: "room_management", label: "Room Management" },
+  { key: "bed_management", label: "Bed Management" },
+  { key: "staff_management", label: "Staff Management" },
+  { key: "pharmacy_inventory", label: "Pharmacy Inventory" },
+  { key: "pharmacy_billing", label: "Pharmacy Billing" },
+  { key: "doctors_manage", label: "Manage Doctors/Nurses" },
+  { key: "medicine_allocation", label: "Medicine Allocation" },
+  { key: "lab_reports", label: "Laboratory Reports" },
+  { key: "blood_bank", label: "Blood Bank" },
+  { key: "ambulance", label: "Ambulance Management" },
+  { key: "billing", label: "Billing Management" },
+  { key: "user_settings", label: "User Settings" },
+  { key: "security_settings", label: "Security Settings" },
+  { key: "create_user", label: "Create User Accounts" },
+];
 
   const canEdit =
     hasPermission("security_settings") ||
@@ -61,7 +65,7 @@ const SecuritySettings = ({ data, onUpdate }) => {
       "receptionist",
       "doctor",
       "nurse",
-      "billing",
+      "Billing Staff",
       "staff",
     ];
     setRoles(availableRoles);
@@ -162,7 +166,7 @@ const SecuritySettings = ({ data, onUpdate }) => {
   );
 
   const formatRoleName = (role) => {
-    if (role === "billing") return "Billing Staff";
+    if (role === "Billing Staff") return "Billing Staff";
     if (role === "staff") return "Staff";
     return role.charAt(0).toUpperCase() + role.slice(1);
   };

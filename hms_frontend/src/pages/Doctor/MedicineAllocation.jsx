@@ -1395,6 +1395,7 @@
 //   );
 // }
 // src/pages/Doctor/MedicineAllocation.jsx
+// src/pages/Doctor/MedicineAllocation.jsx
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Edit, Trash2 } from "lucide-react";
@@ -1440,6 +1441,13 @@ export default function ViewPatientProfile() {
   const [testTypes, setTestTypes] = useState([]);
   const [loadingTestTypes, setLoadingTestTypes] = useState(true);
   const [stockLoading, setStockLoading] = useState(false);
+  // ================ Validation States ================
+  const [validationErrors, setValidationErrors] = useState({});
+  const [touchedFields, setTouchedFields] = useState({});
+  // ================ MRI Validation State ================
+  const [pendingMRI, setPendingMRI] = useState(null);
+  // ================ Duplicate Lab Report Validation ================
+  const [existingLabReports, setExistingLabReports] = useState([]);
 
   // ================ TC-068: Temperature Unit Consistency Fix ================
   // Format temperature consistently in Celsius
@@ -1511,6 +1519,52 @@ export default function ViewPatientProfile() {
     }
   };
 
+  // ================ Fetch existing lab reports for the patient ================
+  const fetchExistingLabReports = useCallback(async (patientId) => {
+    if (!patientId) return;
+    
+    try {
+      const response = await api.get(`/labreports/patient/${patientId}/`);
+      const reports = response.data;
+      
+      // Filter for pending or in-progress reports
+      const pendingReports = reports.filter(report => 
+        report.status === "pending" || report.status === "in-progress"
+      );
+      
+      setExistingLabReports(pendingReports);
+      return pendingReports;
+    } catch (error) {
+      console.error("Error fetching existing lab reports:", error);
+      setExistingLabReports([]);
+      return [];
+    }
+  }, []);
+
+  // ================ Check for duplicate lab reports ================
+  const validateDuplicateLabReports = useCallback(() => {
+    const errors = {};
+    
+    // Get all selected lab tests (non-empty)
+    const selectedLabTests = labTests
+      .map(test => test.labTest)
+      .filter(test => test && test.trim() !== "");
+    
+    // Check each selected lab test against existing pending/in-progress reports
+    selectedLabTests.forEach((testType) => {
+      const existingReport = existingLabReports.find(
+        report => report.test_type?.toLowerCase() === testType.toLowerCase()
+      );
+      
+      if (existingReport) {
+        errors[`lab_duplicate_${testType}`] = 
+          `This patient already has a ${testType} report in ${existingReport.status} stage. Cannot add another.`;
+      }
+    });
+    
+    return errors;
+  }, [labTests, existingLabReports]);
+
   // ================ TC-069: Medicine Count Consistency Fix ================
   // Enhanced fetchStock to get ALL active medicines
   const fetchStock = async () => {
@@ -1568,6 +1622,37 @@ export default function ViewPatientProfile() {
       setStockLoading(false);
     }
   };
+
+  // ================ Check for pending MRI ================
+  const checkPendingMRI = useCallback(async (patientId) => {
+    if (!patientId) return;
+    
+    try {
+      // Check lab reports for MRI with pending or in-progress status
+      const reportsResponse = await api.get(`/labreports/patient/${patientId}/`);
+      const reports = reportsResponse.data;
+      
+      // Filter for MRI with pending or in-progress status
+      const pendingMRIReport = reports.find(report => 
+        report.test_type?.toLowerCase().includes('mri') && 
+        (report.status === "pending" || report.status === "in-progress")
+      );
+      
+      if (pendingMRIReport) {
+        setPendingMRI(pendingMRIReport);
+        return true;
+      } else {
+        setPendingMRI(null);
+        return false;
+      }
+    } catch (err) {
+      console.error("Error checking lab reports for MRI:", err);
+      setPendingMRI(null);
+      return false;
+    }
+  }, []);
+
+  // ================ End of MRI Check ================
 
   // Get ALL unique medicine names - no filtering, show everything from stock
   const medicineNames = useMemo(() => {
@@ -1830,7 +1915,15 @@ export default function ViewPatientProfile() {
     });
     const fullPatientData = await fetchPatientFull(patient.patient_unique_id);
     await fetchMedicineHistory(patient.id);
+    // Check for pending MRI when patient is selected
+    await checkPendingMRI(patient.id);
+    // Fetch existing lab reports for duplicate validation
+    await fetchExistingLabReports(patient.id);
     setSearchQuery("");
+    
+    // Clear validation errors when patient changes
+    setValidationErrors({});
+    setTouchedFields({});
   };
 
   const handlePatientFieldChange = useCallback(
@@ -1857,9 +1950,120 @@ export default function ViewPatientProfile() {
     [patients],
   );
 
+  // ================ Validation Functions ================
+  const validateMedicineEntry = useCallback((medicine, index) => {
+    const errors = {};
+    
+    if (!medicine.medicineName || medicine.medicineName.trim() === "") {
+      errors[`medicine_${index}_medicineName`] = "Medicine name is required";
+    }
+    
+    if (!medicine.dosage || medicine.dosage.trim() === "") {
+      errors[`medicine_${index}_dosage`] = "Dosage is required";
+    }
+    
+    if (!medicine.frequency || medicine.frequency.length === 0) {
+      errors[`medicine_${index}_frequency`] = "At least one frequency must be selected";
+    }
+    
+    if (!medicine.duration || medicine.duration.trim() === "") {
+      errors[`medicine_${index}_duration`] = "Duration is required";
+    } else {
+      // Validate duration format (should include days/weeks/months or be a number)
+      const durationStr = medicine.duration.toString().toLowerCase();
+      const hasUnit = durationStr.includes('day') || durationStr.includes('week') || durationStr.includes('month');
+      const isNumeric = /^\d+$/.test(durationStr.trim());
+      
+      if (!hasUnit && !isNumeric) {
+        errors[`medicine_${index}_duration`] = "Duration should be a number or include days/weeks/months (e.g., 5 days)";
+      }
+      
+      // Extract number for validation
+      const numMatch = durationStr.match(/\d+/);
+      if (numMatch && parseInt(numMatch[0]) <= 0) {
+        errors[`medicine_${index}_duration`] = "Duration must be greater than 0";
+      }
+    }
+    
+    if (!medicine.time || medicine.time.trim() === "") {
+      errors[`medicine_${index}_time`] = "Time is required";
+    }
+    
+    // Quantity should be auto-calculated, but check if it's valid
+    if (!medicine.quantity || medicine.quantity === "" || parseInt(medicine.quantity) <= 0) {
+      errors[`medicine_${index}_quantity`] = "Quantity could not be calculated. Check frequency and duration.";
+    }
+    
+    return errors;
+  }, []);
+
+  // ================ MRI Validation Function ================
+  const validateMRIStatus = useCallback(() => {
+    // Check if labTests includes MRI
+    const hasMRI = labTests.some(test => 
+      test.labTest?.toLowerCase().includes('mri')
+    );
+    
+    // If MRI is selected and there's a pending MRI, show error
+    if (hasMRI && pendingMRI) {
+      return {
+        isValid: false,
+        error: `This patient already has an MRI in ${pendingMRI.status} stage. Cannot allocate another MRI.`
+      };
+    }
+    
+    return { isValid: true };
+  }, [labTests, pendingMRI]);
+
+  const validateForm = useCallback(() => {
+    const errors = {};
+    
+    // Validate patient selection
+    if (!patientDbId) {
+      errors.patient = "Please select a patient";
+    }
+    
+    // Validate each medicine entry
+    medicineData.forEach((medicine, index) => {
+      // Only validate if the medicine has any data (partially filled)
+      // But if it's the first entry and empty, we should validate
+      const hasAnyData = medicine.medicineName || medicine.dosage || 
+                         medicine.frequency.length > 0 || medicine.duration || 
+                         medicine.time;
+      
+      if (hasAnyData || index === 0) {
+        const medicineErrors = validateMedicineEntry(medicine, index);
+        Object.assign(errors, medicineErrors);
+      }
+    });
+    
+    // Validate MRI status
+    const mriValidation = validateMRIStatus();
+    if (!mriValidation.isValid) {
+      errors.mri = mriValidation.error;
+    }
+    
+    // Validate duplicate lab reports
+    const duplicateErrors = validateDuplicateLabReports();
+    Object.assign(errors, duplicateErrors);
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [patientDbId, medicineData, validateMedicineEntry, validateMRIStatus, validateDuplicateLabReports]);
+
+  const handleFieldBlur = useCallback((fieldName) => {
+    setTouchedFields(prev => ({ ...prev, [fieldName]: true }));
+  }, []);
+
+  // ================ End of Validation Functions ================
+
   const handleInputChange = useCallback(
     (e, index, type) => {
       const { name, value } = e.target;
+      const fieldKey = type === "medicine" ? `medicine_${index}_${name}` : `lab_${index}_${name}`;
+      
+      // Mark field as touched
+      setTouchedFields(prev => ({ ...prev, [fieldKey]: true }));
 
       if (type === "medicine") {
         setMedicineData((prev) => {
@@ -1902,13 +2106,39 @@ export default function ViewPatientProfile() {
           newTests[index] = { ...newTests[index], [name]: value };
           return newTests;
         });
+        
+        // Check for duplicate when selecting a lab test
+        if (value && existingLabReports.length > 0) {
+          const existingReport = existingLabReports.find(
+            report => report.test_type?.toLowerCase() === value.toLowerCase()
+          );
+          
+          if (existingReport) {
+            const duplicateError = {};
+            duplicateError[`lab_duplicate_${value}`] = 
+              `This patient already has a ${value} report in ${existingReport.status} stage. Cannot add another.`;
+            setValidationErrors(prev => ({ ...prev, ...duplicateError }));
+          }
+        }
       }
+      
+      // Clear validation error for this field when user types
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldKey];
+        return newErrors;
+      });
     },
-    [getAvailableQuantity, calculateQuantity],
+    [getAvailableQuantity, calculateQuantity, existingLabReports],
   );
 
   const handleFrequencyChange = useCallback(
     (index, selected) => {
+      const fieldKey = `medicine_${index}_frequency`;
+      
+      // Mark field as touched
+      setTouchedFields(prev => ({ ...prev, [fieldKey]: true }));
+      
       setMedicineData((prev) => {
         const newData = [...prev];
         const currentItem = newData[index];
@@ -1926,6 +2156,13 @@ export default function ViewPatientProfile() {
         }
 
         return newData;
+      });
+      
+      // Clear validation error for frequency
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldKey];
+        return newErrors;
       });
     },
     [calculateQuantity],
@@ -1952,19 +2189,57 @@ export default function ViewPatientProfile() {
 
   const removeMedicineEntry = useCallback((id) => {
     setMedicineData((prev) => prev.filter((entry) => entry.id !== id));
+    
+    // Clear validation errors for removed medicine
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      // Remove errors related to this medicine (we don't know the index here, but we'll clear on next validation)
+      return newErrors;
+    });
   }, []);
 
   const removeLabTestEntry = useCallback((id) => {
+    // Find the test being removed to clear its duplicate error
+    const testToRemove = labTests.find(test => test.id === id);
+    
     setLabTests((prev) => prev.filter((entry) => entry.id !== id));
-  }, []);
+    
+    // Clear validation errors
+    setValidationErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.mri;
+      
+      // Clear duplicate error for this specific test
+      if (testToRemove?.labTest) {
+        delete newErrors[`lab_duplicate_${testToRemove.labTest}`];
+      }
+      
+      return newErrors;
+    });
+  }, [labTests]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!patientDbId) {
-      errorToast("Please select a patient");
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      errorToast("Please fill in all required fields");
+      
+      // Mark all fields as touched to show errors
+      const allFields = {};
+      medicineData.forEach((_, index) => {
+        allFields[`medicine_${index}_medicineName`] = true;
+        allFields[`medicine_${index}_dosage`] = true;
+        allFields[`medicine_${index}_frequency`] = true;
+        allFields[`medicine_${index}_duration`] = true;
+        allFields[`medicine_${index}_time`] = true;
+        allFields[`medicine_${index}_quantity`] = true;
+      });
+      setTouchedFields(allFields);
       return;
     }
 
+    // Check stock availability for each medicine
     for (const med of medicineData) {
       if (med.medicineName && med.dosage && med.quantity) {
         const availableQty = getAvailableQuantity(med.medicineName, med.dosage);
@@ -2001,7 +2276,15 @@ export default function ViewPatientProfile() {
       );
 
       const result = response.data;
-      const newHistoryEntries = result.medicines.map((med) => ({
+      
+      // ================ FIX: Properly handle lab tests in history ================
+      // Get the lab tests that were actually submitted (non-empty)
+      const submittedLabTests = labTests
+        .map(test => test.labTest)
+        .filter(test => test && test.trim() !== "");
+      
+      // Create new history entries for medicines with their associated lab tests
+      const newHistoryEntries = result.medicines.map((med, idx) => ({
         id: med.id,
         patient_name: med.patient_name,
         patient_id: med.patient_id,
@@ -2012,7 +2295,8 @@ export default function ViewPatientProfile() {
         dosage: med.dosage,
         duration: med.duration,
         frequency: med.frequency,
-        lab_test_type: med.lab_test_type,
+        // If the medicine has its own lab_test_type, use that, otherwise use the submitted lab tests
+        lab_test_types: med.lab_test_type || (submittedLabTests.length > 0 ? submittedLabTests.join(", ") : null),
       }));
       
       setMedicineHistory((prev) => [
@@ -2022,16 +2306,34 @@ export default function ViewPatientProfile() {
         })),
         ...prev,
       ]);
+      // ================ End of Fix ================
 
       await fetchStock();
       handleClear();
+      
+      // Clear validation errors on successful submit
+      setValidationErrors({});
+      setTouchedFields({});
+      
       successToast("Medicines allocated successfully!");
+      
+      // Recheck MRI status and existing lab reports after submission
+      if (patientDbId) {
+        await checkPendingMRI(patientDbId);
+        await fetchExistingLabReports(patientDbId);
+      }
     } catch (error) {
       console.error("Error allocating medicines:", error);
       if (error.response) {
-        errorToast(
-          `Failed to allocate medicines: ${error.response.data?.detail || error.message}`,
-        );
+        // Check if the error is about duplicate lab reports
+        const errorDetail = error.response.data?.detail;
+        if (errorDetail && errorDetail.includes("already has a pending")) {
+          errorToast(errorDetail);
+        } else {
+          errorToast(
+            `Failed to allocate medicines: ${error.response.data?.detail || error.message}`,
+          );
+        }
       } else {
         errorToast("Failed to allocate medicines. Please try again.");
       }
@@ -2053,6 +2355,10 @@ export default function ViewPatientProfile() {
       },
     ]);
     setLabTests([{ id: Date.now(), labTest: "" }]);
+    
+    // Clear validation errors and touched fields
+    setValidationErrors({});
+    setTouchedFields({});
   }, []);
 
   const handleEditMedicine = useCallback(
@@ -2160,6 +2466,7 @@ export default function ViewPatientProfile() {
     [departments],
   );
 
+  // ================ Updated CustomInput with Validation ================
   const CustomInput = useCallback(
     ({
       label,
@@ -2169,7 +2476,13 @@ export default function ViewPatientProfile() {
       placeholder,
       type = "text",
       readOnly = false,
+      required = false,
     }) => {
+      const fieldKey = `medicine_${index}_${name}`;
+      const isTouched = touchedFields[fieldKey];
+      const error = validationErrors[fieldKey];
+      const showError = isTouched && error;
+
       const handleChange = (e) => {
         const newValue =
           type === "number" ? parseInt(e.target.value) || "" : e.target.value;
@@ -2177,21 +2490,27 @@ export default function ViewPatientProfile() {
         handleInputChange(fakeEvent, index, "medicine");
       };
 
+      const handleBlur = () => {
+        handleFieldBlur(fieldKey);
+      };
+
       return (
         <div className="relative">
           <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-            {label}
+            {label} {required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
             type={type}
             name={name}
             value={value}
             onChange={handleChange}
+            onBlur={handleBlur}
             placeholder={placeholder}
             readOnly={readOnly}
             className={`
             w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
-            border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+            ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
+            bg-gray-100 dark:bg-black
             text-black dark:text-white text-sm leading-none
             shadow-[0_0_2.09px_#0EFF7B] outline-none
             transition-all duration-300 font-[Helvetica]
@@ -2200,24 +2519,37 @@ export default function ViewPatientProfile() {
             ${readOnly ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : ""}
           `}
           />
+          {showError && (
+            <p className="text-red-500 text-xs mt-1">{error}</p>
+          )}
         </div>
       );
     },
-    [handleInputChange],
+    [handleInputChange, handleFieldBlur, validationErrors, touchedFields],
   );
 
-  // ================ TC-069: Updated MedicineDropdown to show ALL medicines ================
+  // ================ Updated MedicineDropdown with Validation ================
   const MedicineDropdown = useCallback(
     ({ label, name, value, options, index }) => {
+      const fieldKey = `medicine_${index}_${name}`;
+      const isTouched = touchedFields[fieldKey];
+      const error = validationErrors[fieldKey];
+      const showError = isTouched && error;
+
       const handleChange = (selectedValue) => {
         const fakeEvent = { target: { name, value: selectedValue } };
         handleInputChange(fakeEvent, index, "medicine");
+        handleFieldBlur(fieldKey);
+      };
+
+      const handleBlur = () => {
+        handleFieldBlur(fieldKey);
       };
 
       return (
         <div className="relative">
           <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-            {label}
+            {label} <span className="text-red-500 ml-1">*</span>
           </label>
           <Listbox 
             value={value} 
@@ -2227,9 +2559,10 @@ export default function ViewPatientProfile() {
             {({ open }) => (
               <>
                 <Listbox.Button
+                  onBlur={handleBlur}
                   className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                  border-gray-300 dark:border-[#3C3C3C] 
+                  ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
                   ${stockLoading ? 'bg-gray-200 dark:bg-gray-800 cursor-wait' : 'bg-gray-100 dark:bg-black'}
                   text-black dark:text-white text-left text-sm leading-none
                   shadow-[0_0_2.09px_#0EFF7B] outline-none
@@ -2253,6 +2586,9 @@ export default function ViewPatientProfile() {
                     )}
                   </span>
                 </Listbox.Button>
+                {showError && (
+                  <p className="text-red-500 text-xs mt-1">{error}</p>
+                )}
                 {!stockLoading && options.length > 0 && (
                   <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
                     {options.map((option) => {
@@ -2303,23 +2639,32 @@ export default function ViewPatientProfile() {
         </div>
       );
     },
-    [handleInputChange, isMedicineInStock, stockLoading],
+    [handleInputChange, handleFieldBlur, isMedicineInStock, stockLoading, validationErrors, touchedFields],
   );
-  // ================ End of TC-069 MedicineDropdown Fix ================
 
+  // ================ Updated DosageDropdown with Validation ================
   const DosageDropdown = useCallback(
     ({ label, name, value, medicineName, index }) => {
+      const fieldKey = `medicine_${index}_${name}`;
+      const isTouched = touchedFields[fieldKey];
+      const error = validationErrors[fieldKey];
+      const showError = isTouched && error;
       const dosages = medicineName ? dosageMap[medicineName] || [] : [];
 
       const handleChange = (selectedValue) => {
         const fakeEvent = { target: { name, value: selectedValue } };
         handleInputChange(fakeEvent, index, "medicine");
+        handleFieldBlur(fieldKey);
+      };
+
+      const handleBlur = () => {
+        handleFieldBlur(fieldKey);
       };
 
       return (
         <div className="relative">
           <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-            {label}
+            {label} <span className="text-red-500 ml-1">*</span>
           </label>
           <Listbox
             value={value}
@@ -2329,9 +2674,10 @@ export default function ViewPatientProfile() {
             {({ open }) => (
               <>
                 <Listbox.Button
+                  onBlur={handleBlur}
                   className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                  border-gray-300 dark:border-[#3C3C3C] 
+                  ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
                   ${!medicineName || dosages.length === 0 ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : "bg-gray-100 dark:bg-black"}
                   text-black dark:text-white text-left text-sm leading-none
                   shadow-[0_0_2.09px_#0EFF7B] outline-none
@@ -2355,6 +2701,9 @@ export default function ViewPatientProfile() {
                     />
                   </span>
                 </Listbox.Button>
+                {showError && (
+                  <p className="text-red-500 text-xs mt-1">{error}</p>
+                )}
                 {medicineName && dosages.length > 0 && (
                   <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
                     {dosages.map((dosage) => {
@@ -2396,27 +2745,40 @@ export default function ViewPatientProfile() {
         </div>
       );
     },
-    [dosageMap, getAvailableQuantity, handleInputChange],
+    [dosageMap, getAvailableQuantity, handleInputChange, handleFieldBlur, validationErrors, touchedFields],
   );
 
+  // ================ Updated MultiFrequencyDropdown with Validation ================
   const MultiFrequencyDropdown = useCallback(
     ({ index, selected, onChange }) => {
+      const fieldKey = `medicine_${index}_frequency`;
+      const isTouched = touchedFields[fieldKey];
+      const error = validationErrors[fieldKey];
+      const showError = isTouched && error;
+
       const handleChange = (selectedOptions) => {
         onChange(selectedOptions);
+        handleFieldBlur(fieldKey);
+      };
+
+      const handleBlur = () => {
+        handleFieldBlur(fieldKey);
       };
 
       return (
         <div className="relative">
           <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-            Frequency
+            Frequency <span className="text-red-500 ml-1">*</span>
           </label>
           <Listbox value={selected} onChange={handleChange} multiple>
             {({ open }) => (
               <>
                 <Listbox.Button
+                  onBlur={handleBlur}
                   className={`
                   relative w-full h-[33.5px] px-3 pr-8 rounded-[8.38px] border-[1.05px]
-                  border-gray-300 dark:border-[#3C3C3C] bg-gray-100 dark:bg-black
+                  ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
+                  bg-gray-100 dark:bg-black
                   text-black dark:text-white text-left text-sm leading-none
                   shadow-[0_0_2.09px_#0EFF7B] outline-none
                   transition-all duration-300 font-[Helvetica]
@@ -2437,6 +2799,9 @@ export default function ViewPatientProfile() {
                     />
                   </span>
                 </Listbox.Button>
+                {showError && (
+                  <p className="text-red-500 text-xs mt-1">{error}</p>
+                )}
                 <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
                   {frequencyOptions.map((option) => (
                     <Listbox.Option
@@ -2470,14 +2835,14 @@ export default function ViewPatientProfile() {
         </div>
       );
     },
-    [],
+    [handleFieldBlur, validationErrors, touchedFields],
   );
 
   const PatientNameDropdown = useCallback(
     () => (
       <div className="relative">
         <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-          Patient Name
+          Patient Name <span className="text-red-500 ml-1">*</span>
         </label>
         <Listbox
           value={patientInfo.patientName}
@@ -2534,16 +2899,19 @@ export default function ViewPatientProfile() {
             </>
           )}
         </Listbox>
+        {!patientInfo.patientName && touchedFields.patient && (
+          <p className="text-red-500 text-xs mt-1">Patient name is required</p>
+        )}
       </div>
     ),
-    [patientInfo.patientName, patientNames, handlePatientFieldChange],
+    [patientInfo.patientName, patientNames, handlePatientFieldChange, touchedFields],
   );
 
   const PatientIDDropdown = useCallback(
     () => (
       <div className="relative">
         <label className="block text-sm font-medium mb-1 text-black dark:text-white">
-          Patient ID
+          Patient ID <span className="text-red-500 ml-1">*</span>
         </label>
         <Listbox
           value={patientInfo.patientID}
@@ -2600,9 +2968,12 @@ export default function ViewPatientProfile() {
             </>
           )}
         </Listbox>
+        {!patientInfo.patientID && touchedFields.patient && (
+          <p className="text-red-500 text-xs mt-1">Patient ID is required</p>
+        )}
       </div>
     ),
-    [patientInfo.patientID, patientIDs, handlePatientFieldChange],
+    [patientInfo.patientID, patientIDs, handlePatientFieldChange, touchedFields],
   );
 
   const DepartmentDropdown = useCallback(
@@ -2964,6 +3335,18 @@ export default function ViewPatientProfile() {
         {/* ================ End of TC-068 FIX ================ */}
       </div>
 
+      {/* ================ MRI Warning Message ================ */}
+      {pendingMRI && (
+        <div className="mb-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-500 rounded-lg text-yellow-800 dark:text-yellow-200">
+          <p className="text-sm font-medium">
+            ⚠️ This patient already has an MRI in {pendingMRI.status} stage.
+            {labTests.some(test => test.labTest?.toLowerCase().includes('mri')) && 
+              " Cannot allocate another MRI."}
+          </p>
+        </div>
+      )}
+      {/* ================ End of MRI Warning ================ */}
+
       {/* Medicine Allocation Form */}
       <div className="mt-8 mb-4 rounded-xl p-4 w-full max-w-[100%] sm:max-w-[900px] lg:max-w-[1400px] mx-auto flex flex-col relative bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0000001F]">
         <h2 className="text-lg sm:text-xl font-semibold mb-4 text-black dark:text-[#FFFFFF] font-[Helvetica]">
@@ -3076,6 +3459,7 @@ export default function ViewPatientProfile() {
                     placeholder="Auto-calculated"
                     type="number"
                     readOnly={true}
+                    required={true}
                   />
                   <MultiFrequencyDropdown
                     index={index}
@@ -3090,6 +3474,7 @@ export default function ViewPatientProfile() {
                     value={med.duration}
                     index={index}
                     placeholder="e.g. 5 days"
+                    required={true}
                   />
                   <CustomInput
                     label="Time"
@@ -3097,6 +3482,7 @@ export default function ViewPatientProfile() {
                     value={med.time}
                     index={index}
                     placeholder="e.g. 8:00 AM"
+                    required={true}
                   />
                 </div>
                 {med.medicineName && med.dosage && (
@@ -3170,22 +3556,36 @@ export default function ViewPatientProfile() {
                           {!loadingTestTypes && (
                             <Listbox.Options className="absolute mt-1 w-full max-h-60 overflow-auto rounded-[8px] bg-gray-100 dark:bg-black shadow-lg z-[9999] border border-gray-300 dark:border-[#3C3C3C] scrollbar-hide focus:outline-none">
                               {testTypes.length > 0 ? (
-                                testTypes.map((testType) => (
-                                  <Listbox.Option
-                                    key={testType}
-                                    value={testType}
-                                    className={({ active, selected }) =>
+                                testTypes.map((testType) => {
+                                  // Check if this test type has a duplicate error
+                                  const duplicateError = validationErrors[`lab_duplicate_${testType}`];
+                                  
+                                  return (
+                                    <Listbox.Option
+                                      key={testType}
+                                      value={testType}
+                                      disabled={!!duplicateError}
+                                      className={({ active, selected, disabled }) =>
+                                        `
+                                        cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
+                                        ${active && !disabled ? "bg-[#0EFF7B33] text-[#0EFF7B]" : ""}
+                                        ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
+                                        ${disabled ? "opacity-50 cursor-not-allowed text-gray-500" : "text-black dark:text-white"}
+                                        hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
                                       `
-                            cursor-pointer select-none py-2 px-3 text-sm font-[Helvetica]
-                            ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}
-                            ${selected ? "bg-[#0EFF7B] bg-opacity-20 text-[#0EFF7B] font-medium" : ""}
-                            hover:bg-[#0EFF7B33] hover:text-[#0EFF7B]
-                          `
-                                    }
-                                  >
-                                    {testType}
-                                  </Listbox.Option>
-                                ))
+                                      }
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <span>{testType}</span>
+                                        {duplicateError && (
+                                          <span className="text-xs text-red-500 ml-2">
+                                            Already exists
+                                          </span>
+                                        )}
+                                      </div>
+                                    </Listbox.Option>
+                                  );
+                                })
                               ) : (
                                 <div className="py-2 px-3 text-sm text-gray-500 text-center">
                                   No test types available
@@ -3196,6 +3596,12 @@ export default function ViewPatientProfile() {
                         </>
                       )}
                     </Listbox>
+                    {/* Show duplicate error for this specific lab test */}
+                    {test.labTest && validationErrors[`lab_duplicate_${test.labTest}`] && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {validationErrors[`lab_duplicate_${test.labTest}`]}
+                      </p>
+                    )}
                   </div>
                 </div>
                 {index === labTests.length - 1 && (
@@ -3235,6 +3641,16 @@ export default function ViewPatientProfile() {
               </div>
             ))}
           </div>
+
+          {/* Patient selection error */}
+          {touchedFields.patient && !patientDbId && (
+            <p className="text-red-500 text-sm mt-2">Please select a patient</p>
+          )}
+
+          {/* MRI Validation Error */}
+          {validationErrors.mri && (
+            <p className="text-red-500 text-sm mt-2">{validationErrors.mri}</p>
+          )}
 
           <div className="mt-5 flex justify-end gap-4">
             <button

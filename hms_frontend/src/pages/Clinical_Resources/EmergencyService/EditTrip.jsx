@@ -607,7 +607,8 @@ import { Listbox } from "@headlessui/react";
 // ErrorMessage
 // ---------------------------------------------------------------------------
 const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
-  if (!isCreateMode || !errors[field]) return null;
+  // Show errors in BOTH create and edit modes when submitted
+  if (!errors[field]) return null;
 
   const isFormatError =
     errors[field].includes("must be") ||
@@ -622,9 +623,12 @@ const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
     errors[field].includes("capital") ||
     errors[field].includes("exceed") ||
     errors[field].includes("digits") ||
-    errors[field].includes("10-digit");
+    errors[field].includes("10-digit") ||
+    errors[field].includes("all digits same") ||
+    errors[field].includes("sequential");
 
-  if (isFormatError || submitted) {
+  // Show errors for BOTH modes when submitted or for format errors
+  if (submitted || isFormatError) {
     return (
       <div className="mt-1 text-red-500 text-xs">
         <span>{errors[field]}</span>
@@ -659,7 +663,7 @@ const TextInput = React.memo(({
   return (
     <div className="flex flex-col">
       <label className="text-black dark:text-white mb-1">
-        {label} {isCreateMode && required && <span className="text-red-500">*</span>}
+        {label} {(isCreateMode || required) && required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
         <input
@@ -721,7 +725,7 @@ const DateTimeField = React.memo(({
   return (
     <div className="flex flex-col">
       <label className="text-black dark:text-white mb-1">
-        {label} {isCreateMode && required && <span className="text-red-500">*</span>}
+        {label} {(isCreateMode || required) && required && <span className="text-red-500">*</span>}
       </label>
       <div className="relative">
         <input
@@ -897,6 +901,39 @@ const capitalizeWords = (value) =>
   value.replace(/(^|\s)([a-z])/g, (_, space, char) => space + char.toUpperCase());
 
 // ---------------------------------------------------------------------------
+// Validate phone number with stricter rules
+// ---------------------------------------------------------------------------
+const validatePhoneNumber = (value) => {
+  if (!value || !value.trim()) return "Phone number is required";
+  
+  const digitsOnly = value.replace(/\D/g, '');
+  
+  // Check length - must be exactly 10 digits
+  if (digitsOnly.length === 0) return "Phone number is required";
+  if (digitsOnly.length < 10) return "Phone number must have exactly 10 digits";
+  if (digitsOnly.length > 10) return "Phone number must have exactly 10 digits";
+  
+  // Check for repeated digits (like 1111111111, 2222222222, 5555555555, 8888888888)
+  const isRepeated = /^(\d)\1{9}$/.test(digitsOnly);
+  if (isRepeated) {
+    return "Invalid phone number - cannot have all digits same";
+  }
+  
+  // Check for sequential digits (like 1234567890, 9876543210)
+  const isSequential = /^(0123456789|1234567890|2345678901|3456789012|4567890123|5678901234|6789012345|7890123456|8901234567|9012345678|9876543210)$/.test(digitsOnly);
+  if (isSequential) {
+    return "Invalid phone number - cannot be sequential";
+  }
+  
+  // Indian mobile number validation (starts with 6-9)
+  if (!/^[6-9]/.test(digitsOnly)) {
+    return "Phone number must start with 6, 7, 8, or 9";
+  }
+  
+  return "";
+};
+
+// ---------------------------------------------------------------------------
 // EditTripModal - FIXED: Checks dispatcher OR unit separately
 // ---------------------------------------------------------------------------
 const EditTripModal = ({
@@ -940,10 +977,21 @@ const EditTripModal = ({
   const notesRef = useRef(null);
   const phoneRef = useRef(null);
 
+  // FIXED: Get current local time properly
   const freshTime = () => {
     const now = new Date();
+    
+    // Add 5 minutes to current time
     now.setMinutes(now.getMinutes() + 5);
-    return now.toISOString().slice(0, 16);
+    
+    // Format to local datetime-local string (YYYY-MM-DDTHH:MM)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   useEffect(() => {
@@ -971,7 +1019,7 @@ const EditTripModal = ({
       setForm(prev => ({
         ...prev,
         unit_id: "",
-        start_time: freshTime(),
+        start_time: freshTime(), // Now shows correct local time + 5 minutes
         patient_id: "",
         status: "Standby",
         phone_number: "",
@@ -1078,8 +1126,8 @@ const EditTripModal = ({
   const validateField = useCallback(
     (name, value, currentForm) => {
       const ctx = currentForm || form;
-      if (!isCreateMode) return "";
-
+      // Validate for BOTH create and edit modes - removed the !isCreateMode condition
+      
       switch (name) {
         case "dispatch_id":
           if (!value) return "Dispatch is required";
@@ -1109,10 +1157,7 @@ const EditTripModal = ({
           return "";
 
         case "phone_number":
-          if (!value.trim()) return "Phone number is required";
-          if (!/^\d{10}$/.test(value.trim()))
-            return "Phone number must be exactly 10 digits";
-          return "";
+          return validatePhoneNumber(value);
 
         case "pickup_location": {
           if (!value.trim()) return "Pickup location is required";
@@ -1191,7 +1236,7 @@ const EditTripModal = ({
           return "";
       }
     },
-    [isCreateMode, form, checkDispatcherOrUnitBusy]
+    [form, checkDispatcherOrUnitBusy] // Removed isCreateMode dependency
   );
 
   // ── handleChange ─────────────────────────────────────────────────────────
@@ -1215,32 +1260,31 @@ const EditTripModal = ({
       const updatedForm = { ...form, [name]: sanitizedValue };
       setForm(updatedForm);
 
-      if (isCreateMode) {
-        const error = validateField(name, sanitizedValue, updatedForm);
-        const newErrors = { ...errors, [name]: error };
+      // Validate for BOTH create and edit modes
+      const error = validateField(name, sanitizedValue, updatedForm);
+      const newErrors = { ...errors, [name]: error };
 
-        // Re-validate dependent fields
-        if (name === "pickup_location" && updatedForm.destination) {
-          newErrors.destination = validateField("destination", updatedForm.destination, updatedForm);
-        }
-        if (name === "destination" && updatedForm.pickup_location) {
-          newErrors.pickup_location = validateField("pickup_location", updatedForm.pickup_location, updatedForm);
-        }
-        
-        // Always re-validate both dispatch and unit when either changes or time changes
-        if (["dispatch_id", "unit_id", "start_time", "end_time"].includes(name)) {
-          if (updatedForm.dispatch_id) {
-            newErrors.dispatch_id = validateField("dispatch_id", updatedForm.dispatch_id, updatedForm);
-          }
-          if (updatedForm.unit_id) {
-            newErrors.unit_id = validateField("unit_id", updatedForm.unit_id, updatedForm);
-          }
-        }
-
-        setErrors(newErrors);
+      // Re-validate dependent fields
+      if (name === "pickup_location" && updatedForm.destination) {
+        newErrors.destination = validateField("destination", updatedForm.destination, updatedForm);
       }
+      if (name === "destination" && updatedForm.pickup_location) {
+        newErrors.pickup_location = validateField("pickup_location", updatedForm.pickup_location, updatedForm);
+      }
+      
+      // Always re-validate both dispatch and unit when either changes or time changes
+      if (["dispatch_id", "unit_id", "start_time", "end_time"].includes(name)) {
+        if (updatedForm.dispatch_id) {
+          newErrors.dispatch_id = validateField("dispatch_id", updatedForm.dispatch_id, updatedForm);
+        }
+        if (updatedForm.unit_id) {
+          newErrors.unit_id = validateField("unit_id", updatedForm.unit_id, updatedForm);
+        }
+      }
+
+      setErrors(newErrors);
     },
-    [isCreateMode, validateField, form, errors]
+    [validateField, form, errors]
   );
 
   const handleFocus = useCallback((fieldName) => setFocusedField(fieldName), []);
@@ -1248,20 +1292,17 @@ const EditTripModal = ({
   const handleBlur = useCallback(
     (fieldName, value) => {
       setFocusedField(null);
-      if (isCreateMode) {
-        setErrors((prev) => ({
-          ...prev,
-          [fieldName]: validateField(fieldName, value),
-        }));
-      }
+      // Validate on blur for BOTH create and edit modes
+      setErrors((prev) => ({
+        ...prev,
+        [fieldName]: validateField(fieldName, value),
+      }));
     },
-    [isCreateMode, validateField]
+    [validateField]
   );
 
   // ── validateForm ─────────────────────────────────────────────────────────
   const validateForm = useCallback(() => {
-    if (!isCreateMode) return true;
-
     const newErrors = {};
     let isValid = true;
 
@@ -1289,36 +1330,35 @@ const EditTripModal = ({
 
     setErrors(newErrors);
     return isValid;
-  }, [isCreateMode, form, validateField, checkDispatcherOrUnitBusy]);
+  }, [form, validateField, checkDispatcherOrUnitBusy]);
 
   // ── handleSubmit ─────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (isCreateMode) {
-      setSubmitted(true);
-      if (!validateForm()) {
-        const fieldOrder = [
-          "dispatch_id", "unit_id", "crew", "patient_id",
-          "phone_number", "mileage", "pickup_location",
-          "destination", "notes", "start_time", "end_time",
-        ];
-        const firstErr = fieldOrder.find((k) => errors[k]);
-        const refMap = {
-          crew: crewRef,
-          pickup_location: pickupRef,
-          destination: destinationRef,
-          notes: notesRef,
-          start_time: startTimeRef,
-          end_time: endTimeRef,
-          phone_number: phoneRef,
-          mileage: mileageRef,
-        };
-        if (firstErr && refMap[firstErr]?.current) {
-          refMap[firstErr].current.focus();
-        }
-        return;
+    setSubmitted(true);
+    
+    if (!validateForm()) {
+      const fieldOrder = [
+        "dispatch_id", "unit_id", "crew", "patient_id",
+        "phone_number", "mileage", "pickup_location",
+        "destination", "notes", "start_time", "end_time",
+      ];
+      const firstErr = fieldOrder.find((k) => errors[k]);
+      const refMap = {
+        crew: crewRef,
+        pickup_location: pickupRef,
+        destination: destinationRef,
+        notes: notesRef,
+        start_time: startTimeRef,
+        end_time: endTimeRef,
+        phone_number: phoneRef,
+        mileage: mileageRef,
+      };
+      if (firstErr && refMap[firstErr]?.current) {
+        refMap[firstErr].current.focus();
       }
+      return;
     }
 
     const sanitizedForm = {
@@ -1371,7 +1411,7 @@ const EditTripModal = ({
           <form
             onSubmit={handleSubmit}
             noValidate
-            className="grid grid-cols-3 gap-x-8 gap-y-6 text-sm"
+            className="grid grid-cols-4 gap-x-8 gap-y-6 text-sm"
           >
             {/* Row 1 */}
             <Dropdown
@@ -1381,13 +1421,11 @@ const EditTripModal = ({
               onChange={(v) => {
                 const updatedForm = { ...form, dispatch_id: v };
                 setForm(updatedForm);
-                if (isCreateMode) {
-                  const dispatchErr = validateField("dispatch_id", v, updatedForm);
-                  const unitErr = updatedForm.unit_id
-                    ? validateField("unit_id", updatedForm.unit_id, updatedForm)
-                    : errors.unit_id;
-                  setErrors((prev) => ({ ...prev, dispatch_id: dispatchErr, unit_id: unitErr }));
-                }
+                const dispatchErr = validateField("dispatch_id", v, updatedForm);
+                const unitErr = updatedForm.unit_id
+                  ? validateField("unit_id", updatedForm.unit_id, updatedForm)
+                  : errors.unit_id;
+                setErrors((prev) => ({ ...prev, dispatch_id: dispatchErr, unit_id: unitErr }));
               }}
               options={dispatches}
               placeholder="Select Dispatch"
@@ -1405,13 +1443,11 @@ const EditTripModal = ({
               onChange={(v) => {
                 const updatedForm = { ...form, unit_id: v };
                 setForm(updatedForm);
-                if (isCreateMode) {
-                  const unitErr = validateField("unit_id", v, updatedForm);
-                  const dispatchErr = updatedForm.dispatch_id
-                    ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
-                    : errors.dispatch_id;
-                  setErrors((prev) => ({ ...prev, unit_id: unitErr, dispatch_id: dispatchErr }));
-                }
+                const unitErr = validateField("unit_id", v, updatedForm);
+                const dispatchErr = updatedForm.dispatch_id
+                  ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
+                  : errors.dispatch_id;
+                setErrors((prev) => ({ ...prev, unit_id: unitErr, dispatch_id: dispatchErr }));
               }}
               options={units}
               placeholder="Select Unit"
@@ -1437,18 +1473,16 @@ const EditTripModal = ({
               inputRef={crewRef}
             />
 
-            {/* Row 2 */}
             <Dropdown
               label="Patient"
               name="patient_id"
               value={form.patient_id}
               onChange={(v) => {
                 setForm((p) => ({ ...p, patient_id: v }));
-                if (isCreateMode)
-                  setErrors((prev) => ({
-                    ...prev,
-                    patient_id: validateField("patient_id", v),
-                  }));
+                setErrors((prev) => ({
+                  ...prev,
+                  patient_id: validateField("patient_id", v),
+                }));
               }}
               options={patients}
               placeholder="Select Patient"
@@ -1459,6 +1493,7 @@ const EditTripModal = ({
               isCreateMode={isCreateMode}
             />
 
+            {/* Row 2 */}
             <TextInput
               label="Mileage (km)"
               name="mileage"
@@ -1475,40 +1510,24 @@ const EditTripModal = ({
               inputRef={mileageRef}
             />
 
-            {/* Status dropdown */}
-            <div className="flex flex-col">
-              <label className="text-black dark:text-white mb-1">Status</label>
-              <Listbox
-                value={form.status}
-                onChange={(v) => setForm((p) => ({ ...p, status: v }))}
-              >
-                <div className="relative">
-                  <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
-                    <span>{form.status}</span>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
-                  </Listbox.Button>
-                  <Listbox.Options className="absolute z-50 mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
-                    {["Standby", "En Route", "Completed", "Cancelled"].map((s) => (
-                      <Listbox.Option
-                        key={s}
-                        value={s}
-                        className={({ active }) =>
-                          `cursor-pointer py-2 px-3 text-sm ${
-                            active
-                              ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                              : "text-black dark:text-white"
-                          }`
-                        }
-                      >
-                        {s}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-            </div>
+            <TextInput
+              label="Phone Number"
+              name="phone_number"
+              required
+              placeholder="10-digit mobile number"
+              value={form.phone_number}
+              onChange={handleChange}
+              onFocus={() => handleFocus("phone_number")}
+              onBlur={() => handleBlur("phone_number", form.phone_number)}
+              error={errors.phone_number}
+              submitted={submitted}
+              isCreateMode={isCreateMode}
+              inputRef={phoneRef}
+              showIcon
+              icon={Phone}
+              maxLength={10}
+            />
 
-            {/* Row 3 */}
             <TextInput
               label="Pickup Location"
               name="pickup_location"
@@ -1546,25 +1565,7 @@ const EditTripModal = ({
               showCount
             />
 
-            <TextInput
-              label="Phone Number"
-              name="phone_number"
-              required
-              placeholder="10-digit mobile number"
-              value={form.phone_number}
-              onChange={handleChange}
-              onFocus={() => handleFocus("phone_number")}
-              onBlur={() => handleBlur("phone_number", form.phone_number)}
-              error={errors.phone_number}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={phoneRef}
-              showIcon
-              icon={Phone}
-              maxLength={10}
-            />
-
-            {/* Row 4 */}
+            {/* Row 3 */}
             <TextInput
               label="Notes (Optional)"
               name="notes"
@@ -1602,18 +1603,41 @@ const EditTripModal = ({
               isCreateMode={isCreateMode}
             />
 
-            {/* Info banner */}
-            <div className="col-span-3 mt-2 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
-                <strong>Note:</strong> Special characters are not allowed in text fields.
-              </p>
-              <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                Location fields must start with a capital letter and are limited to 50 characters. Phone number must be exactly 10 digits.
-              </p>
+            {/* Status dropdown - moved to row 3, column 4 */}
+            <div className="flex flex-col">
+              <label className="text-black dark:text-white mb-1">Status</label>
+              <Listbox
+                value={form.status}
+                onChange={(v) => setForm((p) => ({ ...p, status: v }))}
+              >
+                <div className="relative">
+                  <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
+                    <span>{form.status}</span>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute z-50 mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
+                    {["Standby", "En Route", "Completed", "Cancelled"].map((s) => (
+                      <Listbox.Option
+                        key={s}
+                        value={s}
+                        className={({ active }) =>
+                          `cursor-pointer py-2 px-3 text-sm ${
+                            active
+                              ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                              : "text-black dark:text-white"
+                          }`
+                        }
+                      >
+                        {s}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
             </div>
 
-            {/* Actions */}
-            <div className="col-span-3 flex justify-center gap-6 mt-4">
+            {/* Actions - Full width row with centered buttons */}
+            <div className="col-span-4 flex justify-center gap-6 mt-8">
               <button
                 type="button"
                 onClick={onClose}

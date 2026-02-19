@@ -642,7 +642,7 @@ const handleDownloadReport = (filePath, orderId, testType) => {
           </div>
           <div className="flex items-center gap-3 flex-grow md:flex-grow-0">
             <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#055C33] dark:text-[#0EFF7B]" />
               <input
                 type="text"
                 placeholder="Search patient name, test type, or order ID.."
@@ -651,14 +651,28 @@ const handleDownloadReport = (filePath, orderId, testType) => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] placeholder-[#5CD592] pl-10 pr-4 py-2 rounded-[40px] border-[1px] border-[#00000] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#5CD592] text-sm focus:outline-none"
+                className="w-full 
+                  bg-[#BDE5D3] dark:bg-[#0EFF7B1A]   /* darker */
+                  placeholder-[#2F7A58]
+                  pl-10 pr-4 py-2 rounded-[40px]
+                  border-[1px] border-[#08994A]
+                  dark:border-[#0EFF7B1A]
+                  text-[#044D2B] dark:text-[#5CD592]
+                  text-sm focus:outline-none"
               />
             </div>
+          
             <button
               onClick={openFilterPopup}
-              className="relative group bg-gray-100 dark:bg-[#0EFF7B1A] rounded-[20px] w-[32px] h-[32px] flex items-center justify-center text-[#08994A] dark:text-white hover:bg-[#0EFF7B1A]"
+              className="relative group 
+                bg-[#BDE5D3] dark:bg-[#0EFF7B1A]   /* darker visible bg */
+                border border-[#08994A]
+                rounded-[20px] w-[32px] h-[32px]
+                flex items-center justify-center
+                text-[#044D2B] dark:text-white
+                hover:bg-[#A7DCC6]"   /* slightly darker hover */
             >
-              <Filter size={18} className="text-[#0EFF7B] dark:text-[#0EFF7B]" />
+              <Filter size={18} className="text-[#055C33] dark:text-[#0EFF7B]" />
               <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
                 Filter
               </span>

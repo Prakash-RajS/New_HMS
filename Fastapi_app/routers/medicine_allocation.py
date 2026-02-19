@@ -1966,6 +1966,9 @@ def get_patient_pharmacy_invoices(patient_id: int):
 # --------------------------------------------------------------
 # 6. ALL INVOICES (Combined) - FINAL FIXED VERSION
 # --------------------------------------------------------------
+# --------------------------------------------------------------
+# 6. ALL INVOICES (Combined) - FINAL FIXED VERSION
+# --------------------------------------------------------------
 @router.get("/{patient_id}/all-invoices/", response_model=List[Dict])
 def get_patient_all_invoices(patient_id: int):
     """
@@ -1981,14 +1984,22 @@ def get_patient_all_invoices(patient_id: int):
         print(f"Found patient: {patient.full_name} | UID: {patient_unique_id}")
         hospital_invoices = []
         pharmacy_invoices = []
+
         # ==================== HOSPITAL INVOICES (FIXED FIELD MAPPING) ====================
         hospital_qs = HospitalInvoiceHistory.objects.filter(
             patient_id=patient_unique_id
         ).prefetch_related('items').order_by("-date", "-created_at")
         print(f"Found {hospital_qs.count()} hospital invoice(s)")
+
         for inv in hospital_qs:
             items_normalized = []
             subtotal = 0.0
+
+            # Combine CGST and SGST to get the effective tax percent
+            cgst_percent = float(inv.cgst_percent or 0)
+            sgst_percent = float(inv.sgst_percent or 0)
+            tax_percent = cgst_percent + sgst_percent
+
             for item in inv.items.all():
                 line_total = float(item.quantity) * float(item.unit_price)
                 subtotal += line_total
@@ -1996,7 +2007,7 @@ def get_patient_all_invoices(patient_id: int):
                     # These keys match exactly what your frontend expects
                     "sn": item.s_no,
                     "sl_no": item.s_no,
-                    "item": item.description, # Critical: this shows correct name
+                    "item": item.description,
                     "description": item.description,
                     "qty": item.quantity,
                     "quantity": item.quantity,
@@ -2004,13 +2015,15 @@ def get_patient_all_invoices(patient_id: int):
                     "unit_price": f"{item.unit_price:.2f}",
                     "total": f"{line_total:.2f}",
                     "line_total": f"{line_total:.2f}",
-                    "discount": 0, # Hospital items don't have discount → safe
+                    "discount": 0,
                     "discount_pct": 0,
-                    "tax": inv.tax_percent or 18.0,
-                    "tax_pct": inv.tax_percent or 18.0,
+                    "tax": tax_percent,          # Fixed: use computed combined percent
+                    "tax_pct": tax_percent,      # Fixed: use computed combined percent
                 })
-            tax_amount = subtotal * (float(inv.tax_percent or 18.0) / 100)
+
+            tax_amount = subtotal * (tax_percent / 100)
             grand_total = subtotal + tax_amount
+
             hospital_invoices.append({
                 "id": inv.id,
                 "type": "hospital",
@@ -2019,11 +2032,10 @@ def get_patient_all_invoices(patient_id: int):
                 "display_date": inv.date.strftime("%d %b %Y"),
                 "patient_name": inv.patient_name or patient.full_name,
                 "patient_id": patient_unique_id,
-                # Amount fields – all provided for compatibility
                 "amount": f"{subtotal:.2f}",
                 "subtotal": f"{subtotal:.2f}",
                 "tax_amount": f"{tax_amount:.2f}",
-                "tax_percent": str(inv.tax_percent or 18.0),
+                "tax_percent": str(tax_percent),   # Fixed: use computed combined percent
                 "grand_total": f"{grand_total:.2f}",
                 "net_amount": f"{grand_total:.2f}",
                 "status": inv.status or "Paid",
@@ -2033,7 +2045,7 @@ def get_patient_all_invoices(patient_id: int):
                 "doctor": inv.doctor or "—",
                 "doctor_name": inv.doctor or "—",
                 "admission_date": inv.admission_date.strftime("%d %b %Y") if inv.admission_date else None,
-                "items": items_normalized, # Now fully compatible with frontend table
+                "items": items_normalized,
                 "patient": {
                     "name": patient.full_name,
                     "full_name": patient.full_name,
@@ -2046,11 +2058,13 @@ def get_patient_all_invoices(patient_id: int):
                 },
                 "department": patient.department.name if patient.department else "General",
             })
+
         # ==================== PHARMACY INVOICES (Unchanged – already working) ====================
         pharmacy_qs = PharmacyInvoiceHistory.objects.filter(
             patient_id=patient_unique_id
         ).prefetch_related('items').order_by("-bill_date")
         print(f"Found {pharmacy_qs.count()} pharmacy invoice(s)")
+
         for inv in pharmacy_qs:
             items = []
             for item in inv.items.all():
@@ -2104,16 +2118,21 @@ def get_patient_all_invoices(patient_id: int):
                 "billing_staff": inv.billing_staff,
                 "staff_id": inv.staff_id,
             })
+
         # ==================== COMBINE & SORT ====================
         all_invoices = hospital_invoices + pharmacy_invoices
         all_invoices.sort(key=lambda x: x["date"], reverse=True)
         print(f"Total combined invoices returned: {len(all_invoices)}")
         return all_invoices
+
     except Exception as e:
         import traceback
         print("ERROR in get_patient_all_invoices:")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Failed to fetch patient invoices")
+
+
+
 # --------------------------------------------------------------
 # 3. TEST REPORTS (UNIFIED)
 # --------------------------------------------------------------
