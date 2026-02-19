@@ -3180,160 +3180,174 @@ export default function ViewPatientProfile() {
       </div>
 
       {/* Patient Profile Section - TC-068: Temperature unit fixed to show °C */}
-      <div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
-        <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
-          <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
-            {fullPatient?.photo_url ? (
-              <img
-                src={fullPatient.photo_url}
-                alt={fullPatient.full_name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling.style.display = "flex";
-                }}
-              />
-            ) : null}
-            <div
-              className={`w-full h-full flex items-center justify-center bg-gray-200 ${fullPatient?.photo_url ? "hidden" : "flex"}`}
-            >
-              <svg
-                className="w-[60px] h-[60px] text-[#0EFF7B]"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <circle cx="12" cy="8" r="4" />
-                <path d="M12 14c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z" />
-              </svg>
-            </div>
-          </div>
-          <span className="text-[#0EFF7B] text-[18px] font-semibold font-[Helvetica]">
-            {fullPatient?.gender === "Female"
-              ? "Mrs."
-              : fullPatient?.gender === "Male"
-                ? "Mr."
-                : ""}{" "}
-            {fullPatient?.full_name ||
-              patientInfo.patientName ||
-              "Select a patient"}
-          </span>
-          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
-            ID:{" "}
-            {fullPatient?.patient_unique_id || patientInfo.patientID || "N/A"}
-          </span>
-          <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
-            {fullPatient?.email_address || "N/A"}
-          </span>
-        </div>
-        <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
-        <div className="flex-1 flex flex-col mt-4 lg:mt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-5 text-[14px]">
-            {[
-              { label: "Gender", value: fullPatient?.gender || "N/A" },
-              {
-                label: "Age",
-                value: fullPatient?.age ? `${fullPatient.age}` : "N/A",
-              },
-              {
-                label: "Blood Group",
-                value: fullPatient?.blood_group || "N/A",
-              },
-              {
-                label: "Department",
-                value:
-                  fullPatient?.department || patientInfo.department || "N/A",
-              },
-              { label: "Bed Number", value: fullPatient?.room_number || "N/A" },
-              {
-                label: "Consultant type",
-                value: fullPatient?.consultation_type || "N/A",
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
-                  {item.label}
-                </span>
-                <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
-                  {item.value}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-5">
-            <button
-              onClick={() => {
-                if (!patientDbId) {
-                  errorToast("Patient not selected properly");
-                  return;
-                }
-                navigate(`/patients/profile/${patientDbId}`);
-              }}
-              className="relative group flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-[Helvetica]"
-            >
-              <span className="text-[15px] w-[calc(100%-34px)]">
-                View more information
-              </span>
-              <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="white"
-                  className="w-[10px] h-[10px]"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-                <span
-                  className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                >
-                  View more
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-        <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
-        {/* ================ TC-068 FIX: Temperature in °C ================ */}
-        <div className="text-[14px] flex justify-center gap-3 sm:gap-6 mt-4 lg:mt-0">
-          <div className="flex flex-col items-center space-y-3">
-            <div className="flex flex-col items-center space-y-1">
-              <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
-                Blood Pressure
-              </span>
-              <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
-                {fullPatient?.blood_pressure || "N/A"}{" "}
-                <span className="text-black dark:text-white">mmHg</span>
-              </span>
-            </div>
-            <div className="flex flex-col items-center space-y-1">
-              <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
-                Weight
-              </span>
-              <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
-                {fullPatient?.weight_in_kg || "N/A"}{" "}
-                <span className="text-black dark:text-white">kg</span>
-              </span>
-            </div>
-          </div>
-          <div className="flex flex-col items-center space-y-1">
-            <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
-              Temperature
-            </span>
-            <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
-              {formatTemperature(fullPatient?.body_temperature)}
-            </span>
-          </div>
-        </div>
-        {/* ================ End of TC-068 FIX ================ */}
+
+{/* Patient Profile Section - TC-068: Temperature unit fixed to show °C */}
+<div className="mb-8 p-4 sm:p-5 bg-white dark:bg-black flex flex-col lg:flex-row items-center justify-between text-black dark:text-white font-[Helvetica] max-w-full relative">
+  <div className="flex flex-col items-center text-center w-full lg:w-[146px] mb-4 lg:mb-0">
+    <div className="rounded-full w-[94px] h-[94px] mb-3 shadow-[#0EFF7B4D] border border-[#0EFF7B] overflow-hidden bg-gray-100">
+      {fullPatient?.photo_url ? (
+        <img
+          src={fullPatient.photo_url}
+          alt={fullPatient.full_name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+            e.currentTarget.nextElementSibling.style.display = "flex";
+          }}
+        />
+      ) : null}
+      <div
+        className={`w-full h-full flex items-center justify-center bg-gray-200 ${fullPatient?.photo_url ? "hidden" : "flex"}`}
+      >
+        <svg
+          className="w-[60px] h-[60px] text-[#0EFF7B]"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <circle cx="12" cy="8" r="4" />
+          <path d="M12 14c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z" />
+        </svg>
       </div>
+    </div>
+    <span className="text-[#0EFF7B] text-[18px] font-semibold font-[Helvetica]">
+      {fullPatient?.gender === "Female"
+        ? "Mrs."
+        : fullPatient?.gender === "Male"
+          ? "Mr."
+          : ""}{" "}
+      {fullPatient?.full_name ||
+        patientInfo.patientName ||
+        "Select a patient"}
+    </span>
+    <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
+      ID:{" "}
+      {fullPatient?.patient_unique_id || patientInfo.patientID || "N/A"}
+    </span>
+    <span className="text-[14px] text-gray-500 dark:text-gray-400 font-[Helvetica]">
+      {fullPatient?.email_address || "N/A"}
+    </span>
+  </div>
+  <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
+  <div className="flex-1 flex flex-col mt-4 lg:mt-0">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-5 text-[14px]">
+      {[
+        { label: "Gender", value: fullPatient?.gender || "N/A" },
+        {
+          label: "Age",
+          value: fullPatient?.age ? `${fullPatient.age}` : "N/A",
+        },
+        {
+          label: "Blood Group",
+          value: fullPatient?.blood_group || "N/A",
+        },
+        {
+          label: "Department",
+          value:
+            fullPatient?.department || patientInfo.department || "N/A",
+        },
+        { label: "Bed Number", value: fullPatient?.room_number || "N/A" },
+        {
+          label: "Consultant type",
+          value: fullPatient?.consultation_type || "N/A",
+        },
+      ].map((item, idx) => (
+        <div key={idx} className="flex flex-col items-center">
+          <span className="w-[100px] sm:w-[110px] h-[18px] font-[Helvetica] text-[15px] leading-[100%] text-center text-[#0EFF7B]">
+            {item.label}
+          </span>
+          <div className="w-[100px] sm:w-[110px] h-[16px] font-[Helvetica] text-[13px] leading-[100%] text-center bg-white dark:bg-black text-black dark:text-white mt-1 px-2 py-1 rounded">
+            {item.value}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="flex justify-end mt-5">
+      <button
+        onClick={() => {
+          if (!patientDbId) {
+            errorToast("Patient not selected properly");
+            return;
+          }
+          navigate(`/patients/profile/${patientDbId}`);
+        }}
+        className="relative group flex items-center justify-between w-[220px] h-[38px] bg-[#0EFF7B1A] rounded-[4px] px-3 text-sm text-black dark:text-white hover:bg-[#0EFF7B] hover:text-white transition font-[Helvetica]"
+      >
+        <span className="text-[15px] w-[calc(100%-34px)]">
+          View more information
+        </span>
+        <div className="w-[18px] h-[18px] bg-[#0EFF7B] rounded-full flex items-center justify-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="white"
+            className="w-[10px] h-[10px]"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+          <span
+            className="absolute top-[70px] left-1/2 -translate-x-1/2 whitespace-nowrap
+              px-3 py-1 text-xs rounded-md shadow-md
+              bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+              transition-all duration-150"
+          >
+            View more
+          </span>
+        </div>
+      </button>
+    </div>
+  </div>
+  <div className="hidden lg:block h-[120px] w-[1.5px] bg-[#0EFF7B] mx-4"></div>
+  {/* ================ TC-068 FIX: Temperature in °C with Height added ================ */}
+  <div className="text-[14px] flex justify-center gap-3 sm:gap-6 mt-4 lg:mt-0">
+    <div className="flex flex-col items-center space-y-3">
+      <div className="flex flex-col items-center space-y-1">
+        <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
+          Blood Pressure
+        </span>
+        <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
+          {fullPatient?.blood_pressure || "N/A"}{" "}
+          <span className="text-black dark:text-white">mmHg</span>
+        </span>
+      </div>
+      <div className="flex flex-col items-center space-y-1">
+        <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
+          Temperature
+        </span>
+        <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
+          {formatTemperature(fullPatient?.body_temperature)}
+        </span>
+      </div>
+    </div>
+    <div className="flex flex-col items-center space-y-3">
+      <div className="flex flex-col items-center space-y-1">
+        <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
+          Weight
+        </span>
+        <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
+          {fullPatient?.weight_in_kg || "N/A"}{" "}
+          <span className="text-black dark:text-white">kg</span>
+        </span>
+      </div>
+      {/* ================ HEIGHT ADDED HERE - RIGHT SIDE OF WEIGHT ================ */}
+      <div className="flex flex-col items-center space-y-1">
+        <span className="text-black dark:text-white font-[Helvetica] text-[14px]">
+          Height
+        </span>
+        <span className="text-[#0EFF7B] font-semibold font-[Helvetica] text-[14px]">
+          {fullPatient?.height_in_cm ? `${fullPatient.height_in_cm} cm` : "N/A"}
+        </span>
+      </div>
+      {/* ================ END HEIGHT ADDITION ================ */}
+    </div>
+  </div>
+  {/* ================ End of TC-068 FIX ================ */}
+</div>
 
       {/* ================ MRI Warning Message ================ */}
       {pendingMRI && (

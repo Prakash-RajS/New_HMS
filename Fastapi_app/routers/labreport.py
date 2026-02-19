@@ -268,6 +268,62 @@ async def list_labreports():
     return lab_reports
 
 
+# ================ NEW ENDPOINT: Get lab reports by patient ID ================
+@router.get("/patient/{patient_id}", response_model=List[LabReportOut])
+async def get_patient_lab_reports(patient_id: int):
+    """
+    Get all lab reports for a specific patient by their database ID
+    Used for duplicate validation and MRI checks
+    """
+    try:
+        @sync_to_async
+        def fetch_patient_reports():
+            ensure_db_connection()
+            # First get the patient
+            try:
+                patient = Patient.objects.get(id=patient_id)
+            except Patient.DoesNotExist:
+                return None, []
+            
+            # Get all lab reports for this patient
+            reports = LabReport.objects.filter(
+                patient=patient
+            ).select_related("patient").order_by("-created_at")
+            
+            return patient, list(reports)
+        
+        patient, reports = await fetch_patient_reports()
+        
+        if patient is None:
+            raise HTTPException(status_code=404, detail="Patient not found")
+        
+        lab_reports = []
+        for report in reports:
+            lab_reports.append({
+                "id": report.id,
+                "order_id": report.order_id,
+                "patient_name": report.patient.full_name,
+                "patient_id": report.patient.patient_unique_id,
+                "department": report.department,
+                "test_type": report.test_type,
+                "status": report.status,
+                "created_at": report.created_at,
+                "updated_at": report.updated_at,
+                "file_path": report.file_path,
+            })
+        
+        return lab_reports
+    
+    except Exception as e:
+        print(f"Error fetching patient lab reports: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching lab reports: {str(e)}"
+        )
+
+
 @router.put("/{labreport_id}", response_model=LabReportOut)
 async def update_labreport(
     labreport_id: int,
