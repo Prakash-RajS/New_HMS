@@ -428,11 +428,32 @@ def delayed_remove(file_path: str, delay: int = 3):
 # ------------------------------
 # Helper utilities
 # ------------------------------
+# fastapi_app/routers/pharmacy_invoices.py
+
 def number_to_words(amount):
+    """
+    Convert amount to words with proper handling of decimals for Indian currency
+    Example: 71.50 -> "Seventy-One and Fifty Paise Only"
+    """
     try:
         from num2words import num2words
-        return num2words(int(amount), to="cardinal").title() + " Only"
-    except Exception:
+        
+        # Split into rupees and paise
+        rupees = int(amount)
+        paise = int(round((amount - rupees) * 100))
+        
+        # Convert rupees to words
+        rupees_words = num2words(rupees, to="cardinal", lang='en_IN').title()
+        
+        if paise > 0:
+            # Convert paise to words
+            paise_words = num2words(paise, to="cardinal", lang='en_IN').title()
+            return f"{rupees_words} and {paise_words} Paise Only"
+        else:
+            return f"{rupees_words} Only"
+            
+    except Exception as e:
+        print(f"Error in number_to_words: {e}")
         return str(amount)
 
 
@@ -503,10 +524,11 @@ async def reduce_stock_quantities(items: List[InvoiceItemSchema]):
 # ------------------------------
 # ✅ Mark medicine allocations as billed
 # ------------------------------
-async def mark_medicine_allocations_as_billed(patient_id: str, invoice):
+# fastapi_app/routers/pharmacy_invoices.py
+
+async def mark_medicine_allocations_as_billed(patient_id: str, invoice, invoice_items: List[InvoiceItemSchema]):
     """
-    Mark all pending medicine allocations for a patient as 'billed'
-    when invoice is created
+    Mark only the specific medicine allocations that are included in the invoice as 'billed'
     """
     await sync_to_async(ensure_db_connection)()
     try:
@@ -519,25 +541,37 @@ async def mark_medicine_allocations_as_billed(patient_id: str, invoice):
             print(f"⚠️ Patient not found: {patient_id}")
             return
         
-        # Get all pending allocations for this patient
+        # Extract medicine names from invoice items
+        medicine_names = [item.drug_name for item in invoice_items]
+        
+        print(f"🔍 Looking for allocations with medicines: {medicine_names}")
+        
+        # Get only the pending allocations that match the medicines in the invoice
         allocations = await sync_to_async(list)(
             MedicineAllocation.objects.filter(
                 patient=patient,
+                medicine_name__in=medicine_names,  # Only filter by medicine names
                 billing_status="pending"  # Only pending allocations
             )
         )
         
         count = 0
         for allocation in allocations:
-            allocation.billing_status = "billed"  # ✅ Set to billed
-            allocation.pharmacy_invoice = invoice  # ✅ Link to invoice
-            await sync_to_async(allocation.save)()
-            count += 1
+            # Double-check that this medicine is actually in the invoice
+            if allocation.medicine_name in medicine_names:
+                allocation.billing_status = "billed"  # ✅ Set to billed
+                allocation.pharmacy_invoice = invoice  # ✅ Link to invoice
+                await sync_to_async(allocation.save)()
+                count += 1
+                print(f"✅ Marked allocation {allocation.id} ({allocation.medicine_name}) as billed")
+            else:
+                print(f"⏸️ Allocation {allocation.id} ({allocation.medicine_name}) remains pending")
         
         print(f"✅ Marked {count} medicine allocations as billed for patient {patient_id}")
         
     except Exception as e:
         print(f"❌ Error marking allocations as billed: {str(e)}")
+        # Don't raise error, just log it
         # Don't raise error, just log it
 
 # ------------------------------
@@ -676,7 +710,7 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
         low_stock_items, out_of_stock_items = await reduce_stock_quantities(data.items)
         
         # ✅ MARK ALLOCATIONS AS BILLED
-        await mark_medicine_allocations_as_billed(data.patient_id, invoice_obj)
+        await mark_medicine_allocations_as_billed(data.patient_id, invoice_obj, data.items)
 
         db_invoice = await _get_invoice_by_id(invoice_id)
         db_items = await _get_invoice_items_for_invoice(db_invoice)

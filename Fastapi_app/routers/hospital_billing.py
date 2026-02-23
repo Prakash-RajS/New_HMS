@@ -347,6 +347,27 @@ class MarkPaidIn(BaseModel):
     remarks: Optional[str] = None
 
 
+class SettleInvoicesIn(BaseModel):
+    patient_id: str
+    invoice_ids: List[str]
+    payment_method: Optional[str] = "Cash"
+    transaction_id: Optional[str] = None
+    remarks: Optional[str] = None
+
+class TreatmentChargeCreate(BaseModel):
+    patient_id: int
+    description: str
+    quantity: int = 1
+    unit_price: float
+    amount: Optional[float] = None
+
+    # ✅ NEW FIELDS
+    discount_percent: float = 0
+    tax_percent: float = 0
+
+    status: str = "PENDING"
+
+
 # -------------------------------
 # Helper Functions
 # -------------------------------
@@ -860,484 +881,6 @@ async def generate_invoice_pdf(payload: InvoiceCreateIn):
             })
         )
         
-        return FileResponse(
-            path=pdf_path,
-            media_type="application/pdf",
-            filename=f"{invoice.invoice_id}.pdf",
-            headers={
-                "Content-Disposition": f"inline; filename={invoice.invoice_id}.pdf",
-                "X-Invoice-ID": invoice.invoice_id,
-                "X-Payment-Type": invoice.payment_type,
-                "X-Status": invoice.status,
-                "X-Paid-Amount": str(invoice.paid_amount),
-                "X-Pending-Amount": str(invoice.pending_amount),
-            }
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Critical error: {str(e)}")
-        print(traceback.format_exc())
-        await NotificationService.send_billing_error(str(e), "Invoice Generation")
-        raise HTTPException(status_code=500, detail=f"Failed to generate invoice: {str(e)}")
-
-# -------------------------------
-# NEW: ADD PARTIAL PAYMENT TO EXISTING INVOICE
-# -------------------------------
-@router.post("/generate-invoice", response_class=FileResponse)
-async def generate_invoice_pdf(payload: InvoiceCreateIn):
-    """
-    Generate hospital invoice PDF with:
-    - Discount
-    - CGST/SGST
-    - Partial Payment
-    - Settlement of selected previous pending invoices in same PDF
-    - Safe transaction rollback if DB fails
-    - PDF generation moved OUTSIDE transaction for speed
-    """
-    print(f"📋 Invoice request received - Patient: {payload.patient_id} | Type: {payload.payment_type}")
-
-    if not payload.invoice_items:
-        raise HTTPException(status_code=400, detail="At least one invoice item is required.")
-
-    # Validate partial payment
-    if payload.payment_type == "Partial Payment":
-        if not payload.partial_payment:
-            raise HTTPException(status_code=400, detail="Partial payment data is required.")
-        if payload.partial_payment.paid_amount <= 0:
-            raise HTTPException(status_code=400, detail="Paid amount must be > 0.")
-
-    try:
-        @sync_to_async
-        def create_invoice_db_only():
-            """
-            ✅ Does ONLY DB work inside transaction
-            ❌ Does NOT generate PDF inside transaction
-            """
-            ensure_db_connection()
-
-            with transaction.atomic():
-
-                # -----------------------------
-                # 1. Validate patient
-                # -----------------------------
-                try:
-                    patient = Patient.objects.get(patient_unique_id=payload.patient_id)
-                except Patient.DoesNotExist:
-                    raise HTTPException(status_code=404, detail="Patient not found")
-
-                # -----------------------------
-                # 2. Calculate subtotal
-                # -----------------------------
-                subtotal = sum(
-                    Decimal(item.quantity) * Decimal(item.unit_price)
-                    for item in payload.invoice_items
-                ).quantize(Decimal("0.01"))
-
-                # -----------------------------
-                # 3. Discount
-                # -----------------------------
-                discount_percent = Decimal(str(payload.discount_percent or 0)).quantize(Decimal("0.01"))
-                discount_amount = Decimal("0.00")
-
-                if discount_percent > 0:
-                    discount_amount = (subtotal * discount_percent / Decimal("100")).quantize(Decimal("0.01"))
-
-                tax_net_amount = (subtotal - discount_amount).quantize(Decimal("0.01"))
-                if tax_net_amount < 0:
-                    tax_net_amount = Decimal("0.00")
-
-                # -----------------------------
-                # 4. CGST + SGST
-                # -----------------------------
-                cgst_percent = Decimal(str(payload.cgst_percent or 0)).quantize(Decimal("0.01"))
-                sgst_percent = Decimal(str(payload.sgst_percent or 0)).quantize(Decimal("0.01"))
-
-                cgst_amount = (tax_net_amount * cgst_percent / Decimal("100")).quantize(Decimal("0.01"))
-                sgst_amount = (tax_net_amount * sgst_percent / Decimal("100")).quantize(Decimal("0.01"))
-
-                total_tax_amount = (cgst_amount + sgst_amount).quantize(Decimal("0.01"))
-                grand_total = (tax_net_amount + total_tax_amount).quantize(Decimal("0.01"))
-
-                # -----------------------------
-                # 5. New invoice payment handling
-                # -----------------------------
-                paid_amount = Decimal("0.00")
-                pending_amount = grand_total
-                due_date = None
-                remarks = None
-                status = payload.status
-
-                if payload.payment_type == "Partial Payment":
-                    paid_amount = Decimal(str(payload.partial_payment.paid_amount)).quantize(Decimal("0.01"))
-                    pending_amount = (grand_total - paid_amount).quantize(Decimal("0.01"))
-                    due_date = payload.partial_payment.due_date
-                    remarks = payload.partial_payment.remarks
-
-                    if paid_amount >= grand_total:
-                        status = "Paid"
-                        pending_amount = Decimal("0.00")
-                    elif paid_amount > 0:
-                        status = "Partially Paid"
-                    else:
-                        status = "Pending"
-
-                elif status == "Paid":
-                    paid_amount = grand_total
-                    pending_amount = Decimal("0.00")
-
-                # -----------------------------
-                # 6. Create new invoice
-                # -----------------------------
-                invoice = HospitalInvoiceHistory.objects.create(
-                    date=payload.date,
-                    patient_name=payload.patient_name,
-                    patient_id=payload.patient_id,
-                    department=payload.department or "General",
-
-                    subtotal=subtotal,
-                    total_tax=total_tax_amount,
-                    amount=grand_total,
-
-                    payment_method=payload.payment_method,
-                    status=status,
-                    payment_type=payload.payment_type,
-
-                    admission_date=payload.admission_date,
-                    discharge_date=payload.discharge_date,
-                    doctor=payload.doctor,
-
-                    phone=payload.phone or patient.phone_number or "N/A",
-                    email=payload.email or patient.email_address or "N/A",
-                    address=payload.address or patient.address or "N/A",
-
-                    discount_percent=discount_percent,
-                    discount_amount=discount_amount,
-                    tax_net_amount=tax_net_amount,
-
-                    cgst_percent=cgst_percent,
-                    cgst_amount=cgst_amount,
-                    sgst_percent=sgst_percent,
-                    sgst_amount=sgst_amount,
-
-                    transaction_id=payload.transaction_id,
-                    payment_date=payload.payment_date or payload.date,
-
-                    paid_amount=paid_amount,
-                    pending_amount=pending_amount,
-                    due_date=due_date,
-                    payment_remarks=remarks,
-                )
-
-                # Generate transaction_id if missing
-                if not invoice.transaction_id:
-                    invoice.transaction_id = f"TXN_{invoice.invoice_id}"
-                    invoice.save(update_fields=["transaction_id"])
-
-                # -----------------------------
-                # 7. Create invoice line items (bulk)
-                # -----------------------------
-                items_for_pdf = []
-                item_objs = []
-
-                for idx, item in enumerate(payload.invoice_items, 1):
-                    line_total = (Decimal(item.quantity) * Decimal(item.unit_price)).quantize(Decimal("0.01"))
-
-                    item_objs.append(HospitalInvoiceItem(
-                        invoice=invoice,
-                        s_no=idx,
-                        description=item.description,
-                        quantity=item.quantity,
-                        unit_price=item.unit_price,
-                        amount=line_total,
-                    ))
-
-                    items_for_pdf.append({
-                        "s_no": idx,
-                        "description": item.description,
-                        "quantity": item.quantity,
-                        "unit_price": float(item.unit_price),
-                        "total": float(line_total),
-                    })
-
-                HospitalInvoiceItem.objects.bulk_create(item_objs)
-
-                # -----------------------------
-                # 8. Partial payment record for NEW invoice
-                # -----------------------------
-                if payload.payment_type == "Partial Payment" and paid_amount > 0:
-                    PartialPaymentHistory.objects.create(
-                        invoice=invoice,
-                        payment_number=1,
-                        payment_date=payload.date,
-                        amount_paid=paid_amount,
-                        payment_method=payload.payment_method,
-                        transaction_id=payload.transaction_id or f"TXN_{invoice.invoice_id}_01",
-                        remarks=remarks or "Initial partial payment",
-                    )
-
-                # -----------------------------
-                # 9. Link treatment charges (OPTIMIZED)
-                # -----------------------------
-                if payload.treatment_charge_ids:
-                    charges = list(TreatmentCharge.objects.filter(id__in=payload.treatment_charge_ids))
-
-                    total_charges_amount = sum((c.amount or Decimal("0.00")) for c in charges)
-                    total_charges_amount = Decimal(str(total_charges_amount)).quantize(Decimal("0.01"))
-
-                    is_invoice_paid = (status == "Paid")
-                    is_partial = (payload.payment_type == "Partial Payment")
-
-                    charges_to_update = []
-
-                    for charge in charges:
-                        charge_amount = Decimal(str(charge.amount or 0)).quantize(Decimal("0.01"))
-
-                        if is_partial and total_charges_amount > 0:
-                            charge_percentage = (charge_amount / total_charges_amount)
-                            allocated_amount = (paid_amount * charge_percentage).quantize(Decimal("0.01"))
-
-                            billed_now = (
-                                Decimal(str(charge.billed_amount or 0)) + allocated_amount
-                            ).quantize(Decimal("0.01"))
-
-                            if billed_now > charge_amount:
-                                billed_now = charge_amount
-
-                            remaining_now = (charge_amount - billed_now).quantize(Decimal("0.01"))
-
-                            if billed_now >= charge_amount:
-                                charge.status = "BILLED"
-                                remaining_now = Decimal("0.00")
-                            elif billed_now > 0:
-                                charge.status = "PARTIALLY_BILLED"
-                            else:
-                                charge.status = "PENDING"
-
-                            charge.billed_amount = billed_now
-                            charge.remaining_amount = remaining_now
-
-                        elif is_invoice_paid:
-                            charge.billed_amount = charge_amount
-                            charge.remaining_amount = Decimal("0.00")
-                            charge.status = "BILLED"
-
-                        else:
-                            billed_so_far = Decimal(str(charge.billed_amount or 0)).quantize(Decimal("0.01"))
-
-                            if billed_so_far > 0 and billed_so_far < charge_amount:
-                                charge.status = "PARTIALLY_BILLED"
-                                charge.remaining_amount = (charge_amount - billed_so_far).quantize(Decimal("0.01"))
-                            elif billed_so_far >= charge_amount:
-                                charge.status = "BILLED"
-                                charge.remaining_amount = Decimal("0.00")
-                            else:
-                                charge.status = "PENDING"
-                                charge.remaining_amount = charge_amount
-                                charge.billed_amount = Decimal("0.00")
-
-                        charge.hospital_invoice = invoice
-                        charges_to_update.append(charge)
-
-                    TreatmentCharge.objects.bulk_update(
-                        charges_to_update,
-                        ["billed_amount", "remaining_amount", "status", "hospital_invoice"]
-                    )
-
-                # -----------------------------
-                # 10. ✅ Settle previous pending invoices (FAST)
-                # -----------------------------
-                settled_rows = []
-                previous_pending_paid_today = Decimal("0.00")
-
-                if payload.settle_invoice_ids:
-                    old_invoices = list(HospitalInvoiceHistory.objects.filter(
-                        invoice_id__in=payload.settle_invoice_ids,
-                        patient_id=payload.patient_id
-                    ))
-
-                    # Preserve frontend selection order
-                    old_invoices.sort(key=lambda x: payload.settle_invoice_ids.index(x.invoice_id))
-
-                    # payment count in ONE query
-                    payment_counts = {
-                        row["invoice_id"]: row["cnt"]
-                        for row in PartialPaymentHistory.objects.filter(invoice__in=old_invoices)
-                        .values("invoice_id")
-                        .annotate(cnt=Count("id"))
-                    }
-
-                    invoices_to_update = []
-                    settlement_payments = []
-
-                    for old_inv in old_invoices:
-                        old_pending = Decimal(str(old_inv.pending_amount or 0)).quantize(Decimal("0.01"))
-
-                        if old_pending <= 0:
-                            continue
-
-                        paid_now = old_pending
-                        remaining = Decimal("0.00")
-
-                        old_inv.paid_amount = (
-                            Decimal(str(old_inv.paid_amount or 0)) + paid_now
-                        ).quantize(Decimal("0.01"))
-
-                        old_inv.pending_amount = remaining
-
-                        # ✅ FIX: remove comma tuple bug
-                        old_inv.status = "Paid"
-
-                        old_inv.payment_date = payload.date
-
-                        invoices_to_update.append(old_inv)
-
-                        # ✅ FAST: update all charges of this old invoice in 1 query
-                        TreatmentCharge.objects.filter(hospital_invoice=old_inv).update(
-                            billed_amount=F("amount"),
-                            remaining_amount=Decimal("0.00"),
-                            status="BILLED"
-                        )
-
-                        # Add payment record for old invoice (bulk)
-                        payment_count = payment_counts.get(old_inv.id, 0)
-
-                        settlement_payments.append(PartialPaymentHistory(
-                            invoice=old_inv,
-                            payment_number=payment_count + 1,
-                            payment_date=payload.date,
-                            amount_paid=paid_now,
-                            payment_method=payload.payment_method,
-                            transaction_id=f"{invoice.transaction_id}_SETTLE_{old_inv.invoice_id}",
-                            remarks=f"Settled in invoice {invoice.invoice_id}"
-                        ))
-
-                        previous_pending_paid_today += paid_now
-
-                        settled_rows.append({
-                            "invoice_id": old_inv.invoice_id,
-                            "old_pending": float(old_pending),
-                            "paid_now": float(paid_now),
-                            "remaining": float(remaining),
-                        })
-
-                    # bulk update invoices
-                    if invoices_to_update:
-                        HospitalInvoiceHistory.objects.bulk_update(
-                            invoices_to_update,
-                            ["paid_amount", "pending_amount", "status", "payment_date"]
-                        )
-
-                    # bulk create payment rows
-                    if settlement_payments:
-                        PartialPaymentHistory.objects.bulk_create(settlement_payments)
-
-                # return everything needed for PDF
-                return {
-                    "invoice": invoice,
-                    "items_for_pdf": items_for_pdf,
-                    "subtotal": subtotal,
-                    "discount_percent": discount_percent,
-                    "discount_amount": discount_amount,
-                    "tax_net_amount": tax_net_amount,
-                    "cgst_percent": cgst_percent,
-                    "cgst_amount": cgst_amount,
-                    "sgst_percent": sgst_percent,
-                    "sgst_amount": sgst_amount,
-                    "total_tax_amount": total_tax_amount,
-                    "grand_total": grand_total,
-                    "paid_amount": paid_amount,
-                    "pending_amount": pending_amount,
-                    "due_date": due_date,
-                    "remarks": remarks,
-                    "status": status,
-                    "settled_rows": settled_rows,
-                    "previous_pending_paid_today": previous_pending_paid_today
-                }
-
-        # ✅ DB work only
-        data = await create_invoice_db_only()
-
-        invoice = data["invoice"]
-
-        # -----------------------------
-        # 11. Render template (OUTSIDE TRANSACTION)
-        # -----------------------------
-        template = env.get_template("invoice_template.html")
-
-        total_collected_today = (data["grand_total"] + data["previous_pending_paid_today"]).quantize(Decimal("0.01"))
-
-        html_string = template.render(
-            invoice=invoice,
-            items=data["items_for_pdf"],
-
-            subtotal=float(data["subtotal"]),
-
-            discount_percent=float(data["discount_percent"]),
-            discount_amount=float(data["discount_amount"]),
-
-            tax_net_amount=float(data["tax_net_amount"]),
-
-            cgst_percent=float(data["cgst_percent"]),
-            cgst_amount=float(data["cgst_amount"]),
-
-            sgst_percent=float(data["sgst_percent"]),
-            sgst_amount=float(data["sgst_amount"]),
-
-            total_tax=float(data["total_tax_amount"]),
-            grand_total=float(data["grand_total"]),
-
-            amount_in_words=amount_to_words(data["grand_total"]),
-            today=date.today().strftime("%B %d, %Y"),
-
-            is_partial_payment=(payload.payment_type == "Partial Payment"),
-            paid_amount=float(data["paid_amount"]),
-            pending_amount=float(data["pending_amount"]),
-            due_date=format_date(data["due_date"]),
-            payment_remarks=data["remarks"],
-            payment_progress=round(float(data["paid_amount"]) / float(data["grand_total"]) * 100, 2)
-            if data["grand_total"] > 0 else 0,
-
-            settled_rows=data["settled_rows"],
-            previous_pending_paid_today=float(data["previous_pending_paid_today"]),
-            total_collected_today=float(total_collected_today),
-        )
-
-        # -----------------------------
-        # 12. Generate PDF (OUTSIDE TRANSACTION)
-        # -----------------------------
-        pdf_filename = f"{invoice.invoice_id}.pdf"
-        pdf_path = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
-
-        try:
-            HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
-        except Exception as pdf_exc:
-            print(f"❌ WeasyPrint failed: {pdf_exc}")
-            raise HTTPException(500, f"PDF generation failed: {str(pdf_exc)}")
-
-        # -----------------------------
-        # 13. Save PDF path (small update)
-        # -----------------------------
-        @sync_to_async
-        def save_pdf_path():
-            ensure_db_connection()
-            invoice.pdf_file = f"invoices_generator/{pdf_filename}"
-            invoice.save(update_fields=["pdf_file"])
-
-        await save_pdf_path()
-
-        # Send notification
-        await NotificationService.send_hospital_bill_generated({
-            "invoice_id": invoice.invoice_id,
-            "patient_name": invoice.patient_name,
-            "amount": float(invoice.amount),
-            "status": invoice.status,
-            "payment_type": invoice.payment_type,
-            "paid_amount": float(invoice.paid_amount),
-            "pending_amount": float(invoice.pending_amount),
-        })
-
         return FileResponse(
             path=pdf_path,
             media_type="application/pdf",
@@ -1962,7 +1505,7 @@ async def delete_invoice(invoice_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")
     
-    
+
 # -------------------------------
 # PDF Download Endpoints
 # -------------------------------
@@ -2443,7 +1986,71 @@ async def export_excel(include_items: bool = False):
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+@router.post("/treatment-charges/")
+async def create_treatment_charge(payload: TreatmentChargeCreate):
+    try:
+        @sync_to_async
+        def create_charge():
+            ensure_db_connection()
 
+            # Get patient
+            try:
+                patient = Patient.objects.get(id=payload.patient_id)
+            except Patient.DoesNotExist:
+                raise HTTPException(status_code=404, detail="Patient not found")
+
+            quantity = Decimal(str(payload.quantity))
+            unit_price = Decimal(str(payload.unit_price))
+
+            discount_percent = Decimal(str(payload.discount_percent or 0))
+            tax_percent = Decimal(str(payload.tax_percent or 0))
+
+            # Calculate amounts
+            subtotal = quantity * unit_price
+            discount_amount = subtotal * (discount_percent / Decimal("100"))
+            after_discount = subtotal - discount_amount
+            tax_amount = after_discount * (tax_percent / Decimal("100"))
+            final_amount = (after_discount + tax_amount).quantize(Decimal("0.01"))
+
+            # Create TreatmentCharge
+            charge = TreatmentCharge.objects.create(
+                patient=patient,
+                description=payload.description,
+                quantity=quantity,
+                unit_price=unit_price,
+                discount_percent=discount_percent,
+                tax_percent=tax_percent,
+                amount=final_amount,
+                billed_amount=Decimal("0.00"),
+                remaining_amount=final_amount,
+                status=payload.status or "PENDING",
+            )
+
+            return charge
+
+        created = await create_charge()
+
+        # Return the created charge object directly (not nested in data)
+        return {
+            "id": created.id,
+            "description": created.description,
+            "quantity": float(created.quantity),
+            "unit_price": float(created.unit_price),
+            "discount_percent": float(created.discount_percent or 0),
+            "tax_percent": float(created.tax_percent or 0),
+            "amount": float(created.amount),
+            "status": created.status,
+            "patient_id": created.patient.id,
+            "created_at": created.created_at.isoformat() if hasattr(created, 'created_at') else None,
+            "updated_at": created.updated_at.isoformat() if hasattr(created, 'updated_at') else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error creating treatment charge: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/treatment-charges/{charge_id}")
 async def update_treatment_charge(charge_id: int, payload: TreatmentChargeUpdateIn):
@@ -2718,6 +2325,10 @@ async def generate_consolidate_invoice(payload: ConsolidateInvoiceCreateIn):
                     is_consolidated=False,
                 )
 
+                if patient:
+                    patient.patient_type = "out-patient"
+                    patient.save(update_fields=["patient_type"])
+
                 # -----------------------------
                 # 8) Build table rows (each item is a row)
                 # -----------------------------
@@ -2934,3 +2545,316 @@ async def get_available_paid_invoices(patient_id: str):
     except Exception as e:
         print(f"Error fetching available paid invoices: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch available invoices")
+
+@router.post("/settle-invoices", response_class=FileResponse)
+async def settle_invoices(payload: SettleInvoicesIn):
+    """
+    Settle multiple pending invoices at once and generate a single settlement invoice
+    using the dedicated settlement template. Creates a settlement invoice record.
+    """
+    print(f"📋 Settlement request - Patient: {payload.patient_id} | Invoices: {len(payload.invoice_ids)}")
+
+    if not payload.invoice_ids:
+        raise HTTPException(status_code=400, detail="At least one invoice ID is required")
+
+    try:
+        @sync_to_async
+        def process_settlement():
+            ensure_db_connection()
+
+            with transaction.atomic():
+                # -----------------------------
+                # 1. Validate patient
+                # -----------------------------
+                try:
+                    patient = Patient.objects.get(patient_unique_id=payload.patient_id)
+                except Patient.DoesNotExist:
+                    raise HTTPException(status_code=404, detail="Patient not found")
+
+                # -----------------------------
+                # 2. Get all invoices to settle
+                # -----------------------------
+                invoices = list(HospitalInvoiceHistory.objects.filter(
+                    invoice_id__in=payload.invoice_ids,
+                    patient_id=payload.patient_id
+                ))
+
+                if not invoices:
+                    raise HTTPException(status_code=404, detail="No valid invoices found")
+
+                # Preserve frontend selection order
+                invoices.sort(key=lambda x: payload.invoice_ids.index(x.invoice_id))
+
+                total_paid_today = Decimal("0.00")
+                settlement_rows = []
+                settlement_payments = []
+                invoices_to_update = []
+                all_charges_to_update = []
+
+                # -----------------------------
+                # 3. Process each invoice to settle
+                # -----------------------------
+                for inv in invoices:
+                    total_amount = Decimal(str(inv.amount or 0)).quantize(Decimal("0.01"))
+                    paid_so_far = Decimal(str(inv.paid_amount or 0)).quantize(Decimal("0.01"))
+                    pending_now = Decimal(str(inv.pending_amount or 0)).quantize(Decimal("0.01"))
+
+                    if pending_now <= 0:
+                        continue
+
+                    # Calculate payment number
+                    payment_count = PartialPaymentHistory.objects.filter(invoice=inv).count()
+
+                    # Add payment record
+                    settlement_payments.append(PartialPaymentHistory(
+                        invoice=inv,
+                        payment_number=payment_count + 1,
+                        payment_date=timezone.now().date(),
+                        amount_paid=pending_now,
+                        payment_method=payload.payment_method or "Cash",
+                        transaction_id=f"SET_{timezone.now().strftime('%Y%m%d%H%M%S')}_{inv.invoice_id}",
+                        remarks=payload.remarks or f"Settlement of {len(payload.invoice_ids)} invoices"
+                    ))
+
+                    # Update invoice
+                    inv.paid_amount = (paid_so_far + pending_now).quantize(Decimal("0.01"))
+                    inv.pending_amount = Decimal("0.00")
+                    inv.status = "Paid"
+                    inv.payment_type = "Settlement"
+                    inv.payment_date = timezone.now().date()
+                    invoices_to_update.append(inv)
+
+                    # Update treatment charges
+                    charges = TreatmentCharge.objects.filter(hospital_invoice=inv)
+                    for charge in charges:
+                        charge_amount = Decimal(str(charge.amount or 0)).quantize(Decimal("0.01"))
+                        charge.billed_amount = charge_amount
+                        charge.remaining_amount = Decimal("0.00")
+                        charge.status = "BILLED"
+                        all_charges_to_update.append(charge)
+
+                    # Add row for settlement table
+                    settlement_rows.append({
+                        "invoice_id": inv.invoice_id,
+                        "previously_paid": float(paid_so_far),
+                        "pending_amount": float(pending_now),
+                        "paid_now": float(pending_now),
+                        "remaining": 0.00,
+                        "department": inv.department or "General"
+                    })
+
+                    total_paid_today += pending_now
+
+                if not settlement_rows:
+                    raise HTTPException(status_code=400, detail="No invoices with pending amounts found")
+
+                # -----------------------------
+                # 4. Bulk update invoices
+                # -----------------------------
+                if invoices_to_update:
+                    HospitalInvoiceHistory.objects.bulk_update(
+                        invoices_to_update,
+                        ["paid_amount", "pending_amount", "status", "payment_type", "payment_date"]
+                    )
+
+                # -----------------------------
+                # 5. Bulk create payment records
+                # -----------------------------
+                if settlement_payments:
+                    PartialPaymentHistory.objects.bulk_create(settlement_payments)
+
+                # -----------------------------
+                # 6. Bulk update treatment charges
+                # -----------------------------
+                if all_charges_to_update:
+                    TreatmentCharge.objects.bulk_update(
+                        all_charges_to_update,
+                        ["billed_amount", "remaining_amount", "status"]
+                    )
+
+                # -----------------------------
+                # 7. Create settlement invoice record
+                # -----------------------------
+                today = timezone.now().date()
+                
+                settlement_invoice = HospitalInvoiceHistory.objects.create(
+                    date=today,
+                    patient_name=patient.full_name,
+                    patient_id=patient.patient_unique_id,
+                    department="Billing",
+                    
+                    # All amounts are zero for settlement invoice (just a record)
+                    subtotal=Decimal("0.00"),
+                    total_tax=Decimal("0.00"),
+                    amount=total_paid_today,  # Total amount is the settled amount
+                    
+                    payment_method=payload.payment_method or "Cash",
+                    status="Paid",
+                    payment_type="Settlement Invoice",
+                    
+                    admission_date=patient.admission_date,
+                    discharge_date=patient.discharge_date,
+                    doctor=patient.staff__full_name if hasattr(patient, 'staff__full_name') else "N/A",
+                    
+                    phone=patient.phone_number or "N/A",
+                    email=patient.email_address or "N/A",
+                    address=patient.address or "N/A",
+                    
+                    discount_percent=Decimal("0.00"),
+                    discount_amount=Decimal("0.00"),
+                    tax_net_amount=Decimal("0.00"),
+                    
+                    cgst_percent=Decimal("0.00"),
+                    cgst_amount=Decimal("0.00"),
+                    sgst_percent=Decimal("0.00"),
+                    sgst_amount=Decimal("0.00"),
+                    
+                    transaction_id=f"SET_{timezone.now().strftime('%Y%m%d%H%M%S')}",
+                    payment_date=today,
+                    
+                    paid_amount=total_paid_today,
+                    pending_amount=Decimal("0.00"),
+                    due_date=None,
+                    payment_remarks=payload.remarks or f"Settlement of {len(settlement_rows)} invoices",
+                )
+
+                # -----------------------------
+                # 8. Link settled invoices to this settlement invoice
+                # (Optional: Create a many-to-many relationship if needed)
+                # -----------------------------
+                # You could add a field to track which invoices were settled in this settlement
+                # For now, we'll just store it in remarks or create a separate model
+                
+                # -----------------------------
+                # 9. Create a single line item for the settlement invoice
+                # -----------------------------
+                HospitalInvoiceItem.objects.create(
+                    invoice=settlement_invoice,
+                    s_no=1,
+                    description=f"Settlement of {len(settlement_rows)} pending invoices",
+                    quantity=len(settlement_rows),
+                    unit_price=float(total_paid_today) / len(settlement_rows) if settlement_rows else 0,
+                    amount=total_paid_today,
+                )
+
+                return {
+                    "patient": patient,
+                    "settlement_invoice": settlement_invoice,
+                    "settlement_rows": settlement_rows,
+                    "total_settled": float(total_paid_today),
+                    "invoices_count": len(settlement_rows),
+                    "payment_method": payload.payment_method or "Cash",
+                    "transaction_id": settlement_invoice.transaction_id,
+                    "remarks": settlement_invoice.payment_remarks,
+                    "settlement_number": settlement_invoice.invoice_id,
+                    "settlement_date": today.strftime("%Y-%m-%d")
+                }
+
+        # Execute DB transaction
+        data = await process_settlement()
+        patient = data["patient"]
+        settlement_invoice = data["settlement_invoice"]
+
+         # -----------------------------
+        # 9. Generate amount in words using existing function
+        # -----------------------------
+        amount_in_words = amount_to_words(Decimal(str(data["total_settled"])))
+
+        # -----------------------------
+        # 10. Render settlement template
+        # -----------------------------
+        template = env.get_template("settlement_template.html")
+
+        # Get department from first settled invoice or default
+        department = data["settlement_rows"][0]["department"] if data["settlement_rows"] else "General"
+
+        html_string = template.render(
+            # Header info
+            settlement_number=data["settlement_number"],
+            settlement_date=data["settlement_date"],
+            
+            # Patient info
+            patient_id=patient.patient_unique_id,
+            patient_name=patient.full_name,
+            address=patient.address or "N/A",
+            phone=patient.phone_number or "N/A",
+            email=patient.email_address or "N/A",
+            admission_date=patient.admission_date.strftime("%Y-%m-%d") if patient.admission_date else "N/A",
+            discharge_date=patient.discharge_date.strftime("%Y-%m-%d") if patient.discharge_date else "N/A",
+            doctor=patient.staff__full_name if hasattr(patient, 'staff__full_name') else "N/A",
+            department=department,
+            
+            # Payment info
+            payment_method=data["payment_method"],
+            transaction_id=data["transaction_id"],
+            remarks=data["remarks"],
+            
+            # Settlement data
+            settlement_rows=data["settlement_rows"],
+            total_settled=data["total_settled"],
+            invoices_count=data["invoices_count"],
+
+            amount_in_words=amount_in_words,
+            
+            # Today's date
+            today=timezone.now().date().strftime("%B %d, %Y")
+        )
+
+        # -----------------------------
+        # 11. Generate PDF
+        # -----------------------------
+        pdf_filename = f"{settlement_invoice.invoice_id}.pdf"
+        pdf_path = os.path.join(PDF_OUTPUT_DIR, pdf_filename)
+
+        try:
+            HTML(string=html_string, base_url=APP_DIR).write_pdf(pdf_path)
+        except Exception as pdf_exc:
+            print(f"❌ WeasyPrint failed: {pdf_exc}")
+            raise HTTPException(500, f"PDF generation failed: {str(pdf_exc)}")
+
+        # -----------------------------
+        # 12. Save PDF path to invoice
+        # -----------------------------
+        settlement_invoice.pdf_file = f"invoices_generator/{pdf_filename}"
+        await sync_to_async(settlement_invoice.save)(
+    update_fields=["pdf_file"]
+)
+
+        # -----------------------------
+        # 13. Send notification
+        # -----------------------------
+        asyncio.create_task(
+            NotificationService.send_hospital_bill_generated({
+                "invoice_id": settlement_invoice.invoice_id,
+                "patient_id": patient.patient_unique_id,
+                "patient_name": patient.full_name,
+                "total_paid": float(data["total_settled"]),
+                "invoices_count": data["invoices_count"],
+                "action": "settlement"
+            })
+        )
+
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=pdf_filename,
+            headers={
+                "Content-Disposition": f"inline; filename={pdf_filename}",
+                "X-Invoice-ID": settlement_invoice.invoice_id,
+                "X-Patient-ID": patient.patient_unique_id,
+                "X-Total-Paid": str(data["total_settled"]),
+                "X-Invoices-Count": str(data["invoices_count"]),
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Critical error in settle_invoices: {str(e)}")
+        print(traceback.format_exc())
+        await NotificationService.send_billing_error(
+            str(e),
+            bill_type="Settlement",
+            reference_id=payload.patient_id
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to settle invoices: {str(e)}")

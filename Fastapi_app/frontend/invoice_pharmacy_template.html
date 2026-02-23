@@ -73,7 +73,7 @@ body {
 .page-inner {
     min-height: 100%;
     box-sizing: border-box;
-    padding-bottom: 120px; /* ≈ footer height */
+    padding-bottom: 150px; /* increased to ≈ taller footer height (was 120px) */
     position: relative;
     z-index: 2; /* Content sits above watermark */
 }
@@ -440,46 +440,78 @@ body {
 }
 
 /* UPDATED: Generated Info Box 
-   White background with transparency
+   White background with transparency – will be placed inside footer
 */
 .generated-box {
     width: 86%;
-    margin: 16px auto 0 auto;
+    margin: 0 auto 12px auto; /* top margin 0, bottom margin to separate from green strip */
     border: 1px solid #C9C9C9;
     padding: 9px 12px;
     border-radius: 10px;
     text-align: center;
     font-size: 11.5px;
     font-weight: 600;
-    /* Was #FBFBFB, now White Transparent */
-    /* background: rgba(255, 255, 255, 0.85); */
+    background: rgba(255, 255, 255, 0.85);
     line-height: 1.40;
+    box-sizing: border-box;
 }
 
-/* FOOTER STRIP */
+/* ================================
+   FOOTER STRIP — TALLER & CONTAINS GENERATED BOX
+   ================================ */
 .footer-strip {
     width: 100%;
-    height: 70px;
+    /* height increased from 70px to 130px to accommodate the generated box */
+    height: 110px;
     background: var(--green);
     color: white;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* push the three service items to the bottom */
+    padding-bottom: 10px;
+    box-sizing: border-box;
+}
+
+/* Container for the three footer items */
+.footer-services {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     text-align: center;
     align-items: center;
     font-size: 13.5px;
     font-weight: 700;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    z-index: 10;
+    width: 100%;
 }
 
-.footer-strip div {
+.footer-services div {
     border-right: 1px solid rgba(255,255,255,0.45);
+    padding: 4px 0;
 }
-.footer-strip div:last-child {
+.footer-services div:last-child {
     border-right: none;
 }
+
+/* Generated box sits inside footer strip, above the service grid */
+.footer-generated-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px; /* space before service items */
+}
+
+/* Ensure generated box inside footer has the same white design */
+.footer-generated-wrapper .generated-box {
+    width: 86%;
+    margin: 0 auto; /* override any previous margin */
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #C9C9C9;
+    color: #000; /* text color black for readability */
+}
+
 @media print {
     .header-left-title {
         line-height: 1.25;
@@ -668,19 +700,25 @@ body {
             </div>
         </div>
 
-        <div class="generated-box">
-            Generated on {{ invoice.bill_date.strftime("%d-%b-%Y") }} — Stacklycare Hospital<br>
-            Thank you for choosing Stacklycare. Wishing you a speedy recovery.
-        </div>
-
+        <!-- NO generated box here; will be inside footer -->
     {% endif %}
 
-  </div> {# FOOTER ONLY IF SINGLE-PAGE INVOICE #}
+  </div> {# end page-inner #}
+
+  {# FOOTER for single-page invoice: contains generated box + green strip #}
   {% if total_items <= first_page_size %}
   <div class="footer-strip">
-      <div>Online consultation 24/7</div>
-      <div>Laboratories</div>
-      <div>Delivery of medicines</div>
+      <div class="footer-generated-wrapper">
+          <div class="generated-box">
+              Generated on {{ invoice.bill_date.strftime("%d-%b-%Y") }} — Stacklycare Hospital<br>
+              Thank you for choosing Stacklycare. Wishing you a speedy recovery.
+          </div>
+      </div>
+      <div class="footer-services">
+          <div>Online consultation 24/7</div>
+          <div>Laboratories</div>
+          <div>Delivery of medicines</div>
+      </div>
   </div>
   {% endif %}
 
@@ -776,19 +814,25 @@ body {
             </div>
         </div>
 
-        <div class="generated-box">
-            Generated on {{ invoice.bill_date.strftime("%d-%b-%Y") }} — Stacklycare Hospital<br>
-            Thank you for choosing Stacklycare. Wishing you a speedy recovery.
-        </div>
-
+        <!-- No generated box here; will be inside footer for last page -->
     {% endif %}
 
-  </div> {# FOOTER ONLY ON LAST OVERALL PAGE (multi-page case) #}
+  </div> {# end page-inner #}
+
+  {# FOOTER ONLY ON LAST OVERALL PAGE (multi-page case) #}
   {% if page_no == remaining_pages - 1 %}
   <div class="footer-strip">
-      <div>Online consultation 24/7</div>
-      <div>Laboratories</div>
-      <div>Delivery of medicines</div>
+      <div class="footer-generated-wrapper">
+          <div class="generated-box">
+              Generated on {{ invoice.bill_date.strftime("%d-%b-%Y") }} — Stacklycare Hospital<br>
+              Thank you for choosing Stacklycare. Wishing you a speedy recovery.
+          </div>
+      </div>
+      <div class="footer-services">
+          <div>Online consultation 24/7</div>
+          <div>Laboratories</div>
+          <div>Delivery of medicines</div>
+      </div>
   </div>
   {% endif %}
 

@@ -1568,7 +1568,7 @@ const Bill = () => {
 
   // ============== VALIDATION FUNCTIONS ==============
   const validateTaxPercentage = useCallback((value) => {
-    if (!value || value === "") return "Tax percentage is required";
+    if (!value || value === "") return ""; // Allow empty values for editing
 
     const cleanValue = value.toString().replace("%", "");
     const taxNum = parseFloat(cleanValue);
@@ -1597,7 +1597,7 @@ const Bill = () => {
   }, []);
 
   const validateDiscount = useCallback((value) => {
-    if (!value) return "";
+    if (!value) return ""; // Allow empty values for editing
     const cleanValue = value.toString().replace("%", "");
     const discNum = parseFloat(cleanValue);
     if (isNaN(discNum)) {
@@ -1949,7 +1949,7 @@ const Bill = () => {
       shelfNo: "",
       quantity: "",
       unitPrice: "",
-      discount: "0%",
+      discount: "",
       tax: "10%",
       total: "0.00",
       doctorName: "",
@@ -1967,38 +1967,47 @@ const Bill = () => {
 
       // Validation based on field
       if (field === "quantity") {
-        const error = validateQuantity(value);
-        if (error) {
-          errorToast(error);
-          return;
-        }
+        if (value === "") {
+          // Allow empty
+        } else {
+          const error = validateQuantity(value);
+          if (error) {
+            errorToast(error);
+            return;
+          }
 
-        // Check stock
-        const qty = parseFloat(value);
-        const currentItem = billingItems[index];
-        const stock = stockData[currentItem?.itemCode];
+          // Check stock
+          const qty = parseFloat(value);
+          const currentItem = billingItems[index];
+          const stock = stockData[currentItem?.itemCode];
 
-        if (stock && qty > stock.quantity) {
-          errorToast(
-            `⚠️ Insufficient stock! Requested: ${qty}, Available: ${stock.quantity}`,
-          );
-          return;
+          if (stock && qty > stock.quantity) {
+            errorToast(
+              `⚠️ Insufficient stock! Requested: ${qty}, Available: ${stock.quantity}`,
+            );
+            return;
+          }
         }
       }
 
+      // For discount and tax - allow empty values and don't auto-add % symbol
       if (field === "discount") {
-        const error = validateDiscount(value);
-        if (error) {
-          errorToast(error);
-          return;
+        if (value && value !== "") {
+          const error = validateDiscount(value);
+          if (error) {
+            errorToast(error);
+            return;
+          }
         }
       }
 
       if (field === "tax") {
-        const error = validateTaxPercentage(value);
-        if (error) {
-          errorToast(error);
-          return;
+        if (value && value !== "") {
+          const error = validateTaxPercentage(value);
+          if (error) {
+            errorToast(error);
+            return;
+          }
         }
       }
 
@@ -2034,19 +2043,7 @@ const Bill = () => {
           item[field] = value;
         }
 
-        if ((field === "discount" || field === "tax") && value) {
-          const regex = /^(\d+(\.\d+)?%?|%?)$/;
-          if (!regex.test(value)) {
-            errorToast(
-              `${field === "discount" ? "Discount" : "Tax"} must be a number with optional %`,
-            );
-            return prev;
-          }
-          if (!value.includes("%") && value !== "") {
-            item[field] = value + "%";
-          }
-        }
-
+        // Don't auto-add % symbol - let users type what they want
         updated[index] = calculateItemTotal(item);
         return updated;
       });
@@ -2161,168 +2158,223 @@ const Bill = () => {
   }, [billingItems]);
 
   // ============== BILL GENERATION ==============
-  const generateBill = useCallback(async () => {
-    if (!selectedPatientId || !fullPatient) {
-      errorToast("Please select a patient first.");
+ const generateBill = useCallback(async () => {
+  if (!selectedPatientId || !fullPatient) {
+    errorToast("Please select a patient first.");
+    return;
+  }
+
+  // Check for duplicate item codes
+  const itemCodes = billingItems
+    .map((item) => item.itemCode)
+    .filter((code) => code.trim() !== "");
+  const uniqueCodes = new Set(itemCodes);
+  if (itemCodes.length !== uniqueCodes.size) {
+    errorToast(
+      "Duplicate item codes found. Please remove duplicates before generating bill.",
+    );
+    return;
+  }
+
+  // Check for invalid tax percentages (only if value exists)
+  const invalidTaxItems = billingItems.filter((item) => {
+    if (!item.tax || item.tax === "") return false;
+    const taxVal = parseFloat(item.tax);
+    return isNaN(taxVal) || taxVal < 1 || taxVal > 100;
+  });
+
+  if (invalidTaxItems.length > 0) {
+    errorToast(
+      `⚠️ Invalid tax percentage found. Tax must be between 1% and 100%`,
+    );
+    return;
+  }
+
+  // Check for zero quantity
+  if (billingItems.some((item) => (parseInt(item.quantity) || 0) <= 0)) {
+    errorToast("All items must have quantity greater than 0");
+    return;
+  }
+
+  // Check if all items have valid item codes
+  const itemsWithoutCode = billingItems.filter(
+    (item) => !item.itemCode || item.itemCode.trim() === ""
+  );
+  
+  if (itemsWithoutCode.length > 0) {
+    errorToast("All items must have a valid item code");
+    return;
+  }
+
+  // ============== FIXED STOCK CHECK SECTION ==============
+  const stockIssues = [];
+  const itemsNeedingStockCheck = [];
+
+  billingItems.forEach((item) => {
+    const itemCode = item.itemCode?.trim();
+    if (!itemCode) {
+      stockIssues.push(`${item.name || 'Item'}: No item code provided`);
       return;
     }
 
-    // Check for duplicate item codes
-    const itemCodes = billingItems
-      .map((item) => item.itemCode)
-      .filter((code) => code.trim() !== "");
-    const uniqueCodes = new Set(itemCodes);
-    if (itemCodes.length !== uniqueCodes.size) {
-      errorToast(
-        "Duplicate item codes found. Please remove duplicates before generating bill.",
+    const stock = stockData[itemCode];
+    const requestedQty = parseInt(item.quantity) || 0;
+
+    if (!stock) {
+      // Stock data not available in local cache
+      itemsNeedingStockCheck.push({
+        itemCode,
+        name: item.name || itemCode,
+        requestedQty
+      });
+    } else if (stock.quantity === 0 || stock.status === "outofstock") {
+      stockIssues.push(`${item.name || itemCode}: OUT OF STOCK`);
+    } else if (requestedQty > stock.quantity) {
+      stockIssues.push(
+        `${item.name || itemCode}: Need ${requestedQty}, Available ${stock.quantity}`
       );
-      return;
     }
+  });
 
-    // Check for invalid tax percentages
-    const invalidTaxItems = billingItems.filter((item) => {
-      const taxVal = parseFloat(item.tax);
-      return isNaN(taxVal) || taxVal < 1 || taxVal > 100;
-    });
-
-    if (invalidTaxItems.length > 0) {
-      errorToast(
-        `⚠️ Invalid tax percentage found. Tax must be between 1% and 100%`,
-      );
-      return;
-    }
-
-    // Check for zero quantity
-    if (billingItems.some((item) => (parseInt(item.quantity) || 0) <= 0)) {
-      errorToast("All items must have quantity greater than 0");
-      return;
-    }
-
-    const allocationIds = billingItems
-      .map((item) => item.allocation_id)
-      .filter((id) => id !== null);
-
-    const itemsToSend = billingItems.map((item, index) => {
-      const itemTaxPct = parseFloat(item.tax?.replace("%", "")) || 10;
-
-      return {
-        sl_no: index + 1,
-        item_code: item.itemCode || "N/A",
-        drug_name: item.name || "",
-        rack_no: item.rackNo || "",
-        shelf_no: item.shelfNo || "",
-        quantity: parseInt(item.quantity) || 0,
-        unit_price: parseFloat(item.unitPrice) || 0,
-        discount_pct: parseFloat(item.discount?.replace("%", "")) || 0,
-        tax_pct: itemTaxPct,
-        allocation_id: item.allocation_id || null,
-      };
-    });
-
-    const totals = calculateTotals();
-    const halfTax = parseFloat(totals.avgTaxPercent) / 2;
-
-    const invoiceData = {
-      patient_name: patientInfo.patientName,
-      patient_id: patientInfo.patientID,
-      age: parseInt(fullPatient?.age) || 0,
-      doctor_name:
-        patientInfo.doctorName || billingItems[0]?.doctorName || "N/A",
-      billing_staff: staffInfo.staffName,
-      staff_id: staffInfo.staffID,
-      patient_type: "Outpatient",
-      address_text: fullPatient?.address || "",
-      payment_type: patientInfo.paymentType,
-      payment_status: patientInfo.paymentStatus,
-      payment_mode: patientInfo.paymentMode,
-      bill_date: new Date().toISOString().split("T")[0],
-      discount_amount: parseFloat(totals.discountAmt) || 0,
-      cgst_percent: halfTax, // ✅ Now uses calculated value
-      sgst_percent: halfTax, // ✅ Now uses calculated value
-      items: itemsToSend,
-      allocation_ids: allocationIds,
-    };
-
+  // If there are items without stock data, try to fetch them one by one
+  if (itemsNeedingStockCheck.length > 0) {
     setGeneratingBill(true);
-    try {
-      // Pre-validate stock before API call
-      const stockIssues = [];
-      billingItems.forEach((item) => {
-        const stock = stockData[item.itemCode];
-        const requestedQty = parseInt(item.quantity) || 0;
-
-        if (!stock) {
-          stockIssues.push(
-            `${item.name || item.itemCode}: Stock data not available`,
-          );
-        } else if (stock.quantity === 0 || stock.status === "outofstock") {
-          stockIssues.push(`${item.name || item.itemCode}: OUT OF STOCK`);
-        } else if (requestedQty > stock.quantity) {
-          stockIssues.push(
-            `${item.name || item.itemCode}: Need ${requestedQty}, Available ${stock.quantity}`,
-          );
+    
+    for (const item of itemsNeedingStockCheck) {
+      try {
+        const details = await fetchMedicineDetails(item.itemCode);
+        if (!details) {
+          stockIssues.push(`${item.name}: Could not fetch stock data`);
+          continue;
         }
-      });
-
-      if (stockIssues.length > 0) {
-        errorToast(`⚠️ Stock Issues:\n${stockIssues.join("\n")}`);
-        setGeneratingBill(false);
-        return;
+        
+        // Check stock from the fetched details
+        const stock = stockData[item.itemCode];
+        if (stock) {
+          if (stock.quantity === 0 || stock.status === "outofstock") {
+            stockIssues.push(`${item.name}: OUT OF STOCK`);
+          } else if (item.requestedQty > stock.quantity) {
+            stockIssues.push(
+              `${item.name}: Need ${item.requestedQty}, Available ${stock.quantity}`
+            );
+          }
+        } else {
+          stockIssues.push(`${item.name}: Stock data not available`);
+        }
+      } catch (error) {
+        stockIssues.push(`${item.name}: Error checking stock`);
       }
-
-      const stockCheckResponse = await api.get(
-        `/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
-        {
-          params: {
-            date_from: dateFrom || undefined,
-            date_to: dateTo || undefined,
-          },
-        },
-      );
-
-      if (!stockCheckResponse.data.all_medicines_available) {
-        const unavailable = stockCheckResponse.data.stock_check.filter(
-          (i) => !i.sufficient_stock,
-        );
-        const msg = unavailable
-          .map(
-            (i) =>
-              `${i.medicine_name}: Need ${i.quantity_needed}, Available ${i.quantity_available}`,
-          )
-          .join("\n");
-        errorToast(`⚠️ Insufficient stock:\n${msg}`);
-        setGeneratingBill(false);
-        return;
-      }
-
-      const response = await api.post("/pharmacy/create-invoice", invoiceData, {
-        responseType: "blob",
-      });
-
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      window.open(url, "_blank");
-
-      successToast("Bill generated successfully! Stock quantities updated.");
-      handleCancel();
-    } catch (err) {
-      console.error("Error generating bill:", err);
-      errorToast("Failed to generate bill. Please try again.");
-    } finally {
-      setGeneratingBill(false);
     }
-  }, [
-    selectedPatientId,
-    fullPatient,
-    billingItems,
-    patientInfo,
-    staffInfo,
-    dateFrom,
-    dateTo,
-    stockData,
-    calculateTotals,
-    handleCancel,
-  ]);
+  }
+
+  if (stockIssues.length > 0) {
+    errorToast(`⚠️ Stock Issues:\n${stockIssues.join("\n")}`);
+    setGeneratingBill(false);
+    return;
+  }
+
+  const allocationIds = billingItems
+    .map((item) => item.allocation_id)
+    .filter((id) => id !== null);
+
+  const itemsToSend = billingItems.map((item, index) => {
+    const itemTaxPct = parseFloat(item.tax?.replace("%", "")) || 10;
+    
+    return {
+      sl_no: index + 1,
+      item_code: item.itemCode || "N/A",
+      drug_name: item.name || "",
+      rack_no: item.rackNo || "",
+      shelf_no: item.shelfNo || "",
+      quantity: parseInt(item.quantity) || 0,
+      unit_price: parseFloat(item.unitPrice) || 0,
+      discount_pct: parseFloat(item.discount?.replace("%", "")) || 0,
+      tax_pct: itemTaxPct,
+      allocation_id: item.allocation_id || null,
+    };
+  });
+
+  const totals = calculateTotals();
+  const halfTax = parseFloat(totals.avgTaxPercent) / 2;
+
+  const invoiceData = {
+    patient_name: patientInfo.patientName,
+    patient_id: patientInfo.patientID,
+    age: parseInt(fullPatient?.age) || 0,
+    doctor_name:
+      patientInfo.doctorName || billingItems[0]?.doctorName || "N/A",
+    billing_staff: staffInfo.staffName,
+    staff_id: staffInfo.staffID,
+    patient_type: "Outpatient",
+    address_text: fullPatient?.address || "",
+    payment_type: patientInfo.paymentType,
+    payment_status: patientInfo.paymentStatus,
+    payment_mode: patientInfo.paymentMode,
+    bill_date: new Date().toISOString().split("T")[0],
+    discount_amount: parseFloat(totals.discountAmt) || 0,
+    cgst_percent: halfTax,
+    sgst_percent: halfTax,
+    items: itemsToSend,
+    allocation_ids: allocationIds,
+  };
+
+  try {
+    // First check stock availability via API
+    const stockCheckResponse = await api.get(
+      `/pharmacy-billing/check-stock-availability/${selectedPatientId}/`,
+      {
+        params: {
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+        },
+      },
+    );
+
+    if (!stockCheckResponse.data.all_medicines_available) {
+      const unavailable = stockCheckResponse.data.stock_check.filter(
+        (i) => !i.sufficient_stock,
+      );
+      const msg = unavailable
+        .map(
+          (i) =>
+            `${i.medicine_name}: Need ${i.quantity_needed}, Available ${i.quantity_available}`,
+        )
+        .join("\n");
+      errorToast(`⚠️ Insufficient stock:\n${msg}`);
+      setGeneratingBill(false);
+      return;
+    }
+
+    // Generate the bill
+    const response = await api.post("/pharmacy/create-invoice", invoiceData, {
+      responseType: "blob",
+    });
+
+    const blob = new Blob([response.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    window.open(url, "_blank");
+
+    successToast("Bill generated successfully! Stock quantities updated.");
+    handleCancel();
+  } catch (err) {
+    console.error("Error generating bill:", err);
+    errorToast("Failed to generate bill. Please try again.");
+  } finally {
+    setGeneratingBill(false);
+  }
+}, [
+  selectedPatientId,
+  fullPatient,
+  billingItems,
+  patientInfo,
+  staffInfo,
+  dateFrom,
+  dateTo,
+  stockData,
+  fetchMedicineDetails,
+  calculateTotals,
+  handleCancel,
+]);
 
   const totals = calculateTotals();
   const mainDoctor = billingItems.length > 0 ? billingItems[0]?.doctorName : "";
@@ -2396,7 +2448,7 @@ const Bill = () => {
                   if (patient) handlePatientSelect(patient);
                 }}
               >
-                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
+                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative truncate">
                   {patientInfo.patientName || "Select Name"}
                   <svg
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2438,7 +2490,7 @@ const Bill = () => {
                   if (patient) handlePatientSelect(patient);
                 }}
               >
-                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative">
+                <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white px-3 pr-8 text-sm font-[Helvetica] text-left relative truncate">
                   {patientInfo.patientID || "Select ID"}
                   <svg
                     className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
@@ -2646,7 +2698,9 @@ const Bill = () => {
                   onChange={handleDoctorChange}
                 >
                   <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
-                    {patientInfo.doctorName || mainDoctor || "Select Doctor"}
+                    <span className="block truncate">
+                      {patientInfo.doctorName || mainDoctor || "Select Doctor"}
+                    </span>
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -2695,7 +2749,7 @@ const Bill = () => {
                   onChange={(value) => handleInputChange(value, "paymentMode")}
                 >
                   <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
-                    {patientInfo.paymentMode}
+                    <span className="block truncate">{patientInfo.paymentMode}</span>
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -2733,7 +2787,7 @@ const Bill = () => {
                   onChange={(value) => handleInputChange(value, "paymentType")}
                 >
                   <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
-                    {patientInfo.paymentType || "Full Payment"}
+                    <span className="block truncate">{patientInfo.paymentType || "Full Payment"}</span>
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -2773,7 +2827,7 @@ const Bill = () => {
                   }
                 >
                   <Listbox.Button className="w-full h-[33.5px] rounded-[8.38px] border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C] bg-[#F5F6F5] dark:bg-black text-[#08994A] dark:text-white shadow-[0_0_2.09px_#0EFF7B] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B] transition-all duration-300 px-3 pr-8 font-[Helvetica] text-sm text-left relative">
-                    {patientInfo.paymentStatus || "Paid"}
+                    <span className="block truncate">{patientInfo.paymentStatus || "Paid"}</span>
                     <svg
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
                       xmlns="http://www.w3.org/2000/svg"
@@ -2846,7 +2900,7 @@ const Bill = () => {
                     key={item.id}
                     className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]"
                   >
-                    <td className="p-2">
+                    <td className="p-3">
                       <input
                         type="text"
                         value={item.sNo}
@@ -2918,9 +2972,9 @@ const Bill = () => {
                     </td>
                     <td className="p-2">
                       <input
-                        type="text"
+                        type="number"
                         value={item.frequency}
-                        readOnly
+                        // readOnly={item.isFromAPI}
                         className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
                         style={{
                           border: "2px solid #0EFF7B1A",
@@ -3013,8 +3067,8 @@ const Bill = () => {
                           handleBillingChange(i, "discount", e.target.value)
                         }
                         className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
-                          parseFloat(item.discount) > 100 ||
-                          parseFloat(item.discount) < 0
+                          item.discount && (parseFloat(item.discount) > 100 ||
+                          parseFloat(item.discount) < 0)
                             ? "border-red-500 dark:border-red-500"
                             : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
                         }`}
@@ -3022,7 +3076,7 @@ const Bill = () => {
                           border: "2px solid",
                           boxShadow: "0px 0px 2px 0px #0EFF7B",
                         }}
-                        placeholder="0%"
+                        placeholder="0"
                       />
                     </td>
                     <td className="p-2">
@@ -3034,8 +3088,8 @@ const Bill = () => {
                             handleBillingChange(i, "tax", e.target.value)
                           }
                           className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
-                            parseFloat(item.tax) > 100 ||
-                            parseFloat(item.tax) < 1
+                            item.tax && (parseFloat(item.tax) > 100 ||
+                            parseFloat(item.tax) < 1)
                               ? "border-red-500 dark:border-red-500"
                               : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
                           }`}
@@ -3043,9 +3097,9 @@ const Bill = () => {
                             border: "2px solid",
                             boxShadow: "0px 0px 2px 0px #0EFF7B",
                           }}
-                          placeholder="10%"
+                          placeholder="10"
                         />
-                        {(parseFloat(item.tax) > 100 ||
+                        {item.tax && (parseFloat(item.tax) > 100 ||
                           parseFloat(item.tax) < 1) && (
                           <span className="absolute -bottom-4 left-0 text-[10px] text-red-500 whitespace-nowrap">
                             Must be 1-100%
@@ -3135,19 +3189,6 @@ const Bill = () => {
             </button>
             <button
               onClick={generateBill}
-              disabled={
-                generatingBill ||
-                billingItems.length === 0 ||
-                duplicateError ||
-                billingItems.some(
-                  (item) =>
-                    parseFloat(item.tax) > 100 ||
-                    parseFloat(item.tax) < 1 ||
-                    parseFloat(item.discount) > 100 ||
-                    parseFloat(item.discount) < 0 ||
-                    (parseInt(item.quantity) || 0) <= 0,
-                )
-              }
               className="flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {generatingBill ? "Generating..." : "Generate Bill"}
