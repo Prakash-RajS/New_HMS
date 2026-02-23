@@ -1552,9 +1552,9 @@ const Bill = () => {
 
   const paymentTypes = [
     "Full Payment",
-    "Partial Payment",
-    "Insurance",
-    "Credit",
+    // "Partial Payment",
+    // "Insurance",
+    // "Credit",s
   ];
   const paymentStatuses = ["Paid", "Pending", "Overdue", "Refunded"];
   const paymentModes = [

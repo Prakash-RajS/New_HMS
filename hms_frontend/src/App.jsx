@@ -323,7 +323,7 @@ function AppContent({ contentRef }) {
                   </ProtectedRoute>
                 }
               />
-              {/* <Route
+              <Route
                 path="/patients/treatment-charges"
                 element={
                   <ProtectedRoute>
@@ -332,17 +332,8 @@ function AppContent({ contentRef }) {
                     </PermissionGate>
                   </ProtectedRoute>
                 }
-              /> */}
-              <Route
-                path="/patients/charges-management"
-                element={
-                  <ProtectedRoute>
-                    <PermissionGate moduleKey="charges-management">
-                      <ChargesManagement />
-                    </PermissionGate>
-                  </ProtectedRoute>
-                }
               />
+             
               <Route
                 path="/patients/surgeries"
                 element={
@@ -534,11 +525,21 @@ function AppContent({ contentRef }) {
 
               {/* Billing */}
               <Route
-                path="/Billing"
+                path="/billing-page"
                 element={
                   <ProtectedRoute>
                     <PermissionGate moduleKey="billing">
                       <Billing />
+                    </PermissionGate>
+                  </ProtectedRoute>
+                }
+              />
+               <Route
+                path="/billing/charges-management"
+                element={
+                  <ProtectedRoute>
+                    <PermissionGate moduleKey="charges-management">
+                      <ChargesManagement />
                     </PermissionGate>
                   </ProtectedRoute>
                 }

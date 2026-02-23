@@ -331,7 +331,7 @@ async def update_labreport(
     patient_id: Optional[str] = Form(None),
     department: Optional[str] = Form(None),
     test_type: Optional[str] = Form(None),
-    status_param: Optional[str] = Form(None),  # Renamed to avoid conflict
+    status: Optional[str] = Form(None),  # Renamed to avoid conflict
     lab_report_file: Optional[UploadFile] = File(None),
 ):
     try:
@@ -412,8 +412,8 @@ async def update_labreport(
     # === END CHECK ===
 
     # Use status_param instead of status to avoid conflict
-    if status_param:
-        lab.status = status_param.lower().strip()
+    if status:
+        lab.status = status.lower().strip()
 
     # Handle file upload only when status becomes "completed"
     if lab_report_file and lab.status == "completed":

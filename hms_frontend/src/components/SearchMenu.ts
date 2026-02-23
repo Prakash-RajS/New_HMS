@@ -216,6 +216,7 @@ import {
   ShieldCheck,
   Calendar,
   Stethoscope,
+  BadgeDollarSign,
 } from "lucide-react";
 
 // This is now just the raw menu structure – search logic moved to Header
@@ -247,10 +248,10 @@ export const menuItems = [
         icon: ClipboardList,
       },
        {
-        name: "Treatment Charges",
-        path: "/patients/treatment-charges",
-        icon: DollarSign,
-        permission: "treatment_charges",
+        name: "Charges Management",
+        path: "/billing/charges-management",
+        icon: BadgeDollarSign,
+        permission: "charges_management",
       },
       {
               name: "Surgeries",

@@ -23,11 +23,12 @@ const modules = [
   { key: "patients_edit", label: "Edit Patients" },
   { key: "patients_profile", label: "Patient Profile" },
   { key: "treatment_charges", label: "Treatment Charges" },  // ADD THIS
+  { key: "charges_management", label: "Charges Management" },  // ADD THIS
   { key: "surgeries", label: "Surgeries" },  // ADD THIS
   { key: "departments", label: "Manage Departments" },
   { key: "room_management", label: "Room Management" },
   { key: "bed_management", label: "Bed Management" },
-  { key: "staff_management", label: "Staff Management" },
+  //{ key: "staff_management", label: "Staff Management" },
   { key: "pharmacy_inventory", label: "Pharmacy Inventory" },
   { key: "pharmacy_billing", label: "Pharmacy Billing" },
   { key: "doctors_manage", label: "Manage Doctors/Nurses" },

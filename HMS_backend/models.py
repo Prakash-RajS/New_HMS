@@ -917,6 +917,7 @@ class Permission(models.Model):
         ("patients_edit", "Edit Patients"),
         ("patients_profile", "Patient Profile"),
         ("treatment_charges", "Treatment Charges"),  # ADD THIS
+        ("charges_management", "Charges Management"),  # ADD THIS
         ("surgeries", "Surgeries"),  # ADD THIS
 
         # Administration
@@ -974,14 +975,14 @@ class Permission(models.Model):
             "doctor": [
                 "dashboard", "appointments", "patients_view", "patients_edit", 
                 "patients_profile", "medicine_allocation", "lab_reports",
-                "treatment_charges", "surgeries"  # ADD THESE
+         "surgeries", "charges_management"  # ADD THESE
             ],
             "nurse": [
                 "dashboard", "patients_view", "patients_profile", "medicine_allocation", 
                 "bed_management"
             ],
             "billing": [
-                "dashboard", "billing", "pharmacy_billing", "treatment_charges"  # ADD treatment_charges
+                "dashboard", "billing", "pharmacy_billing", "charges_management"  # ADD charges_management
             ],
             "admin": [choice[0] for choice in cls.MODULE_CHOICES]  # All permissions
         }

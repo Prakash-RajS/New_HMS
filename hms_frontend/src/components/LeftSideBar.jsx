@@ -1280,6 +1280,8 @@ import {
   ChevronDown,
   Settings,
   Stethoscope,
+  BadgeDollarSign,
+  FileText,
 } from "lucide-react";
 import { usePermissions } from "./PermissionContext";
 import { useHospital } from "./HospitalContext";
@@ -1323,12 +1325,13 @@ const menuItems = [
         icon: ClipboardList,
         permission: "patients_profile",
       },
-      {
-        name: "Charges Management",
-        path: "/patients/charges-management",
+       {
+        name: "Treatment Charges",
+        path: "/patients/treatment-charges",
         icon: DollarSign,
-        permission: "charges_management",
+        permission: "treatment_charges",
       },
+      
       {
         name: "Surgeries",
         path: "/patients/surgeries",
@@ -1417,7 +1420,7 @@ const menuItems = [
   },
   {
     name: "Clinical Resources",
-    path: "/clinical-resources",
+    path: "/ClinicalResources",
     icon: Microscope,
     dropdown: [
       {
@@ -1447,10 +1450,24 @@ const menuItems = [
     ],
   },
   {
-    name: "Billing",
+    name: "Billing Management",
     path: "/billing",
     icon: DollarSign,
-    permission: "billing",
+    dropdown: [
+      {
+        name: "Billing",
+        path: "/billing-page",
+        icon: FileText,
+        permission: "billing",
+      },
+      {
+        name: "Charges Management",
+        path: "/billing/charges-management",
+        icon: BadgeDollarSign,
+        permission: "charges_management",
+      },
+      ],
+    
   },
   {
     name: "Settings",

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import {
   Upload,
   Building,
@@ -11,7 +11,6 @@ import {
   Calendar,
   Tag,
   FileDigit,
-  Trash2,
 } from "lucide-react";
 import api, { uploadFile } from "../../utils/axiosConfig.js";
 import { useHospital } from "../../components/HospitalContext.jsx";
@@ -19,13 +18,24 @@ import { useUser } from "../../contexts/UserContext";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import { getMediaUrl } from "../../utils/axiosConfig";
 
-export default function HospitalInfo({ data, onUpdate }) {
+// Use forwardRef to expose methods to parent
+const HospitalInfo = forwardRef(({ data, onUpdate, onFormChange, isDirty }, ref) => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [removingLogo, setRemovingLogo] = useState(false);
   const [errors, setErrors] = useState({});
   const [userRole, setUserRole] = useState(null);
+  const [touchedFields, setTouchedFields] = useState({});
   const { updateLogo } = useHospital();
   const { userData, fetchUserData } = useUser();
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    isFormValid: () => {
+      return checkFormValidity();
+    },
+    getErrors: () => {
+      return errors;
+    }
+  }));
 
   // Fetch user role from API to ensure we have the latest
   useEffect(() => {
@@ -33,7 +43,6 @@ export default function HospitalInfo({ data, onUpdate }) {
       try {
         const response = await api.get("/profile/me/");
         console.log("User data from API:", response.data);
-        // Based on your backend, role and is_superuser are at the root level
         setUserRole({
           role: response.data.role,
           is_superuser: response.data.is_superuser
@@ -48,57 +57,146 @@ export default function HospitalInfo({ data, onUpdate }) {
 
   // Check if user is admin based on your backend response
   const isAdmin = userRole?.role === "admin" || userRole?.is_superuser === true;
-  
-  console.log("User role from API:", userRole);
-  console.log("Is admin:", isAdmin);
+
+  // Phone number validation - checks for valid Indian mobile numbers
+  const isValidPhoneNumber = (phone) => {
+    if (!phone) return false;
+    
+    // Check if it's exactly 10 digits
+    if (!/^\d{10}$/.test(phone)) return false;
+    
+    // Check for all same digits (1111111111, 2222222222, etc.)
+    if (/^(\d)\1{9}$/.test(phone)) return false;
+    
+    // Check for sequential numbers (1234567890, 9876543210)
+    const sequential = [
+      "1234567890", "0123456789", "9876543210", "0987654321",
+      "1111111111", "2222222222", "3333333333", "4444444444",
+      "5555555555", "6666666666", "7777777777", "8888888888",
+      "9999999999", "0000000000"
+    ];
+    if (sequential.includes(phone)) return false;
+    
+    // Indian mobile numbers start with 6,7,8,9
+    if (![6, 7, 8, 9].includes(parseInt(phone[0]))) return false;
+    
+    return true;
+  };
+
+  // GSTIN validation - comprehensive validation with checksum
+  const gstinChars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+  const getCodeValue = (char) => gstinChars.indexOf(char);
+
+  const calculateGSTINChecksum = (gstin) => {
+    let sum = 0;
+    for (let i = 0; i < 14; i++) {
+      const code = getCodeValue(gstin[i]);
+      if (code === -1) return null;
+      const multiplier = (i % 2 === 0) ? 1 : 2;
+      const product = code * multiplier;
+      sum += Math.floor(product / 36) + (product % 36);
+    }
+    const checksum = (36 - (sum % 36)) % 36;
+    return gstinChars[checksum];
+  };
+
+  // GSTIN validation - practical validation (without checksum)
+const isValidGSTIN = (gstin) => {
+  if (!gstin) return true; // Optional field
+
+  gstin = gstin.toUpperCase();
+
+  if (gstin.length !== 15) return false;
+
+  // Basic GSTIN format
+  const gstRegex =
+    /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+
+  if (!gstRegex.test(gstin)) return false;
+
+  // Validate state code (01–38)
+  const stateCode = parseInt(gstin.substring(0, 2));
+  if (stateCode < 1 || stateCode > 38) return false;
+
+  // Validate PAN part (positions 3–12)
+  const pan = gstin.substring(2, 12);
+  const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+  if (!panRegex.test(pan)) return false;
+
+  return true;
+};
+
+  // Strict email validation
+  const isValidEmail = (email) => {
+    if (!email) return false;
+    
+    // More strict email regex that catches common invalid patterns
+    const emailRegex = /^[a-zA-Z0-9](?!.*\.\.)[a-zA-Z0-9._%+-]*[a-zA-Z0-9]@[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+    
+    // Check for common invalid domains
+    const invalidDomains = ['gail.com', 'gnail.com', 'yaho.com', 'hotmial.com', 'outllok.com', 'gail.om'];
+    const domain = email.split('@')[1]?.toLowerCase();
+    
+    if (!emailRegex.test(email)) return false;
+    if (invalidDomains.includes(domain)) return false;
+    
+    // Check for valid TLD (should be at least 2 characters and only letters)
+    const tld = domain?.split('.').pop();
+    if (!tld || tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false;
+    
+    // No spaces allowed
+    if (/\s/.test(email)) return false;
+    
+    return true;
+  };
 
   const validateField = (field, value) => {
     let error = "";
     
     switch (field) {
       case "gstin":
-        // GSTIN validation: 15 characters (2 digits + 5 letters + 4 digits + 1 letter + 1 digit + 1 letter + 1 digit)
-        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-        if (value && !gstRegex.test(value)) {
-          error = "Invalid GSTIN format. Should be 15 characters (e.g., 22AAAAA0000A1Z5)";
+        if (value && !isValidGSTIN(value)) {
+          error = "Invalid GSTIN format. Should be 15 characters (e.g., 27AAPFU0939F1Z5)";
         }
         break;
         
       case "phone":
-        // Phone number validation: exactly 10 digits
-        const phoneRegex = /^[0-9]{10}$/;
-        if (value && !phoneRegex.test(value)) {
-          error = "Phone number must be exactly 10 digits";
+        if (!value || !value.trim()) {
+          error = "Phone number is required";
+        } else if (!isValidPhoneNumber(value)) {
+          error = "Please enter a valid 10-digit mobile number starting with 6,7,8, or 9";
         }
         break;
         
       case "emergency_contact":
-        // Emergency contact validation: exactly 10 digits
-        const emergencyRegex = /^[0-9]{10}$/;
-        if (value && !emergencyRegex.test(value)) {
-          error = "Emergency contact must be exactly 10 digits";
+        // Emergency contact is optional - only validate if value exists
+        if (value && !isValidPhoneNumber(value)) {
+          error = "Please enter a valid 10-digit emergency contact number";
         }
         break;
         
       case "hospital_name":
         if (!value || !value.trim()) {
           error = "Hospital name is required";
+        } else if (value.trim().length < 3) {
+          error = "Hospital name must be at least 3 characters";
         }
         break;
         
       case "email":
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!value || !value.trim()) {
           error = "Email is required";
-        } else if (!emailRegex.test(value)) {
-          error = "Please enter a valid email address";
+        } else if (!isValidEmail(value)) {
+          error = "Please enter a valid email address (e.g., name@example.com)";
         }
         break;
         
       case "address":
         if (!value || !value.trim()) {
           error = "Address is required";
+        } else if (value.trim().length < 10) {
+          error = "Please enter a complete address";
         }
         break;
         
@@ -119,6 +217,26 @@ export default function HospitalInfo({ data, onUpdate }) {
     return error;
   };
 
+  // Check if form is valid (no errors)
+  const checkFormValidity = () => {
+    // Check required fields
+    if (!data.hospital_name?.trim() || data.hospital_name.trim().length < 3) return false;
+    if (!data.phone || !isValidPhoneNumber(data.phone)) return false;
+    if (!data.email?.trim() || !isValidEmail(data.email)) return false;
+    if (!data.address?.trim() || data.address.trim().length < 10) return false;
+    
+    // Check optional fields if they have values
+    if (data.emergency_contact && !isValidPhoneNumber(data.emergency_contact)) return false;
+    if (data.gstin && !isValidGSTIN(data.gstin)) return false;
+    if (data.established_year) {
+      const year = parseInt(data.established_year);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear) return false;
+    }
+    
+    return true;
+  };
+
   const handleChange = (field, value) => {
     // Only admin can edit
     if (!isAdmin) {
@@ -126,6 +244,32 @@ export default function HospitalInfo({ data, onUpdate }) {
       return;
     }
 
+    // Mark field as touched
+    setTouchedFields(prev => ({
+      ...prev,
+      [field]: true
+    }));
+
+    // Special handling for phone and emergency_contact
+    if (field === "phone" || field === "emergency_contact") {
+      // Remove all non-digits and limit to 10 digits
+      value = value.replace(/\D/g, "").slice(0, 10);
+    }
+
+    // Special handling for GSTIN
+    if (field === "gstin") {
+      // Convert to uppercase and remove non-alphanumeric
+      value = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15);
+    }
+
+    // Special handling for email - convert to lowercase
+    if (field === "email") {
+      value = value.toLowerCase();
+    }
+
+    // Create updated data
+    const updatedData = { ...data, [field]: value };
+    
     // Validate field
     const error = validateField(field, value);
     
@@ -136,11 +280,18 @@ export default function HospitalInfo({ data, onUpdate }) {
     }));
 
     // Update data
-    onUpdate({ ...data, [field]: value });
+    onUpdate(updatedData);
+    
+    // Check if form is valid and notify parent
+    const isValid = checkFormValidity();
+    
+    // Notify parent that form has changes and validity status
+    if (onFormChange) {
+      onFormChange(true, isValid);
+    }
   };
 
   const handleLogoUpload = async (e) => {
-    // Only admin can upload
     if (!isAdmin) {
       errorToast("Only admin can upload logo");
       return;
@@ -168,13 +319,18 @@ export default function HospitalInfo({ data, onUpdate }) {
       );
 
       const rawLogoPath = response.data.logo_url;
-
-      // Update the settings page form preview
-      onUpdate({ ...data, logo: rawLogoPath });
-
-      // Update the sidebar logo via context
+      const updatedData = { ...data, logo: rawLogoPath };
+      onUpdate(updatedData);
       updateLogo(rawLogoPath);
-
+      
+      // Check if form is valid
+      const isValid = checkFormValidity();
+      
+      // Notify parent that form has changes
+      if (onFormChange) {
+        onFormChange(true, isValid);
+      }
+      
       successToast("Logo uploaded successfully!");
     } catch (error) {
       console.error("Error uploading logo:", error);
@@ -184,80 +340,61 @@ export default function HospitalInfo({ data, onUpdate }) {
     }
   };
 
-  const handleRemoveLogo = async () => {
-    // Only admin can remove
-    if (!isAdmin) {
-      errorToast("Only admin can remove logo");
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to remove the logo?")) {
-      return;
-    }
-
-    try {
-      setRemovingLogo(true);
-      
-      // Call API to remove logo
-      await api.post("/hospital/remove-logo");
-      
-      // Update local state
-      onUpdate({ ...data, logo: null });
-      
-      // Update context
-      updateLogo(null);
-      
-      successToast("Logo removed successfully!");
-    } catch (error) {
-      console.error("Error removing logo:", error);
-      errorToast(error.response?.data?.detail || "Failed to remove logo");
-    } finally {
-      setRemovingLogo(false);
-    }
-  };
-
-  // Check if all required fields are filled
-  const validateAllFields = () => {
-    const requiredFields = {
-      hospital_name: data.hospital_name,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
-    };
-
+  // Validate all fields and update errors
+  useEffect(() => {
     const newErrors = {};
-    let isValid = true;
-
-    Object.entries(requiredFields).forEach(([field, value]) => {
-      if (!value || !value.trim()) {
-        newErrors[field] = `${field.replace('_', ' ')} is required`;
-        isValid = false;
+    
+    // Always validate all fields for error display
+    // Required fields
+    if (!data.hospital_name?.trim()) {
+      newErrors.hospital_name = "Hospital name is required";
+    } else if (data.hospital_name.trim().length < 3) {
+      newErrors.hospital_name = "Hospital name must be at least 3 characters";
+    }
+    
+    if (!data.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!isValidPhoneNumber(data.phone)) {
+      newErrors.phone = "Please enter a valid 10-digit mobile number starting with 6,7,8, or 9";
+    }
+    
+    // Emergency contact is optional - only show error if value exists and is invalid
+    if (data.emergency_contact && !isValidPhoneNumber(data.emergency_contact)) {
+      newErrors.emergency_contact = "Please enter a valid 10-digit emergency contact number";
+    }
+    
+    if (!data.email?.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!isValidEmail(data.email)) {
+      newErrors.email = "Please enter a valid email address (e.g., name@example.com)";
+    }
+    
+    if (!data.address?.trim()) {
+      newErrors.address = "Address is required";
+    } else if (data.address.trim().length < 10) {
+      newErrors.address = "Please enter a complete address";
+    }
+    
+    // GSTIN is optional - only show error if value exists and is invalid
+    if (data.gstin && !isValidGSTIN(data.gstin)) {
+      newErrors.gstin = "Invalid GSTIN format. Should be 15 characters (e.g., 27AAPFU0939F1Z5)";
+    }
+    
+    if (data.established_year) {
+      const year = parseInt(data.established_year);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear) {
+        newErrors.established_year = `Year must be between 1900 and ${currentYear}`;
       }
-    });
-
-    // Validate formats
-    if (data.phone && !/^[0-9]{10}$/.test(data.phone)) {
-      newErrors.phone = "Phone number must be exactly 10 digits";
-      isValid = false;
-    }
-
-    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
-      newErrors.email = "Please enter a valid email address";
-      isValid = false;
-    }
-
-    if (data.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(data.gstin)) {
-      newErrors.gstin = "Invalid GSTIN format";
-      isValid = false;
     }
 
     setErrors(newErrors);
-    return isValid;
-  };
-
-  // Validate on mount and when data changes
-  useEffect(() => {
-    validateAllFields();
+    
+    // Notify parent about form validity whenever data changes
+    const isValid = checkFormValidity();
+    if (onFormChange && isDirty) {
+      onFormChange(true, isValid);
+    }
   }, [data]);
 
   // Show loading state while fetching user role
@@ -291,34 +428,17 @@ export default function HospitalInfo({ data, onUpdate }) {
               Hospital Logo
             </label>
             <div className="flex flex-col items-center">
-              <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3A] flex items-center justify-center overflow-hidden bg-white dark:bg-[#0D0D0D] mb-4 relative group">
+              <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3A] flex items-center justify-center overflow-hidden bg-white dark:bg-[#0D0D0D] mb-4">
                 {data.logo ? (
-                  <>
-                    <img
-                      src={getMediaUrl(data.logo)}
-                      alt="Hospital Logo"
-                      className="w-full h-full object-contain p-4"
-                      onError={(e) => {
-                        console.error("Failed to load logo in settings:", data.logo);
-                        e.target.style.display = "none";
-                      }}
-                    />
-                    {/* Remove logo button - only visible for admin */}
-                    {isAdmin && data.logo && (
-                      <button
-                        onClick={handleRemoveLogo}
-                        disabled={removingLogo}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600 disabled:opacity-50"
-                        title="Remove logo"
-                      >
-                        {removingLogo ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Trash2 size={16} />
-                        )}
-                      </button>
-                    )}
-                  </>
+                  <img
+                    src={getMediaUrl(data.logo)}
+                    alt="Hospital Logo"
+                    className="w-full h-full object-contain p-4"
+                    onError={(e) => {
+                      console.error("Failed to load logo in settings:", data.logo);
+                      e.target.style.display = "none";
+                    }}
+                  />
                 ) : (
                   <div className="flex flex-col items-center justify-center p-4">
                     <Upload className="text-gray-400 mb-2" size={48} />
@@ -336,11 +456,11 @@ export default function HospitalInfo({ data, onUpdate }) {
                     accept="image/*"
                     onChange={handleLogoUpload}
                     className="hidden"
-                    disabled={uploadingLogo || removingLogo}
+                    disabled={uploadingLogo}
                   />
                   <div
                     className={`px-4 py-2 rounded-lg transition-opacity flex items-center justify-center gap-2 ${
-                      uploadingLogo || removingLogo
+                      uploadingLogo
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] hover:opacity-90 cursor-pointer"
                     } text-white`}
@@ -379,29 +499,30 @@ export default function HospitalInfo({ data, onUpdate }) {
             <div className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Emergency Phone
+                  Emergency Phone (Optional)
                 </label>
-                <input
-                  type="text"
-                  value={data.emergency_contact || ""}
-                  onChange={(e) => {
-                    // Allow only digits
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    handleChange("emergency_contact", value);
-                  }}
-                  className={`w-full px-4 py-2 rounded-lg border ${
-                    errors.emergency_contact
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
-                  } bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:border-transparent transition-all duration-200`}
-                  placeholder="9999999999"
-                  maxLength={10}
-                  disabled={!isAdmin}
-                  readOnly={!isAdmin}
-                />
-                {errors.emergency_contact && (
-                  <p className="text-red-500 text-xs mt-1">{errors.emergency_contact}</p>
-                )}
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Phone className="text-gray-400" size={18} />
+                  </div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={data.emergency_contact || ""}
+                    onChange={(e) => handleChange("emergency_contact", e.target.value)}
+                    onBlur={() => setTouchedFields(prev => ({ ...prev, emergency_contact: true }))}
+                    className={`w-full px-4 py-2 rounded-lg border pl-10 ${
+                      errors.emergency_contact
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
+                    } bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:border-transparent transition-all duration-200`}
+                    placeholder="9876543210"
+                    maxLength={10}
+                    disabled={!isAdmin}
+                    readOnly={!isAdmin}
+                  />
+                </div>
+                <p className={`text-red-500 text-xs mt-1 ${errors.emergency_contact ? '' : 'invisible'}`}>{errors.emergency_contact || '\u00A0'}</p>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 24/7 emergency contact number displayed in critical areas
@@ -418,15 +539,15 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Hospital Name *
               </label>
               <div className="relative">
-                <Building
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Building className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="text"
                   value={data.hospital_name || ""}
                   onChange={(e) => handleChange("hospital_name", e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, hospital_name: true }))}
+                  className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                     errors.hospital_name
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
@@ -436,43 +557,35 @@ export default function HospitalInfo({ data, onUpdate }) {
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
-                {errors.hospital_name && (
-                  <p className="text-red-500 text-xs mt-1">{errors.hospital_name}</p>
-                )}
               </div>
+              <p className={`text-red-500 text-xs mt-1 ${errors.hospital_name ? '' : 'invisible'}`}>{errors.hospital_name || '\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                GSTIN Number
+                GSTIN Number (Optional)
               </label>
               <div className="relative">
-                <Shield
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Shield className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="text"
                   value={data.gstin || ""}
-                  onChange={(e) => {
-                    // Allow only uppercase letters and digits, max 15 chars
-                    const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15);
-                    handleChange("gstin", value);
-                  }}
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  onChange={(e) => handleChange("gstin", e.target.value)}
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, gstin: true }))}
+                  className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                     errors.gstin
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
                   } bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:border-transparent transition-all duration-200`}
-                  placeholder="22AAAAA0000A1Z5"
+                  placeholder="27AAPFU0939F1Z5"
                   maxLength={15}
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
-                {errors.gstin && (
-                  <p className="text-red-500 text-xs mt-1">{errors.gstin}</p>
-                )}
               </div>
+              <p className={`${errors.gstin ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'} text-xs mt-1`}>{errors.gstin || 'Format: 27AAPFU0939F1Z5 (15 characters)'}</p>
             </div>
 
             <div className="space-y-2">
@@ -480,33 +593,28 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Phone Number *
               </label>
               <div className="relative">
-                <Phone
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Phone className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   value={data.phone || ""}
-                  onChange={(e) => {
-                    // Allow only digits, max 10 chars
-                    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-                    handleChange("phone", value);
-                  }}
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  onChange={(e) => handleChange("phone", e.target.value)}
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, phone: true }))}
+                  className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                     errors.phone
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
                   } bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:border-transparent transition-all duration-200`}
                   required
-                  placeholder="9988556655"
+                  placeholder="9876543210"
                   maxLength={10}
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
-                {errors.phone && (
-                  <p className="text-red-500 text-xs mt-1">{errors.phone}</p>
-                )}
               </div>
+              <p className={`text-red-500 text-xs mt-1 ${errors.phone ? '' : 'invisible'}`}>{errors.phone || '\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
@@ -514,28 +622,26 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Email Address *
               </label>
               <div className="relative">
-                <Mail
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Mail className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="email"
                   value={data.email || ""}
                   onChange={(e) => handleChange("email", e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, email: true }))}
+                  className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                     errors.email
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
                   } bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:border-transparent transition-all duration-200`}
                   required
-                  placeholder="example@gmail.com"
+                  placeholder="hospital@example.com"
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                )}
               </div>
+              <p className={`text-red-500 text-xs mt-1 ${errors.email ? '' : 'invisible'}`}>{errors.email || '\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
@@ -543,20 +649,21 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Website
               </label>
               <div className="relative">
-                <Globe
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Globe className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="url"
                   value={data.website || ""}
                   onChange={(e) => handleChange("website", e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
-                  placeholder="https://www.hms.stacklycloud.com"
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, website: true }))}
+                  className="w-full px-4 py-2 rounded-lg border pl-10 border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
+                  placeholder="https://www.hospital.com"
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
               </div>
+              <p className={`text-red-500 text-xs mt-1 invisible`}>{'\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
@@ -564,20 +671,21 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Tagline
               </label>
               <div className="relative">
-                <Tag
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Tag className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="text"
                   value={data.tagline || ""}
                   onChange={(e) => handleChange("tagline", e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, tagline: true }))}
+                  className="w-full px-4 py-2 rounded-lg border pl-10 border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
                   placeholder="Your care, our commitment"
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
               </div>
+              <p className={`text-red-500 text-xs mt-1 invisible`}>{'\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
@@ -585,20 +693,17 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Established Year
               </label>
               <div className="relative">
-                <Calendar
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Calendar className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="number"
                   min="1900"
                   max={new Date().getFullYear()}
                   value={data.established_year || ""}
-                  onChange={(e) => {
-                    const value = e.target.value ? parseInt(e.target.value) : "";
-                    handleChange("established_year", value);
-                  }}
-                  className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                  onChange={(e) => handleChange("established_year", e.target.value)}
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, established_year: true }))}
+                  className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                     errors.established_year
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
@@ -607,10 +712,8 @@ export default function HospitalInfo({ data, onUpdate }) {
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
-                {errors.established_year && (
-                  <p className="text-red-500 text-xs mt-1">{errors.established_year}</p>
-                )}
               </div>
+              <p className={`text-red-500 text-xs mt-1 ${errors.established_year ? '' : 'invisible'}`}>{errors.established_year || '\u00A0'}</p>
             </div>
 
             <div className="space-y-2">
@@ -618,22 +721,23 @@ export default function HospitalInfo({ data, onUpdate }) {
                 Registration Number
               </label>
               <div className="relative">
-                <FileDigit
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={18}
-                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <FileDigit className="text-gray-400" size={18} />
+                </div>
                 <input
                   type="text"
                   value={data.registration_number || ""}
                   onChange={(e) =>
                     handleChange("registration_number", e.target.value)
                   }
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
+                  onBlur={() => setTouchedFields(prev => ({ ...prev, registration_number: true }))}
+                  className="w-full px-4 py-2 rounded-lg border pl-10 border-gray-300 dark:border-[#3A3A3A] bg-white dark:bg-[#0D0D0D] focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent transition-all duration-200"
                   placeholder="AP/S3/S/S/"
                   disabled={!isAdmin}
                   readOnly={!isAdmin}
                 />
               </div>
+              <p className={`text-red-500 text-xs mt-1 invisible`}>{'\u00A0'}</p>
             </div>
           </div>
 
@@ -643,15 +747,15 @@ export default function HospitalInfo({ data, onUpdate }) {
               Full Address *
             </label>
             <div className="relative">
-              <MapPin
-                className="absolute left-3 top-3 text-gray-400"
-                size={18}
-              />
+              <div className="absolute left-3 top-3 pointer-events-none">
+                <MapPin className="text-gray-400" size={18} />
+              </div>
               <textarea
                 value={data.address || ""}
                 onChange={(e) => handleChange("address", e.target.value)}
+                onBlur={() => setTouchedFields(prev => ({ ...prev, address: true }))}
                 rows={3}
-                className={`w-full pl-10 pr-4 py-2 rounded-lg border ${
+                className={`w-full px-4 py-2 rounded-lg border pl-10 ${
                   errors.address
                     ? "border-red-500 focus:ring-red-500"
                     : "border-gray-300 dark:border-[#3A3A3A] focus:ring-[#0EFF7B]"
@@ -661,13 +765,13 @@ export default function HospitalInfo({ data, onUpdate }) {
                 disabled={!isAdmin}
                 readOnly={!isAdmin}
               />
-              {errors.address && (
-                <p className="text-red-500 text-xs mt-1">{errors.address}</p>
-              )}
             </div>
+            <p className={`text-red-500 text-xs mt-1 ${errors.address ? '' : 'invisible'}`}>{errors.address || '\u00A0'}</p>
           </div>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default HospitalInfo;
