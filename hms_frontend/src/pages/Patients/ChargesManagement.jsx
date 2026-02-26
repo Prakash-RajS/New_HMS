@@ -19,6 +19,7 @@ import {
 import { Dialog, Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig.js";
 import { successToast, errorToast } from "../../components/Toast.jsx";
+import { usePermissions } from "../../components/PermissionContext"; // ✅ RBAC
 
 const ChargesManagement = () => {
   // State for charges
@@ -33,7 +34,8 @@ const ChargesManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
+const { isAdmin } = usePermissions();
+  const canManage = isAdmin;
   // Selected charge
   const [selectedCharge, setSelectedCharge] = useState(null);
 
@@ -223,6 +225,10 @@ const ChargesManagement = () => {
 
   // Handle add charge
   const handleAddCharge = async () => {
+    if (!canManage) {
+    errorToast("You don't have permission to add charges");
+    return;
+  }
     const errors = validateForm(formData);
 
     if (Object.keys(errors).length > 0) {
@@ -261,6 +267,10 @@ const ChargesManagement = () => {
 
   // Handle edit charge
   const handleEditCharge = async () => {
+    if (!canManage) {
+    errorToast("You don't have permission to edit charges");
+    return;
+  }
     if (!selectedCharge) return;
 
     const errors = validateForm(editFormData);
@@ -302,6 +312,10 @@ const ChargesManagement = () => {
 
   // Handle delete charge
   const handleDeleteCharge = async () => {
+    if (!canManage) {
+    errorToast("You don't have permission to delete charges");
+    return;
+  }
     if (!selectedCharge) return;
 
     try {
@@ -326,6 +340,10 @@ const ChargesManagement = () => {
 
   // Open edit modal
   const openEditModal = (charge) => {
+    if (!canManage) {
+    errorToast("You don't have permission to edit charges");
+    return;
+  }
     setSelectedCharge(charge);
     setEditFormData({
       charge: charge.charge,
@@ -339,6 +357,10 @@ const ChargesManagement = () => {
 
   // Open delete modal
   const openDeleteModal = (charge) => {
+    if (!canManage) {
+    errorToast("You don't have permission to delete charges");
+    return;
+  }
     setSelectedCharge(charge);
     setShowDeleteModal(true);
   };
@@ -420,15 +442,28 @@ const ChargesManagement = () => {
           <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
             Charges Management
           </h2>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
-          >
-            <Plus size={18} className="text-white font-[Helvetica]" /> Add New Charge
-          </button>
+          <div className="relative group">
+            <button
+              onClick={() => {
+                if (!canManage) return;
+                resetForm();
+                setShowAddModal(true);
+              }}
+              disabled={!canManage}
+              className={`flex items-center gap-2 border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out
+                ${canManage
+                  ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
+                  : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
+                }`}
+            >
+              <Plus size={18} className="text-white" /> Add New Charge
+            </button>
+            {!canManage && (
+              <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+                Admin Only
+              </span>
+            )}
+          </div>
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
@@ -475,7 +510,7 @@ const ChargesManagement = () => {
 
           {/* Scope Filter Dropdown - Now using Listbox */}
           <div className="flex items-center gap-2">
-            <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            {/* <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" /> */}
             <div className="relative min-w-[140px]">
               <Listbox value={scopeFilter} onChange={setScopeFilter}>
                 <Listbox.Button
@@ -565,14 +600,14 @@ const ChargesManagement = () => {
                 <th>Scope</th>
                 <th>Description</th>
                 <th>Created At</th>
-                <th className="text-center">Actions</th>
+                {canManage && <th className="text-center">Actions</th>}
               </tr>
             </thead>
 
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center py-12">
+                  <td colSpan={canManage ? 6 : 5} className="text-center py-12">
                     <div className="flex justify-center items-center">
                       <Loader2 className="w-8 h-8 text-[#0EFF7B] animate-spin" />
                       <span className="ml-3 text-[#0EFF7B]">Loading charges...</span>
@@ -621,8 +656,10 @@ const ChargesManagement = () => {
                         {formatDate(charge.created_at)}
                       </td>
 
+                      {canManage && (
                       <td className="text-center">
                         <div className="flex justify-center gap-4 relative overflow-visible">
+                          {/* Edit */}
                           <div className="relative group">
                             <Pencil
                               size={16}
@@ -633,7 +670,7 @@ const ChargesManagement = () => {
                               Edit
                             </span>
                           </div>
-
+                          {/* Delete */}
                           <div className="relative group">
                             <Trash
                               size={16}
@@ -646,12 +683,13 @@ const ChargesManagement = () => {
                           </div>
                         </div>
                       </td>
+                    )}
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <td colSpan={canManage ? 6 : 5} className="text-center py-12 text-gray-500 dark:text-gray-400">
                     {searchQuery || scopeFilter !== "ALL" ? (
                       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                         <Package className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />

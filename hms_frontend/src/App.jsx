@@ -538,7 +538,7 @@ function AppContent({ contentRef }) {
                 path="/billing/charges-management"
                 element={
                   <ProtectedRoute>
-                    <PermissionGate moduleKey="charges-management">
+                    <PermissionGate moduleKey="charges_management">
                       <ChargesManagement />
                     </PermissionGate>
                   </ProtectedRoute>

@@ -1653,6 +1653,7 @@ import EditTripModal from "./EditTrip";
 import AmbulanceUnitsModal from "./AmbulanceUnits";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
 import api from "../../../utils/axiosConfig";
+import { usePermissions } from "../../../components/PermissionContext";
 
 const WS_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -1676,6 +1677,10 @@ const AmbulanceManagement = () => {
   const ws = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const isMountedRef = useRef(true);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canManage = isAdmin; // Only admin can manage ambulance operations
 
   // Data
   const [dispatchData, setDispatchData] = useState([]);
@@ -2217,11 +2222,19 @@ const AmbulanceManagement = () => {
   };
 
   const handleDelete = (item) => {
+     if (!canManage) {
+    errorToast("You don't have permission to delete records");
+    return;
+  }
     setSelectedItem(item);
     setIsDeleteOpen(true);
   };
 
   const handleDeleteClick = () => {
+    if (!canManage) {
+    errorToast("You don't have permission to delete records");
+    return;
+  }
     if (selectedRows.size === 0) {
       errorToast("Kindly select at least one record to delete.");
       return;
@@ -2230,6 +2243,10 @@ const AmbulanceManagement = () => {
   };
 
   const confirmDelete = async () => {
+    if (!canManage) {
+    errorToast("You don't have permission to delete records");
+    return;
+  }
     const ids = selectedItem ? [selectedItem.id] : Array.from(selectedRows);
     const count = ids.length;
     const endpointMap = {
@@ -2288,6 +2305,10 @@ const AmbulanceManagement = () => {
 
   // Phone call functionality
   const handlePhoneCall = (phoneNumber, item) => {
+    if (!canManage) {
+    errorToast("You don't have permission to make calls");
+    return;
+  }
     if (!phoneNumber || phoneNumber === '+91-XXXXXXXXXX') {
       errorToast("No valid phone number available for this record");
       return;
@@ -2327,16 +2348,28 @@ const AmbulanceManagement = () => {
 
   // ── CREATE / EDIT HANDLERS ─────────────────────
   const handleOpenEditDispatch = (dispatch = null) => {
+    if (!canManage) {
+    errorToast("You don't have permission to manage dispatches");
+    return;
+  }
     setEditingDispatch(dispatch);
     setEditDispatchOpen(true);
   };
 
   const handleOpenEditTrip = (trip = null) => {
+    if (!canManage) {
+    errorToast("You don't have permission to manage trips");
+    return;
+  }
     setEditingTrip(trip);
     setEditTripOpen(true);
   };
 
   const handleOpenEditUnit = (unit = null) => {
+     if (!canManage) {
+    errorToast("You don't have permission to manage ambulance units");
+    return;
+  }
     setEditingUnit(unit);
     setEditUnitOpen(true);
   };
@@ -2387,6 +2420,10 @@ const saveDispatch = async (payload) => {
 };
 
   const saveTrip = async (payload) => {
+     if (!canManage) {
+    errorToast("You don't have permission to save trips");
+    return;
+  }
     const url = editingTrip
       ? `/ambulance/trips/${editingTrip.id}`
       : `/ambulance/trips`;
@@ -2416,6 +2453,10 @@ const saveDispatch = async (payload) => {
   // In AmbulanceManagement.jsx - update the saveUnit function
 // In AmbulanceManagement.jsx - update the saveUnit function
 const saveUnit = async (payload) => {
+   if (!canManage) {
+    errorToast("You don't have permission to save ambulance units");
+    throw new Error("Permission denied");
+  }
   const url = editingUnit
     ? `/ambulance/units/${editingUnit.id}`
     : `/ambulance/units`;
@@ -2730,41 +2771,54 @@ const saveUnit = async (payload) => {
 
 
             {/* Delete button - now green */}
-            <button
-              onClick={handleDeleteClick}
-              className="relative group w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-green-600 hover:bg-green-700 text-white flex items-center justify-center transition"
-            >
-              <Trash2 size={18} />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">
-                Delete
-              </span>
-            </button>
+            {/* Delete button - now with permission check */}
+<button
+  onClick={handleDeleteClick}
+  disabled={!canManage}
+  className={`relative group w-8 h-8 rounded-full border border-[#0EFF7B1A] bg-green-600 hover:bg-green-700 text-white flex items-center justify-center transition ${
+    !canManage ? 'opacity-100 cursor-not-allowed' : ''
+  }`}
+>
+  <Trash2 size={18} />
+  <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+        px-3 py-1 text-xs rounded-md shadow-md
+        bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+        transition-all duration-150">
+    {canManage ? "Delete" : "Access Denied"}
+  </span>
+</button>
 
             {activeTab === "Ambulance Units" ? (
-              <button
-                onClick={() => handleOpenEditUnit()}
-                className="flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
-              >
-                Add Unit
-              </button>
-            ) : activeTab === "Dispatch Log" ? (
-              <button
-                onClick={() => handleOpenEditDispatch()}
-                className="relative group flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
-              >
-                Add Dispatch
-              </button>
-            ) : (
-              <button
-                onClick={() => handleOpenEditTrip()}
-                className="flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition"
-              >
-                Add Trip
-              </button>
-            )}
+  <button
+    onClick={() => handleOpenEditUnit()}
+    disabled={!canManage}
+    className={`flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition ${
+      !canManage ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+  >
+    Add Unit
+  </button>
+) : activeTab === "Dispatch Log" ? (
+  <button
+    onClick={() => handleOpenEditDispatch()}
+    disabled={!canManage}
+    className={`relative group flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition ${
+      !canManage ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+  >
+    Add Dispatch
+  </button>
+) : (
+  <button
+    onClick={() => handleOpenEditTrip()}
+    disabled={!canManage}
+    className={`flex items-center gap-1 px-3 py-1 rounded bg-[#025126] text-white hover:scale-105 transition ${
+      !canManage ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+  >
+    Add Trip
+  </button>
+)}
           </div>
         </div>
 
@@ -2903,35 +2957,41 @@ const saveUnit = async (payload) => {
                           <td className="text-center">{row.notes || "-"}</td>
                           <td className="px-3 py-3 flex justify-center gap-2">
                             <button
-                              onClick={() => handleOpenEditUnit(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Edit
-                                size={14}
-                                className="text-[#08994A] dark:text-[#0EFF7B]"
-                              />
-                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Edit
-                    </span>
-                            </button>
+  onClick={() => handleOpenEditUnit(row)}
+  disabled={!canManage}
+  className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+    !canManage ? 'opacity-100 cursor-not-allowed' : ''
+  }`}
+>
+  <Edit
+    size={14}
+    className="text-[#08994A] dark:text-[#0EFF7B]"
+  />
+  <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+          transition-all duration-150">
+    {canManage ? "Edit" : "Access Denied"}
+  </span>
+</button>
                             <button
-                              onClick={() => handleDelete(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Trash2
-                                size={14}
-                                className="text-red-600 dark:text-red-500"
-                              />
-                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Delete
-                    </span>
-                            </button>
+  onClick={() => handleDelete(row)}
+  disabled={!canManage}
+  className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+    !canManage ? 'opacity-100 cursor-not-allowed' : ''
+  }`}
+>
+  <Trash2
+    size={14}
+    className="text-red-600 dark:text-red-500"
+  />
+  <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+          transition-all duration-150">
+    {canManage ? "Delete" : "Access Denied"}
+  </span>
+</button>
                           </td>
                         </tr>
                       );
@@ -2964,37 +3024,46 @@ const saveUnit = async (payload) => {
                             {row.status}
                           </td>
                           <td className="px-3 py-3 flex justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenEditDispatch(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Edit
-                                size={14}
-                                className="text-[#08994A] dark:text-[#0EFF7B]"
-                              />
-                              <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Edit
-                    </span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Trash2
-                                size={14}
-                                className="text-red-600 dark:text-red-500"
-                              />
-                              <span className="absolute bottom-10 left-1/4 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Delete
-                    </span>
-                            </button>
-                          </td>
+            {/* EDIT BUTTON with permission check */}
+            <button
+              onClick={() => handleOpenEditDispatch(row)}
+              disabled={!canManage}
+              className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+                !canManage ? 'opacity-100 cursor-not-allowed' : ''
+              }`}
+            >
+              <Edit
+                size={14}
+                className="text-[#08994A] dark:text-[#0EFF7B]"
+              />
+              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    transition-all duration-150">
+                {canManage ? "Edit" : "Access Denied"}
+              </span>
+            </button>
+            
+            {/* DELETE BUTTON with permission check */}
+            <button
+              onClick={() => handleDelete(row)}
+              disabled={!canManage}
+              className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+                !canManage ? 'opacity-100 cursor-not-allowed' : ''
+              }`}
+            >
+              <Trash2
+                size={14}
+                className="text-red-600 dark:text-red-500"
+              />
+              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                    px-3 py-1 text-xs rounded-md shadow-md
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                    transition-all duration-150">
+                {canManage ? "Delete" : "Access Denied"}
+              </span>
+            </button>
+          </td>
                         </tr>
                       );
                     })
@@ -3052,52 +3121,63 @@ const saveUnit = async (payload) => {
                           </td>
                           <td className="px-3 py-3 flex justify-center gap-2">
                             {row.phone_number && row.phone_number !== '+91-XXXXXXXXXX' && (
-                              <button
-                                onClick={() => handlePhoneCall(row.phone_number, row)}
-                                className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                              >
-                                <Phone
-                                  size={14}
-                                  className="text-[#08994A] dark:text-[#0EFF7B]"
-                                />
-                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Call
-                    </span>
-                              </button>
-                            )}
+  <button
+    onClick={() => handlePhoneCall(row.phone_number, row)}
+    disabled={!canManage}
+    className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      !canManage ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+  >
+    <Phone
+      size={14}
+      className="text-[#08994A] dark:text-[#0EFF7B]"
+    />
+    <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+          px-3 py-1 text-xs rounded-md shadow-md
+          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+          transition-all duration-150">
+      {canManage ? "Call" : "Access Denied"}
+    </span>
+  </button>
+)}
                             <button
-                              onClick={() => handleOpenEditTrip(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Edit
-                                size={14}
-                                className="text-[#08994A] dark:text-[#0EFF7B]"
-                              />
-                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Edit
-                    </span>
-                            </button>
-                            <button
-                              onClick={() => handleDelete(row)}
-                              className="relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                            >
-                              <Trash2
-                                size={14}
-                                className="text-red-600 dark:text-red-500"
-                              />
-                              <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                      px-3 py-1 text-xs rounded-md shadow-md
-                      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                      transition-all duration-150">
-                      Delete
-                    </span>
-                            </button>
+            onClick={() => handleOpenEditTrip(row)}
+            disabled={!canManage}
+            className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+              !canManage ? 'opacity-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <Edit
+              size={14}
+              className="text-[#08994A] dark:text-[#0EFF7B]"
+            />
+            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                  px-3 py-1 text-xs rounded-md shadow-md
+                  bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                  transition-all duration-150">
+              {canManage ? "Edit" : "Access Denied"}
+            </span>
+          </button>
+          
+          {/* DELETE BUTTON with permission check */}
+          <button
+            onClick={() => handleDelete(row)}
+            disabled={!canManage}
+            className={`relative group w-7 h-7 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+              !canManage ? 'opacity-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <Trash2
+              size={14}
+              className="text-red-600 dark:text-red-500"
+            />
+            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                  px-3 py-1 text-xs rounded-md shadow-md
+                  bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                  transition-all duration-150">
+              {canManage ? "Delete" : "Access Denied"}
+            </span>
+          </button>
                           </td>
                         </tr>
                       );

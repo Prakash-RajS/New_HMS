@@ -466,6 +466,8 @@ class PatientHistory(models.Model):
     department = models.CharField(max_length=100, blank=True, null=True)
     status = models.CharField(max_length=50)  # From patient's casualty_status
     created_at = models.DateTimeField(auto_now_add=True)
+    admission_date = models.DateField(null=True, blank=True)
+    discharge_date = models.DateField(null=True, blank=True)
     
     class Meta:
         db_table = "patient_history"
@@ -937,6 +939,7 @@ class Permission(models.Model):
 
         # Clinical Resources
         ("lab_reports", "Laboratory Reports"),
+        ("laboratory_manage", "Laboratory Management"),
         ("blood_bank", "Blood Bank"),
         ("ambulance", "Ambulance Management"),
 
