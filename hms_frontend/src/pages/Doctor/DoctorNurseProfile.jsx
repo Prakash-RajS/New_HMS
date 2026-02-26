@@ -632,6 +632,7 @@ import { Listbox } from "@headlessui/react";
 import EditDoctorNursePopup from "./EditDoctorNursePopup.jsx";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const ProfileSection = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -653,6 +654,11 @@ const ProfileSection = () => {
   const [specialists, setSpecialists] = useState([]);
   const [specialistsLoading, setSpecialistsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canEdit = isAdmin; // Only admin can edit
+const canadd = isAdmin; // Only admin can add
 
   // Get API base URL from environment variable
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
@@ -917,11 +923,19 @@ const ProfileSection = () => {
   };
 
   const handleEditProfile = (profile) => {
+    if (!canEdit) {
+    errorToast("You don't have permission to edit profiles");
+    return;
+  }
     setSelectedProfile(profile.originalData);
     setShowEditPopup(true);
   };
 
   const handleUpdateProfile = async (updatedData) => {
+    if (!canEdit) {
+    errorToast("You don't have permission to update profiles");
+    return;
+  }
     try {
       const response = await api.put(
         `/staff/update/${updatedData.id}/`,
@@ -1121,22 +1135,44 @@ const ProfileSection = () => {
       ></div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mt-4 mb-6 relative z-10">
-        <h2 className="text-xl font-semibold text-black dark:text-white">
-          Doctor/Nurse Profiles
-        </h2>
-        <button
-          onClick={() => navigate("/Doctors-Nurse/AddDoctorNurse")}
-          className="w-[200px] h-[40px] flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-[8px] text-white font-semibold hover:scale-105 transition"
-          style={{
-            background:
-              "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-          }}
-        >
-          <Plus size={18} className="text-white" />
-          Add Doctor/Nurse
-        </button>
-      </div>
+      {/* Header */}
+<div className="flex justify-between items-center mt-4 mb-6 relative z-10">
+  <h2 className="text-xl font-semibold text-black dark:text-white">
+    Doctor/Nurse Profiles
+  </h2>
+  
+  {/* Add Doctor/Nurse Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={() => canEdit && navigate("/Doctors-Nurse/AddDoctorNurse")}
+      disabled={!canEdit}
+      className={`w-[200px] h-[40px] flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-[8px] text-white font-semibold hover:scale-105 transition ${
+        !canEdit ? 'opacity-100 cursor-not-allowed' : ''
+      }`}
+      style={{
+        background: !canEdit 
+          ? "border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A]" 
+          : "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+      }}
+    >
+      <Plus size={18} className="text-white" />
+      Add Doctor/Nurse
+    </button>
+    
+    {/* Tooltip for Add button */}
+    {!canEdit && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied - Admin Only
+      </span>
+    )}
+  </div>
+</div>
 
       {/* Stats */}
       <div className="mb-6 w-[800px] relative z-10">
@@ -1385,17 +1421,34 @@ const ProfileSection = () => {
                   </span>
                 </div>
               </div>
-              <button
-                onClick={() => handleEditProfile(profile)}
-                className="absolute group top-4 right-4 flex items-center gap-1 text-[#4D58FF] dark:text-[#6E92FF] text-[12px]"
-              >
-                <Edit size={16} />
-                <span>Edit</span>
-                <span className="absolute right-5 right-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150">Edit</span>
-              </button>
+
+{/* Edit Button with Tooltip */}
+<div className="absolute top-4 right-4 group">
+  <button
+    onClick={() => handleEditProfile(profile)}
+    disabled={!canEdit}
+    className={`flex items-center gap-1 text-[12px] font-medium transition ${
+      canEdit
+        ? "text-[#08994A] dark:text-[#6E92FF] hover:text-[#025126] dark:hover:text-[#6E92FF]"
+        : "text-black-900 opacity-100 cursor-not-allowed"
+    }`}
+  >
+    <Edit size={16} className={canEdit ? "text-[#08994A] dark:text-[#6E92FF]" : "text-black-400"} />
+    <span>Edit</span>
+  </button>
+  
+  {/* Tooltip */}
+  <span
+    className="absolute top-6 right-0 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white
+      opacity-0 group-hover:opacity-100
+      transition-all duration-150 z-50 pointer-events-none"
+  >
+    {canEdit ? "Edit" : "Admin Only"}
+  </span>
+</div>
+
               <button
                 className="relative group w-[112px] h-[33px] rounded-[8px] border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A] text-white text-[14px] font-medium hover:scale-105 transition"
                 onClick={() =>

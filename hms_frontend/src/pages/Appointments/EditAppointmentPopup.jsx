@@ -4,6 +4,7 @@ import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 export default function EditAppointmentPopup({
   onClose,
@@ -58,6 +59,10 @@ export default function EditAppointmentPopup({
   const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canEditAppointment = isAdmin || userRole === "receptionist";
 
   // Validation functions
   const validatePatientNameFormat = (value) => {
@@ -419,6 +424,10 @@ export default function EditAppointmentPopup({
 
   // Handle Update
   const handleUpdate = async () => {
+     if (!canEditAppointment) {
+    errorToast("You don't have permission to edit appointments");
+    return;
+  }
     // Clear all previous errors
     setValidationErrors({});
     
@@ -806,25 +815,42 @@ export default function EditAppointmentPopup({
           )}
           
           <div className="flex justify-center gap-2 mt-8">
-            <button
-              onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
-                          text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                          shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdate}
-              disabled={saving}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
-                          bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-                          shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
-                          hover:scale-105 transition"
-            >
-              {saving ? "Updating…" : "Update"}
-            </button>
-          </div>
+  <button
+    onClick={onClose}
+    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
+                text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
+                shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
+  >
+    Cancel
+  </button>
+  
+  {/* Update Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={handleUpdate}
+      disabled={saving || !canEditAppointment}
+      className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
+                  bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
+                  shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition
+                  ${!canEditAppointment ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+    >
+      {saving ? "Updating…" : "Update"}
+    </button>
+    
+    {/* Tooltip for disabled state due to permissions */}
+    {!canEditAppointment && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied - Admin/Receptionist Only
+      </span>
+    )}
+  </div>
+</div>
         </div>
       </div>
     </div>

@@ -1088,7 +1088,7 @@
 
 // export default DashboardComponents;
 
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Listbox } from "@headlessui/react";
 import { useWebSocket } from "../../components/WebSocketContext";
@@ -1107,7 +1107,12 @@ const ComprehensiveDashboard = () => {
 
   const { theme } = useContext(ThemeContext);
   const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } = useWebSocket();
-  const { isAuthenticated: isUserAuthenticated, loading: permissionsLoading } = usePermissions();
+  const { 
+  isAuthenticated: isUserAuthenticated, 
+  loading: permissionsLoading,
+  isAdmin
+} = usePermissions();
+
 
   // Fetch comprehensive dashboard data
   const fetchDashboardData = async () => {
@@ -1355,10 +1360,10 @@ const ComprehensiveDashboard = () => {
 
               {/* Grid Content */}
               <div className="relative overflow-visible z-10" style={{ minHeight: "193px" }}>
-                {activeSubTab === "Overview" && <OverviewTab data={data} navigate={navigate} />}
-                {activeSubTab === "Patient Record" && <PatientRecordTab data={data} navigate={navigate} />}
-                {activeSubTab === "Surgery Record" && <SurgeryRecordTab data={data} navigate={navigate} />}
-                {activeSubTab === "Revenue Summary" && <RevenueSummaryTab data={data} navigate={navigate} />}
+                {activeSubTab === "Overview" && <OverviewTab data={data} navigate={navigate} isAdmin={isAdmin} />}
+                {activeSubTab === "Patient Record" && <PatientRecordTab data={data} navigate={navigate} isAdmin={isAdmin} />}
+                {activeSubTab === "Surgery Record" && <SurgeryRecordTab data={data} navigate={navigate} isAdmin={isAdmin} />}
+                {activeSubTab === "Revenue Summary" && <RevenueSummaryTab data={data} navigate={navigate} isAdmin={isAdmin} />}
               </div>
             </div>
           )}
@@ -1390,7 +1395,7 @@ const ComprehensiveDashboard = () => {
 };
 
 // =================== OVERVIEW TAB ===================
-const OverviewTab = ({ data, navigate }) => {
+const OverviewTab = ({ data, navigate, isAdmin }) => {
   const patients = data.patients || {};
   const appointments = data.appointments || {};
   const surgeries = data.surgeries || {};
@@ -1406,6 +1411,7 @@ const OverviewTab = ({ data, navigate }) => {
         change={`${patients.today?.registered || 0} today ↑`}
         value={patients.total_patients?.toLocaleString() || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin} 
       />
 
       {/* Today's Appointments */}
@@ -1414,6 +1420,7 @@ const OverviewTab = ({ data, navigate }) => {
         change={`${appointments.today?.completed || 0} completed`}
         value={appointments.today?.total || "0"}
         onClick={() => navigate("/appointments")}
+        isAdmin={isAdmin}
       />
 
       {/* Active Surgeries */}
@@ -1422,6 +1429,7 @@ const OverviewTab = ({ data, navigate }) => {
         change={`${surgeries.today?.success || 0} successful`}
         value={surgeries.today?.total || "0"}
         onClick={() => navigate("/patients/surgeries")}
+        isAdmin={isAdmin}
       />
 
       {/* Today's Revenue */}
@@ -1430,6 +1438,7 @@ const OverviewTab = ({ data, navigate }) => {
         change="Hospital earnings"
         value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
         onClick={() => navigate("/Billing")}
+        isAdmin={isAdmin}
       />
 
       {/* Active In-Patients */}
@@ -1438,6 +1447,7 @@ const OverviewTab = ({ data, navigate }) => {
         change={`${patients.today?.admitted || 0} admitted today`}
         value={patients.active_inpatients || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin}
       />
 
       {/* Emergency Cases */}
@@ -1446,6 +1456,7 @@ const OverviewTab = ({ data, navigate }) => {
   change={`${patients.emergency_patients || 0} emergencies`}
   value={patients.emergency_patients || "0"}
   onClick={() => navigate("/patients/ipd-opd")}
+  isAdmin={isAdmin}
 />
 
 
@@ -1455,6 +1466,7 @@ const OverviewTab = ({ data, navigate }) => {
         change={`${beds.available || 0} available`}
         value={`${beds.occupancy_rate || 0}%`}
         onClick={() => navigate("/Administration/RoomManagement")}
+        isAdmin={isAdmin}
       />
 
       {/* Lab Reports */}
@@ -1473,13 +1485,14 @@ const OverviewTab = ({ data, navigate }) => {
     </div>
   }
   onClick={() => navigate("/ClinicalResources/Laboratory/LaboratoryReports")}
+  isAdmin={isAdmin}
 />
     </div>
   );
 };
 
 // =================== PATIENT RECORD TAB ===================
-const PatientRecordTab = ({ data, navigate }) => {
+const PatientRecordTab = ({ data, navigate, isAdmin }) => {
   const patients = data.patients || {};
 
   return (
@@ -1489,6 +1502,7 @@ const PatientRecordTab = ({ data, navigate }) => {
         change={`${patients.today?.registered || 0} today ↑`}
         value={patients.total_patients?.toLocaleString() || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1496,6 +1510,7 @@ const PatientRecordTab = ({ data, navigate }) => {
         change={`${patients.weekly?.admitted || 0} this week ↑`}
         value={patients.active_inpatients || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1503,6 +1518,7 @@ const PatientRecordTab = ({ data, navigate }) => {
         change={`${patients.today?.admitted || 0} today ↑`}
         value={patients.today?.admitted || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1510,13 +1526,14 @@ const PatientRecordTab = ({ data, navigate }) => {
         change={`${patients.emergency_patients || 0} emergencies`}
         value={patients.emergency_patients || "0"}
         onClick={() => navigate("/patients/ipd-opd")}
+        isAdmin={isAdmin}
       />
     </div>
   );
 };
 
 // =================== SURGERY RECORD TAB ===================
-const SurgeryRecordTab = ({ data, navigate }) => {
+const SurgeryRecordTab = ({ data, navigate, isAdmin }) => {
   const surgeries = data.surgeries || {};
 
   return (
@@ -1526,6 +1543,7 @@ const SurgeryRecordTab = ({ data, navigate }) => {
         change="This month"
         value={surgeries.monthly?.total || "0"}
         onClick={() => navigate("/patients/surgeries")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1533,6 +1551,7 @@ const SurgeryRecordTab = ({ data, navigate }) => {
         change="Scheduled procedures"
         value={surgeries.today?.total || "0"}
         onClick={() => navigate("/patients/surgeries")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1540,6 +1559,7 @@ const SurgeryRecordTab = ({ data, navigate }) => {
         change="Immediate attention"
         value={surgeries.emergency_surgeries || "0"}
         onClick={() => navigate("/patients/surgeries")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1547,13 +1567,14 @@ const SurgeryRecordTab = ({ data, navigate }) => {
         change="Monthly average"
         value={`${surgeries.monthly?.success_rate || 0}%`}
         onClick={() => navigate("/patients/surgeries")}
+        isAdmin={isAdmin}
       />
     </div>
   );
 };
 
 // =================== REVENUE SUMMARY TAB ===================
-const RevenueSummaryTab = ({ data, navigate }) => {
+const RevenueSummaryTab = ({ data, navigate, isAdmin }) => {
   const financials = data.financials || {};
 
   return (
@@ -1563,6 +1584,7 @@ const RevenueSummaryTab = ({ data, navigate }) => {
         change="This month"
         value={`₹${((financials.hospital_revenue?.monthly || 0) / 1000).toFixed(1)}K`}
         onClick={() => navigate("/Billing")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1570,6 +1592,7 @@ const RevenueSummaryTab = ({ data, navigate }) => {
         change="+12% from yesterday"
         value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
         onClick={() => navigate("/Billing")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1577,6 +1600,7 @@ const RevenueSummaryTab = ({ data, navigate }) => {
         change="Today's sales"
         value={`₹${(financials.pharmacy_revenue?.today || 0).toLocaleString()}`}
         onClick={() => navigate("/pharmacy/inventory")}
+        isAdmin={isAdmin}
       />
 
       <DashboardCard
@@ -1584,13 +1608,16 @@ const RevenueSummaryTab = ({ data, navigate }) => {
         change="Pending payments"
         value={`₹${((financials.outstanding_payments || 0) / 1000).toFixed(1)}K`}
         onClick={() => navigate("/Billing")}
+        isAdmin={isAdmin}
       />
     </div>
   );
 };
 
 // =================== DASHBOARD CARD COMPONENT ===================
-const DashboardCard = ({ title, change, value, onClick }) => {
+const DashboardCard = ({ title, change, value, onClick, isAdmin }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
   return (
     <div className="bg-[#0EFF7B1A] dark:bg-[#0EFF7B0D] p-5 rounded-lg">
       <h3 className="text-xl font-semibold mb-3 text-black dark:text-white">
@@ -1604,17 +1631,43 @@ const DashboardCard = ({ title, change, value, onClick }) => {
         </span>
       </div>
 
-      <button
-        className="px-4 py-2 text-white text-sm rounded-[8px] w-full mt-4 relative"
-        style={{
-          background: "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-          borderBottom: "2px solid #0EFF7B",
-          boxShadow: "0px 2px 12px 0px #00000040",
-        }}
-        onClick={onClick}
-      >
-        View details
-      </button>
+      {/* Button with admin-only restriction */}
+     <div className="relative w-full mt-4 group">
+  <button
+    className={`px-4 py-2 text-white text-sm rounded-[8px] w-full transition-all ${
+      isAdmin 
+        ? "cursor-pointer opacity-100" 
+        : "cursor-not-allowed opacity-50"
+    }`}
+    style={{
+      background: isAdmin 
+        ? "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)"
+        : "linear-gradient(92.18deg, #4a4a4a 3.26%, #6b6b6b 50.54%, #4a4a4a 97.83%)",
+      borderBottom: isAdmin ? "2px solid #0EFF7B" : "2px solid #6b6b6b",
+      boxShadow: "0px 2px 12px 0px #00000040",
+    }}
+    onClick={() => {
+      if (!isAdmin) return;
+      onClick();
+    }}
+  >
+    View details
+  </button>
+
+  {/* Tooltip (Only for non-admin) */}
+  {!isAdmin && (
+    <span className="
+      absolute top-full mt-2 left-1/2 -translate-x-1/2
+      whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white
+      opacity-0 group-hover:opacity-100
+      transition-all duration-150
+      z-50
+    ">
+      Admin only
+    </span>
+  )}
+</div>
     </div>
   );
 };

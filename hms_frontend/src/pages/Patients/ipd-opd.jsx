@@ -784,6 +784,7 @@ import EditPatientPopup from "./EditPatient.jsx";
 import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -808,6 +809,15 @@ const AppointmentListIPD = () => {
   const [filterDoctors, setFilterDoctors] = useState([]);
   const [loadingFilterDepts, setLoadingFilterDepts] = useState(true);
   const [loadingFilterDocs, setLoadingFilterDocs] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+
+const userRole = currentUser?.role?.toLowerCase();
+const canEdit =
+  isAdmin ||
+  userRole === "doctor" ||
+  userRole === "receptionist";
+
+const canDelete = isAdmin;
   
   // Add state for patient counts from backend
   const [patientCounts, setPatientCounts] = useState({
@@ -1179,6 +1189,10 @@ const AppointmentListIPD = () => {
 
   // ---------- DELETE ----------
   const onDelete = async () => {
+    if (!canDelete) {
+    errorToast("You don't have permission to delete patients");
+    return;
+  }
     if (!selAppt?.patientId) {
       errorToast("No patient selected");
       return;
@@ -1510,45 +1524,57 @@ const AppointmentListIPD = () => {
 
                         {/* EDIT ICON + TOOLTIP */}
                         <div className="relative group">
-                          <Edit2
-                            size={16}
-                            onClick={() => {
-                              setSelAppt(a);
-                              setShowEdit(true);
-                            }}
-                            className="text-[#08994A] dark:text-blue-400 cursor-pointer"
-                          />
-                          <span
-                            className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50"
-                          >
-                            Edit
-                          </span>
-                        </div>
+  <Edit2
+    size={16}
+    onClick={() => {
+      if (!canEdit) return;
+      setSelAppt(a);
+      setShowEdit(true);
+    }}
+    className={`cursor-pointer ${
+      canEdit
+        ? "text-[#08994A] dark:text-[#08994A]"
+        : "text-gray-400 cursor-not-allowed opacity-50"
+    }`}
+  />
+
+  <span
+    className="absolute bottom-5 left-0 -translate-x-1/2 whitespace-nowrap
+    px-3 py-1 text-xs rounded-md shadow-md
+    bg-gray-100 dark:bg-black text-black dark:text-white
+    opacity-0 group-hover:opacity-100
+    transition-all duration-150 z-50"
+  >
+    {canEdit ? "Edit" : "Access Denied "}
+  </span>
+</div>
 
                         {/* DELETE ICON + TOOLTIP */}
                         <div className="relative group">
-                          <Trash2
-                            size={16}
-                            onClick={() => {
-                              setSelAppt(a);
-                              setShowDel(true);
-                            }}
-                            className="text-red-500 dark:text-gray-400 cursor-pointer"
-                          />
-                          <span
-                            className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50"
-                          >
-                            Delete
-                          </span>
-                        </div>
+  <Trash2
+    size={16}
+    onClick={() => {
+      if (!canDelete) return;
+      setSelAppt(a);
+      setShowDel(true);
+    }}
+    className={`cursor-pointer ${
+      canDelete
+        ? "text-red-500 dark:text-red-400"
+        : "text-gray-400 cursor-not-allowed opacity-50"
+    }`}
+  />
+
+  <span
+    className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
+    px-3 py-1 text-xs rounded-md shadow-md
+    bg-gray-100 dark:bg-black text-black dark:text-white
+    opacity-0 group-hover:opacity-100
+    transition-all duration-150 z-50"
+  >
+    {canDelete ? "Delete" : "Admin Only"}
+  </span>
+</div>
 
                       </div>
                     </td>

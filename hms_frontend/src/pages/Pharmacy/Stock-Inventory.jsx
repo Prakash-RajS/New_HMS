@@ -2835,6 +2835,7 @@ import {
   Edit2,
 } from "lucide-react";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const DeleteStockList = ({ onConfirm, onCancel, itemsToDelete }) => {
   return (
@@ -2990,6 +2991,12 @@ const StockInventory = () => {
   const [singleDeleteId, setSingleDeleteId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canAdd = isAdmin; // Only admin can add
+const canEdit = isAdmin; // Only admin can edit
+const canDelete = isAdmin; // Only admin can delete
   const [newStock, setNewStock] = useState({
     product_name: "",
     dosage: "",
@@ -4025,34 +4032,55 @@ const StockInventory = () => {
       ></div>
 
       <div className="flex justify-between items-center mb-6 mt-4 w-full">
-        <div>
-          <h1
-            className="text-[20px] font-medium text-black dark:text-white"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            Stock & Inventory
-          </h1>
-          <p
-            className="text-[14px] mt-2 text-gray-600 dark:text-gray-400"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            Manage stock items, track inventory levels, and monitor stock status
-            in real-time.
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setShowAddStockPopup(true);
-            setValidationErrors({});
-            setFieldErrors({});
-            setIsSubmitted(false);
-          }}
-          className="w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
-          + Add Stock
-        </button>
-      </div>
+  <div>
+    <h1
+      className="text-[20px] font-medium text-black dark:text-white"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      Stock & Inventory
+    </h1>
+    <p
+      className="text-[14px] mt-2 text-gray-600 dark:text-gray-400"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      Manage stock items, track inventory levels, and monitor stock status
+      in real-time.
+    </p>
+  </div>
+  
+  {/* Add Stock Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={() => {
+        if (!canAdd) return;
+        setShowAddStockPopup(true);
+        setValidationErrors({});
+        setFieldErrors({});
+        setIsSubmitted(false);
+      }}
+      disabled={!canAdd}
+      className={`w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
+        !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      + Add Stock
+    </button>
+    
+    {/* Tooltip for Add button */}
+    {!canAdd && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied - Admin Only
+      </span>
+    )}
+  </div>
+</div>
 
       <div className="flex items-center justify-between w-full mb-6 text-sm">
         <div className="flex gap-4">
@@ -4566,20 +4594,30 @@ const StockInventory = () => {
                 </div>
               )}
             </div>
-            <button
-              onClick={() =>
-                selectedRows.length > 0 && setShowDeletePopup(true)
-              }
-              disabled={selectedRows.length === 0}
-              className={`relative group flex items-center justify-center w-[32px] h-[32px] rounded-[20px] bg-gray-100 dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white ${
-                selectedRows.length === 0 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
-              <Trash2 size={16} className="text-[#0EFF7B]" />
-              <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                Delete
-              </span>
-            </button>
+            {/* Bulk Delete Button */}
+<div className="relative group">
+  <button
+    onClick={() => selectedRows.length > 0 && setShowDeletePopup(true)}
+    disabled={selectedRows.length === 0 || !canDelete}
+    className={`relative group flex items-center justify-center w-[32px] h-[32px] rounded-[20px] bg-gray-100 dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-white ${
+      selectedRows.length === 0 || !canDelete ? "opacity-50 cursor-not-allowed" : ""
+    }`}
+  >
+    <Trash2 size={16} className="text-[#0EFF7B]" />
+    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+      {canDelete ? "Delete Selected" : "Admin Only"}
+    </span>
+  </button>
+  
+  {/* Tooltip for disabled state */}
+  {selectedRows.length > 0 && !canDelete && (
+    <span
+      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150"
+    >
+      Admin Only
+    </span>
+  )}
+</div>
           </div>
         </div>
 
@@ -4752,42 +4790,90 @@ const StockInventory = () => {
                         <MoreVertical size={16} />
                       </button>
                       <div
-                        ref={(el) => (dropdownRefs.current[row.id] = el)}
-                        className={`absolute right-0 bg-gray-100 dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-1 z-50 ${
-                          openDropdownId === row.id ? "block" : "hidden"
-                        } ${
-                          index >= sortedData.length - 3
-                            ? "bottom-0 mb-8"
-                            : "top-0 mt-8"
-                        }`}
-                      >
-                        <button
-                          onClick={() => {
-                            openEditPopup(row);
-                            setOpenDropdownId(null);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                        >
-                          <Edit2
-                            size={14}
-                            className="text-[#08994A] dark:text-[#0EFF7B]"
-                          />
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSingleDeleteId(row.id);
-                            setShowSingleDeletePopup(true);
-                            setOpenDropdownId(null);
-                          }}
-                          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                        >
-                          <Trash2 size={14} className="text-red-500" />
-                          Delete
-                        </button>
-                      </div>
+  ref={(el) => (dropdownRefs.current[row.id] = el)}
+  className={`absolute right-0 bg-gray-100 dark:bg-[#000000E5] border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-[8px] shadow-[0_0_4px_0_#FFFFFF1F] w-[120px] py-1 z-50 ${
+    openDropdownId === row.id ? "block" : "hidden"
+  } ${
+    index >= sortedData.length - 3
+      ? "bottom-0 mb-8"
+      : "top-0 mt-8"
+  }`}
+>
+  {/* EDIT BUTTON */}
+  <div className="relative group w-full">
+    <button
+      onClick={() => {
+        if (!canEdit) return;
+        openEditPopup(row);
+        setOpenDropdownId(null);
+      }}
+      disabled={!canEdit}
+      className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
+        canEdit
+          ? "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+          : "text-gray-400 cursor-not-allowed opacity-50"
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      <Edit2
+        size={14}
+        className={canEdit ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400"}
+      />
+      Edit
+    </button>
+    
+    {/* Edit Tooltip */}
+    {!canEdit && (
+      <span
+        className="absolute left-full top-1/2 -translate-y-1/2 ml-2
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Admin Only
+      </span>
+    )}
+  </div>
+
+  {/* DELETE BUTTON */}
+  <div className="relative group w-full">
+    <button
+      onClick={() => {
+        if (!canDelete) return;
+        setSingleDeleteId(row.id);
+        setShowSingleDeletePopup(true);
+        setOpenDropdownId(null);
+      }}
+      disabled={!canDelete}
+      className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
+        canDelete
+          ? "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
+          : "text-gray-400 cursor-not-allowed opacity-50"
+      }`}
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      <Trash2
+        size={14}
+        className={canDelete ? "text-red-500" : "text-gray-400"}
+      />
+      Delete
+    </button>
+    
+    {/* Delete Tooltip */}
+    {!canDelete && (
+      <span
+        className="absolute left-full top-1/2 -translate-y-1/2 ml-2
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Admin Only
+      </span>
+    )}
+  </div>
+</div>
                     </td>
                   </tr>
                 ))

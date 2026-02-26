@@ -723,6 +723,11 @@ const Header = ({ isCollapsed }) => {
 
   const [userLoading, setUserLoading] = useState(true);
 
+  const isAdmin = useMemo(() => {
+  const role = getUserRole()?.toLowerCase() || userData.designation?.toLowerCase();
+  return role === 'admin' || role === 'administrator' || hasPermission('admin_access');
+}, [getUserRole, userData.designation, hasPermission]);
+
   // Fetch user data directly
   const fetchUserData = async () => {
     try {
@@ -1190,7 +1195,7 @@ const Header = ({ isCollapsed }) => {
             </span>
           </button>
 
-          <button
+          {/* <button
             onClick={handleSettingsClick}
             className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
           >
@@ -1201,7 +1206,21 @@ const Header = ({ isCollapsed }) => {
             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
               Settings
             </span>
-          </button>
+          </button> */}
+          {isAdmin && (
+      <button
+        onClick={handleSettingsClick}
+        className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
+      >
+        <Settings
+          size={20}
+          className="text-[#08994A] dark:text-[#0EFF7B]"
+        />
+        <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+          Settings
+        </span>
+      </button>
+    )}
 
           <div className="relative" ref={notificationRef}>
             <button

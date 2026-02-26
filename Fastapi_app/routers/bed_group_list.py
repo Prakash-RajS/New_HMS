@@ -714,43 +714,131 @@ async def admit_patient(admit_request: AdmitPatientRequest):
         },
     }
     
-# VACATE BED (Discharge)
-@router.post("/{group_id}/beds/{bed_number}/vacate", response_model=BedGroupResponse)
+
+# VACATE BED (Discharge + Auto Create Charges)
+@router.post("/{group_id}/beds/{bed_number}/vacate", response_model=Dict[str, Any])
 async def vacate_bed(group_id: int, bed_number: int):
+
     try:
-        group = await sync_to_async(lambda: (ensure_db_connection(), BedGroup.objects.get(id=group_id))[1])()
+        group = await sync_to_async(
+            lambda: (ensure_db_connection(), BedGroup.objects.get(id=group_id))[1]
+        )()
+
         bed = await sync_to_async(
             lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group', 'patient').get(
                 bed_group=group, bed_number=bed_number
             ))[1]
         )()
+
     except (BedGroup.DoesNotExist, Bed.DoesNotExist):
         raise HTTPException(status_code=404, detail="Bed or Bed group not found")
+
     if not bed.is_occupied:
         raise HTTPException(status_code=400, detail="Bed is already vacant")
-    # Store patient name for notification before clearing
-    patient_name = bed.patient.full_name if bed.patient else "Unknown Patient"
+
+    patient = bed.patient
+    patient_name = patient.full_name if patient else "Unknown Patient"
     old_occupied = group.occupied
-    # Update discharge date on patient
-    if bed.patient:
-        bed.patient.discharge_date = datetime.now().date()
-        await sync_to_async(lambda: (ensure_db_connection(), bed.patient.save())[1])()
+
+    charges_created = False
+    created_count = 0
+
+    # -----------------------------
+    # CALCULATE STAY DAYS
+    # -----------------------------
+    if patient and patient.admission_date:
+        discharge_date = datetime.now().date()
+        stay_days = (discharge_date - patient.admission_date).days
+
+        if stay_days <= 0:
+            stay_days = 1
+    else:
+        stay_days = 1
+
+    # -----------------------------
+    # CREATE DAILY GENERAL + BED CHARGES
+    # -----------------------------
+    if patient:
+
+        from HMS_backend.models import Charge, TreatmentCharge
+
+        # 🔹 Fetch GENERAL charges
+        general_charges = await sync_to_async(
+            lambda: list(Charge.objects.filter(charge_scope="GENERAL"))
+        )()
+
+        # 🔹 Fetch BED related charges (contains match)
+        bed_related_charges = await sync_to_async(
+            lambda: list(
+                Charge.objects.filter(
+                    charge__icontains=group.bedGroup
+                )
+            )
+        )()
+
+        # 🔹 Combine both lists (avoid duplicates if any overlap)
+        all_charges = {c.id: c for c in (general_charges + bed_related_charges)}.values()
+
+        for charge in all_charges:
+
+            exists = await sync_to_async(
+                lambda: TreatmentCharge.objects.filter(
+                    patient=patient,
+                    description=charge.charge
+                ).exists()
+            )()
+
+            if not exists:
+                await sync_to_async(
+                    lambda: TreatmentCharge.objects.create(
+                        patient=patient,
+                        description=charge.charge,
+                        quantity=stay_days,   # 🔥 Daily calculation
+                        unit_price=charge.unit_price,
+                    )
+                )()
+                charges_created = True
+                created_count += 1
+
+    # -----------------------------
+    # DISCHARGE PATIENT
+    # -----------------------------
+    if patient:
+        patient.discharge_date = datetime.now().date()
+        await sync_to_async(lambda: patient.save())()
+
     bed.is_occupied = False
     bed.patient = None
-    await sync_to_async(lambda: (ensure_db_connection(), bed.save())[1])()
-    # Refresh group counts
-    await sync_to_async(lambda: (ensure_db_connection(), group.refresh_counts())[1])()
-    # Reload bed with relations for notification
-    bed_with_relations = await sync_to_async(
-        lambda: (ensure_db_connection(), Bed.objects.select_related('bed_group').get(id=bed.id))[1]
-    )()
-    # Send notifications
-    await safe_send_bed_notification("bed_vacated", bed_with_relations, patient_name=patient_name)
-    await safe_send_bed_notification("bed_updated", bed_with_relations)
-   
+    await sync_to_async(lambda: bed.save())()
+
+    await sync_to_async(lambda: group.refresh_counts())()
+
+    # -----------------------------
+    # SEND NOTIFICATIONS
+    # -----------------------------
+    await safe_send_bed_notification("bed_vacated", bed, patient_name=patient_name)
+    await safe_send_bed_notification("bed_updated", bed)
+
     if old_occupied != group.occupied:
-        await safe_send_bed_notification("room_occupancy_changed", group, old_occupied, group.occupied)
-    return await BedGroupResponse.from_orm_with_beds(group)
+        await safe_send_bed_notification(
+            "room_occupancy_changed",
+            group,
+            old_occupied,
+            group.occupied
+        )
+
+    # -----------------------------
+    # RESPONSE MESSAGE
+    # -----------------------------
+    if charges_created:
+        message = f"Patient discharged successfully. {created_count} charges created for {stay_days} day(s)."
+    else:
+        message = "Patient discharged successfully. No charges found."
+
+    return {
+        "success": True,
+        "message": message
+    }
 
 # TRANSFER PATIENT BETWEEN BEDS (Optional - if you need this functionality)
 @router.post("/transfer", response_model=Dict[str, Any])

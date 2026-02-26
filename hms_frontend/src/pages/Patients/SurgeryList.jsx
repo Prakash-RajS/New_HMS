@@ -17,6 +17,7 @@ import EditSurgeryPopup from "./EditSurgeryPopup";
 import DeleteSurgeryPopup from "./DeleteSurgeryPopup";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const SurgeryList = () => {
   // === State ===
@@ -31,6 +32,13 @@ const SurgeryList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canEdit = isAdmin || userRole === "doctor" || userRole === "staff";
+const canDelete = isAdmin;
+const canAdd = isAdmin || userRole === "doctor" || userRole === "staff";
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -381,17 +389,38 @@ const SurgeryList = () => {
       ></div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mt-4 mb-2 relative z-10">
-        <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-          Surgery List
-        </h2>
-        <button
-          onClick={() => setShowAddPopup(true)}
-          className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
-        >
-          <Plus size={18} className="text-white font-[Helvetica]" /> Add Surgery
-        </button>
-      </div>
+      {/* Header */}
+<div className="flex justify-between items-center mt-4 mb-2 relative z-10">
+  <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
+    Surgery List
+  </h2>
+  
+  {/* Add Surgery Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={() => canAdd && setShowAddPopup(true)}
+      disabled={!canAdd}
+      className={`flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
+        !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+    >
+      <Plus size={18} className="text-white font-[Helvetica]" /> Add Surgery
+    </button>
+    
+    {/* Tooltip for Add button */}
+    {!canAdd && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied 
+      </span>
+    )}
+  </div>
+</div>
 
       {/* Status Counts */}
       <div className="mb-3 min-w-[800px] relative z-10">
@@ -617,49 +646,78 @@ const SurgeryList = () => {
                   </td>
 
                   <td className="text-center">
-                    <div className="flex justify-center gap-4 relative overflow-visible">
-                      <div className="relative group">
-                        <Edit2
-                          size={16}
-                          onClick={() => {
-                            const backend = surgery.raw;
-                            const backendReady = {
-                              id: backend.id,
-                              patient_id: backend.patient_id,
-                              patient_name: backend.patient_name,
-                              doctor_id: backend.doctor_id,
-                              doctor_name: backend.doctor_name,
-                              surgery_type: backend.surgery_type,
-                              description: backend.description,
-                              status: backend.status,
-                              scheduled_date: backend.scheduled_date,
-                              price: backend.price || "", 
-                            };
-                            setSelectedSurgery(backendReady);
-                            setShowEditPopup(true);
-                          }}
-                          className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
-                        />
-                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                          Edit
-                        </span>
-                      </div>
+  <div className="flex justify-center gap-4 relative overflow-visible">
+    
+    {/* EDIT ICON */}
+    <div className="relative group">
+      <Edit2
+        size={16}
+        onClick={() => {
+          if (!canEdit) return;
+          const backend = surgery.raw;
+          const backendReady = {
+            id: backend.id,
+            patient_id: backend.patient_id,
+            patient_name: backend.patient_name,
+            doctor_id: backend.doctor_id,
+            doctor_name: backend.doctor_name,
+            surgery_type: backend.surgery_type,
+            description: backend.description,
+            status: backend.status,
+            scheduled_date: backend.scheduled_date,
+            price: backend.price || "", 
+          };
+          setSelectedSurgery(backendReady);
+          setShowEditPopup(true);
+        }}
+        className={`cursor-pointer transition ${
+          canEdit
+            ? "text-[#08994A] dark:text-blue-400 hover:scale-110"
+            : "text-gray-400 opacity-40 cursor-not-allowed"
+        }`}
+      />
+      
+      {/* Edit Tooltip */}
+      <span
+        className="absolute bottom-5 -left-1/2 -translate-x-1/2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        {canEdit ? "Edit" : "Access Denied"}
+      </span>
+    </div>
 
-                      <div className="relative group">
-                        <Trash2
-                          size={16}
-                          onClick={() => {
-                            setSelectedSurgery({ id: surgery.id });
-                            setShowDeletePopup(true);
-                          }}
-                          className="cursor-pointer text-red-500 hover:scale-110"
-                        />
-                        <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                          Delete
-                        </span>
-                      </div>
-                    </div>
-                  </td>
+    {/* DELETE ICON */}
+    <div className="relative group">
+      <Trash2
+        size={16}
+        onClick={() => {
+          if (!canDelete) return;
+          setSelectedSurgery({ id: surgery.id });
+          setShowDeletePopup(true);
+        }}
+        className={`cursor-pointer transition ${
+          canDelete
+            ? "text-red-500 hover:scale-110"
+            : "text-gray-400 opacity-40 cursor-not-allowed"
+        }`}
+      />
+      
+      {/* Delete Tooltip */}
+      <span
+        className="absolute bottom-5 -left-1/2 -translate-x-1/2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        {canDelete ? "Delete" : "Admin Only"}
+      </span>
+    </div>
+  </div>
+</td>
                 </tr>
               ))
             ) : (

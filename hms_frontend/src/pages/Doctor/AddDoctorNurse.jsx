@@ -6,6 +6,7 @@ import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import api from "../../utils/axiosConfig"; // Import axios
+import { usePermissions } from "../../components/PermissionContext";
 
 const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
@@ -363,6 +364,10 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [showAllErrors, setShowAllErrors] = useState(false);
   
   const navigate = useNavigate();
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canAddStaff = isAdmin; // Only admin can add staff
 
   const maritalStatus = ["Single", "Married", "Divorced", "Widowed"];
   const statusOptions = ["Available", "Unavailable", "On Leave"];
@@ -767,6 +772,10 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+     if (!canAddStaff) {
+    errorToast("You don't have permission to add staff members");
+    return;
+  }
     console.log("Form submission started", formData);
 
     // Validate form before submission
@@ -853,6 +862,10 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   const handleReset = () => {
+    if (!canAddStaff) {
+    errorToast("You don't have permission to modify this form");
+    return;
+  }
     setFormData({
       full_name: "",
       date_of_birth: "",
@@ -1248,37 +1261,56 @@ export default function NewRegistration({ isSidebarOpen }) {
               </div>
             </div>
 
-            <div className="flex flex-col pt-7 sm:flex-row justify-end gap-3 md:gap-4">
-              <button
-                type="reset"
-                className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-gray-100 dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
-                onClick={handleReset}
-                disabled={loading}
-              >
-                ✕ Clear
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base disabled:opacity-50"
-                style={{
-                  background:
-                    "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                }}
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <UserPlus size={18} className="text-white" />
-                    Add Staff
-                  </>
-                )}
-              </button>
-            </div>
+           <div className="flex flex-col pt-7 sm:flex-row justify-end gap-3 md:gap-4">
+  <button
+    type="reset"
+    className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-gray-100 dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
+    onClick={handleReset}
+    disabled={loading}
+  >
+    ✕ Clear
+  </button>
+  
+  {/* Add Staff Button with Tooltip */}
+  <div className="relative group">
+    <button
+      type="submit"
+      disabled={loading || !canAddStaff}
+      className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base ${
+        !canAddStaff ? 'opacity-50 cursor-not-allowed' : ''
+      }`}
+      style={{
+        background:
+          "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+      }}
+    >
+      {loading ? (
+        <>
+          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          Adding...
+        </>
+      ) : (
+        <>
+          <UserPlus size={18} className="text-white" />
+          Add Staff
+        </>
+      )}
+    </button>
+    
+    {/* Tooltip for disabled state due to permissions */}
+    {!canAddStaff && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied - Admin Only
+      </span>
+    )}
+  </div>
+</div>
           </form>
         </div>
       </div>

@@ -1,4 +1,3 @@
-# charges.py (SIMPLIFIED VERSION)
 from pydantic import BaseModel, validator, Field
 from datetime import datetime
 from typing import Optional, List
@@ -18,6 +17,7 @@ class ChargeCreate(BaseModel):
     charge: str = Field(..., max_length=255, description="Charge name")
     unit_price: float = Field(..., ge=0, description="Unit price")
     description: Optional[str] = Field(None, description="Description of the charge")
+    charge_scope: str = Field("GENERAL", description="Charge scope: GENERAL or SPECIFIC")
 
     @validator("charge")
     def validate_charge(cls, v):
@@ -30,11 +30,18 @@ class ChargeCreate(BaseModel):
         if v < 0:
             raise ValueError("Unit price cannot be negative")
         return float(v)
+    
+    @validator("charge_scope")
+    def validate_charge_scope(cls, v):
+        if v not in ["GENERAL", "SPECIFIC"]:
+            raise ValueError("Charge scope must be either 'GENERAL' or 'SPECIFIC'")
+        return v
 
 class ChargeUpdate(BaseModel):
     charge: Optional[str] = Field(None, max_length=255, description="Charge name")
     unit_price: Optional[float] = Field(None, ge=0, description="Unit price")
     description: Optional[str] = Field(None, description="Description of the charge")
+    charge_scope: Optional[str] = Field(None, description="Charge scope: GENERAL or SPECIFIC")
 
     @validator("charge")
     def validate_charge_update(cls, v):
@@ -47,12 +54,19 @@ class ChargeUpdate(BaseModel):
         if v is not None and v < 0:
             raise ValueError("Unit price cannot be negative")
         return float(v) if v is not None else v
+    
+    @validator("charge_scope")
+    def validate_charge_scope_update(cls, v):
+        if v is not None and v not in ["GENERAL", "SPECIFIC"]:
+            raise ValueError("Charge scope must be either 'GENERAL' or 'SPECIFIC'")
+        return v
 
 class ChargeOut(BaseModel):
     id: int
     charge: str
     unit_price: float
     description: Optional[str]
+    charge_scope: str
     created_at: datetime
 
     class Config:
@@ -80,6 +94,7 @@ def charge_to_out(charge: Charge) -> ChargeOut:
         charge=charge.charge,
         unit_price=float(charge.unit_price),
         description=charge.description,
+        charge_scope=charge.charge_scope,
         created_at=charge.created_at,
     )
 
@@ -105,7 +120,8 @@ async def create_charge(
                 charge_obj = Charge.objects.create(
                     charge=payload.charge,
                     unit_price=payload.unit_price,
-                    description=payload.description
+                    description=payload.description,
+                    charge_scope=payload.charge_scope
                 )
                 return charge_obj
 
@@ -122,9 +138,10 @@ async def create_charge(
 
 @router.get("/", response_model=List[ChargeOut])
 async def list_charges(
-    search: Optional[str] = Query(None, description="Search in charge name or description")
+    search: Optional[str] = Query(None, description="Search in charge name or description"),
+    scope: Optional[str] = Query(None, description="Filter by charge scope: GENERAL or SPECIFIC")
 ):
-    """Get all charges with optional search"""
+    """Get all charges with optional search and scope filter"""
     @sync_to_async
     def get_charges():
         queryset = Charge.objects.all().order_by("-created_at")
@@ -134,6 +151,9 @@ async def list_charges(
                 Q(charge__icontains=search) |
                 Q(description__icontains=search)
             )
+        
+        if scope and scope in ["GENERAL", "SPECIFIC"]:
+            queryset = queryset.filter(charge_scope=scope)
 
         return list(queryset)
 
@@ -185,6 +205,9 @@ async def update_charge(
 
                 if payload.description is not None:
                     charge.description = payload.description
+                
+                if payload.charge_scope is not None:
+                    charge.charge_scope = payload.charge_scope
 
                 charge.save()
                 return charge
@@ -192,6 +215,8 @@ async def update_charge(
         updated_charge = await update_charge_with_transaction()
         return charge_to_out(updated_charge)
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

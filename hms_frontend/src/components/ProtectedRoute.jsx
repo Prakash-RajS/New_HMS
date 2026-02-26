@@ -1,3 +1,4 @@
+//components/ProtectedRoute.jsx
 import React, { useState, useEffect, useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { PermissionContext } from './PermissionContext';

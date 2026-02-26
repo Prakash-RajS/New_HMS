@@ -5,6 +5,7 @@ import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import api from "../../utils/axiosConfig"; // Import axios config
+import { usePermissions } from "../../components/PermissionContext";
 
 const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   // Safety: Close if no profile
@@ -14,6 +15,10 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
       onClose();
     }
   }, [profile, onClose]);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canEdit = isAdmin; // Only admin can edit
 
   const [formData, setFormData] = useState({
     full_name: "",
@@ -292,6 +297,10 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           'Content-Type': 'multipart/form-data'
         }
       });
+      if (!canEdit) {
+    errorToast("You don't have permission to update staff profiles");
+    return;
+  }
 
       if (response.status === 200) {
         const updatedStaff = response.data;

@@ -293,7 +293,7 @@ async def get_staff_by_department(department_id: int = Query(..., gt=0)):
         raise HTTPException(status_code=404, detail="Department not found or inactive")
     staff = await run_in_threadpool(
         lambda: (ensure_db_connection(), list(
-            Staff.objects.filter(department_id=department_id, status="active")
+            Staff.objects.filter(department_id=department_id, status__in=["active", "available"])
             .values("id", "full_name")
             .order_by("full_name")
         ))[1]

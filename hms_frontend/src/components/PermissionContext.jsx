@@ -1,3 +1,4 @@
+//components/PermissionContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import api from "../utils/axiosConfig";
 
@@ -173,7 +174,9 @@ export const PermissionProvider = ({ children }) => {
         getUserRole,
         getUserName,
         isAuthenticated,
-        fetchUserData // Expose for manual refresh
+        fetchUserData,// Expose for manual refresh
+        isAdmin: currentUser?.is_superuser === true ||
+             currentUser?.role?.toLowerCase() === "admin",
       }}
     >
       {children}

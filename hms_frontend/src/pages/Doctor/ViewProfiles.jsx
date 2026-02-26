@@ -498,6 +498,7 @@ import {
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const DoctorProfile = () => {
   const navigate = useNavigate();
@@ -509,6 +510,10 @@ const DoctorProfile = () => {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [certificates, setCertificates] = useState([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canManage = isAdmin; // Only admin can edit/view/download
  
   // ADDED: Validation states
   const [errors, setErrors] = useState({});
@@ -847,6 +852,10 @@ const parseCertificates = (certificatesString) => {
 };
  
   const handleViewCertificate = (certificate) => {
+     if (!canManage) {
+    errorToast("You don't have permission to view certificates");
+    return;
+  }
     const filePath = certificate.originalPath;
     const fileUrl = `${import.meta.env.VITE_API_BASE_URL}/${filePath}`;
     console.log("Viewing certificate URL:", fileUrl);
@@ -855,6 +864,10 @@ const parseCertificates = (certificatesString) => {
   // Handle download certificate
 // FIXED: Force download with multiple fallback methods
 const handleDownloadCertificate = async (certificate) => {
+  if (!canManage) {
+    errorToast("You don't have permission to download certificates");
+    return;
+  }
   try {
     // Show loading toast
     successToast("Preparing download...");
@@ -1192,6 +1205,10 @@ useEffect(() => {
  
   // UPDATED: handleEditClick
   const handleEditClick = () => {
+    if (!canManage) {
+    errorToast("You don't have permission to edit profiles");
+    return;
+  }
     setErrors({});
     setFormatErrors({});
     setShowEditModal(true);
@@ -1289,6 +1306,10 @@ const handleCloseModal = () => {
   // UPDATED: handleSubmit with validation and proper state update
 const handleSubmit = async (e) => {
   e.preventDefault();
+  if (!canManage) {
+    errorToast("You don't have permission to update profiles");
+    return;
+  }
 
   if (!validateForm()) {
     errorToast("Please fix the errors in the form");
@@ -1499,11 +1520,14 @@ const handleSubmit = async (e) => {
               </svg>
             </button>
             <button
-              className="text-[#08994A] dark:text-[#0EFF7B] w-[45px] h-[45px] p-3 rounded-full bg-[#F5F6F5] dark:bg-neutral-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] flex items-center justify-center"
-              onClick={handleEditClick}
-            >
-              <Edit size={18} />
-            </button>
+  className={`text-[#08994A] dark:text-[#0EFF7B] w-[45px] h-[45px] p-3 rounded-full bg-[#F5F6F5] dark:bg-neutral-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B33] flex items-center justify-center ${
+    !canManage ? 'opacity-100 cursor-not-allowed' : ''
+  }`}
+  onClick={handleEditClick}
+  disabled={!canManage}
+>
+  <Edit size={18} />
+</button>
           </div>
           <div className="flex items-start gap-7">
             <div className="min-w-[192px] h-[264px] rounded-lg bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">
@@ -1864,51 +1888,53 @@ const handleSubmit = async (e) => {
                                   <td className="py-3 px-3">
                                     <div className="flex gap-2">
                                       {/* VIEW */}
-  <div
-    className="relative group w-8 h-8 rounded-[6px]
-               border border-[#0EFF7B] dark:border-[#0EFF7B]
-               bg-gray-100 dark:bg-transparent
-               flex items-center justify-center
-               cursor-pointer hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-    onClick={() => handleViewCertificate(cert)}
+  {/* VIEW */}
+<div
+  className={`relative group w-8 h-8 rounded-[6px]
+             border border-[#0EFF7B] dark:border-[#0EFF7B]
+             bg-gray-100 dark:bg-transparent
+             flex items-center justify-center
+             ${canManage ? 'cursor-pointer hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]' : 'opacity-100 cursor-not-allowed'}`}
+  onClick={() => canManage && handleViewCertificate(cert)}
+>
+  <Eye
+    size={16}
+    className="text-[#08994A] dark:text-[#0EFF7B]"
+  />
+  <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-gray-100 dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150 z-100"
   >
-    <Eye
-      size={16}
-      className="text-[#08994A] dark:text-[#0EFF7B]"
-    />
-    <span
-      className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                 px-3 py-1 text-xs rounded-md shadow-md
-                 bg-gray-100 dark:bg-black text-black dark:text-white
-                 opacity-0 group-hover:opacity-100
-                 transition-all duration-150 z-50"
-    >
-      View
-    </span>
-  </div>
+    {canManage ? "View" : "Access Denied"}
+  </span>
+</div>
   {/* DOWNLOAD */}
-  <div
-    className="relative group w-8 h-8 rounded-[6px]
-               border border-[#08994A] dark:border-[#0EFF7B]
-               bg-[#08994A] dark:bg-[#0EFF7B33]
-               flex items-center justify-center
-               cursor-pointer hover:bg-[#0D7F41] dark:hover:bg-[#0EFF7B66]"
-    onClick={() => handleDownloadCertificate(cert)}
+  {/* DOWNLOAD */}
+<div
+  className={`relative group w-8 h-8 rounded-[6px]
+             border border-[#08994A] dark:border-[#0EFF7B]
+             bg-[#08994A] dark:bg-[#0EFF7B33]
+             flex items-center justify-center
+             ${canManage ? 'cursor-pointer hover:bg-[#0D7F41] dark:hover:bg-[#0EFF7B66]' : 'opacity-100 cursor-not-allowed'}`}
+  onClick={() => canManage && handleDownloadCertificate(cert)}
+>
+  <Download
+    size={16}
+    className="text-white"
+  />
+  <span
+    className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+               px-3 py-1 text-xs rounded-md shadow-md
+               bg-gray-100 dark:bg-black text-black dark:text-white
+               opacity-0 group-hover:opacity-100
+               transition-all duration-150 z-50"
   >
-    <Download
-      size={16}
-      className="text-white"
-    />
-    <span
-      className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                 px-3 py-1 text-xs rounded-md shadow-md
-                 bg-gray-100 dark:bg-black text-black dark:text-white
-                 opacity-0 group-hover:opacity-100
-                 transition-all duration-150 z-50"
-    >
-      Download
-    </span>
-  </div>
+    {canManage ? "Download" : "Access Denied"}
+  </span>
+</div>
                                     </div>
                                   </td>
                                 </tr>
@@ -2383,15 +2409,19 @@ const handleSubmit = async (e) => {
                 Cancel
               </button>
               <button
-                onClick={handleSubmit}
-                className="w-[104px] h-[33px] rounded-[8px] px-3 py-2 flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition"
-                style={{
-                  background:
-                    "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-                }}
-              >
-                Save
-              </button>
+  onClick={handleSubmit}
+  disabled={!canManage}
+  className={`w-[104px] h-[33px] rounded-[8px] px-3 py-2 flex items-center justify-center gap-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] text-white font-medium text-[14px] leading-[16px] hover:scale-105 transition ${
+    !canManage ? 'opacity-100 cursor-not-allowed' : ''
+  }`}
+  style={{
+    background: !canManage 
+      ? "#6B7280" 
+      : "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+  }}
+>
+  Save
+</button>
             </div>
           </div>
         </div>

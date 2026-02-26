@@ -412,11 +412,15 @@ import {
   ChevronRight,
 } from "lucide-react";
 import EditPatientPopup from "./EditPatient";
+import { usePermissions } from "../../components/PermissionContext";
 
 // Memoized Patient Card Component with minimal re-renders
 const PatientCard = memo(({ patient, onEdit, onViewProfile }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+const userRole = currentUser?.role?.toLowerCase();
+const canEdit = isAdmin || userRole === "receptionist";
 
   return (
     <div
@@ -464,13 +468,34 @@ const PatientCard = memo(({ patient, onEdit, onViewProfile }) => {
       </p>
 
       {/* Edit button */}
-      <button
-        onClick={() => onEdit(patient)}
-        className="absolute top-2 right-2 flex items-center gap-1 text-[#08994A] dark:text-[#4D58FF] text-[12px] hover:text-green-800 dark:hover:text-blue-300 transition-colors"
-        type="button"
-      >
-        <Edit size={16} /> <span>Edit</span>
-      </button>
+      <div className="absolute top-2 right-2">
+  <div className="relative group">
+    <button
+      onClick={canEdit ? () => onEdit(patient) : undefined}
+      disabled={!canEdit}
+      className={`flex items-center gap-1 text-[12px] transition-colors
+        ${
+          canEdit
+            ? "text-[#08994A] dark:text-[#4D58FF] hover:text-green-800 dark:hover:text-blue-300"
+            : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+        }`}
+      type="button"
+    >
+      <Edit size={16} /> <span>Edit</span>
+    </button>
+
+    {/* Tooltip */}
+    <span
+      className="absolute top-full right-0 mt-2
+                 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                 bg-gray-100 dark:bg-black text-black dark:text-white
+                 opacity-0 group-hover:opacity-100
+                 transition-all duration-150 z-50 pointer-events-none"
+    >
+      {canEdit ? "Edit" : "Access Denied"}
+    </span>
+  </div>
+</div>
 
       {/* View profile button */}
       <button
@@ -512,6 +537,7 @@ const ProfileSection = () => {
   const navigate = useNavigate();
   const itemsPerPage = 10;
   const searchTimeoutRef = useRef(null);
+  
 
   /* ==================== DEBOUNCED SEARCH ==================== */
   useEffect(() => {

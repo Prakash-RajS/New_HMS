@@ -1,4 +1,4 @@
-// ChargesManagement.jsx (COMPLETE UPDATED CODE)
+// ChargesManagement.jsx (COMPLETE UPDATED CODE WITH LISTBOX DROPDOWNS)
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -12,8 +12,11 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  Globe,
+  Lock,
+  ChevronDown,
 } from "lucide-react";
-import { Dialog } from "@headlessui/react";
+import { Dialog, Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig.js";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 
@@ -22,30 +25,33 @@ const ChargesManagement = () => {
   const [charges, setCharges] = useState([]);
   const [filteredCharges, setFilteredCharges] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [scopeFilter, setScopeFilter] = useState("ALL"); // "ALL", "GENERAL", "SPECIFIC"
   const [loading, setLoading] = useState(true);
   const [totalCharges, setTotalCharges] = useState(0);
-  
+
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+
   // Selected charge
   const [selectedCharge, setSelectedCharge] = useState(null);
-  
+
   // Form states
   const [formData, setFormData] = useState({
     charge: "",
     unit_price: "",
     description: "",
+    charge_scope: "GENERAL", // Default to GENERAL
   });
-  
+
   const [editFormData, setEditFormData] = useState({
     charge: "",
     unit_price: "",
     description: "",
+    charge_scope: "GENERAL",
   });
-  
+
   // Validation errors
   const [validationErrors, setValidationErrors] = useState({});
   const [editValidationErrors, setEditValidationErrors] = useState({});
@@ -54,41 +60,60 @@ const ChargesManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Focus state for styling
+  const [focusedField, setFocusedField] = useState(null);
+
+  // Scope filter options
+  const scopeOptions = [
+    { value: "ALL", label: "All Scopes" },
+    { value: "GENERAL", label: "General" },
+    { value: "SPECIFIC", label: "Specific" },
+  ];
+
   // Initialize - fetch charges on component mount
   useEffect(() => {
     fetchCharges();
   }, []);
 
-  // Filter charges based on search query
+  // Filter charges based on search query and scope filter
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredCharges(charges);
-    } else {
+    let filtered = charges;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
-      setFilteredCharges(
-        charges.filter(
-          (c) =>
-            c.charge.toLowerCase().includes(lowerQuery) ||
-            (c.description && c.description.toLowerCase().includes(lowerQuery))
-        )
+      filtered = filtered.filter(
+        (c) =>
+          c.charge.toLowerCase().includes(lowerQuery) ||
+          (c.description && c.description.toLowerCase().includes(lowerQuery))
       );
     }
-  }, [searchQuery, charges]);
+
+    // Apply scope filter
+    if (scopeFilter !== "ALL") {
+      filtered = filtered.filter((c) => c.charge_scope === scopeFilter);
+    }
+
+    setFilteredCharges(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [searchQuery, scopeFilter, charges]);
 
   // Fetch all charges
   const fetchCharges = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/charges/", {
-        params: searchQuery ? { search: searchQuery } : {}
-      });
-      
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (scopeFilter !== "ALL") params.scope = scopeFilter;
+
+      const res = await api.get("/charges/", { params });
+
       console.log("Charges response:", res.data);
-      
+
       // Handle response - it should be a direct array
       let chargesData = [];
       let totalCount = 0;
-      
+
       if (Array.isArray(res.data)) {
         chargesData = res.data;
         totalCount = res.data.length;
@@ -99,7 +124,7 @@ const ChargesManagement = () => {
         chargesData = res.data.data;
         totalCount = res.data.total || res.data.data.length;
       }
-      
+
       setCharges(chargesData);
       setFilteredCharges(chargesData);
       setTotalCharges(totalCount);
@@ -125,6 +150,7 @@ const ChargesManagement = () => {
       charge: "",
       unit_price: "",
       description: "",
+      charge_scope: "GENERAL",
     });
     setValidationErrors({});
   };
@@ -135,6 +161,7 @@ const ChargesManagement = () => {
       charge: "",
       unit_price: "",
       description: "",
+      charge_scope: "GENERAL",
     });
     setEditValidationErrors({});
   };
@@ -145,7 +172,7 @@ const ChargesManagement = () => {
       ...formData,
       [field]: value,
     });
-    
+
     // Clear validation error for this field
     if (validationErrors[field]) {
       setValidationErrors({
@@ -161,7 +188,7 @@ const ChargesManagement = () => {
       ...editFormData,
       [field]: value,
     });
-    
+
     // Clear validation error for this field
     if (editValidationErrors[field]) {
       setEditValidationErrors({
@@ -174,24 +201,30 @@ const ChargesManagement = () => {
   // Validate form
   const validateForm = (data) => {
     const errors = {};
-    
+
     if (!data.charge.trim()) {
       errors.charge = "Charge name is required";
     }
-    
+
     if (!data.unit_price) {
       errors.unit_price = "Unit price is required";
     } else if (parseFloat(data.unit_price) <= 0) {
       errors.unit_price = "Unit price must be greater than 0";
     }
-    
+
+    if (!data.charge_scope) {
+      errors.charge_scope = "Charge scope is required";
+    } else if (!["GENERAL", "SPECIFIC"].includes(data.charge_scope)) {
+      errors.charge_scope = "Invalid charge scope";
+    }
+
     return errors;
   };
 
   // Handle add charge
   const handleAddCharge = async () => {
     const errors = validateForm(formData);
-    
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
@@ -202,22 +235,22 @@ const ChargesManagement = () => {
         charge: formData.charge.trim(),
         unit_price: parseFloat(formData.unit_price),
         description: formData.description.trim() || null,
+        charge_scope: formData.charge_scope,
       };
-      
+
       console.log("Creating charge:", chargeData);
-      
+
       const res = await api.post("/charges/", chargeData);
-      
+
       successToast("Charge added successfully");
       setShowAddModal(false);
       resetForm();
-      
+
       // Refresh charges list
       await fetchCharges();
-      
     } catch (err) {
       console.error("Failed to add charge:", err);
-      
+
       if (err.response?.data?.detail) {
         errorToast(err.response.data.detail);
       } else {
@@ -229,9 +262,9 @@ const ChargesManagement = () => {
   // Handle edit charge
   const handleEditCharge = async () => {
     if (!selectedCharge) return;
-    
+
     const errors = validateForm(editFormData);
-    
+
     if (Object.keys(errors).length > 0) {
       setEditValidationErrors(errors);
       return;
@@ -242,23 +275,23 @@ const ChargesManagement = () => {
         charge: editFormData.charge.trim(),
         unit_price: parseFloat(editFormData.unit_price),
         description: editFormData.description.trim() || null,
+        charge_scope: editFormData.charge_scope,
       };
-      
+
       console.log("Updating charge:", selectedCharge.id, chargeData);
-      
+
       const res = await api.put(`/charges/${selectedCharge.id}/`, chargeData);
-      
+
       successToast("Charge updated successfully");
       setShowEditModal(false);
       setSelectedCharge(null);
       resetEditForm();
-      
+
       // Refresh charges list
       await fetchCharges();
-      
     } catch (err) {
       console.error("Failed to update charge:", err);
-      
+
       if (err.response?.data?.detail) {
         errorToast(err.response.data.detail);
       } else {
@@ -273,17 +306,16 @@ const ChargesManagement = () => {
 
     try {
       await api.delete(`/charges/${selectedCharge.id}/`);
-      
+
       successToast("Charge deleted successfully");
       setShowDeleteModal(false);
       setSelectedCharge(null);
-      
+
       // Refresh charges list
       await fetchCharges();
-      
     } catch (err) {
       console.error("Failed to delete charge:", err);
-      
+
       if (err.response?.data?.detail) {
         errorToast(err.response.data.detail);
       } else {
@@ -299,6 +331,7 @@ const ChargesManagement = () => {
       charge: charge.charge,
       unit_price: charge.unit_price.toString(),
       description: charge.description || "",
+      charge_scope: charge.charge_scope || "GENERAL",
     });
     setEditValidationErrors({});
     setShowEditModal(true);
@@ -322,6 +355,25 @@ const ChargesManagement = () => {
       });
     } catch (e) {
       return dateString;
+    }
+  };
+
+  // Get scope badge styling
+  const getScopeBadge = (scope) => {
+    if (scope === "GENERAL") {
+      return {
+        bg: "bg-blue-100 dark:bg-blue-900/30",
+        text: "text-blue-700 dark:text-blue-400",
+        icon: <Globe size={12} className="mr-1" />,
+        label: "General"
+      };
+    } else {
+      return {
+        bg: "bg-purple-100 dark:bg-purple-900/30",
+        text: "text-purple-700 dark:text-purple-400",
+        icon: <Lock size={12} className="mr-1" />,
+        label: "Specific"
+      };
     }
   };
 
@@ -362,7 +414,7 @@ const ChargesManagement = () => {
             zIndex: 0,
           }}
         ></div>
-        
+
         {/* Header */}
         <div className="flex justify-between items-center mb-2 relative z-10">
           <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
@@ -383,7 +435,7 @@ const ChargesManagement = () => {
           Manage pre-filled charges like Bed, Parking, Mess, etc.
         </p>
 
-        {/* Search and Add Button */}
+        {/* Search and Filter Bar */}
         <div className="mb-6 flex flex-row justify-between items-center gap-4 flex-wrap">
           <div className="flex-1 min-w-[300px] max-w-[500px] relative">
             <div className="flex gap-2">
@@ -420,6 +472,58 @@ const ChargesManagement = () => {
               </button>
             </div>
           </div>
+
+          {/* Scope Filter Dropdown - Now using Listbox */}
+          <div className="flex items-center gap-2">
+            <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+            <div className="relative min-w-[140px]">
+              <Listbox value={scopeFilter} onChange={setScopeFilter}>
+                <Listbox.Button
+                  onFocus={() => setFocusedField("scopeFilter")}
+                  onBlur={() => setFocusedField(null)}
+                  className={`
+                    w-full h-[34px] px-3 pr-8 rounded-[8px] border
+                    bg-gray-100 dark:bg-transparent text-left text-sm
+                    flex items-center justify-between group
+                    ${
+                      focusedField === "scopeFilter"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }
+                  `}
+                >
+                  <span className={`block truncate ${scopeFilter ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
+                    {scopeOptions.find(opt => opt.value === scopeFilter)?.label || "All Scopes"}
+                  </span>
+                  <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                  </span>
+                </Listbox.Button>
+                <Listbox.Options
+                  className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
+                             shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-0"
+                >
+                  {scopeOptions.map((opt) => (
+                    <Listbox.Option
+                      key={opt.value}
+                      value={opt.value}
+                      className={({ active, selected }) =>
+                        `cursor-pointer select-none py-2 px-3 text-sm
+                         ${
+                           active
+                             ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                             : "text-black dark:text-white"
+                         }
+                         ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                      }
+                    >
+                      {opt.label}
+                    </Listbox.Option>
+                  ))}
+                </Listbox.Options>
+              </Listbox>
+            </div>
+          </div>
         </div>
 
         {/* Charges Counter - Matching AppointmentList style */}
@@ -433,8 +537,8 @@ const ChargesManagement = () => {
                 {totalCharges}
               </span>
             </div>
-            
-            {searchQuery && (
+
+            {(searchQuery || scopeFilter !== "ALL") && (
               <>
                 <div className="h-8 w-px bg-gray-300 dark:bg-gray-700"></div>
                 <div className="flex items-center gap-2">
@@ -458,6 +562,7 @@ const ChargesManagement = () => {
                 <th className="py-3 px-2">S No</th>
                 <th>Charge Name</th>
                 <th>Unit Price ($)</th>
+                <th>Scope</th>
                 <th>Description</th>
                 <th>Created At</th>
                 <th className="text-center">Actions</th>
@@ -467,7 +572,7 @@ const ChargesManagement = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-12">
+                  <td colSpan="7" className="text-center py-12">
                     <div className="flex justify-center items-center">
                       <Loader2 className="w-8 h-8 text-[#0EFF7B] animate-spin" />
                       <span className="ml-3 text-[#0EFF7B]">Loading charges...</span>
@@ -475,73 +580,83 @@ const ChargesManagement = () => {
                   </td>
                 </tr>
               ) : currentCharges.length > 0 ? (
-                currentCharges.map((charge, idx) => (
-                  <tr
-                    key={charge.id}
-                    className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
-                  >
-                    <td className="py-3 px-2">
-                      <div className="font-medium text-black dark:text-white">
-                        {(currentPage - 1) * itemsPerPage + idx + 1}
-                      </div>
-                    </td>
-
-                    <td className="py-3">
-                      <div className="font-medium text-black dark:text-white">
-                        {charge.charge}
-                      </div>
-                    </td>
-
-                    <td className="text-black dark:text-white">
-                      <div className="flex items-center gap-1">
-                        <DollarSign size={14} />
-                        {parseFloat(charge.unit_price).toFixed(2)}
-                      </div>
-                    </td>
-
-                    <td className="text-black dark:text-white">
-                      {charge.description || "No description"}
-                    </td>
-
-                    <td className="text-black dark:text-white">
-                      {formatDate(charge.created_at)}
-                    </td>
-
-                    <td className="text-center">
-                      <div className="flex justify-center gap-4 relative overflow-visible">
-                        <div className="relative group">
-                          <Pencil
-                            size={16}
-                            onClick={() => openEditModal(charge)}
-                            className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
-                          />
-                          <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                            Edit
-                          </span>
+                currentCharges.map((charge, idx) => {
+                  const scopeBadge = getScopeBadge(charge.charge_scope);
+                  return (
+                    <tr
+                      key={charge.id}
+                      className="border-b border-gray-300 dark:border-gray-800 font-[Helvetica]"
+                    >
+                      <td className="py-3 px-2">
+                        <div className="font-medium text-black dark:text-white">
+                          {(currentPage - 1) * itemsPerPage + idx + 1}
                         </div>
+                      </td>
 
-                        <div className="relative group">
-                          <Trash
-                            size={16}
-                            onClick={() => openDeleteModal(charge)}
-                            className="cursor-pointer text-red-500 hover:scale-110"
-                          />
-                          <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                            Delete
-                          </span>
+                      <td className="py-3">
+                        <div className="font-medium text-black dark:text-white">
+                          {charge.charge}
                         </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      <td className="text-black dark:text-white">
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={14} />
+                          {parseFloat(charge.unit_price).toFixed(2)}
+                        </div>
+                      </td>
+
+                      <td>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${scopeBadge.bg} ${scopeBadge.text}`}>
+                          {scopeBadge.icon}
+                          {scopeBadge.label}
+                        </span>
+                      </td>
+
+                      <td className="text-black dark:text-white">
+                        {charge.description || "No description"}
+                      </td>
+
+                      <td className="text-black dark:text-white">
+                        {formatDate(charge.created_at)}
+                      </td>
+
+                      <td className="text-center">
+                        <div className="flex justify-center gap-4 relative overflow-visible">
+                          <div className="relative group">
+                            <Pencil
+                              size={16}
+                              onClick={() => openEditModal(charge)}
+                              className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              Edit
+                            </span>
+                          </div>
+
+                          <div className="relative group">
+                            <Trash
+                              size={16}
+                              onClick={() => openDeleteModal(charge)}
+                              className="cursor-pointer text-red-500 hover:scale-110"
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              Delete
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center py-12 text-gray-500 dark:text-gray-400">
-                    {searchQuery ? (
+                  <td colSpan="7" className="text-center py-12 text-gray-500 dark:text-gray-400">
+                    {searchQuery || scopeFilter !== "ALL" ? (
                       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                         <Package className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
-                        <p className="text-lg">No charges found matching "{searchQuery}"</p>
-                        <p className="text-sm mt-2">Try a different search term or add a new charge</p>
+                        <p className="text-lg">No charges found matching your filters</p>
+                        <p className="text-sm mt-2">Try a different search term or clear filters</p>
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
@@ -572,21 +687,20 @@ const ChargesManagement = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-                }`}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                currentPage === 1 ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
             >
               <ChevronLeft size={12} className="text-[#08994A] dark:text-white" />
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${currentPage === totalPages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
-                }`}
+              className={`w-5 h-5 flex items-center justify-center rounded-full border border-[#0EFF7B] dark:border-[#0EFF7B33] ${
+                currentPage === totalPages ? "opacity-50" : "hover:bg-[#0EFF7B1A]"
+              }`}
             >
-              <ChevronRight
-                size={12}
-                className="text-[#08994A] dark:text-white"
-              />
+              <ChevronRight size={12} className="text-[#08994A] dark:text-white" />
             </button>
           </div>
         </div>
@@ -619,7 +733,7 @@ const ChargesManagement = () => {
                   zIndex: 0,
                 }}
               ></div>
-              
+
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
                   Add New Charge
@@ -634,7 +748,7 @@ const ChargesManagement = () => {
                   <X size={16} className="text-black dark:text-white" />
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
@@ -644,14 +758,20 @@ const ChargesManagement = () => {
                     type="text"
                     value={formData.charge}
                     onChange={(e) => handleFormChange("charge", e.target.value)}
+                    onFocus={() => setFocusedField("addCharge")}
+                    onBlur={() => setFocusedField(null)}
                     placeholder="Enter charge name (e.g., Bed, Parking, Mess)"
-                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "addCharge"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                   {validationErrors.charge && (
                     <p className="text-red-500 text-xs mt-1">{validationErrors.charge}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
                     Unit Price ($) <span className="text-red-500">*</span>
@@ -662,14 +782,90 @@ const ChargesManagement = () => {
                     step="0.01"
                     value={formData.unit_price}
                     onChange={(e) => handleFormChange("unit_price", e.target.value)}
+                    onFocus={() => setFocusedField("addUnitPrice")}
+                    onBlur={() => setFocusedField(null)}
                     placeholder="Enter unit price"
-                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "addUnitPrice"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                   {validationErrors.unit_price && (
                     <p className="text-red-500 text-xs mt-1">{validationErrors.unit_price}</p>
                   )}
                 </div>
-                
+
+                {/* Charge Scope Dropdown - Now using Listbox */}
+                <div>
+                  <label className="text-sm text-black dark:text-white block mb-1">
+                    Charge Scope <span className="text-red-500">*</span>
+                  </label>
+                  <Listbox
+                    value={formData.charge_scope}
+                    onChange={(v) => handleFormChange("charge_scope", v)}
+                  >
+                    <div className="relative mt-1">
+                      <Listbox.Button
+                        onFocus={() => setFocusedField("addScope")}
+                        onBlur={() => setFocusedField(null)}
+                        className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
+                          focusedField === "addScope"
+                            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                        }`}
+                      >
+                        <span className={`block truncate ${formData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
+                          {formData.charge_scope === "GENERAL"
+                            ? "General"
+                            : formData.charge_scope === "SPECIFIC"
+                            ? "Specific"
+                            : "Select Scope"}
+                        </span>
+                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options
+                        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
+                                   shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                      >
+                        <Listbox.Option
+                          value="GENERAL"
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          General
+                        </Listbox.Option>
+                        <Listbox.Option
+                          value="SPECIFIC"
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          Specific
+                        </Listbox.Option>
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  {validationErrors.charge_scope && (
+                    <p className="text-red-500 text-xs mt-1">{validationErrors.charge_scope}</p>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
                     Description (Optional)
@@ -677,13 +873,19 @@ const ChargesManagement = () => {
                   <textarea
                     value={formData.description}
                     onChange={(e) => handleFormChange("description", e.target.value)}
+                    onFocus={() => setFocusedField("addDesc")}
+                    onBlur={() => setFocusedField(null)}
                     placeholder="Enter charge description"
                     rows="3"
-                    className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "addDesc"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={() => {
@@ -737,7 +939,7 @@ const ChargesManagement = () => {
                   zIndex: 0,
                 }}
               ></div>
-              
+
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
                   Edit Charge
@@ -753,7 +955,7 @@ const ChargesManagement = () => {
                   <X size={16} className="text-black dark:text-white" />
                 </button>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
@@ -763,13 +965,19 @@ const ChargesManagement = () => {
                     type="text"
                     value={editFormData.charge}
                     onChange={(e) => handleEditFormChange("charge", e.target.value)}
-                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    onFocus={() => setFocusedField("editCharge")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "editCharge"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                   {editValidationErrors.charge && (
                     <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge}</p>
                   )}
                 </div>
-                
+
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
                     Unit Price ($) <span className="text-red-500">*</span>
@@ -780,13 +988,89 @@ const ChargesManagement = () => {
                     step="0.01"
                     value={editFormData.unit_price}
                     onChange={(e) => handleEditFormChange("unit_price", e.target.value)}
-                    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    onFocus={() => setFocusedField("editUnitPrice")}
+                    onBlur={() => setFocusedField(null)}
+                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "editUnitPrice"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                   {editValidationErrors.unit_price && (
                     <p className="text-red-500 text-xs mt-1">{editValidationErrors.unit_price}</p>
                   )}
                 </div>
-                
+
+                {/* Charge Scope Dropdown - Now using Listbox */}
+                <div>
+                  <label className="text-sm text-black dark:text-white block mb-1">
+                    Charge Scope <span className="text-red-500">*</span>
+                  </label>
+                  <Listbox
+                    value={editFormData.charge_scope}
+                    onChange={(v) => handleEditFormChange("charge_scope", v)}
+                  >
+                    <div className="relative mt-1">
+                      <Listbox.Button
+                        onFocus={() => setFocusedField("editScope")}
+                        onBlur={() => setFocusedField(null)}
+                        className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
+                          focusedField === "editScope"
+                            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                        }`}
+                      >
+                        <span className={`block truncate ${editFormData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
+                          {editFormData.charge_scope === "GENERAL"
+                            ? "General"
+                            : editFormData.charge_scope === "SPECIFIC"
+                            ? "Specific"
+                            : "Select Scope"}
+                        </span>
+                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+                          <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options
+                        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
+                                   shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+                      >
+                        <Listbox.Option
+                          value="GENERAL"
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          General
+                        </Listbox.Option>
+                        <Listbox.Option
+                          value="SPECIFIC"
+                          className={({ active, selected }) =>
+                            `cursor-pointer select-none py-2 px-3 text-sm
+                             ${
+                               active
+                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                                 : "text-black dark:text-white"
+                             }
+                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                          }
+                        >
+                          Specific
+                        </Listbox.Option>
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                  {editValidationErrors.charge_scope && (
+                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge_scope}</p>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
                     Description (Optional)
@@ -794,12 +1078,18 @@ const ChargesManagement = () => {
                   <textarea
                     value={editFormData.description}
                     onChange={(e) => handleEditFormChange("description", e.target.value)}
+                    onFocus={() => setFocusedField("editDesc")}
+                    onBlur={() => setFocusedField(null)}
                     rows="3"
-                    className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none"
+                    className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                      focusedField === "editDesc"
+                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                    }`}
                   />
                 </div>
               </div>
-              
+
               <div className="flex justify-center gap-2 mt-8">
                 <button
                   onClick={() => {
@@ -826,7 +1116,7 @@ const ChargesManagement = () => {
         </div>
       </Dialog>
 
-      {/* Delete Charge Confirmation Modal - CHANGED TO GREEN BORDER */}
+      {/* Delete Charge Confirmation Modal */}
       <Dialog open={showDeleteModal} onClose={() => {
         setShowDeleteModal(false);
         setSelectedCharge(null);
@@ -853,7 +1143,7 @@ const ChargesManagement = () => {
                   zIndex: 0,
                 }}
               ></div>
-              
+
               <div className="flex justify-between items-center pb-3 mb-4">
                 <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
                   Delete Charge
@@ -868,7 +1158,7 @@ const ChargesManagement = () => {
                   <X size={16} className="text-black dark:text-white" />
                 </button>
               </div>
-              
+
               <div className="text-center mb-6">
                 <Trash className="w-16 h-16 text-red-500 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-800 dark:text-white mb-2">
@@ -884,11 +1174,16 @@ const ChargesManagement = () => {
                     ${selectedCharge ? parseFloat(selectedCharge.unit_price).toFixed(2) : '0.00'}
                   </span>
                 </p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Scope: <span className="font-semibold">
+                    {selectedCharge?.charge_scope === "GENERAL" ? "General" : "Specific"}
+                  </span>
+                </p>
                 <p className="text-sm text-red-500 dark:text-red-400 mt-4">
                   This action cannot be undone.
                 </p>
               </div>
-              
+
               <div className="flex justify-center gap-2">
                 <button
                   onClick={() => {

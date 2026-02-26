@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 // DIRECT TOAST FUNCTIONS
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
+
 
 const formatToYMD = (dateStr) => {
   if (!dateStr) return "";
@@ -350,6 +352,9 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   const styleRef = React.useRef(null);
   const navigate = useNavigate();
+  const { isAdmin, currentUser } = usePermissions();
+const userRole = currentUser?.role?.toLowerCase();
+const canAddPatient = isAdmin || userRole === "receptionist";
 
   const maritalStatusOptions = ["Single", "Married", "Divorced", "Widowed"];
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
@@ -1016,6 +1021,10 @@ const validateEmailFormat = (value) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canAddPatient) {
+    errorToast("You don't have permission to register patients");
+    return;
+  }
 
     // Prevent multiple submissions - Fix for TC_096
     if (isSubmitting) {
@@ -1076,6 +1085,8 @@ const validateEmailFormat = (value) => {
       setIsSubmitting(false); // Unlock the form - Fix for TC_096
     }
   };
+
+
 
   /* ---------- Render ---------- */
   return (
@@ -1468,24 +1479,51 @@ const validateEmailFormat = (value) => {
             </div>
           </div>
           {/* Buttons */}
-          <div className="flex justify-end gap-2 mt-8">
-            <button
-              type="button"
-              onClick={handleClear}
-              className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-transparent text-black dark:text-white"
-            >
-              Clear
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting || Object.values(validationErrors).some(
-                (error) => error !== ""
-              )}
-              className="w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white border-b-[2px] border-[#0EFF7B] disabled:opacity-70"
-            >
-              {isSubmitting ? "Submitting..." : "Add Patient..!"}
-            </button>
-          </div>
+          {/* Buttons */}
+<div className="flex justify-end gap-2 mt-8">
+  <button
+    type="button"
+    onClick={handleClear}
+    className="w-[144px] h-[34px] rounded-[8px] border border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-transparent text-black dark:text-white"
+  >
+    Clear
+  </button>
+  
+  {/* Add Patient Button with Tooltip */}
+  <div className="relative group">
+    <button
+      type="submit"
+      disabled={!canAddPatient || isSubmitting || Object.values(validationErrors).some(
+        (error) => error !== ""
+      )}
+      onClick={(e) => {
+        if (!canAddPatient) {
+          e.preventDefault();
+          return;
+        }
+      }}
+      className={`w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] 
+                 text-white border-b-[2px] border-[#0EFF7B] 
+                 ${!canAddPatient ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}
+                 disabled:opacity-70`}
+    >
+      {isSubmitting ? "Submitting..." : "Add Patient..!"}
+    </button>
+    
+    {/* Tooltip - shows when user doesn't have permission */}
+    {!canAddPatient && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied..!
+      </span>
+    )}
+  </div>
+</div>
         </form>
       </div>
     </div>

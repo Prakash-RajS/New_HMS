@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from decimal import Decimal
 
 
 
@@ -167,7 +168,7 @@ class Staff(models.Model):
 
     # 🔹 Professional Information
     specialization = models.CharField(max_length=150, blank=True, null=True)
-    status = models.CharField(max_length=50, default="Active")
+    status = models.CharField(max_length=50, default="Available")
     shift_timing = models.CharField(max_length=100, null=True, blank=True)
     
     # 🔹 New Dynamic Fields for Doctor Profile
@@ -965,26 +966,29 @@ class Permission(models.Model):
     @classmethod
     def initialize_default_permissions(cls):
         """Initialize default permissions for all roles"""
-        roles = ["receptionist", "doctor", "nurse", "billing", "admin"]
+        roles = ["receptionist", "doctor", "nurse", "billing_staff", "admin"]
 
         default_permissions = {
             "receptionist": [
-                "dashboard", "appointments", "patients_view", "patients_create", 
+                "dashboard", "appointments", "patients_view", "patients_create",
                 "patients_edit", "patients_profile", "room_management", "bed_management"
             ],
             "doctor": [
-                "dashboard", "appointments", "patients_view", "patients_edit", 
+                "dashboard", "appointments", "patients_view", "patients_edit",
                 "patients_profile", "medicine_allocation", "lab_reports",
-         "surgeries", "charges_management"  # ADD THESE
+                "surgeries", "charges_management"
             ],
             "nurse": [
-                "dashboard", "patients_view", "patients_profile", "medicine_allocation", 
-                "bed_management"
+                "dashboard", "patients_view", "patients_profile",
+                "medicine_allocation", "bed_management"
             ],
-            "billing": [
-                "dashboard", "billing", "pharmacy_billing", "charges_management"  # ADD charges_management
+            "billing_staff": [
+                "dashboard",
+                "billing",
+                "pharmacy_billing",
+                "charges_management"
             ],
-            "admin": [choice[0] for choice in cls.MODULE_CHOICES]  # All permissions
+            "admin": [choice[0] for choice in cls.MODULE_CHOICES]
         }
 
         for role in roles:
@@ -995,6 +999,7 @@ class Permission(models.Model):
                     module=module,
                     defaults={"enabled": enabled}
                 )
+
         print("✅ Default permissions initialized for all roles")
 
     @classmethod
@@ -1261,6 +1266,7 @@ class HospitalInvoiceHistory(models.Model):
             except:
                 return []
         return []
+    
 
 class HospitalInvoiceItem(models.Model):
     """Line items for hospital invoices - normalized table"""
@@ -1276,6 +1282,14 @@ class HospitalInvoiceItem(models.Model):
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     amount = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
 
+     # ✅ ADD THESE
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    # Store calculated values
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1288,8 +1302,22 @@ class HospitalInvoiceItem(models.Model):
         return f"{self.s_no}. {self.description} - ${self.amount}"
 
     def save(self, *args, **kwargs):
-        # Auto-calculate amount
-        self.amount = self.quantity * self.unit_price
+
+        quantity = Decimal(self.quantity)
+        unit_price = Decimal(self.unit_price)
+    
+        subtotal = quantity * unit_price
+    
+        # Discount
+        self.discount_amount = (subtotal * self.discount_percent / Decimal("100")).quantize(Decimal("0.01"))
+        after_discount = subtotal - self.discount_amount
+    
+        # Tax
+        self.tax_amount = (after_discount * self.tax_percent / Decimal("100")).quantize(Decimal("0.01"))
+    
+        # Final amount
+        self.amount = (after_discount + self.tax_amount).quantize(Decimal("0.01"))
+    
         super().save(*args, **kwargs)
         
 class PharmacyInvoiceHistory(models.Model):
@@ -1483,10 +1511,24 @@ class PartialPaymentHistory(models.Model):
 
 # models.py
 class Charge(models.Model):
+
+    GENERAL = "GENERAL"
+    SPECIFIC = "SPECIFIC"
+
+    CHARGE_SCOPE = [
+        (GENERAL, "General"),
+        (SPECIFIC, "Specific"),
+    ]
+
     charge = models.CharField(max_length=255)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    charge_scope = models.CharField(
+        max_length=20,
+        choices=CHARGE_SCOPE,
+        default=GENERAL
+    )
     
     def __str__(self):
         return self.charge

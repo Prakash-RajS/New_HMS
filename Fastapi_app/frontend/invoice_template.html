@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Stacklycare Invoice</title>
     <style>
+        /* Keep all your existing styles exactly as they are */
         @page {
             size: A4;
             margin: 170px 0 70px 0;
@@ -649,7 +650,7 @@
                     <thead>
                         <tr>
                             <th class="sno-col">S.no</th>
-                            <th class="desc-col">Descriptions</th>
+                            <th class="desc-col">Description</th>
                             <th class="qty-col">Qty</th>
                             <th class="unit-col">Unit</th>
                             <th class="disc-col">Disc %</th>
@@ -665,10 +666,18 @@
                             <td class="qty-col">{{ item.quantity }}</td>
                             <td class="unit-col">$ {{ (item.unit_price|default(0))|round(2) }}</td>
                             <td class="disc-col">
-                                {{ (discount_percent|default(0))|round(2) }}%
+                                {% if item.discount_percent is defined and item.discount_percent > 0 %}
+                                    {{ (item.discount_percent|default(0))|round(2) }}%
+                                {% else %}
+                                    0.0%
+                                {% endif %}
                             </td>
                             <td class="tax-col">
-                                {{ ((cgst_percent|default(0)) + (sgst_percent|default(0)))|round(2) }}%
+                                {% if item.tax_percent is defined %}
+                                    {{ (item.tax_percent|default(18))|round(2) }}%
+                                {% else %}
+                                    18.0%
+                                {% endif %}
                             </td>
                             <td class="total-col">
                                 $ {{ (item.total|default(0))|round(2) }}
@@ -742,8 +751,12 @@
                             <span class="totals-mini-value">$ {{ (subtotal|default(0))|round(2) }}</span>
                         </div>
                         <div class="totals-mini-row">
-                            <span class="totals-mini-label">Discount ({{ (discount_percent|default(0))|round(2) }}%)</span>
-                            <span class="totals-mini-value">- $ {{ (discount_amount|default(0))|round(2) }}</span>
+                            <span class="totals-mini-label">
+        Discount ({{ effective_discount_percent|round(2) }}%)
+    </span>
+    <span class="totals-mini-value">
+        - $ {{ total_discount_amount|round(2) }}
+    </span>
                         </div>
                         <div class="totals-mini-row">
                             <span class="totals-mini-label">After Discount</span>

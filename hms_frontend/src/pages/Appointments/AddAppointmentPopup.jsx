@@ -4,6 +4,7 @@ import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 // ── Get today's date for default ────────────────────────────────
 const getTodayDate = () => {
@@ -29,6 +30,11 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
   const [validationErrors, setValidationErrors] = useState({}); // Format validation
   const [fieldErrors, setFieldErrors] = useState({}); // Required field validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canAddAppointment = isAdmin || userRole === "receptionist";
+const canEditAppointment = isAdmin || userRole === "receptionist";
   
   // ── Form state (backend keys) ─────────────────────────────────────
   const [formData, setFormData] = useState({
@@ -378,6 +384,17 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
 
   // ── Save handler with validation ───────────────────────────────────
  const handleSave = async () => {
+  if (isEditMode) {
+    if (!canEditAppointment) {
+      errorToast("You don't have permission to edit appointments");
+      return;
+    }
+  } else {
+    if (!canAddAppointment) {
+      errorToast("You don't have permission to add appointments");
+      return;
+    }
+  }
   if (!validateForm()) {
     errorToast("Please fix all validation errors before saving");
     return;
@@ -1100,21 +1117,60 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
           )}
           
           {/* Buttons */}
-          <div className="flex justify-center gap-2 mt-8">
-            <button
-              onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving || Object.values(validationErrors).some(error => error !== "")}
-              className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
-            >
-              {saving ? "Saving…" : (isEditMode ? "Update Appointment" : "Add Appointment")}
-            </button>
-          </div>
+          {/* Buttons */}
+<div className="flex justify-center gap-2 mt-8">
+  <button
+    onClick={onClose}
+    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
+  >
+    Cancel
+  </button>
+  
+  {/* Save/Update Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={handleSave}
+      disabled={saving || Object.values(validationErrors).some(error => error !== "") || 
+               (isEditMode ? !canEditAppointment : !canAddAppointment)}
+      className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition ${
+        (isEditMode ? !canEditAppointment : !canAddAppointment) || 
+        saving || 
+        Object.values(validationErrors).some(error => error !== "")
+          ? 'opacity-50 cursor-not-allowed hover:scale-100'
+          : 'opacity-100 hover:scale-105'
+      }`}
+    >
+      {saving ? "Saving…" : (isEditMode ? "Update Appointment" : "Add Appointment")}
+    </button>
+    
+    {/* Tooltip for disabled state due to permissions */}
+    {((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        {isEditMode ? "Access Denied - Cannot Edit" : "Access Denied - Admin/Receptionist Only"}
+      </span>
+    )}
+    
+    {/* Tooltip for validation errors */}
+    {!((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && 
+     Object.values(validationErrors).some(error => error !== "") && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Fix validation errors first
+      </span>
+    )}
+  </div>
+</div>
         </div>
       </div>
     </div>

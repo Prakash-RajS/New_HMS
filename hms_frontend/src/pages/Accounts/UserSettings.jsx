@@ -195,7 +195,7 @@ const UserSettings = () => {
   };
 
   const getDbRole = (role) => {
-    return role === 'Billing Staff' ? 'billing' : role;
+    return role === 'Billing Staff' ? 'Billing Staff' : role;
   };
 
   // Validation functions

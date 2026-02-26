@@ -1405,6 +1405,7 @@ import DeleteMedicinePopup from "./DeleteMedicinePopup";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/axiosConfig";
 import { Loader2 } from "lucide-react";
+import { usePermissions } from "../../components/PermissionContext";
 
 export default function ViewPatientProfile() {
   const navigate = useNavigate();
@@ -1441,6 +1442,11 @@ export default function ViewPatientProfile() {
   const [testTypes, setTestTypes] = useState([]);
   const [loadingTestTypes, setLoadingTestTypes] = useState(true);
   const [stockLoading, setStockLoading] = useState(false);
+
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can manage (add/edit/delete)
   // ================ Validation States ================
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
@@ -2169,57 +2175,81 @@ export default function ViewPatientProfile() {
   );
 
   const addMedicineEntry = useCallback(() => {
-    setMedicineData((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        medicineName: "",
-        dosage: "",
-        quantity: "",
-        frequency: [],
-        duration: "",
-        time: "",
-      },
-    ]);
-  }, []);
+  if (!canManage) {
+    errorToast("You don't have permission to add medicines");
+    return;
+  }
+  
+  setMedicineData((prev) => [
+    ...prev,
+    {
+      id: Date.now(),
+      medicineName: "",
+      dosage: "",
+      quantity: "",
+      frequency: [],
+      duration: "",
+      time: "",
+    },
+  ]);
+}, [canManage]);
 
   const addLabTestEntry = useCallback(() => {
-    setLabTests((prev) => [...prev, { id: Date.now(), labTest: "" }]);
-  }, []);
+  if (!canManage) {
+    errorToast("You don't have permission to add lab tests");
+    return;
+  }
+  
+  setLabTests((prev) => [...prev, { id: Date.now(), labTest: "" }]);
+}, [canManage]);
 
   const removeMedicineEntry = useCallback((id) => {
-    setMedicineData((prev) => prev.filter((entry) => entry.id !== id));
-    
-    // Clear validation errors for removed medicine
-    setValidationErrors(prev => {
-      const newErrors = { ...prev };
-      // Remove errors related to this medicine (we don't know the index here, but we'll clear on next validation)
-      return newErrors;
-    });
-  }, []);
+  if (!canManage) {
+    errorToast("You don't have permission to remove medicines");
+    return;
+  }
+  
+  setMedicineData((prev) => prev.filter((entry) => entry.id !== id));
+  
+  // Clear validation errors for removed medicine
+  setValidationErrors(prev => {
+    const newErrors = { ...prev };
+    // Remove errors related to this medicine (we don't know the index here, but we'll clear on next validation)
+    return newErrors;
+  });
+}, [canManage]);
 
   const removeLabTestEntry = useCallback((id) => {
-    // Find the test being removed to clear its duplicate error
-    const testToRemove = labTests.find(test => test.id === id);
+  if (!canManage) {
+    errorToast("You don't have permission to remove lab tests");
+    return;
+  }
+  
+  // Find the test being removed to clear its duplicate error
+  const testToRemove = labTests.find(test => test.id === id);
+  
+  setLabTests((prev) => prev.filter((entry) => entry.id !== id));
+  
+  // Clear validation errors
+  setValidationErrors(prev => {
+    const newErrors = { ...prev };
+    delete newErrors.mri;
     
-    setLabTests((prev) => prev.filter((entry) => entry.id !== id));
+    // Clear duplicate error for this specific test
+    if (testToRemove?.labTest) {
+      delete newErrors[`lab_duplicate_${testToRemove.labTest}`];
+    }
     
-    // Clear validation errors
-    setValidationErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors.mri;
-      
-      // Clear duplicate error for this specific test
-      if (testToRemove?.labTest) {
-        delete newErrors[`lab_duplicate_${testToRemove.labTest}`];
-      }
-      
-      return newErrors;
-    });
-  }, [labTests]);
+    return newErrors;
+  });
+}, [canManage, labTests]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canManage) {
+    errorToast("You don't have permission to allocate medicines");
+    return;
+  }
     
     // Validate form before submission
     if (!validateForm()) {
@@ -2343,23 +2373,28 @@ export default function ViewPatientProfile() {
   };
 
   const handleClear = useCallback(() => {
-    setMedicineData([
-      {
-        id: Date.now(),
-        medicineName: "",
-        dosage: "",
-        quantity: "",
-        frequency: [],
-        duration: "",
-        time: "",
-      },
-    ]);
-    setLabTests([{ id: Date.now(), labTest: "" }]);
-    
-    // Clear validation errors and touched fields
-    setValidationErrors({});
-    setTouchedFields({});
-  }, []);
+  if (!canManage) {
+    errorToast("You don't have permission to clear the form");
+    return;
+  }
+  
+  setMedicineData([
+    {
+      id: Date.now(),
+      medicineName: "",
+      dosage: "",
+      quantity: "",
+      frequency: [],
+      duration: "",
+      time: "",
+    },
+  ]);
+  setLabTests([{ id: Date.now(), labTest: "" }]);
+  
+  // Clear validation errors and touched fields
+  setValidationErrors({});
+  setTouchedFields({});
+}, [canManage]);
 
   const handleEditMedicine = useCallback(
     (medicine) => {
@@ -2387,6 +2422,10 @@ export default function ViewPatientProfile() {
   }, []);
 
   const handleUpdateMedicine = async (updatedData) => {
+    if (!canManage) {
+    errorToast("You don't have permission to update medicine allocations");
+    return;
+  }
     try {
       const response = await api.put(
         `/medicine_allocation/${patientDbId}/medicine-allocations/${editingMedicine.id}/`,
@@ -2416,6 +2455,10 @@ export default function ViewPatientProfile() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canManage) {
+    errorToast("You don't have permission to delete medicine allocations");
+    return;
+  }
     try {
       await api.delete(
         `/medicine_allocation/${patientDbId}/medicine-allocations/${deletingMedicine.id}/`,
@@ -3413,37 +3456,47 @@ export default function ViewPatientProfile() {
                   <div className="flex gap-2">
                     {index === medicineData.length - 1 && (
                       <button
-                        type="button"
-                        onClick={addMedicineEntry}
-                        className="relative group text-green-500 hover:text-green-600 text-xl"
-                      >
-                        +
-                        <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                        >
-                          Add
-                        </span>
-                      </button>
+  type="button"
+  onClick={addMedicineEntry}
+  disabled={!canManage}
+  className={`relative group text-xl ${
+    canManage 
+      ? "text-green-500 hover:text-green-600" 
+      : "text-gray-400 opacity-40 cursor-not-allowed"
+  }`}
+>
+  +
+  <span
+    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Add" : "Access Denied"}
+  </span>
+</button>
                     )}
                     {medicineData.length > 1 && (
                       <button
-                        type="button"
-                        onClick={() => removeMedicineEntry(med.id)}
-                        className="relative group text-red-500 hover:text-red-700 text-xl"
-                      >
-                        ×
-                        <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                        >
-                          Close
-                        </span>
-                      </button>
+  type="button"
+  onClick={() => removeMedicineEntry(med.id)}
+  disabled={!canManage}
+  className={`relative group text-xl ${
+    canManage 
+      ? "text-red-500 hover:text-red-700" 
+      : "text-gray-400 opacity-40 cursor-not-allowed"
+  }`}
+>
+  ×
+  <span
+    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Remove" : "Access Denied"}
+  </span>
+</button>
                     )}
                   </div>
                 </div>
@@ -3620,37 +3673,47 @@ export default function ViewPatientProfile() {
                 </div>
                 {index === labTests.length - 1 && (
                   <button
-                    type="button"
-                    onClick={addLabTestEntry}
-                    className="relative group text-green-500 mt-5 hover:text-green-600 text-xl"
-                  >
-                    +
-                    <span
-                      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-          transition-all duration-150"
-                    >
-                      Add
-                    </span>
-                  </button>
+  type="button"
+  onClick={addLabTestEntry}
+  disabled={!canManage}
+  className={`relative group text-xl mt-5 ${
+    canManage 
+      ? "text-green-500 hover:text-green-600" 
+      : "text-gray-400 opacity-40 cursor-not-allowed"
+  }`}
+>
+  +
+  <span
+    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Add" : "Access Denied"}
+  </span>
+</button>
                 )}
                 {labTests.length > 1 && (
                   <button
-                    type="button"
-                    onClick={() => removeLabTestEntry(test.id)}
-                    className="relative group text-red-500 mt-5 hover:text-red-700 text-xl"
-                  >
-                    ×
-                    <span
-                      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-          px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-          transition-all duration-150"
-                    >
-                      Close
-                    </span>
-                  </button>
+  type="button"
+  onClick={() => removeLabTestEntry(test.id)}
+  disabled={!canManage}
+  className={`relative group text-xl mt-5 ${
+    canManage 
+      ? "text-red-500 hover:text-red-700" 
+      : "text-gray-400 opacity-40 cursor-not-allowed"
+  }`}
+>
+  ×
+  <span
+    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Remove" : "Access Denied"}
+  </span>
+</button>
                 )}
               </div>
             ))}
@@ -3668,20 +3731,22 @@ export default function ViewPatientProfile() {
 
           <div className="mt-5 flex justify-end gap-4">
             <button
-              type="button"
-              onClick={handleClear}
-              disabled={loading}
-              className="px-4 py-2 rounded border border-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50"
-            >
-              Clear
-            </button>
+  type="button"
+  onClick={handleClear}
+  disabled={loading || !canManage}
+  className={`px-4 py-2 rounded border border-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-100 ${
+    !canManage ? 'cursor-not-allowed' : ''
+  }`}
+>
+  Clear
+</button>
             <button
-              type="submit"
-              disabled={loading || !patientDbId}
-              className="px-4 py-2 rounded bg-[#0EFF7B] text-black font-semibold hover:bg-[#05c860] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Allocating..." : "Allocate Medicine"}
-            </button>
+  type="submit"
+  disabled={loading || !patientDbId || !canManage}
+  className={`px-4 py-2 rounded bg-[#0EFF7B] text-black font-semibold hover:bg-[#05c860] disabled:opacity-100 disabled:cursor-not-allowed`}
+>
+  {loading ? "Allocating..." : canManage ? "Allocate Medicine" : "Access Denied"}
+</button>
           </div>
         </form>
       </div>
@@ -3755,33 +3820,43 @@ export default function ViewPatientProfile() {
                   <td className="py-4 px-4 sm:px-6">
                     <div className="flex justify-center space-x-4">
                       <button
-                        onClick={() => handleEditMedicine(item)}
-                        className="relative group text-blue-500 hover:text-blue-700 transition-colors"
-                      >
-                        <Edit size={16} />
-                        <span
-                          className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
-                          px-3 py-1 text-xs rounded-md shadow-md
-                          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                          transition-all duration-150"
-                        >
-                          Edit
-                        </span>
-                      </button>
+  onClick={() => handleEditMedicine(item)}
+  disabled={!canManage}
+  className={`relative group transition-colors ${
+    canManage 
+      ? "text-blue-500 hover:text-blue-700" 
+      : "text-blue-700 opacity-100 cursor-not-allowed"
+  }`}
+>
+  <Edit size={16} />
+  <span
+    className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Edit" : "Access Denied"}
+  </span>
+</button>
                       <button
-                        onClick={() => handleDeleteMedicine(item)}
-                        className="relative group text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                        <span
-                          className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
-                          px-3 py-1 text-xs rounded-md shadow-md
-                          bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                          transition-all duration-150"
-                        >
-                          Delete
-                        </span>
-                      </button>
+  onClick={() => handleDeleteMedicine(item)}
+  disabled={!canManage}
+  className={`relative group transition-colors ${
+    canManage 
+      ? "text-red-500 hover:text-red-700" 
+      : "text-red-700 opacity-100 cursor-not-allowed"
+  }`}
+>
+  <Trash2 size={16} />
+  <span
+    className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+  >
+    {canManage ? "Delete" : "Access Denied"}
+  </span>
+</button>
                     </div>
                   </td>
                 </tr>

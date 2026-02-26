@@ -1523,6 +1523,7 @@ import { Search, Trash2, Plus, Calendar } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig";
 import { successToast, errorToast } from "../../components/Toast";
+import { usePermissions } from "../../components/PermissionContext";
 
 const Bill = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -1549,6 +1550,10 @@ const Bill = () => {
   const [medicineLookup, setMedicineLookup] = useState({});
   const [itemCodeInputs, setItemCodeInputs] = useState({});
   const [stockData, setStockData] = useState({});
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canGenerateBill = isAdmin || userRole === "billing staff" || userRole === "billing";
 
   const paymentTypes = [
     "Full Payment",
@@ -1682,7 +1687,8 @@ const Bill = () => {
       const stockMap = {};
       (res.data || []).forEach((item) => {
         if (item.item_code) {
-          stockMap[item.item_code] = {
+          // Store with uppercase key for case-insensitive lookup
+          stockMap[item.item_code.toUpperCase()] = {
             quantity: item.quantity || 0,
             product_name: item.product_name,
             status: item.status,
@@ -1723,7 +1729,7 @@ const Bill = () => {
             id: item.allocation_id || Date.now() + i,
             allocation_id: item.allocation_id,
             sNo: (i + 1).toString(),
-            itemCode: item.item_code || "N/A",
+            itemCode: item.item_code ? item.item_code.toUpperCase() : "N/A", // Convert to uppercase
             name: item.medicine_name || item.name_of_drug || "",
             rackNo: item.rack_no || "",
             shelfNo: item.shelf_no || "",
@@ -1734,7 +1740,7 @@ const Bill = () => {
             total: "0.00",
             doctorName: item.doctor_name || "N/A",
             allocationDate: item.allocation_date || "",
-            frequency: item.frequency || "",
+            frequency: item.frequency || "", // Fetch frequency from API
             isFromAPI: true,
           }));
 
@@ -1757,16 +1763,21 @@ const Bill = () => {
   const fetchMedicineDetails = useCallback(
     async (itemCode) => {
       if (!itemCode.trim()) return null;
-      if (medicineLookup[itemCode]) return medicineLookup[itemCode];
+      
+      // Convert to uppercase for API call
+      const upperCaseCode = itemCode.trim().toUpperCase();
+      
+      if (medicineLookup[upperCaseCode]) return medicineLookup[upperCaseCode];
 
       try {
         const res = await api.get(
-          `/medicine_allocation/medicine-by-code/${itemCode.trim()}`,
+          `/medicine_allocation/medicine-by-code/${upperCaseCode}`,
         );
         const data = res.data;
-        setMedicineLookup((prev) => ({ ...prev, [itemCode]: data }));
+        setMedicineLookup((prev) => ({ ...prev, [upperCaseCode]: data }));
 
-        const stock = stockData[itemCode.trim()];
+        // Check stock using uppercase key
+        const stock = stockData[upperCaseCode];
         if (stock) {
           if (stock.quantity === 0 || stock.status === "outofstock") {
             errorToast(`⚠️ ${data.drug_name || "Medicine"} is OUT OF STOCK!`);
@@ -1829,7 +1840,7 @@ const Bill = () => {
             setBillingItems((prev) => {
               const updated = [...prev];
               const item = updated[parseInt(index)];
-              if (item && item.itemCode === code.trim()) {
+              if (item && item.itemCode === code.trim().toUpperCase()) {
                 item.name = details.drug_name || "";
                 item.rackNo = details.rack_no || "";
                 item.shelfNo = details.shelf_no || "";
@@ -1976,10 +1987,10 @@ const Bill = () => {
             return;
           }
 
-          // Check stock
+          // Check stock using uppercase item code
           const qty = parseFloat(value);
           const currentItem = billingItems[index];
-          const stock = stockData[currentItem?.itemCode];
+          const stock = stockData[currentItem?.itemCode?.toUpperCase()];
 
           if (stock && qty > stock.quantity) {
             errorToast(
@@ -2012,7 +2023,12 @@ const Bill = () => {
       }
 
       if (field === "itemCode") {
-        setItemCodeInputs((prev) => ({ ...prev, [index]: value }));
+        // Convert to uppercase for consistency
+        const upperValue = value.toUpperCase();
+        setItemCodeInputs((prev) => ({ ...prev, [index]: upperValue }));
+        
+        // Update with uppercase value
+        value = upperValue;
       }
 
       setBillingItems((prev) => {
@@ -2158,11 +2174,21 @@ const Bill = () => {
   }, [billingItems]);
 
   // ============== BILL GENERATION ==============
- const generateBill = useCallback(async () => {
+// ============== BILL GENERATION ==============
+const generateBill = useCallback(async () => {
+  // Add permission check
+  if (!canGenerateBill) {
+    errorToast("You don't have permission to generate bills");
+    return;
+  }
+  
   if (!selectedPatientId || !fullPatient) {
     errorToast("Please select a patient first.");
     return;
   }
+
+  // Set loading state at the beginning
+  setGeneratingBill(true);
 
   // Check for duplicate item codes
   const itemCodes = billingItems
@@ -2173,6 +2199,7 @@ const Bill = () => {
     errorToast(
       "Duplicate item codes found. Please remove duplicates before generating bill.",
     );
+    setGeneratingBill(false);
     return;
   }
 
@@ -2187,12 +2214,14 @@ const Bill = () => {
     errorToast(
       `⚠️ Invalid tax percentage found. Tax must be between 1% and 100%`,
     );
+    setGeneratingBill(false);
     return;
   }
 
   // Check for zero quantity
   if (billingItems.some((item) => (parseInt(item.quantity) || 0) <= 0)) {
     errorToast("All items must have quantity greater than 0");
+    setGeneratingBill(false);
     return;
   }
 
@@ -2203,6 +2232,7 @@ const Bill = () => {
   
   if (itemsWithoutCode.length > 0) {
     errorToast("All items must have a valid item code");
+    setGeneratingBill(false);
     return;
   }
 
@@ -2211,7 +2241,7 @@ const Bill = () => {
   const itemsNeedingStockCheck = [];
 
   billingItems.forEach((item) => {
-    const itemCode = item.itemCode?.trim();
+    const itemCode = item.itemCode?.trim().toUpperCase(); // Convert to uppercase
     if (!itemCode) {
       stockIssues.push(`${item.name || 'Item'}: No item code provided`);
       return;
@@ -2238,7 +2268,7 @@ const Bill = () => {
 
   // If there are items without stock data, try to fetch them one by one
   if (itemsNeedingStockCheck.length > 0) {
-    setGeneratingBill(true);
+    // Keep loading true - already set
     
     for (const item of itemsNeedingStockCheck) {
       try {
@@ -2363,6 +2393,7 @@ const Bill = () => {
     setGeneratingBill(false);
   }
 }, [
+  canGenerateBill,
   selectedPatientId,
   fullPatient,
   billingItems,
@@ -2922,10 +2953,10 @@ const Bill = () => {
                           }
                           className={`bg-transparent border p-1 rounded-md w-full text-[#08994A] dark:text-white ${
                             item.itemCode &&
-                            stockData[item.itemCode]?.quantity === 0
+                            stockData[item.itemCode.toUpperCase()]?.quantity === 0
                               ? "border-red-500 dark:border-red-500"
                               : item.itemCode &&
-                                  stockData[item.itemCode]?.quantity < 10
+                                  stockData[item.itemCode.toUpperCase()]?.quantity < 10
                                 ? "border-yellow-500 dark:border-yellow-500"
                                 : "border-[#0EFF7B] dark:border-[#0EFF7B1A]"
                           }`}
@@ -2935,15 +2966,15 @@ const Bill = () => {
                           }}
                           placeholder="Enter item code"
                         />
-                        {item.itemCode && stockData[item.itemCode] && (
+                        {item.itemCode && stockData[item.itemCode.toUpperCase()] && (
                           <div className="absolute -bottom-4 right-0 text-[10px] font-bold px-1 rounded">
-                            {stockData[item.itemCode].quantity === 0 ? (
+                            {stockData[item.itemCode.toUpperCase()].quantity === 0 ? (
                               <span className="text-red-600 dark:text-red-400">
                                 OUT
                               </span>
-                            ) : stockData[item.itemCode].quantity < 10 ? (
+                            ) : stockData[item.itemCode.toUpperCase()].quantity < 10 ? (
                               <span className="text-yellow-600 dark:text-yellow-400">
-                                Stock: {stockData[item.itemCode].quantity}
+                                Stock: {stockData[item.itemCode.toUpperCase()].quantity}
                               </span>
                             ) : (
                               <span className="text-green-600 dark:text-green-400">
@@ -2972,14 +3003,17 @@ const Bill = () => {
                     </td>
                     <td className="p-2">
                       <input
-                        type="number"
+                        type="text" // Changed from "number" to "text"
                         value={item.frequency}
-                        // readOnly={item.isFromAPI}
+                        onChange={(e) =>
+                          handleBillingChange(i, "frequency", e.target.value)
+                        }
                         className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-full text-[#08994A] dark:text-white"
                         style={{
                           border: "2px solid #0EFF7B1A",
                           boxShadow: "0px 0px 2px 0px #0EFF7B",
                         }}
+                        placeholder="Enter frequency"
                       />
                     </td>
                     <td className="p-2">
@@ -3120,34 +3154,68 @@ const Bill = () => {
                       />
                     </td>
                     <td className="p-2">
-                      <Trash2
-                        className="w-5 h-5 text-red-500 dark:text-[#0EFF7B] cursor-pointer hover:text-red-600 dark:hover:text-red-600"
-                        onClick={() => handleRemoveItem(i)}
-                      />
-                    </td>
+  <div className="relative group">
+    <Trash2
+      className={`w-5 h-5 cursor-pointer transition ${
+        canGenerateBill
+          ? "text-red-500 dark:text-[#0EFF7B] hover:text-red-600 dark:hover:text-red-600"
+          : "text-gray-400 opacity-40 cursor-not-allowed"
+      }`}
+      onClick={() => canGenerateBill && handleRemoveItem(i)}
+    />
+    
+    {/* Tooltip for disabled state */}
+    {!canGenerateBill && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied
+      </span>
+    )}
+  </div>
+</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
 
-          <div className="flex justify-end mt-4">
-            <button
-              onClick={handleAddMedicine}
-              disabled={!selectedPatientId}
-              className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] ${
-                selectedPatientId
-                  ? "bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white hover:scale-105"
-                  : "bg-gray-300 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-              } font-medium text-[14px] transition`}
-            >
-              <Plus
-                size={18}
-                className={selectedPatientId ? "text-white" : "text-gray-400"}
-              />{" "}
-              Add
-            </button>
-          </div>
+         <div className="flex justify-end mt-4">
+  {/* Add Button with Tooltip */}
+  <div className="relative group">
+    <button
+      onClick={handleAddMedicine}
+      disabled={!selectedPatientId || !canGenerateBill}
+      className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] ${
+        selectedPatientId && canGenerateBill
+          ? "bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white hover:scale-105"
+          : "bg-gray-300 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+      } font-medium text-[14px] transition`}
+    >
+      <Plus
+        size={18}
+        className={selectedPatientId && canGenerateBill ? "text-white" : "text-gray-400"}
+      /> Add
+    </button>
+    
+    {/* Tooltip for disabled state due to permissions */}
+    {selectedPatientId && !canGenerateBill && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied
+      </span>
+    )}
+  </div>
+</div>
 
           <div className="mt-6 grid grid-cols-5 gap-3 text-sm text-gray-600 dark:text-gray-200">
             <div className="col-span-1"></div>
@@ -3181,19 +3249,66 @@ const Bill = () => {
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
-            <button
-              onClick={handleCancel}
-              className="px-6 py-2 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md text-gray-600 dark:text-gray-300 hover:text-[#08994A] dark:hover:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={generateBill}
-              className="flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {generatingBill ? "Generating..." : "Generate Bill"}
-            </button>
-          </div>
+  <button
+    onClick={handleCancel}
+    className="px-6 py-2 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-md text-gray-600 dark:text-gray-300 hover:text-[#08994A] dark:hover:text-white"
+  >
+    Cancel
+  </button>
+  
+  {/* Generate Bill Button with Loading State */}
+  <div className="relative group">
+    <button
+      onClick={generateBill}
+      disabled={billingItems.length === 0 || generatingBill || !canGenerateBill}
+      className={`flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] transition ${
+        billingItems.length === 0 || !canGenerateBill
+          ? "opacity-50 cursor-not-allowed hover:scale-100"
+          : generatingBill
+          ? "opacity-80 cursor-wait"
+          : "hover:scale-105"
+      }`}
+    >
+      {generatingBill ? (
+        <>
+          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Generating...
+        </>
+      ) : (
+        "Generate Bill"
+      )}
+    </button>
+    
+    {/* Tooltip for disabled state due to permissions */}
+    {!canGenerateBill && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Access Denied
+      </span>
+    )}
+    
+    {/* Tooltip for disabled state due to no items */}
+    {canGenerateBill && billingItems.length === 0 && (
+      <span
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                   bg-gray-100 dark:bg-black text-black dark:text-white
+                   opacity-0 group-hover:opacity-100
+                   transition-all duration-150 z-50 pointer-events-none"
+      >
+        Add items to generate bill
+      </span>
+    )}
+  </div>
+</div>
         </div>
       </div>
     </div>

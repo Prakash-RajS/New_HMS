@@ -627,7 +627,7 @@ async def get_staff(department_id: int = Query(...)):
         return list(
             Staff.objects.filter(
                 department_id=department_id,
-                status="active",
+                status__in=["active", "available"],
                 designation__iexact="Doctor" # ← ONLY DOCTORS
             )
             .values("id", "full_name", "designation")
@@ -718,6 +718,22 @@ async def register_patient(
             reason_for_visit=reason_for_visit,
         )
     patient = await create_patient()
+
+    # ✅ CREATE HISTORY (Patient Registered)
+    @sync_to_async
+    def create_register_history():
+        ensure_db_connection()
+        PatientHistory.objects.create(
+            patient=patient,
+            patient_name=patient.full_name,
+            doctor=staff.full_name if staff else None,
+            department=department.name if department else None,
+            admission_date=patient.admission_date, 
+            status="In-patient"
+        )
+
+    await create_register_history()
+
     # History is automatically created in Patient.save() method when patient is registered
     if photo and photo.filename:
         # Generate new filename format: First4CharsXXXXPIC.ext
@@ -1009,104 +1025,156 @@ async def edit_patient(
         def get_patient_edit():
             ensure_db_connection()
             return Patient.objects.get(patient_unique_id=patient_id)
-       
+
         patient = await get_patient_edit()
-        if full_name is not None and full_name.strip():
+
+        # Store old values
+        old_patient_type = patient.patient_type
+
+        # -----------------------------
+        # BASIC FIELD UPDATES
+        # -----------------------------
+        if full_name and full_name.strip():
             patient.full_name = full_name.strip()
-        if phone_number is not None and phone_number.strip():
+
+        if phone_number and phone_number.strip():
             patient.phone_number = phone_number.strip()
-        if appointment_type is not None and appointment_type.strip():
+
+        if appointment_type and appointment_type.strip():
             patient.appointment_type = appointment_type.strip()
-        if status is not None:
-            cleaned = status.strip()
-            if cleaned:
-                normalized_status = cleaned.title()
-                patient.casualty_status = normalized_status
-                if normalized_status in ["Completed", "Discharged"]:
-                    patient.patient_type = "Out-patient"
-                else:
-                    patient.patient_type = "in-patient"
-       
+
         if date_of_registration:
             parsed = parse_date(date_of_registration)
             if parsed:
                 patient.date_of_registration = parsed
+
+        # -----------------------------
+        # STATUS UPDATE
+        # -----------------------------
+        if status:
+            cleaned = status.strip()
+            if cleaned:
+                normalized_status = cleaned.title()
+                patient.casualty_status = normalized_status
+
+                if normalized_status in ["Completed", "Discharged"]:
+                    patient.patient_type = "Out-patient"
+                else:
+                    patient.patient_type = "in-patient"
+
+        # -----------------------------
+        # DEPARTMENT & STAFF
+        # -----------------------------
         dept_id = parse_optional_int(department_id)
         staff_db_id = parse_optional_int(staff_id)
+
         if dept_id:
             @sync_to_async
-            def get_dept_edit():
+            def get_dept():
                 ensure_db_connection()
                 return Department.objects.get(id=dept_id)
-           
-            department = await get_dept_edit()
-            patient.department = department
+            patient.department = await get_dept()
+
         if staff_db_id:
             @sync_to_async
-            def get_staff_edit():
+            def get_staff():
                 ensure_db_connection()
                 return Staff.objects.get(id=staff_db_id)
-           
-            staff = await get_staff_edit()
-            patient.staff = staff
+            patient.staff = await get_staff()
+
+        # -----------------------------
+        # PHOTO UPDATE
+        # -----------------------------
         if photo and photo.filename:
-            # Delete old photo if exists
             if patient.photo:
                 try:
-                    # Get the actual file path from the ImageFieldFile object
-                    old_photo_path = patient.photo.path # Use .path attribute for Django FileField/ImageField
+                    old_photo_path = patient.photo.path
                     if os.path.exists(old_photo_path):
                         os.remove(old_photo_path)
                 except Exception as e:
                     logging.warning(f"Failed to delete old photo: {e}")
-           
-            # Generate new filename format: First4CharsXXXXPIC.ext
-            # Use updated full_name if provided, otherwise existing name
-            name_to_use = full_name.strip() if full_name and full_name.strip() else patient.full_name
-           
-            # Get first 4 characters of name, uppercase, pad if shorter
-            name_part = name_to_use.upper()
-            if len(name_part) >= 4:
-                first_four = name_part[:4]
-            else:
-                # If name is shorter than 4 chars, pad with underscores
-                first_four = name_part.ljust(4, '_')
-           
-            # Generate 4-character unique ID (uppercase)
-            unique_id = str(uuid.uuid4().hex)[:4].upper() # Using hex for cleaner output
-           
-            # Get file extension
-            original_filename = photo.filename
-            file_extension = PathLib(original_filename).suffix.lower() if original_filename else ".jpg"
-           
-            # Format: First4CharsXXXXPIC.ext
+
+            name_part = patient.full_name.upper()
+            first_four = name_part[:4] if len(name_part) >= 4 else name_part.ljust(4, "_")
+            unique_id = str(uuid.uuid4().hex)[:4].upper()
+            file_extension = PathLib(photo.filename).suffix.lower() or ".jpg"
+
             filename = f"{first_four}{unique_id}PIC{file_extension}"
-           
             path = os.path.join(PHOTO_DIR, filename)
-           
-            # Create directory if it doesn't exist
+
             os.makedirs(PHOTO_DIR, exist_ok=True)
-           
+
             with open(path, "wb") as f:
-                content = await photo.read()
-                f.write(content)
-           
-            # Save the new photo path to the patient object
+                f.write(await photo.read())
+
             patient.photo = path.replace("\\", "/")
-       
+
+        # -----------------------------
+        # SAVE + HISTORY LOGIC
+        # -----------------------------
         @sync_to_async
-        def save_patient_edit():
+        def save_and_handle_history():
             ensure_db_connection()
-            patient.save()
-       
-        await save_patient_edit()
+
+            today = datetime.now().date()
+
+            # Detect change
+            new_patient_type = patient.patient_type
+
+            # In-Patient → Out-Patient (DISCHARGE)
+            if old_patient_type == "in-patient" and new_patient_type == "Out-patient":
+
+                patient.discharge_date = today
+
+                patient.save()
+
+                PatientHistory.objects.create(
+                    patient=patient,
+                    patient_name=patient.full_name,
+                    doctor=patient.staff.full_name if patient.staff else None,
+                    department=patient.department.name if patient.department else None,
+                    status="Out-patient",
+                    admission_date=patient.admission_date,
+                    discharge_date=today
+                )
+
+            # Out-Patient → In-Patient (RE-ADMIT)
+            elif old_patient_type == "Out-patient" and new_patient_type == "in-patient":
+
+                patient.admission_date = today
+                patient.discharge_date = None
+
+                patient.save()
+
+                PatientHistory.objects.create(
+                    patient=patient,
+                    patient_name=patient.full_name,
+                    doctor=patient.staff.full_name if patient.staff else None,
+                    department=patient.department.name if patient.department else None,
+                    status="In-patient",
+                    admission_date=today,
+                    discharge_date=None
+                )
+
+            else:
+                patient.save()
+
+        await save_and_handle_history()
+
         await NotificationService.send_patient_updated(patient)
-        return JSONResponse({"success": True, "message": "Updated"})
+
+        return JSONResponse({
+            "success": True,
+            "message": "Patient updated successfully"
+        })
+
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
+
     except Exception as e:
         logging.exception("edit_patient error")
         raise HTTPException(400, detail=str(e))
+
 # ---------- 8. GET Patient History ----------
 @router.get("/{patient_id}/history")
 async def get_patient_history(
@@ -1115,43 +1183,55 @@ async def get_patient_history(
     limit: int = Query(20, ge=1, le=100)
 ):
     """
-    Get history records for a specific patient
-    History is automatically created at:
-    1. Registration time
-    2. When patient is moved back to in-patient from out-patient
+    Get history records for a specific patient.
+    Includes admission_date and discharge_date.
     """
+
     try:
-        # Find patient by ID or patient_unique_id
+        # -----------------------------
+        # FETCH PATIENT
+        # -----------------------------
         if patient_id.isdigit():
+
             @sync_to_async
-            def get_patient_history_id():
+            def get_patient_by_id():
                 ensure_db_connection()
                 return Patient.objects.get(id=int(patient_id))
-           
-            patient = await get_patient_history_id()
+
+            patient = await get_patient_by_id()
+
         else:
+
             @sync_to_async
-            def get_patient_history_uid():
+            def get_patient_by_uid():
                 ensure_db_connection()
                 return Patient.objects.get(patient_unique_id=patient_id)
-           
-            patient = await get_patient_history_uid()
-       
-        # Get history records for this patient
+
+            patient = await get_patient_by_uid()
+
+        # -----------------------------
+        # FETCH HISTORY QUERYSET
+        # -----------------------------
         @sync_to_async
-        def get_history_qs():
+        def get_history_queryset():
             ensure_db_connection()
             return patient.history_records.all().order_by("-created_at")
-       
-        history_qs = await get_history_qs()
-       
-        # Get total count
-        total = await run_in_threadpool(lambda: (ensure_db_connection(), history_qs.count())[1])
-       
-        # Get paginated results
+
+        history_qs = await get_history_queryset()
+
+        # -----------------------------
+        # TOTAL COUNT
+        # -----------------------------
+        total = await run_in_threadpool(
+            lambda: (ensure_db_connection(), history_qs.count())[1]
+        )
+
+        # -----------------------------
+        # PAGINATION
+        # -----------------------------
         start = (page - 1) * limit
         end = start + limit
-       
+
         @sync_to_async
         def fetch_history():
             ensure_db_connection()
@@ -1162,34 +1242,52 @@ async def get_patient_history(
                     "doctor",
                     "department",
                     "status",
+                    "admission_date",     # ✅ NEW
+                    "discharge_date",     # ✅ NEW
                     "created_at"
                 )
             )
-       
+
         history = await fetch_history()
-       
-        # Format dates
+
+        # -----------------------------
+        # FORMAT DATE FIELDS
+        # -----------------------------
         for record in history:
+
             if record["created_at"]:
                 record["created_at"] = record["created_at"].strftime("%Y-%m-%d %H:%M:%S")
-       
+
+            if record["admission_date"]:
+                record["admission_date"] = record["admission_date"].strftime("%Y-%m-%d")
+
+            if record["discharge_date"]:
+                record["discharge_date"] = record["discharge_date"].strftime("%Y-%m-%d")
+
+        # -----------------------------
+        # RESPONSE
+        # -----------------------------
         return {
             "patient_id": patient.patient_unique_id,
             "patient_name": patient.full_name,
             "current_status": patient.casualty_status,
             "current_patient_type": patient.patient_type,
+            "current_admission_date": patient.admission_date.strftime("%Y-%m-%d") if patient.admission_date else None,
+            "current_discharge_date": patient.discharge_date.strftime("%Y-%m-%d") if patient.discharge_date else None,
             "history": history,
             "total": total,
             "page": page,
             "limit": limit,
             "pages": (total + limit - 1) // limit
         }
-       
+
     except Patient.DoesNotExist:
         raise HTTPException(404, "Patient not found")
+
     except Exception as e:
         logging.exception("get_patient_history error")
         raise HTTPException(500, detail=str(e))
+    
 @router.get("/{patient_id}/diagnoses/", response_model=List[dict])
 def get_patient_diagnoses(patient_id: int):
     """

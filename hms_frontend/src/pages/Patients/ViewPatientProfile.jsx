@@ -2239,61 +2239,93 @@ export default function ViewPatientProfile() {
             ) : (
               <>
                 <ResponsiveTable
-                  headers={["Doctor", "Department", "Status", "Date & Time"]}
-                  mobileData={currentHistory.map((h, idx) => [
-                    h.doctor,
-                    h.department,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        h.status?.toLowerCase() === "active"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : h.status?.toLowerCase() === "pending"
-                          ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                          : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                      }`}
-                    >
-                      {h.status}
-                    </span>,
-                    h.created_at
-                  ])}
+                  headers={[
+  "Doctor",
+  "Department",
+  "Status",
+  "Admission Date",
+  "Discharge Date",
+  "Date & Time"
+]}
+                  mobileData={currentHistory.map((h) => [
+  h.doctor || "—",
+  h.department || "—",
+
+  <span
+    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+      h.status?.toLowerCase() === "in-patient"
+        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+        : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+    }`}
+  >
+    {h.status}
+  </span>,
+
+  h.admission_date || "—",
+  h.discharge_date || "—",
+  h.created_at
+])}
                 >
                   <thead>
                     <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
                       <th className="py-3 px-2 sm:px-4">Doctor</th>
                       <th className="py-3 px-2 sm:px-4">Department</th>
                       <th className="py-3 px-2 sm:px-4">Status</th>
+                      <th className="py-3 px-2 sm:px-4">Admission</th>
+                      <th className="py-3 px-2 sm:px-4">Discharge</th>
                       <th className="py-3 px-2 sm:px-4">Date & Time</th>
                     </tr>
                   </thead>
                   <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-                    {currentHistory.map((h, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="py-3 px-2 sm:px-4">{h.doctor || "—"}</td>
-                        <td className="py-3 px-2 sm:px-4">{h.department || "—"}</td>
-                        <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              h.status?.toLowerCase() === "active"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : h.status?.toLowerCase() === "completed" || h.status?.toLowerCase() === "discharged"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : h.status?.toLowerCase() === "pending"
-                                ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                                : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                            }`}
-                          >
-                            {h.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 sm:px-4">{h.created_at}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+  {currentHistory.map((h, i) => (
+    <tr
+      key={i}
+      className="border-b border-gray-200 dark:border-gray-700"
+    >
+      {/* Doctor */}
+      <td className="py-3 px-2 sm:px-4">
+        {h.doctor || "—"}
+      </td>
+
+      {/* Department */}
+      <td className="py-3 px-2 sm:px-4">
+        {h.department || "—"}
+      </td>
+
+      {/* Status */}
+      <td className="py-3 px-2 sm:px-4">
+        <span
+          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+            h.status?.toLowerCase() === "in-patient"
+              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+              : h.status?.toLowerCase() === "out-patient"
+              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+              : h.status?.toLowerCase() === "pending"
+              ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+              : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+          }`}
+        >
+          {h.status || "—"}
+        </span>
+      </td>
+
+      {/* Admission Date */}
+      <td className="py-3 px-2 sm:px-4">
+        {h.admission_date || "—"}
+      </td>
+
+      {/* Discharge Date */}
+      <td className="py-3 px-2 sm:px-4">
+        {h.discharge_date || "—"}
+      </td>
+
+      {/* Record Created Time */}
+      <td className="py-3 px-2 sm:px-4">
+        {h.created_at || "—"}
+      </td>
+    </tr>
+  ))}
+</tbody>
                 </ResponsiveTable>
                 <div className="flex items-center mt-4 gap-x-4">
                   <div className="text-sm text-black dark:text-white">

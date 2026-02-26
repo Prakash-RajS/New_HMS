@@ -17,6 +17,8 @@ import {
   Receipt,
   CreditCard,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Listbox, Switch } from "@headlessui/react";
 import DatePicker from "react-datepicker";
@@ -100,10 +102,24 @@ const BillingPreview = () => {
   const [chargesList, setChargesList] = useState([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
   
-  // Partial Payment Fields for NEW invoice (ONLY in current invoice tab)
+  // Partial Payment Fields for CURRENT ITEMS ONLY
   const [partialPaymentData, setPartialPaymentData] = useState({
     paidAmount: "",
-    dueDate: "",
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    remarks: "",
+  });
+
+  // Partial Payment Fields for SELECTED PENDING INVOICES ONLY
+  const [partialPendingPaymentData, setPartialPendingPaymentData] = useState({
+    paidAmount: "",
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    remarks: "",
+  });
+
+  // NEW: Combined Partial Payment Fields for when BOTH are selected
+  const [combinedPartialPaymentData, setCombinedPartialPaymentData] = useState({
+    paidAmount: "",
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     remarks: "",
   });
 
@@ -124,17 +140,11 @@ const BillingPreview = () => {
     pendingInvoices: [],
   });
   
-  // Tax Configuration State - Will be calculated from items
+  // Tax Configuration State
   const [taxConfig, setTaxConfig] = useState({
-    effectiveTaxRate: 0,
-    cgstRate: 0,
-    sgstRate: 0,
-  });
-
-  // Discount configuration for each billing item
-  const [discountConfig, setDiscountConfig] = useState({
-    totalDiscountPercent: 0,
-    totalDiscountAmount: 0,
+    effectiveTaxRate: 18, // Default 18%
+    cgstRate: 9, // Default 9%
+    sgstRate: 9, // Default 9%
   });
 
   // Validation errors state
@@ -142,6 +152,25 @@ const BillingPreview = () => {
     paymentMode: "",
     paymentType: "",
     paymentStatus: ""
+  });
+
+  // ========== History Table State with Pagination ==========
+  const [invoiceHistory, setInvoiceHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyPagination, setHistoryPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    pageSize: 5,
+  });
+  const [historyFilter, setHistoryFilter] = useState("all"); // all, paid, partial, pending
+
+  // ========== Consolidate Pagination State ==========
+  const [consolidatePagination, setConsolidatePagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    pageSize: 10, // 10 records per page as requested
   });
 
   const emptyModal = {
@@ -207,31 +236,33 @@ const BillingPreview = () => {
   }, [staffInfo]);
 
   useEffect(() => {
-    if (fullPatient) {
-      const ageGender = `${fullPatient.age || ""}/${fullPatient.gender || ""}`;
-      const startDate = fullPatient.admission_date || "";
-      const endDate = fullPatient.discharge_date || "";
-      const dob = fullPatient.date_of_birth || "";
-      setPatientInfo((prev) => ({
-        ...prev,
-        patientName: fullPatient.full_name || prev.patientName,
-        patientID: fullPatient.patient_unique_id || prev.patientID,
-        ageGender: ageGender,
-        startDate: startDate,
-        endDate: endDate,
-        dateOfBirth: dob,
-        address: fullPatient.address || prev.address,
-        roomType: fullPatient.room_number || prev.roomType,
-        doctorName: fullPatient.staff__full_name || prev.doctorName,
-        department: fullPatient.department__name || prev.department,
-        bedGroup: fullPatient.bed_group || prev.bedGroup,
-        bedNumber: fullPatient.bed_number || prev.bedNumber,
-      }));
-      if (fullPatient.patient_unique_id) {
-        fetchInsurances(fullPatient.patient_unique_id);
-      }
+  if (fullPatient) {
+    const ageGender = `${fullPatient.age || ""}/${fullPatient.gender || ""}`;
+    const startDate = fullPatient.admission_date || "";
+    const endDate = fullPatient.discharge_date || "";
+    const dob = fullPatient.date_of_birth || "";
+    setPatientInfo((prev) => ({
+      ...prev,
+      patientName: fullPatient.full_name || prev.patientName,
+      patientID: fullPatient.patient_unique_id || prev.patientID,
+      ageGender: ageGender,
+      startDate: startDate,
+      endDate: endDate,
+      dateOfBirth: dob,
+      address: fullPatient.address || prev.address,
+      roomType: fullPatient.room_number || prev.roomType,
+      doctorName: fullPatient.staff__full_name || prev.doctorName,
+      department: fullPatient.department__name || prev.department,
+      bedGroup: fullPatient.bed_group || prev.bedGroup,
+      bedNumber: fullPatient.bed_number || prev.bedNumber,
+    }));
+    if (fullPatient.patient_unique_id) {
+      fetchInsurances(fullPatient.patient_unique_id);
+      // Re-fetch treatment charges when discharge date is updated
+      fetchPendingTreatmentCharges(fullPatient.patient_unique_id);
     }
-  }, [fullPatient]);
+  }
+}, [fullPatient]);
 
   useEffect(() => {
     const lowerQuery = searchQuery.toLowerCase();
@@ -250,7 +281,29 @@ const BillingPreview = () => {
       fetchPaymentSummary(patientInfo.patientID);
       fetchAvailablePaidInvoices(patientInfo.patientID);
       
+      // Fetch invoice history when patient changes
+      fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter);
+      
+      // Reset partial payment data for current items
       setPartialPaymentData({
+        paidAmount: "",
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        remarks: "",
+      });
+
+      // Reset partial payment data for pending invoices
+      setPartialPendingPaymentData({
+        paidAmount: "",
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        remarks: "",
+      });
+
+      // NEW: Reset combined partial payment data
+      setCombinedPartialPaymentData({
         paidAmount: "",
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
           .toISOString()
@@ -260,6 +313,14 @@ const BillingPreview = () => {
       
       // Reset selected partial invoices when patient changes
       setSelectedPartialInvoices([]);
+      
+      // Reset consolidate pagination
+      setConsolidatePagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalRecords: 0,
+        pageSize: 10,
+      });
     }
   }, [patientInfo.patientID]);
 
@@ -268,14 +329,157 @@ const BillingPreview = () => {
     calculateEffectiveTaxRate();
   }, [billingItems]);
 
+  // ========== Fetch Invoice History with Pagination ==========
+  const fetchInvoiceHistory = async (patientId, page = 1, filter = "all") => {
+    if (!patientId) {
+      setInvoiceHistory([]);
+      return;
+    }
+    
+    try {
+      setHistoryLoading(true);
+      const res = await api.get("/hospital-billing/");
+      
+      // Filter invoices for this patient
+      let patientInvoices = res.data.filter(
+        invoice => invoice.patient_id === patientId
+      );
+      
+      // Fetch details for each invoice to check consolidation status
+      const invoicesWithDetails = await Promise.all(
+        patientInvoices.map(async (inv) => {
+          try {
+            const detailRes = await api.get(`/hospital-billing/${inv.invoice_id}`);
+            return {
+              ...inv,
+              is_consolidated: detailRes.data.is_consolidated || false,
+              consolidated_invoice_id: detailRes.data.consolidated_invoice_id,
+              payment_type: detailRes.data.payment_type || inv.payment_type,
+              paid_amount: detailRes.data.paid_amount || inv.paid_amount,
+              pending_amount: detailRes.data.pending_amount || inv.pending_amount,
+              due_date: detailRes.data.due_date,
+              items_count: detailRes.data.items?.length || 0,
+            };
+          } catch (err) {
+            return {
+              ...inv,
+              is_consolidated: false,
+              payment_type: inv.payment_type,
+            };
+          }
+        })
+      );
+      
+      // Filter out consolidated invoices
+      let filteredInvoices = invoicesWithDetails.filter(inv => !inv.is_consolidated).filter(inv =>
+    inv.payment_type !== "Consolidate",
+  );;
+      
+      // Apply status filter
+      if (filter !== "all") {
+        if (filter === "paid") {
+          filteredInvoices = filteredInvoices.filter(inv => inv.status === "Paid");
+        } else if (filter === "partial") {
+          filteredInvoices = filteredInvoices.filter(inv => inv.payment_type === "Partial Payment");
+        } else if (filter === "pending") {
+          filteredInvoices = filteredInvoices.filter(inv => 
+            inv.status === "Pending" || inv.status === "Partially Paid"
+          );
+        }
+      }
+      
+      // Sort by date descending (newest first)
+      filteredInvoices.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      // Calculate pagination
+      const pageSize = historyPagination.pageSize;
+      const totalRecords = filteredInvoices.length;
+      const totalPages = Math.ceil(totalRecords / pageSize);
+      
+      // Get current page data
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = Math.min(startIndex + pageSize, totalRecords);
+      const paginatedData = filteredInvoices.slice(startIndex, endIndex);
+      
+      setInvoiceHistory(paginatedData);
+      setHistoryPagination({
+        ...historyPagination,
+        currentPage: page,
+        totalPages,
+        totalRecords,
+      });
+      
+    } catch (err) {
+      console.error("Failed to fetch invoice history:", err);
+      setInvoiceHistory([]);
+      errorToast("Failed to load invoice history");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // ========== Handle page change ==========
+  const handleHistoryPageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= historyPagination.totalPages) {
+      fetchInvoiceHistory(patientInfo.patientID, newPage, historyFilter);
+    }
+  };
+
+  // ========== Handle filter change ==========
+  const handleHistoryFilterChange = (filter) => {
+    setHistoryFilter(filter);
+    if (patientInfo.patientID) {
+      fetchInvoiceHistory(patientInfo.patientID, 1, filter);
+    }
+  };
+
+  // ========== View invoice PDF ==========
+  const handleViewInvoice = async (invoiceId) => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/hospital-billing/pdf/${invoiceId}`, {
+        responseType: "blob",
+      });
+      
+      const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(pdfBlob);
+      
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>Invoice ${invoiceId}</title>
+              <style>
+                body { margin: 0; height: 100vh; }
+                iframe { border: none; width: 100%; height: 100vh; }
+              </style>
+            </head>
+            <body>
+              <iframe src="${url}"></iframe>
+            </body>
+          </html>
+        `);
+      } else {
+        window.location.href = url;
+      }
+      
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+    } catch (err) {
+      console.error("Failed to view invoice:", err);
+      errorToast("Failed to load invoice PDF");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ========== API FUNCTIONS ==========
   const fetchTaxConfiguration = async () => {
     try {
       const response = await api.get("/settings/tax-configuration");
-      // Just store for reference, we'll calculate effective rate from items
       console.log("Tax configuration loaded:", response.data);
     } catch (error) {
-      console.log("Using default tax configuration");
+      console.log("Using default tax configuration (18%)");
     }
   };
 
@@ -403,7 +607,7 @@ const BillingPreview = () => {
     }
   };
 
- const fetchPendingTreatmentCharges = async (patientUniqueId) => {
+  const fetchPendingTreatmentCharges = async (patientUniqueId) => {
   try {
     const res = await api.get(
       `/hospital-billing/patient/${patientUniqueId}/treatment-charges`
@@ -412,7 +616,27 @@ const BillingPreview = () => {
     const pendingCharges = res.data?.charges || [];
     setTreatmentCharges(pendingCharges);
 
-    const treatmentChargesItems = pendingCharges.map((charge, idx) => ({
+    // Check if patient has a discharge date
+    const hasDischargeDate = patientInfo.endDate && patientInfo.endDate.trim() !== "";
+    
+    // Filter out bed charges if no discharge date
+    const filteredCharges = pendingCharges.filter(charge => {
+      const description = (charge.description || "").toLowerCase();
+      const isBedCharge = 
+        description.includes("bed") || 
+        description.includes("room") || 
+        description.includes("ward") ||
+        description.includes("accommodation") ||
+        description.includes("stay");
+      
+      // If it's a bed charge and there's no discharge date, filter it out
+      if (isBedCharge && !hasDischargeDate) {
+        return false;
+      }
+      return true;
+    });
+
+    const treatmentChargesItems = filteredCharges.map((charge, idx) => ({
       chargeId: charge.id,
       sNo: (idx + 1).toString().padStart(2, "0"),
       description: charge.description,
@@ -424,18 +648,24 @@ const BillingPreview = () => {
       status: charge.status,
       showSuggestions: false,
       filteredCharges: [],
-      // 👇 Preserve zero values
       discountPercent: charge.discount_percent != null ? charge.discount_percent.toString() : "",
-      taxPercent: charge.tax_percent != null ? charge.tax_percent.toString() : "",
+      taxPercent: charge.tax_percent != null ? charge.tax_percent.toString() : "18",
     }));
 
     setBillingItems(treatmentChargesItems);
+    
+    // Show a message if bed charges were filtered out
+    if (pendingCharges.length !== filteredCharges.length) {
+      const bedChargesCount = pendingCharges.length - filteredCharges.length;
+      errorToast(`${bedChargesCount} bed charge(s) hidden until patient is discharged`);
+    }
   } catch (err) {
     console.error(err);
     setTreatmentCharges([]);
     setBillingItems([]);
   }
 };
+
   const fetchAvailablePaidInvoices = async (patientId) => {
     try {
       const res = await api.get(
@@ -444,6 +674,16 @@ const BillingPreview = () => {
 
       const availableInvoices = res.data.available_invoices || [];
       setAvailablePaidInvoices(availableInvoices);
+      
+      // Update consolidate pagination
+      const totalRecords = availableInvoices.length;
+      const totalPages = Math.ceil(totalRecords / consolidatePagination.pageSize);
+      setConsolidatePagination({
+        ...consolidatePagination,
+        totalPages,
+        totalRecords,
+      });
+      
       setShowConsolidateInvoices(true);
 
       return availableInvoices;
@@ -589,7 +829,6 @@ const BillingPreview = () => {
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
       
-      // Force open in new tab with no cache
       const newWindow = window.open();
       if (newWindow) {
         newWindow.document.write(`
@@ -607,7 +846,6 @@ const BillingPreview = () => {
           </html>
         `);
       } else {
-        // Fallback if popup is blocked
         window.location.href = url;
       }
       
@@ -622,8 +860,7 @@ const BillingPreview = () => {
     }
   };
 
- // ========== CONSOLIDATE INVOICE FUNCTION ==========
-const generateConsolidateInvoice = async () => {
+  const generateConsolidateInvoice = async () => {
   if (selectedConsolidateInvoices.length === 0) {
     errorToast("Please select at least one paid invoice to consolidate");
     return;
@@ -633,7 +870,15 @@ const generateConsolidateInvoice = async () => {
     errorToast("Please select a patient first");
     return;
   }
-  // ✅ Check if patient has been discharged
+  
+  // Check for unpaid invoices first
+  const hasUnpaidInvoices = paymentSummary.pendingInvoices?.length > 0;
+  if (hasUnpaidInvoices) {
+    errorToast("Please clear all pending bills before generating consolidate invoice");
+    return;
+  }
+  
+  // Then check for discharge date
   if (!patientInfo.endDate || patientInfo.endDate.trim() === "") {
     errorToast("Please discharge the patient before generating a consolidate invoice");
     return;
@@ -642,7 +887,6 @@ const generateConsolidateInvoice = async () => {
   try {
     setGeneratingConsolidateInvoice(true);
 
-    // ✅ Backend calculates totals from DB
     const consolidateData = {
       patient_id: patientInfo.patientID,
       patient_name: patientInfo.patientName,
@@ -658,7 +902,6 @@ const generateConsolidateInvoice = async () => {
       { responseType: "blob" }
     );
 
-    // Open PDF
     const pdfBlob = new Blob([response.data], { type: "application/pdf" });
     const pdfUrl = window.URL.createObjectURL(pdfBlob);
 
@@ -688,13 +931,11 @@ const generateConsolidateInvoice = async () => {
       `✅ Consolidate invoice generated for ${selectedConsolidateInvoices.length} paid invoice(s)!`
     );
 
-    // Refresh paid invoices list
+    await fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter);
     await fetchAvailablePaidInvoices(patientInfo.patientID);
 
-    // Clear selections
     setSelectedConsolidateInvoices([]);
 
-    // If all invoices got consolidated, switch back
     if (availablePaidInvoices.length === selectedConsolidateInvoices.length) {
       setInvoiceGenerationType("current");
       setShowConsolidateInvoices(false);
@@ -724,7 +965,6 @@ const generateConsolidateInvoice = async () => {
   }
 };
 
-
   const handleMarkInvoiceAsPaidFull = async (invoiceId = null, invoiceData = null) => {
     const targetInvoice = invoiceData || pendingInvoiceToPay;
     if (!targetInvoice) return;
@@ -740,7 +980,6 @@ const generateConsolidateInvoice = async () => {
         { responseType: "blob" }
       );
 
-      // Open PDF
       const pdfBlob = new Blob([res.data], { type: "application/pdf" });
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
       
@@ -770,10 +1009,10 @@ const generateConsolidateInvoice = async () => {
         `Invoice ${invoiceToPay.invoice_id} marked as Paid successfully!`
       );
 
-      // Refresh data
       await fetchPatientInvoices(patientInfo.patientID);
       await fetchPaymentSummary(patientInfo.patientID);
       await fetchPendingTreatmentCharges(fullPatient?.patient_unique_id);
+      await fetchInvoiceHistory(patientInfo.patientID, historyPagination.currentPage, historyFilter);
 
       return true;
 
@@ -845,7 +1084,6 @@ const generateConsolidateInvoice = async () => {
         { responseType: "blob" }
       );
 
-      // Open PDF
       const pdfBlob = new Blob([response.data], { type: "application/pdf" });
       const pdfUrl = window.URL.createObjectURL(pdfBlob);
       
@@ -880,10 +1118,10 @@ const generateConsolidateInvoice = async () => {
 
       setShowAddPaymentModal(false);
 
-      // Refresh data
       await fetchPatientInvoices(patientInfo.patientID);
       await fetchPaymentSummary(patientInfo.patientID);
-      await fetchPendingTreatmentCharges(fullPatient?.patient_unique_id)
+      await fetchPendingTreatmentCharges(fullPatient?.patient_unique_id);
+      await fetchInvoiceHistory(patientInfo.patientID, historyPagination.currentPage, historyFilter);
 
     } catch (error) {
       console.error("Failed to add payment:", error);
@@ -894,86 +1132,92 @@ const generateConsolidateInvoice = async () => {
   };
 
   const createTreatmentCharges = async (
-  patientInternalId,
-  billingItemsData,
-  paymentStatus,
-  paymentType
-) => {
-  try {
-    if (!patientInternalId) {
-      console.error("No patient internal ID available");
-      return [];
-    }
-
-    let treatmentChargeStatus = "PENDING";
-
-    if (paymentStatus === "Paid" && paymentType === "Full Payment") {
-      treatmentChargeStatus = "BILLED";
-    } else if (paymentType === "Partial Payment") {
-      treatmentChargeStatus = "PARTIALLY_BILLED";
-    }
-
-    const createdCharges = [];
-
-    for (const item of billingItemsData) {
-      if (item.isFromTreatmentCharge) continue;
-
-      const treatmentChargeData = {
-        patient_id: patientInternalId,
-        description: item.description,
-        quantity: parseInt(item.quantity) || 1,
-        unit_price: parseFloat(item.unitPrice) || 0,
-        discount_percent: parseFloat(item.discountPercent) || 0,
-        tax_percent: parseFloat(item.taxPercent) || 0,
-        status: treatmentChargeStatus,
-      };
-
-      try {
-        console.log("Creating treatment charge:", treatmentChargeData);
-        const res = await api.post(
-          "/hospital-billing/treatment-charges/",
-          treatmentChargeData
-        );
-        createdCharges.push(res.data);
-      } catch (chargeError) {
-        console.error(
-          `Failed to create treatment charge for item: ${item.description}`,
-          chargeError
-        );
+    patientInternalId,
+    billingItemsData,
+    paymentStatus,
+    paymentType
+  ) => {
+    try {
+      if (!patientInternalId) {
+        console.error("No patient internal ID available");
+        return [];
       }
-    }
 
-    return createdCharges;
-  } catch (err) {
-    console.error("Failed to create treatment charges:", err);
-    throw err;
-  }
-};
+      let treatmentChargeStatus = "PENDING";
+
+      if (paymentStatus === "Paid" && paymentType === "Full Payment") {
+        treatmentChargeStatus = "BILLED";
+      } else if (paymentType === "Partial Payment") {
+        treatmentChargeStatus = "PARTIALLY_BILLED";
+      }
+
+      const createdCharges = [];
+
+      for (const item of billingItemsData) {
+        if (item.isFromTreatmentCharge) continue;
+
+        const treatmentChargeData = {
+          patient_id: patientInternalId,
+          description: item.description,
+          quantity: parseInt(item.quantity) || 1,
+          unit_price: parseFloat(item.unitPrice) || 0,
+          discount_percent: parseFloat(item.discountPercent) || 0,
+          tax_percent: parseFloat(item.taxPercent) || 18,
+          status: treatmentChargeStatus,
+        };
+
+        try {
+          console.log("Creating treatment charge with discount:", treatmentChargeData.discount_percent);
+          const res = await api.post(
+            "/hospital-billing/treatment-charges/",
+            treatmentChargeData
+          );
+          createdCharges.push(res.data);
+        } catch (chargeError) {
+          console.error(
+            `Failed to create treatment charge for item: ${item.description}`,
+            chargeError
+          );
+        }
+      }
+
+      return createdCharges;
+    } catch (err) {
+      console.error("Failed to create treatment charges:", err);
+      throw err;
+    }
+  };
 
   // ========== CALCULATION FUNCTIONS ==========
   const calculateEffectiveTaxRate = () => {
     if (billingItems.length === 0) {
       setTaxConfig({
-        effectiveTaxRate: 0,
-        cgstRate: 0,
-        sgstRate: 0,
+        effectiveTaxRate: 18,
+        cgstRate: 9,
+        sgstRate: 9,
       });
       return;
     }
 
-    // Calculate weighted average tax rate based on item amounts
     let totalAmount = 0;
     let weightedTaxSum = 0;
 
     billingItems.forEach(item => {
-      const itemAmount = parseFloat(item.amount) || 0;
-      const itemTaxPercent = parseFloat(item.taxPercent) || 0;
+      const quantity = parseFloat(item.quantity) || 0;
+      const unitPrice = parseFloat(item.unitPrice) || 0;
+      const discountPercent = parseFloat(item.discountPercent) || 0;
+      const subtotal = quantity * unitPrice;
+      const discountAmount = (subtotal * discountPercent) / 100;
+      const afterDiscount = subtotal - discountAmount;
+      
+      const itemAmount = afterDiscount;
+      const itemTaxPercent = parseFloat(item.taxPercent) || 18;
       
       totalAmount += itemAmount;
       weightedTaxSum += (itemAmount * itemTaxPercent);
     });
 
-    const effectiveTaxRate = totalAmount > 0 ? (weightedTaxSum / totalAmount) : 0;
+    const effectiveTaxRate = totalAmount > 0 ? (weightedTaxSum / totalAmount) : 18;
     const halfTaxRate = effectiveTaxRate / 2;
 
     setTaxConfig({
@@ -983,57 +1227,62 @@ const generateConsolidateInvoice = async () => {
     });
   };
 
-  const calculateSubtotal = () => {
+  // Calculate subtotal BEFORE discount and tax (original amount)
+  const calculateSubtotalBeforeDiscount = () => {
     return billingItems
-      .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
+      .reduce((sum, item) => {
+        const quantity = parseFloat(item.quantity) || 0;
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        return sum + (quantity * unitPrice);
+      }, 0)
       .toFixed(2);
   };
 
-  const calculateTotalDiscountPercent = () => {
-    if (billingItems.length === 0) return 0;
-    
-    const totalSubtotal = billingItems.reduce((sum, item) => {
-      const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unitPrice) || 0;
-      return sum + (quantity * unitPrice);
-    }, 0);
-    
-    const totalAfterDiscount = billingItems.reduce((sum, item) => {
-      return sum + parseFloat(item.amount || 0);
-    }, 0);
-    
-    if (totalSubtotal === 0) return 0;
-    return ((totalSubtotal - totalAfterDiscount) / totalSubtotal * 100).toFixed(2);
-  };
-
+  // Calculate total discount amount
   const calculateTotalDiscountAmount = () => {
-    const totalSubtotal = billingItems.reduce((sum, item) => {
+    const subtotalBeforeDiscount = parseFloat(calculateSubtotalBeforeDiscount());
+    const subtotalAfterDiscount = billingItems.reduce((sum, item) => {
       const quantity = parseFloat(item.quantity) || 0;
       const unitPrice = parseFloat(item.unitPrice) || 0;
-      return sum + (quantity * unitPrice);
+      const discountPercent = parseFloat(item.discountPercent) || 0;
+      const subtotal = quantity * unitPrice;
+      const discountAmount = (subtotal * discountPercent) / 100;
+      return sum + (subtotal - discountAmount);
     }, 0);
-    
-    const totalAfterDiscount = billingItems.reduce((sum, item) => {
-      return sum + parseFloat(item.amount || 0);
-    }, 0);
-    
-    return (totalSubtotal - totalAfterDiscount).toFixed(2);
+    return (subtotalBeforeDiscount - subtotalAfterDiscount).toFixed(2);
   };
 
+  // Calculate subtotal AFTER discount (before tax)
+  const calculateSubtotalAfterDiscount = () => {
+    return billingItems
+      .reduce((sum, item) => {
+        const quantity = parseFloat(item.quantity) || 0;
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const discountPercent = parseFloat(item.discountPercent) || 0;
+        const subtotal = quantity * unitPrice;
+        const discountAmount = (subtotal * discountPercent) / 100;
+        return sum + (subtotal - discountAmount);
+      }, 0)
+      .toFixed(2);
+  };
+
+  // Calculate tax breakdown (on subtotal after discount)
   const calculateTaxBreakdown = () => {
-    const subtotal = parseFloat(calculateSubtotal());
-    const cgstAmount = (subtotal * (taxConfig.cgstRate / 100)).toFixed(2);
-    const sgstAmount = (subtotal * (taxConfig.sgstRate / 100)).toFixed(2);
+    const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
+    const cgstAmount = (subtotalAfterDiscount * (taxConfig.cgstRate / 100)).toFixed(2);
+    const sgstAmount = (subtotalAfterDiscount * (taxConfig.sgstRate / 100)).toFixed(2);
     return { cgstAmount, sgstAmount };
   };
 
+  // Calculate grand total (after discount + tax)
   const calculateGrandTotal = () => {
-    const subtotal = parseFloat(calculateSubtotal());
+    const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
     const { cgstAmount, sgstAmount } = calculateTaxBreakdown();
-    return (subtotal + parseFloat(cgstAmount) + parseFloat(sgstAmount)).toFixed(2);
+    return (subtotalAfterDiscount + parseFloat(cgstAmount) + parseFloat(sgstAmount)).toFixed(2);
   };
 
-  const calculatePendingAmount = () => {
+  // Calculate pending amount for CURRENT ITEMS only
+  const calculateCurrentItemsPendingAmount = () => {
     if (patientInfo.paymentType !== "Partial Payment") return 0;
     
     const grandTotal = parseFloat(calculateGrandTotal());
@@ -1042,33 +1291,92 @@ const generateConsolidateInvoice = async () => {
     return (grandTotal - paidAmount).toFixed(2);
   };
 
+  // Calculate pending amount for SELECTED PENDING INVOICES only
+  const calculatePendingInvoicesPendingAmount = () => {
+    if (patientInfo.paymentType !== "Partial Payment") return 0;
+    
+    const totalPendingSelected = parseFloat(calculateSelectedPartialTotal());
+    const paidAmount = parseFloat(partialPendingPaymentData.paidAmount) || 0;
+    
+    return (totalPendingSelected - paidAmount).toFixed(2);
+  };
+
+  // NEW: Calculate pending amount for COMBINED scenario
+  const calculateCombinedPendingAmount = () => {
+    if (patientInfo.paymentType !== "Partial Payment") return 0;
+    
+    const totalBeforePayment = parseFloat(calculateDisplayTotal());
+    const paidAmount = parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+    
+    return (totalBeforePayment - paidAmount).toFixed(2);
+  };
+
   const calculateSelectedPartialTotal = () => {
     if (selectedPartialInvoices.length === 0) return 0;
     
     return paymentSummary.pendingInvoices
       .filter(inv => selectedPartialInvoices.includes(inv.invoice_id))
-      .reduce((sum, inv) => sum + (parseFloat(inv.pending_amount) || 0), 0)
-      .toFixed(2);
+      .reduce((sum, inv) => sum + (parseFloat(inv.pending_amount) || 0), 0);
   };
 
   const calculateConsolidateTotal = () => {
     if (!showConsolidateInvoices || selectedConsolidateInvoices.length === 0) return 0;
     
+    // Get paginated selected invoices
+    const paginatedSelected = getPaginatedSelectedConsolidateInvoices();
+    
     return availablePaidInvoices
-      .filter(inv => selectedConsolidateInvoices.includes(inv.invoice_id))
-      .reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0)
-      .toFixed(2);
+      .filter(inv => paginatedSelected.includes(inv.invoice_id))
+      .reduce((sum, inv) => sum + (parseFloat(inv.amount) || 0), 0);
   };
 
-  // NEW: Calculate new charges total (before tax and discount)
-  const calculateNewChargesSubtotal = () => {
-    return billingItems
-      .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0)
-      .toFixed(2);
-  };
-
-  // NEW: Calculate total payable amount (new charges after tax + selected pending invoices)
+  // Calculate total payable (new charges after tax + selected pending) - adjusted for partial payments
   const calculateTotalPayable = () => {
+    const newChargesAfterTax = parseFloat(calculateGrandTotal());
+    const selectedPendingTotal = parseFloat(calculateSelectedPartialTotal());
+    const totalBeforePayments = newChargesAfterTax + selectedPendingTotal;
+    
+    // If this is a partial payment scenario, subtract the paid amounts from the total
+    if (patientInfo.paymentType === "Partial Payment") {
+      // Check which partial payment data to use based on what's selected
+      if (billingItems.length > 0 && selectedPartialInvoices.length > 0) {
+        // Combined scenario - use combined payment data
+        const paidAmount = parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+        return (totalBeforePayments - paidAmount).toFixed(2);
+      } else if (billingItems.length > 0) {
+        // Only current items
+        const paidAmount = parseFloat(partialPaymentData.paidAmount) || 0;
+        return (totalBeforePayments - paidAmount).toFixed(2);
+      } else if (selectedPartialInvoices.length > 0) {
+        // Only pending invoices
+        const paidAmount = parseFloat(partialPendingPaymentData.paidAmount) || 0;
+        return (totalBeforePayments - paidAmount).toFixed(2);
+      }
+    }
+    
+    return totalBeforePayments.toFixed(2);
+  };
+
+  // Calculate total amount being paid today (for display purposes)
+  const calculateTotalPaidToday = () => {
+    if (patientInfo.paymentType !== "Partial Payment") return 0;
+    
+    if (billingItems.length > 0 && selectedPartialInvoices.length > 0) {
+      // Combined scenario
+      return parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+    } else if (billingItems.length > 0) {
+      // Only current items
+      return parseFloat(partialPaymentData.paidAmount) || 0;
+    } else if (selectedPartialInvoices.length > 0) {
+      // Only pending invoices
+      return parseFloat(partialPendingPaymentData.paidAmount) || 0;
+    }
+    
+    return 0;
+  };
+
+  // Calculate what's being displayed in the "Total Payable" card (the amount before subtracting today's payment)
+  const calculateDisplayTotal = () => {
     const newChargesAfterTax = parseFloat(calculateGrandTotal());
     const selectedPendingTotal = parseFloat(calculateSelectedPartialTotal());
     return (newChargesAfterTax + selectedPendingTotal).toFixed(2);
@@ -1106,14 +1414,24 @@ const generateConsolidateInvoice = async () => {
 
   const handleInputChange = (value, field) => {
     setPatientInfo({ ...patientInfo, [field]: value });
-    // Clear validation error when field is updated
     if (value && value.trim() !== "") {
       setValidationErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
 
+  // Handler for partial payment on CURRENT ITEMS only
   const handlePartialPaymentChange = (value, field) => {
     setPartialPaymentData({ ...partialPaymentData, [field]: value });
+  };
+
+  // Handler for partial payment on SELECTED PENDING INVOICES only
+  const handlePartialPendingPaymentChange = (value, field) => {
+    setPartialPendingPaymentData({ ...partialPendingPaymentData, [field]: value });
+  };
+
+  // NEW: Handler for combined partial payment
+  const handleCombinedPartialPaymentChange = (value, field) => {
+    setCombinedPartialPaymentData({ ...combinedPartialPaymentData, [field]: value });
   };
 
   // ========== VALIDATION FUNCTIONS ==========
@@ -1159,39 +1477,54 @@ const generateConsolidateInvoice = async () => {
       showSuggestions: false,
       filteredCharges: [],
       discountPercent: "",
-      taxPercent: "",
+      taxPercent: "18",
     };
 
     setBillingItems([...billingItems, newItem]);
   };
 
   const handleSelectCharge = (index, charge) => {
-    const updatedItems = [...billingItems];
+  // Check if this is a bed charge
+  const chargeDesc = (charge.charge || "").toLowerCase();
+  const isBedCharge = 
+    chargeDesc.includes("bed") || 
+    chargeDesc.includes("room") || 
+    chargeDesc.includes("ward") ||
+    chargeDesc.includes("accommodation") ||
+    chargeDesc.includes("stay");
+  
+  // Check if patient has discharge date
+  const hasDischargeDate = patientInfo.endDate && patientInfo.endDate.trim() !== "";
+  
+  // If it's a bed charge and no discharge date, prevent selection
+  if (isBedCharge && !hasDischargeDate) {
+    errorToast("Bed charges can only be added after patient discharge");
+    return;
+  }
 
-    updatedItems[index].description = charge.charge;
-    updatedItems[index].unitPrice = String(charge.unit_price || 0);
+  const updatedItems = [...billingItems];
 
-    const quantity = parseFloat(updatedItems[index].quantity) || 1;
-    const unitPrice = parseFloat(updatedItems[index].unitPrice) || 0;
-    const subtotal = quantity * unitPrice;
-    
-    // Apply discount if any
-    const discountPercent = parseFloat(updatedItems[index].discountPercent) || 0;
-    const discountAmount = (subtotal * discountPercent) / 100;
-    const afterDiscount = subtotal - discountAmount;
-    
-    // Apply tax if any
-    const taxPercent = parseFloat(updatedItems[index].taxPercent) || 0;
-    const taxAmount = (afterDiscount * taxPercent) / 100;
-    
-    updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
+  updatedItems[index].description = charge.charge;
+  updatedItems[index].unitPrice = String(charge.unit_price || 0);
 
-    updatedItems[index].showSuggestions = false;
-    updatedItems[index].filteredCharges = [];
+  const quantity = parseFloat(updatedItems[index].quantity) || 1;
+  const unitPrice = parseFloat(updatedItems[index].unitPrice) || 0;
+  const subtotal = quantity * unitPrice;
+  
+  const discountPercent = parseFloat(updatedItems[index].discountPercent) || 0;
+  const discountAmount = (subtotal * discountPercent) / 100;
+  const afterDiscount = subtotal - discountAmount;
+  
+  const taxPercent = parseFloat(updatedItems[index].taxPercent) || 18;
+  const taxAmount = (afterDiscount * taxPercent) / 100;
+  
+  updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
 
-    setBillingItems(updatedItems);
-  };
+  updatedItems[index].showSuggestions = false;
+  updatedItems[index].filteredCharges = [];
 
+  setBillingItems(updatedItems);
+};
   const handleDeleteBillingItem = async (index) => {
     const item = billingItems[index];
 
@@ -1214,65 +1547,98 @@ const generateConsolidateInvoice = async () => {
   };
 
   const handleEditBillingItem = (index, field, value) => {
-    const updatedItems = [...billingItems];
-    
-    // Allow empty string for discount and tax fields to enable deletion
-    if (field === "discountPercent" || field === "taxPercent") {
+  const updatedItems = [...billingItems];
+  
+  if (field === "discountPercent" || field === "taxPercent") {
+    // Ensure valid number input
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
       updatedItems[index][field] = value;
     } else {
-      updatedItems[index][field] = value;
+      return;
     }
+  } else {
+    updatedItems[index][field] = value;
+  }
 
-    if (field === "description") {
-      const query = value.toLowerCase().trim();
+  if (field === "description") {
+    const query = value.toLowerCase().trim();
 
-      if (query.length > 0) {
-        const filtered = chargesList
-          .filter((c) => c.charge?.toLowerCase().includes(query))
-          .slice(0, 8);
+    if (query.length > 0) {
+      // Check if patient has discharge date
+      const hasDischargeDate = patientInfo.endDate && patientInfo.endDate.trim() !== "";
+      
+      // Filter charges
+      const filtered = chargesList
+        .filter((c) => {
+          const chargeDesc = (c.charge || "").toLowerCase();
+          const matchesQuery = chargeDesc.includes(query);
+          
+          // Check if it's a bed charge
+          const isBedCharge = 
+            chargeDesc.includes("bed") || 
+            chargeDesc.includes("room") || 
+            chargeDesc.includes("ward") ||
+            chargeDesc.includes("accommodation") ||
+            chargeDesc.includes("stay");
+          
+          // If it's a bed charge and no discharge date, don't show it
+          if (isBedCharge && !hasDischargeDate) {
+            return false;
+          }
+          
+          return matchesQuery;
+        })
+        .slice(0, 8);
 
-        updatedItems[index].filteredCharges = filtered;
-        updatedItems[index].showSuggestions = true;
-      } else {
-        updatedItems[index].filteredCharges = [];
-        updatedItems[index].showSuggestions = false;
+      updatedItems[index].filteredCharges = filtered;
+      updatedItems[index].showSuggestions = true;
+      
+      // Show a message if no suggestions due to bed charges being filtered
+      if (filtered.length === 0 && query.length > 0 && !hasDischargeDate) {
+        const bedTerms = ["bed", "room", "ward", "accommodation", "stay"];
+        const isSearchingBedCharge = bedTerms.some(term => query.includes(term));
+        if (isSearchingBedCharge) {
+          errorToast("Bed charges can only be added after patient discharge");
+        }
       }
+    } else {
+      updatedItems[index].filteredCharges = [];
+      updatedItems[index].showSuggestions = false;
     }
+  }
 
-    if (["quantity", "unitPrice", "description", "discountPercent", "taxPercent"].includes(field)) {
-      const quantity = parseFloat(updatedItems[index].quantity) || 0;
-      const unitPrice = parseFloat(updatedItems[index].unitPrice) || 0;
-      const subtotal = quantity * unitPrice;
-      
-      // Apply discount if any (parseFloat handles empty string as 0)
-      const discountPercent = parseFloat(updatedItems[index].discountPercent) || 0;
-      const discountAmount = (subtotal * discountPercent) / 100;
-      const afterDiscount = subtotal - discountAmount;
-      
-      // Apply tax if any (parseFloat handles empty string as 0)
-      const taxPercent = parseFloat(updatedItems[index].taxPercent) || 0;
-      const taxAmount = (afterDiscount * taxPercent) / 100;
-      
-      updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
+  if (["quantity", "unitPrice", "description", "discountPercent", "taxPercent"].includes(field)) {
+    const quantity = parseFloat(updatedItems[index].quantity) || 0;
+    const unitPrice = parseFloat(updatedItems[index].unitPrice) || 0;
+    const subtotal = quantity * unitPrice;
+    
+    const discountPercent = parseFloat(updatedItems[index].discountPercent) || 0;
+    const discountAmount = (subtotal * discountPercent) / 100;
+    const afterDiscount = subtotal - discountAmount;
+    
+    const taxPercent = parseFloat(updatedItems[index].taxPercent) || 18;
+    const taxAmount = (afterDiscount * taxPercent) / 100;
+    
+    updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
+  }
+
+  if (updatedItems[index].isFromTreatmentCharge && updatedItems[index].isEditable) {
+    const chargeId = updatedItems[index].chargeId;
+
+    if (chargeId) {
+      updateTreatmentCharge(chargeId, {
+        description: updatedItems[index].description,
+        quantity: parseInt(updatedItems[index].quantity) || 1,
+        unit_price: parseFloat(updatedItems[index].unitPrice) || 0,
+        amount: parseFloat(updatedItems[index].amount) || 0,
+        discount_percent: parseFloat(updatedItems[index].discountPercent) || 0,
+        tax_percent: parseFloat(updatedItems[index].taxPercent) || 18,
+      });
     }
+  }
 
-    if (updatedItems[index].isFromTreatmentCharge && updatedItems[index].isEditable) {
-      const chargeId = updatedItems[index].chargeId;
-
-      if (chargeId) {
-        updateTreatmentCharge(chargeId, {
-          description: updatedItems[index].description,
-          quantity: parseInt(updatedItems[index].quantity) || 1,
-          unit_price: parseFloat(updatedItems[index].unitPrice) || 0,
-          amount: parseFloat(updatedItems[index].amount) || 0,
-          discount_percent: parseFloat(updatedItems[index].discountPercent) || 0,
-          tax_percent: parseFloat(updatedItems[index].taxPercent) || 0,
-        });
-      }
-    }
-
-    setBillingItems(updatedItems);
-  };
+  setBillingItems(updatedItems);
+};
 
   const handleEditSNo = (index, value) => {
     if (!/^\d*$/.test(value)) return;
@@ -1300,6 +1666,183 @@ const generateConsolidateInvoice = async () => {
     setBillingItems(finalItems);
   };
 
+  // ========== SETTLEMENT HANDLER FUNCTIONS ==========
+
+  const handlePaySelectedPartialInvoices = async () => {
+    if (selectedPartialInvoices.length === 0) {
+      errorToast("Please select at least one pending invoice to pay");
+      return;
+    }
+
+    if (!patientInfo.patientID) {
+      errorToast("Patient ID is required");
+      return;
+    }
+
+    // Determine which partial payment data to use
+    let paidAmount, dueDate, remarks;
+    const hasNewItems = billingItems.length > 0;
+    
+    if (hasNewItems) {
+      // Combined scenario - use combined payment data
+      paidAmount = parseFloat(combinedPartialPaymentData.paidAmount);
+      dueDate = combinedPartialPaymentData.dueDate;
+      remarks = combinedPartialPaymentData.remarks;
+    } else {
+      // Only pending invoices - use pending payment data
+      paidAmount = parseFloat(partialPendingPaymentData.paidAmount);
+      dueDate = partialPendingPaymentData.dueDate;
+      remarks = partialPendingPaymentData.remarks;
+    }
+
+    const isPartialSettlement = patientInfo.paymentType === "Partial Payment" && paidAmount > 0;
+
+    // Calculate total pending amount from selected invoices
+    const totalPendingSelected = parseFloat(calculateSelectedPartialTotal());
+    
+    // Validate partial payment amount if applicable
+    if (isPartialSettlement) {
+      if (!paidAmount || paidAmount <= 0) {
+        errorToast("Please enter a valid paid amount for partial payment on pending invoices");
+        return;
+      }
+
+      if (paidAmount > totalPendingSelected) {
+        errorToast(`Partial payment amount ($${paidAmount.toLocaleString()}) cannot exceed total pending amount ($${totalPendingSelected.toLocaleString()})`);
+        return;
+      }
+
+      if (!dueDate) {
+        errorToast("Please select a due date for partial payment");
+        return;
+      }
+    }
+
+    setPaySelectedPartialInvoices(true);
+    setLoading(true);
+
+    try {
+      const finalPaidAmount = isPartialSettlement ? paidAmount : totalPendingSelected;
+
+      const payload = {
+        patient_id: patientInfo.patientID,
+        invoice_ids: selectedPartialInvoices,
+        payment_method: patientInfo.paymentMode || "Cash",
+        transaction_id: `SET_${Date.now()}`,
+        remarks: isPartialSettlement 
+          ? `Partial settlement of ${selectedPartialInvoices.length} pending invoice(s) with $${finalPaidAmount.toFixed(2)}`
+          : `Full settlement of ${selectedPartialInvoices.length} pending invoice(s)`,
+        payment_amount: finalPaidAmount,
+        payment_type: isPartialSettlement ? "Partial Settlement" : "Full Settlement",
+        due_date: isPartialSettlement ? dueDate : null
+      };
+
+      console.log("📤 Sending settlement request:", payload);
+
+      const response = await api.post(
+        "/hospital-billing/settle-invoices",
+        payload,
+        { responseType: "blob" }
+      );
+
+      // Handle PDF response
+      const pdfBlob = new Blob([response.data], { type: "application/pdf" });
+      const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+      const newWindow = window.open();
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>${isPartialSettlement ? 'Partial Settlement' : 'Settlement'} Invoice</title>
+              <style>
+                body { margin: 0; height: 100vh; }
+                iframe { border: none; width: 100%; height: 100vh; }
+              </style>
+            </head>
+            <body>
+              <iframe src="${pdfUrl}"></iframe>
+            </body>
+          </html>
+        `);
+      } else {
+        window.location.href = pdfUrl;
+      }
+
+      setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 100);
+
+      // Get response headers
+      const totalPaid = response.headers["x-total-paid"] || finalPaidAmount.toFixed(2);
+      const invoicesCount = response.headers["x-invoices-count"] || selectedPartialInvoices.length;
+      const settlementType = response.headers["x-settlement-type"] || (isPartialSettlement ? "Partial Settlement" : "Full Settlement");
+
+      // Show success message based on settlement type
+      if (isPartialSettlement) {
+        successToast(
+          `✅ Successfully processed partial payment of $${parseFloat(totalPaid).toLocaleString()}!\n` +
+          `Distributed across ${invoicesCount} pending invoice(s)`
+        );
+      } else {
+        successToast(
+          `✅ Successfully settled ${invoicesCount} pending invoice(s)!\n` +
+          `Total paid: $${parseFloat(totalPaid).toLocaleString()}`
+        );
+      }
+
+      // Refresh all relevant data
+      await Promise.all([
+        fetchPatientInvoices(patientInfo.patientID),
+        fetchPaymentSummary(patientInfo.patientID),
+        fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
+        fetchAvailablePaidInvoices(patientInfo.patientID),
+        fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter)
+      ]);
+
+      // Clear selections and reset form
+      setSelectedPartialInvoices([]);
+      
+      if (isPartialSettlement) {
+        if (hasNewItems) {
+          setCombinedPartialPaymentData({
+            paidAmount: "",
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            remarks: "",
+          });
+        } else {
+          setPartialPendingPaymentData({
+            paidAmount: "",
+            dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            remarks: "",
+          });
+        }
+      }
+
+    } catch (error) {
+      console.error("❌ Failed to process settlement:", error);
+      
+      // Handle error responses
+      if (error.response && error.response.data instanceof Blob) {
+        try {
+          const errorText = await error.response.data.text();
+          const errorJson = JSON.parse(errorText);
+          errorToast(errorJson.detail || "Failed to settle invoices");
+        } catch (e) {
+          errorToast("Failed to settle invoices. Please try again.");
+        }
+      } else if (error.response && error.response.data) {
+        errorToast(error.response.data.detail || "Failed to settle invoices");
+      } else {
+        errorToast("Failed to process payment. Please try again.");
+      }
+    } finally {
+      setPaySelectedPartialInvoices(false);
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Handles toggling select all for partial invoices
+   */
   const handleToggleSelectAllPartial = () => {
     if (selectedPartialInvoices.length === paymentSummary.pendingInvoices.length) {
       setSelectedPartialInvoices([]);
@@ -1308,6 +1851,9 @@ const generateConsolidateInvoice = async () => {
     }
   };
 
+  /**
+   * Handles toggling individual partial invoice selection
+   */
   const handleToggleSelectPartialInvoice = (invoiceId) => {
     setSelectedPartialInvoices(prev => {
       if (prev.includes(invoiceId)) {
@@ -1318,11 +1864,49 @@ const generateConsolidateInvoice = async () => {
     });
   };
 
+  // ========== CONSOLIDATE PAGINATION FUNCTIONS ==========
+  const getPaginatedAvailableInvoices = () => {
+    const startIndex = (consolidatePagination.currentPage - 1) * consolidatePagination.pageSize;
+    const endIndex = Math.min(startIndex + consolidatePagination.pageSize, availablePaidInvoices.length);
+    return availablePaidInvoices.slice(startIndex, endIndex);
+  };
+
+  const getPaginatedSelectedConsolidateInvoices = () => {
+    const paginatedInvoices = getPaginatedAvailableInvoices();
+    const paginatedIds = paginatedInvoices.map(inv => inv.invoice_id);
+    return selectedConsolidateInvoices.filter(id => paginatedIds.includes(id));
+  };
+
+  const handleConsolidatePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= consolidatePagination.totalPages) {
+      setConsolidatePagination({
+        ...consolidatePagination,
+        currentPage: newPage,
+      });
+    }
+  };
+
   const handleToggleSelectAllConsolidate = () => {
-    if (selectedConsolidateInvoices.length === availablePaidInvoices.length) {
-      setSelectedConsolidateInvoices([]);
+    const paginatedInvoices = getPaginatedAvailableInvoices();
+    const paginatedIds = paginatedInvoices.map(inv => inv.invoice_id);
+    
+    // Check if all paginated invoices are selected
+    const allPaginatedSelected = paginatedIds.every(id => selectedConsolidateInvoices.includes(id));
+    
+    if (allPaginatedSelected) {
+      // Remove all paginated invoices from selection
+      setSelectedConsolidateInvoices(prev => 
+        prev.filter(id => !paginatedIds.includes(id))
+      );
     } else {
-      setSelectedConsolidateInvoices(availablePaidInvoices.map(inv => inv.invoice_id));
+      // Add all paginated invoices to selection
+      const newSelection = [...selectedConsolidateInvoices];
+      paginatedIds.forEach(id => {
+        if (!newSelection.includes(id)) {
+          newSelection.push(id);
+        }
+      });
+      setSelectedConsolidateInvoices(newSelection);
     }
   };
 
@@ -1336,27 +1920,568 @@ const generateConsolidateInvoice = async () => {
     });
   };
 
-  const subtotal = calculateSubtotal();
-  const newChargesSubtotal = calculateNewChargesSubtotal();
-  const totalDiscountPercent = calculateTotalDiscountPercent();
+  /**
+   * Generates a new invoice for treatment charges (Scenario 2)
+   * Can optionally include settlement of selected pending invoices (Scenario 3)
+   */
+  const generateNewInvoice = async (
+  shouldResetForm = true,
+  skipLoadingState = false,
+  extraPayload = {}
+) => {
+    // Validate billing items
+    if (billingItems.length === 0) {
+      errorToast("Please add at least one treatment charge item");
+      return false;
+    }
+
+    if (billingItems.some((item) => !item.description || !item.quantity || !item.unitPrice)) {
+      errorToast("Please add valid billing items");
+      return false;
+    }
+
+    // Determine which partial payment data to use
+    const hasNewItems = billingItems.length > 0;
+    const hasPendingInvoices = selectedPartialInvoices.length > 0;
+    const isPartialPayment = patientInfo.paymentType === "Partial Payment";
+    
+    let paidAmount = 0;
+    let dueDate = null;
+    let remarks = "";
+
+    if (isPartialPayment) {
+      if (hasNewItems && hasPendingInvoices) {
+        // Combined scenario
+        paidAmount = parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+        dueDate = combinedPartialPaymentData.dueDate;
+        remarks = combinedPartialPaymentData.remarks;
+      } else if (hasNewItems) {
+        // Only current items
+        paidAmount = parseFloat(partialPaymentData.paidAmount) || 0;
+        dueDate = partialPaymentData.dueDate;
+        remarks = partialPaymentData.remarks;
+      } else if (hasPendingInvoices) {
+        // Only pending invoices - this case should be handled by handlePaySelectedPartialInvoices
+        paidAmount = parseFloat(partialPendingPaymentData.paidAmount) || 0;
+        dueDate = partialPendingPaymentData.dueDate;
+        remarks = partialPendingPaymentData.remarks;
+      }
+    }
+
+    // Validate partial payment on current items if selected
+    if (isPartialPayment && hasNewItems && !extraPayload?.settle_invoice_ids?.length) {
+      const grand = parseFloat(calculateGrandTotal());
+
+      if (!paidAmount || paidAmount <= 0) {
+        errorToast("Please enter a valid paid amount for partial payment on current items");
+        return false;
+      }
+
+      if (paidAmount > grand) {
+        errorToast("Paid amount cannot exceed the grand total");
+        return false;
+      }
+
+      if (!dueDate) {
+        errorToast("Please select a due date for partial payment");
+        return false;
+      }
+    }
+
+    try {
+      const today = new Date().toISOString().split("T")[0];
+
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return null;
+        dateString = dateString.split("T")[0];
+        let date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split("T")[0];
+        }
+        return null;
+      };
+
+      const generateTransactionId = () => {
+        return `TXN_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 5)
+          .toUpperCase()}`;
+      };
+
+      const admissionDate = formatDateForBackend(patientInfo.startDate);
+      if (!admissionDate) {
+        errorToast("Please provide a valid admission date in YYYY-MM-DD format");
+        return false;
+      }
+
+      const patientInternalId = fullPatient?.id;
+      if (!patientInternalId) {
+        errorToast("Patient internal ID not found");
+        return false;
+      }
+
+      // Create treatment charges for manual items
+      const manualBillingItems = billingItems.filter((item) => !item.isFromTreatmentCharge);
+
+      let newlyCreatedCharges = [];
+      if (manualBillingItems.length > 0) {
+        newlyCreatedCharges = await createTreatmentCharges(
+          patientInternalId,
+          manualBillingItems,
+          patientInfo.paymentStatus,
+          patientInfo.paymentType
+        );
+      }
+
+      const newChargeIds = newlyCreatedCharges.map((c) => c.id);
+      const existingChargeIds = billingItems
+        .filter((item) => item.isFromTreatmentCharge && item.chargeId)
+        .map((item) => item.chargeId);
+
+      const treatmentChargeIds = [...new Set([...existingChargeIds, ...newChargeIds])];
+
+      // Build invoice data with discount included in items
+      const invoiceData = {
+        date: today,
+        patient_name: patientInfo.patientName,
+        patient_id: patientInfo.patientID,
+        department: patientInfo.department || "General Ward",
+        payment_method: patientInfo.paymentMode || "Cash",
+        status: patientInfo.paymentStatus || "Pending",
+        payment_type: patientInfo.paymentType,
+
+        admission_date: admissionDate,
+        discharge_date: formatDateForBackend(patientInfo.endDate),
+        doctor: patientInfo.doctorName || "N/A",
+        phone: fullPatient?.phone_number || "N/A",
+        email: fullPatient?.email_address || null,
+        address: patientInfo.address || "",
+
+        discount_percent: 0,
+        cgst_percent: taxConfig.cgstRate,
+        sgst_percent: taxConfig.sgstRate,
+        tax_percent: taxConfig.effectiveTaxRate,
+
+        transaction_id: generateTransactionId(),
+        payment_date: patientInfo.paymentStatus === "Paid" ? today : null,
+
+        invoice_items: billingItems.map((item) => ({
+          description: item.description,
+          quantity: parseInt(item.quantity) || 1,
+          unit_price: parseFloat(item.unitPrice) || 0,
+          discount_percent: parseFloat(item.discountPercent) || 0,
+          tax_percent: parseFloat(item.taxPercent) || 18,
+        })),
+
+        treatment_charge_ids: treatmentChargeIds,
+      };
+
+      // Add partial payment data if applicable
+      if (isPartialPayment && paidAmount > 0) {
+        invoiceData.partial_payment = {
+          paid_amount: paidAmount,
+          due_date: dueDate,
+          remarks: remarks || "",
+        };
+      }
+
+      // Add settlement data if this invoice is settling previous pending invoices (Scenario 3)
+      if (extraPayload?.settle_invoice_ids?.length > 0) {
+        invoiceData.settle_invoice_ids = extraPayload.settle_invoice_ids;
+        
+        // If this is a partial settlement with new items, include the partial amount
+        if (isPartialPayment && hasPendingInvoices) {
+          // For combined scenario, the paid amount is already set above
+          // It will be distributed between new items and pending invoices on the backend
+          invoiceData.partial_settlement_amount = paidAmount;
+          invoiceData.partial_settlement_due_date = dueDate;
+        } else if (extraPayload.partial_settlement_amount) {
+          invoiceData.partial_settlement_amount = extraPayload.partial_settlement_amount;
+          invoiceData.partial_settlement_due_date = extraPayload.partial_settlement_due_date;
+        }
+      }
+
+      console.log("📤 Sending invoice data with discounts:", 
+      invoiceData.invoice_items.map(item => ({
+        description: item.description,
+        discount_percent: item.discount_percent
+      }))
+    );
+
+    // Send request
+    const res = await api.post("/hospital-billing/generate-invoice", invoiceData, {
+      responseType: "blob",
+    });
+
+    // Handle PDF response
+    const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+    const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+    const newWindow = window.open();
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head>
+            <title>Invoice</title>
+            <style>
+              body { margin: 0; height: 100vh; }
+              iframe { border: none; width: 100%; height: 100vh; }
+            </style>
+          </head>
+          <body>
+            <iframe src="${pdfUrl}"></iframe>
+          </body>
+        </html>
+      `);
+    } else {
+      window.location.href = pdfUrl;
+    }
+
+    setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 100);
+
+    const invoiceId = res.headers["x-invoice-id"] || null;
+
+    // Show success message
+    if (extraPayload?.settle_invoice_ids?.length > 0) {
+      const settlementType = isPartialPayment && paidAmount > 0 ? "Partial" : "Full";
+      successToast(
+        `✅ Invoice ${invoiceId || ""} generated successfully!\n` +
+        `${settlementType} settlement of ${extraPayload.settle_invoice_ids.length} pending invoice(s) in same PDF.`
+      );
+    } else {
+      successToast(`✅ Invoice ${invoiceId || ""} generated successfully!`);
+    }
+
+    // Refresh all data
+    await Promise.all([
+      fetchPatientInvoices(patientInfo.patientID),
+      fetchPaymentSummary(patientInfo.patientID),
+      fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
+      fetchAvailablePaidInvoices(patientInfo.patientID),
+      fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter)
+    ]);
+
+    if (shouldResetForm) {
+      resetForm();
+    }
+
+    return true;
+
+  } catch (err) {
+    console.error("❌ Failed to generate invoice:", err);
+    
+    if (err.response && err.response.data) {
+      try {
+        const errorData = await err.response.data.text();
+        const errorJson = JSON.parse(errorData);
+        errorToast(errorJson.detail || "Failed to generate invoice");
+      } catch {
+        errorToast("Failed to generate invoice. Please try again.");
+      }
+    } else {
+      errorToast("Failed to generate invoice. Please try again.");
+    }
+    
+    return false;
+  }
+};
+
+  /**
+   * Main handler for generating bills (handles all scenarios)
+   * Scenario 1: Only pending invoices selected (with or without partial payment)
+   * Scenario 2: Only new treatment charges (with or without partial payment)
+   * Scenario 3: Both new charges and pending invoices (with or without partial payment)
+   */
+  const handleGenerateBill = async () => {
+  if (generatingBill || loading || generatingConsolidateInvoice) return;
+
+  if (!validatePaymentFields()) {
+    errorToast("Please fill in all required payment fields");
+    return;
+  }
+
+  if (invoiceGenerationType === "consolidate") {
+    await generateConsolidateInvoice();
+    return;
+  }
+
+  if (!patientInfo.patientID) {
+    errorToast("Please select a patient first");
+    return;
+  }
+
+  const hasNewItems = billingItems.length > 0;
+  const hasSelectedPartialInvoices = selectedPartialInvoices.length > 0;
+  const isPartialPayment = patientInfo.paymentType === "Partial Payment";
+
+  // Validation
+  if (!hasNewItems && !hasSelectedPartialInvoices) {
+    errorToast("Please add treatment charges or select pending invoices to pay");
+    return;
+  }
+
+  try {
+    setGeneratingBill(true);
+
+    // ========== SCENARIO 1: Only pending invoices selected ==========
+    if (!hasNewItems && hasSelectedPartialInvoices) {
+      await handlePaySelectedPartialInvoices();
+      
+      // Refresh data after settlement
+      await Promise.all([
+        fetchPatientInvoices(patientInfo.patientID),
+        fetchPaymentSummary(patientInfo.patientID),
+        fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
+        fetchAvailablePaidInvoices(patientInfo.patientID),
+        fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter)
+      ]);
+      
+      setGeneratingBill(false);
+      return;
+    }
+
+    // ========== SCENARIO 2: Only new treatment charges ==========
+    if (hasNewItems && !hasSelectedPartialInvoices) {
+      const result = await generateNewInvoice(true, false, {});
+      setGeneratingBill(false); // Make sure this is called
+      return;
+    }
+
+    // ========== SCENARIO 3: Both new charges AND pending invoices ==========
+    if (hasNewItems && hasSelectedPartialInvoices) {
+      const invoicesToSettle = [...selectedPartialInvoices];
+
+      // Prepare settlement payload
+      const settlementPayload = {
+        settle_invoice_ids: invoicesToSettle,
+      };
+
+      // If this is a partial payment scenario, include the partial amount
+      if (isPartialPayment) {
+        const paidAmount = parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+        if (paidAmount > 0) {
+          settlementPayload.partial_settlement_amount = paidAmount;
+          settlementPayload.partial_settlement_due_date = combinedPartialPaymentData.dueDate;
+        }
+      }
+
+      // Generate combined invoice with settlement
+      const result = await generateNewInvoice(
+        false,  // Don't reset form yet
+        true,   // Skip loading state
+        settlementPayload
+      );
+
+      if (!result) {
+        throw new Error("Failed to generate invoice with settlement");
+      }
+
+      const settlementType = isPartialPayment && parseFloat(combinedPartialPaymentData.paidAmount) > 0 ? "Partial" : "Full";
+      
+      successToast(
+        `✅ Invoice generated successfully!\n` +
+        `${settlementType} settlement of ${invoicesToSettle.length} pending invoice(s) in same PDF.`
+      );
+
+      // Refresh all data
+      await Promise.all([
+        fetchPatientInvoices(patientInfo.patientID),
+        fetchPaymentSummary(patientInfo.patientID),
+        fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
+        fetchAvailablePaidInvoices(patientInfo.patientID),
+        fetchInvoiceHistory(patientInfo.patientID, 1, historyFilter)
+      ]);
+
+      // Clear selections and reset form
+      setSelectedPartialInvoices([]);
+      resetForm();
+      setGeneratingBill(false);
+      return;
+    }
+
+  } catch (err) {
+    console.error("❌ Failed to process billing:", err);
+    errorToast("Failed to process billing. Please try again.");
+    setGeneratingBill(false); // Make sure to reset loading state on error
+  }
+};
+
+  /**
+   * Resets the form to initial state
+   */
+  const resetForm = () => {
+    setPatientInfo({
+      patientName: "",
+      patientID: "",
+      ageGender: "",
+      startDate: "",
+      endDate: "",
+      dateOfBirth: "",
+      address: "",
+      roomType: "",
+      doctorName: "",
+      department: "",
+      billingStaff: staffInfo.staffName,
+      billingStaffID: staffInfo.staffID,
+      paymentMode: "",
+      paymentType: "Full Payment",
+      paymentStatus: "",
+      bedGroup: "",
+      bedNumber: "",
+    });
+
+    setBillingItems([]);
+    setTreatmentCharges([]);
+    setFullPatient(null);
+
+    // Reset all partial payment data states
+    setPartialPaymentData({
+      paidAmount: "",
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      remarks: "",
+    });
+
+    setPartialPendingPaymentData({
+      paidAmount: "",
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      remarks: "",
+    });
+
+    setCombinedPartialPaymentData({
+      paidAmount: "",
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+      remarks: "",
+    });
+
+    setPaymentSummary({
+      totalPaid: 0,
+      totalPending: 0,
+      paymentHistory: [],
+      pendingInvoices: [],
+    });
+
+    setPatientInvoices([]);
+    setSelectedInvoice(null);
+    setSelectedPartialInvoices([]);
+    setPayPendingInvoice(false);
+    setPendingInvoiceToPay(null);
+    setAvailablePaidInvoices([]);
+    setSelectedConsolidateInvoices([]);
+    setShowConsolidateInvoices(false);
+    setInvoiceGenerationType("current");
+    
+    setValidationErrors({
+      paymentMode: "",
+      paymentType: "",
+      paymentStatus: ""
+    });
+
+    successToast("Form reset. Ready for next patient.");
+  };
+
+  /**
+   * Gets the appropriate button text based on current state
+   */
+  const getGenerateButtonText = () => {
+    if (generatingBill) return "Generating Invoice...";
+    if (generatingConsolidateInvoice) return "Generating Consolidate...";
+    if (loading) return "Processing...";
+    
+    const hasNewItems = billingItems.length > 0;
+    const hasSelectedPartial = selectedPartialInvoices.length > 0;
+    const isPartialPayment = patientInfo.paymentType === "Partial Payment";
+
+    if (invoiceGenerationType === "consolidate") {
+      return "Generate Consolidate Invoice";
+    }
+
+    // Determine which partial payment data to use
+    let paidAmount = 0;
+    if (isPartialPayment) {
+      if (hasNewItems && hasSelectedPartial) {
+        paidAmount = parseFloat(combinedPartialPaymentData.paidAmount) || 0;
+      } else if (hasNewItems) {
+        paidAmount = parseFloat(partialPaymentData.paidAmount) || 0;
+      } else if (hasSelectedPartial) {
+        paidAmount = parseFloat(partialPendingPaymentData.paidAmount) || 0;
+      }
+    }
+
+    // Scenario 1: Only pending invoices
+    if (!hasNewItems && hasSelectedPartial) {
+      const totalPending = parseFloat(calculateSelectedPartialTotal());
+      if (isPartialPayment && paidAmount > 0) {
+        return `Partial Payment on Pending ($${paidAmount.toLocaleString()} of $${totalPending.toLocaleString()})`;
+      }
+      return `Pay Selected Invoices ($${totalPending.toLocaleString()})`;
+    }
+
+    // Scenario 2: Only new charges
+    if (hasNewItems && !hasSelectedPartial) {
+      if (isPartialPayment && paidAmount > 0) {
+        const grandTotal = parseFloat(calculateGrandTotal());
+        const remainingBalance = grandTotal - paidAmount;
+        return `Partial Invoice ($${paidAmount.toLocaleString()} paid, $${remainingBalance.toLocaleString()} due)`;
+      }
+      return "Generate Invoice";
+    }
+
+    // Scenario 3: Both new charges and pending invoices
+    if (hasNewItems && hasSelectedPartial) {
+      const totalPayable = parseFloat(calculateDisplayTotal());
+      const amountDue = parseFloat(calculateTotalPayable());
+      if (isPartialPayment && paidAmount > 0) {
+        return `Combined Partial ($${paidAmount.toLocaleString()} paid, $${amountDue.toLocaleString()} due)`;
+      }
+      return `Generate Combined Invoice ($${totalPayable.toLocaleString()})`;
+    }
+
+    return "Generate Invoice";
+  };
+
+  const subtotalBeforeDiscount = calculateSubtotalBeforeDiscount();
+  const subtotalAfterDiscount = calculateSubtotalAfterDiscount();
   const totalDiscountAmount = calculateTotalDiscountAmount();
   const { cgstAmount, sgstAmount } = calculateTaxBreakdown();
   const grandTotal = calculateGrandTotal();
-  const pendingAmount = calculatePendingAmount();
+  const currentItemsPendingAmount = calculateCurrentItemsPendingAmount();
+  const pendingInvoicesPendingAmount = calculatePendingInvoicesPendingAmount();
+  const combinedPendingAmount = calculateCombinedPendingAmount();
   const selectedPartialTotal = calculateSelectedPartialTotal();
+  const displayTotal = calculateDisplayTotal();
   const totalPayable = calculateTotalPayable();
+  const totalPaidToday = calculateTotalPaidToday();
   const consolidateTotal = calculateConsolidateTotal();
   
-  const formattedSubtotal = parseFloat(subtotal).toLocaleString();
-  const formattedNewChargesSubtotal = parseFloat(newChargesSubtotal).toLocaleString();
+  const formattedSubtotalBeforeDiscount = parseFloat(subtotalBeforeDiscount).toLocaleString();
+  const formattedSubtotalAfterDiscount = parseFloat(subtotalAfterDiscount).toLocaleString();
   const formattedTotalDiscountAmount = parseFloat(totalDiscountAmount).toLocaleString();
   const formattedCgst = parseFloat(cgstAmount).toLocaleString();
   const formattedSgst = parseFloat(sgstAmount).toLocaleString();
   const formattedGrand = parseFloat(grandTotal).toLocaleString();
-  const formattedPending = parseFloat(pendingAmount).toLocaleString();
+  const formattedCurrentItemsPending = parseFloat(currentItemsPendingAmount).toLocaleString();
+  const formattedPendingInvoicesPending = parseFloat(pendingInvoicesPendingAmount).toLocaleString();
+  const formattedCombinedPending = parseFloat(combinedPendingAmount).toLocaleString();
   const formattedSelectedPartialTotal = parseFloat(selectedPartialTotal).toLocaleString();
+  const formattedDisplayTotal = parseFloat(displayTotal).toLocaleString();
   const formattedTotalPayable = parseFloat(totalPayable).toLocaleString();
-  const formattedConsolidateTotal = parseFloat(consolidateTotal).toLocaleString();
+  const formattedTotalPaidToday = parseFloat(totalPaidToday).toLocaleString();
+  
+  // Get paginated invoices for consolidate
+  const paginatedAvailableInvoices = getPaginatedAvailableInvoices();
+  const paginatedSelectedConsolidateInvoices = getPaginatedSelectedConsolidateInvoices();
+  const formattedConsolidateTotal = paginatedSelectedConsolidateInvoices
+    .reduce((sum, id) => {
+      const invoice = availablePaidInvoices.find(inv => inv.invoice_id === id);
+      return sum + (parseFloat(invoice?.amount) || 0);
+    }, 0)
+    .toLocaleString();
 
   // ========== INSURANCE FUNCTIONS ==========
   const handleEditInsurance = (index) => {
@@ -1422,475 +2547,6 @@ const generateConsolidateInvoice = async () => {
     }
   };
 
-  
-
-// ========== PAY SELECTED PARTIAL INVOICES FUNCTION ==========
-const handlePaySelectedPartialInvoices = async () => {
-  if (selectedPartialInvoices.length === 0) {
-    errorToast("Please select at least one pending invoice to pay");
-    return;
-  }
-
-  if (!patientInfo.patientID) {
-    errorToast("Patient ID is required");
-    return;
-  }
-
-  setPaySelectedPartialInvoices(true);
-  setLoading(true);
-
-  try {
-    // Prepare payload for settlement endpoint
-    const payload = {
-      patient_id: patientInfo.patientID,
-      invoice_ids: selectedPartialInvoices,
-      payment_method: patientInfo.paymentMode || "Cash",
-      transaction_id: `SET_${Date.now()}`,
-      remarks: `Settlement of ${selectedPartialInvoices.length} pending invoice(s)`
-    };
-
-    console.log("📤 Sending settlement request:", payload);
-
-    // Call the settlement endpoint with blob response type for PDF
-    const response = await api.post(
-      "/hospital-billing/settle-invoices",  // Updated endpoint
-      payload,
-      { responseType: "blob" }
-    );
-
-    // Open the settlement invoice PDF
-    const pdfBlob = new Blob([response.data], { type: "application/pdf" });
-    const pdfUrl = window.URL.createObjectURL(pdfBlob);
-
-    // Force open in new tab with no cache
-    const newWindow = window.open();
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>Settlement Invoice</title>
-            <style>
-              body { margin: 0; height: 100vh; }
-              iframe { border: none; width: 100%; height: 100vh; }
-            </style>
-          </head>
-          <body>
-            <iframe src="${pdfUrl}"></iframe>
-          </body>
-        </html>
-      `);
-    } else {
-      // Fallback if popup is blocked
-      window.location.href = pdfUrl;
-    }
-
-    setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 100);
-
-    // Extract metadata from response headers
-    const totalPaid = response.headers["x-total-paid"] || 
-                     parseFloat(calculateSelectedPartialTotal()).toFixed(2);
-    const invoicesCount = response.headers["x-invoices-count"] || 
-                         selectedPartialInvoices.length;
-
-    successToast(
-      `✅ Successfully settled ${invoicesCount} pending invoice(s)!\n` +
-      `Total paid: $${parseFloat(totalPaid).toLocaleString()}`
-    );
-
-    // Refresh all relevant data
-    await Promise.all([
-      fetchPatientInvoices(patientInfo.patientID),
-      fetchPaymentSummary(patientInfo.patientID),
-      fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
-      fetchAvailablePaidInvoices(patientInfo.patientID)
-    ]);
-
-    // Clear selections
-    setSelectedPartialInvoices([]);
-
-  } catch (error) {
-    console.error("❌ Failed to process settlement:", error);
-    
-    // Handle error response if it's a blob (error details might be in JSON format)
-    if (error.response && error.response.data instanceof Blob) {
-      try {
-        const errorText = await error.response.data.text();
-        const errorJson = JSON.parse(errorText);
-        errorToast(errorJson.detail || "Failed to settle invoices");
-      } catch (e) {
-        errorToast("Failed to settle invoices. Please try again.");
-      }
-    } else if (error.response && error.response.data) {
-      errorToast(error.response.data.detail || "Failed to settle invoices");
-    } else {
-      errorToast("Failed to process payment. Please try again.");
-    }
-  } finally {
-    setPaySelectedPartialInvoices(false);
-    setLoading(false);
-  }
-};
-
-const generateNewInvoice = async (
-  shouldResetForm = true,
-  skipLoadingState = false,
-  extraPayload = {}
-) => {
-  // Validate billing items
-  if (billingItems.length === 0) {
-    errorToast("Please add at least one treatment charge item");
-    return false;
-  }
-
-  if (billingItems.some((item) => !item.description || !item.quantity || !item.unitPrice)) {
-    errorToast("Please add valid billing items");
-    return false;
-  }
-
-  // Partial Payment Validation
-  if (patientInfo.paymentType === "Partial Payment") {
-    const paidAmount = parseFloat(partialPaymentData.paidAmount) || 0;
-    const grand = parseFloat(calculateGrandTotal());
-
-    if (!partialPaymentData.paidAmount || paidAmount <= 0) {
-      errorToast("Please enter a valid paid amount for partial payment");
-      return false;
-    }
-
-    if (paidAmount > grand) {
-      errorToast("Paid amount cannot exceed the grand total");
-      return false;
-    }
-
-    if (!partialPaymentData.dueDate) {
-      errorToast("Please select a due date for partial payment");
-      return false;
-    }
-  }
-
-  try {
-    const today = new Date().toISOString().split("T")[0];
-
-    const formatDateForBackend = (dateString) => {
-      if (!dateString) return null;
-      dateString = dateString.split("T")[0];
-      let date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().split("T")[0];
-      }
-      return null;
-    };
-
-    const generateTransactionId = () => {
-      return `TXN_${Date.now()}_${Math.random()
-        .toString(36)
-        .substr(2, 5)
-        .toUpperCase()}`;
-    };
-
-    const admissionDate = formatDateForBackend(patientInfo.startDate);
-    if (!admissionDate) {
-      errorToast("Please provide a valid admission date in YYYY-MM-DD format");
-      return false;
-    }
-
-    const patientInternalId = fullPatient?.id;
-    if (!patientInternalId) {
-      errorToast("Patient internal ID not found");
-      return false;
-    }
-
-    // Create treatment charges for manual items
-    const manualBillingItems = billingItems.filter((item) => !item.isFromTreatmentCharge);
-
-    let newlyCreatedCharges = [];
-    if (manualBillingItems.length > 0) {
-      newlyCreatedCharges = await createTreatmentCharges(
-        patientInternalId,
-        manualBillingItems,
-        patientInfo.paymentStatus,
-        patientInfo.paymentType
-      );
-    }
-
-    // Collect treatment charge IDs
-    const newChargeIds = newlyCreatedCharges.map((c) => c.id);
-
-    const existingChargeIds = billingItems
-      .filter((item) => item.isFromTreatmentCharge && item.chargeId)
-      .map((item) => item.chargeId);
-
-    const treatmentChargeIds = [...new Set([...existingChargeIds, ...newChargeIds])];
-
-    const totalDiscountPercent = parseFloat(calculateTotalDiscountPercent());
-
-    // Invoice Data
-    const invoiceData = {
-      // Basic Info
-      date: today,
-      patient_name: patientInfo.patientName,
-      patient_id: patientInfo.patientID,
-      department: patientInfo.department || "General Ward",
-      payment_method: patientInfo.paymentMode || "Cash",
-      status: patientInfo.paymentStatus || "Pending",
-      payment_type: patientInfo.paymentType,
-
-      // Patient Info
-      admission_date: admissionDate,
-      discharge_date: formatDateForBackend(patientInfo.endDate),
-      doctor: patientInfo.doctorName || "N/A",
-      phone: fullPatient?.phone_number || "N/A",
-      email: fullPatient?.email_address || null,
-      address: patientInfo.address || "",
-
-      // Discount
-      discount_percent: totalDiscountPercent,
-
-      // Tax fields
-      cgst_percent: taxConfig.cgstRate,
-      sgst_percent: taxConfig.sgstRate,
-      tax_percent: taxConfig.effectiveTaxRate,
-
-      // Transaction
-      transaction_id: generateTransactionId(),
-      payment_date: patientInfo.paymentStatus === "Paid" ? today : null,
-
-      // Items
-      invoice_items: billingItems.map((item) => ({
-        description: item.description,
-        quantity: parseInt(item.quantity) || 1,
-        unit_price: parseFloat(item.unitPrice) || 0,
-        discount_percent: parseFloat(item.discountPercent) || 0,
-        tax_percent: parseFloat(item.taxPercent) || 0,
-      })),
-
-      // Charges
-      treatment_charge_ids: treatmentChargeIds,
-    };
-
-    // Partial Payment
-    if (patientInfo.paymentType === "Partial Payment") {
-      invoiceData.partial_payment = {
-        paid_amount: parseFloat(partialPaymentData.paidAmount) || 0,
-        due_date: partialPaymentData.dueDate,
-        remarks: partialPaymentData.remarks || "",
-      };
-    }
-
-    // ✅ Scenario 3 settlement
-    if (extraPayload?.settle_invoice_ids?.length > 0) {
-      invoiceData.settle_invoice_ids = extraPayload.settle_invoice_ids;
-    }
-
-    console.log("📤 Sending invoice data:", JSON.stringify(invoiceData, null, 2));
-
-    // Generate invoice PDF
-    const res = await api.post("/hospital-billing/generate-invoice", invoiceData, {
-      responseType: "blob",
-    });
-
-    // Open PDF
-    const pdfBlob = new Blob([res.data], { type: "application/pdf" });
-    const pdfUrl = window.URL.createObjectURL(pdfBlob);
-
-    const newWindow = window.open();
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>Invoice</title>
-            <style>
-              body { margin: 0; height: 100vh; }
-              iframe { border: none; width: 100%; height: 100vh; }
-            </style>
-          </head>
-          <body>
-            <iframe src="${pdfUrl}"></iframe>
-          </body>
-        </html>
-      `);
-    } else {
-      window.location.href = pdfUrl;
-    }
-
-    setTimeout(() => window.URL.revokeObjectURL(pdfUrl), 100);
-
-    // Invoice ID
-    const invoiceId = res.headers["x-invoice-id"] || null;
-
-    successToast(`✅ Invoice ${invoiceId || ""} generated successfully!`);
-
-    // Refresh data
-    await fetchPatientInvoices(patientInfo.patientID);
-    await fetchPaymentSummary(patientInfo.patientID);
-    await fetchPendingTreatmentCharges(fullPatient?.patient_unique_id);
-
-    if (shouldResetForm) resetForm();
-
-    return true;
-
-  } catch (err) {
-    console.error("❌ Failed to generate invoice:", err);
-    errorToast("Failed to generate invoice. Please try again.");
-    return false;
-  }
-};
-
-const resetForm = () => {
-  setPatientInfo({
-    patientName: "",
-    patientID: "",
-    ageGender: "",
-    startDate: "",
-    endDate: "",
-    dateOfBirth: "",
-    address: "",
-    roomType: "",
-    doctorName: "",
-    department: "",
-    billingStaff: staffInfo.staffName,
-    billingStaffID: staffInfo.staffID,
-    paymentMode: "",
-    paymentType: "Full Payment",
-    paymentStatus: "",
-    bedGroup: "",
-    bedNumber: "",
-  });
-
-  setBillingItems([]);
-  setTreatmentCharges([]);
-  setFullPatient(null);
-
-  setPartialPaymentData({
-    paidAmount: "",
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0],
-    remarks: "",
-  });
-
-  setPaymentSummary({
-    totalPaid: 0,
-    totalPending: 0,
-    paymentHistory: [],
-    pendingInvoices: [],
-  });
-
-  setPatientInvoices([]);
-  setSelectedInvoice(null);
-  setSelectedPartialInvoices([]);
-  setPayPendingInvoice(false);
-  setPendingInvoiceToPay(null);
-  setAvailablePaidInvoices([]);
-  setSelectedConsolidateInvoices([]);
-  setShowConsolidateInvoices(false);
-  setInvoiceGenerationType("current");
-  
-  // Clear validation errors
-  setValidationErrors({
-    paymentMode: "",
-    paymentType: "",
-    paymentStatus: ""
-  });
-
-  successToast("Form reset. Ready for next patient.");
-};
-
-const handleGenerateBill = async () => {
-  if (generatingBill || loading || generatingConsolidateInvoice) return;
-
-  // Validate payment fields first
-  if (!validatePaymentFields()) {
-    errorToast("Please fill in all required payment fields");
-    return;
-  }
-
-  if (invoiceGenerationType === "consolidate") {
-    await generateConsolidateInvoice();
-    return;
-  }
-
-  if (!patientInfo.patientID) {
-    errorToast("Please select a patient first");
-    return;
-  }
-
-  const hasNewItems = billingItems.length > 0;
-  const hasSelectedPartialInvoices = selectedPartialInvoices.length > 0;
-
-  if (!hasNewItems && !hasSelectedPartialInvoices) {
-    errorToast("Please add treatment charges or select pending invoices to pay");
-    return;
-  }
-
-  try {
-    setGeneratingBill(true);
-
-    // ===== SCENARIO 1: Only pay selected partial invoices =====
-    if (!hasNewItems && hasSelectedPartialInvoices) {
-  await handlePaySelectedPartialInvoices(); // This now calls the updated endpoint
-  
-  // Refresh data after payment
-  await Promise.all([
-    fetchPatientInvoices(patientInfo.patientID),
-    fetchPaymentSummary(patientInfo.patientID),
-    fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
-    fetchAvailablePaidInvoices(patientInfo.patientID)
-  ]);
-  
-  setGeneratingBill(false);
-  return;
-}
-
-    // ===== SCENARIO 2: Only generate invoice for new items =====
-    if (hasNewItems && !hasSelectedPartialInvoices) {
-      await generateNewInvoice(true);
-      setGeneratingBill(false);
-      return;
-    }
-
-    // ===== SCENARIO 3: New items + selected partial invoices =====
-    if (hasNewItems && hasSelectedPartialInvoices) {
-      const invoicesToSettle = [...selectedPartialInvoices];
-
-      const result = await generateNewInvoice(
-        false,
-        true,
-        {
-          settle_invoice_ids: invoicesToSettle,
-        }
-      );
-
-      if (!result) throw new Error("Failed to generate invoice with settlement");
-
-      successToast(
-        `✅ Invoice generated successfully!\n` +
-        `Settled ${invoicesToSettle.length} pending invoice(s) in same PDF.`
-      );
-
-      // Refresh data
-      await Promise.all([
-        fetchPatientInvoices(patientInfo.patientID),
-        fetchPaymentSummary(patientInfo.patientID),
-        fetchPendingTreatmentCharges(fullPatient?.patient_unique_id),
-        fetchAvailablePaidInvoices(patientInfo.patientID)
-      ]);
-
-      setSelectedPartialInvoices([]);
-      resetForm();
-      setGeneratingBill(false);
-      return;
-    }
-
-  } catch (err) {
-    console.error("❌ Failed to process billing:", err);
-    errorToast("Failed to process billing. Please try again.");
-  } finally {
-    setGeneratingBill(false);
-  }
-};
-
-  
   // ========== RENDER FUNCTIONS ==========
   const renderBillingTableContent = () => {
     if (!patientInfo.patientID) {
@@ -2080,14 +2736,18 @@ const handleGenerateBill = async () => {
 
   // ========== RENDER PARTIAL INVOICES SECTION ==========
   const renderPartialInvoicesSection = () => {
-    // Only show in current invoice tab
     if (invoiceGenerationType !== "current") return null;
     
     const pendingInvoices = paymentSummary.pendingInvoices || [];
     
     if (pendingInvoices.length === 0) {
-      return null; // Don't show anything if no pending invoices
+      return null;
     }
+
+    const totalPendingSelected = parseFloat(calculateSelectedPartialTotal());
+    const isPartialPayment = patientInfo.paymentType === "Partial Payment";
+    const hasNewItems = billingItems.length > 0;
+    const hasPendingInvoices = selectedPartialInvoices.length > 0;
 
     return (
       <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
@@ -2142,13 +2802,14 @@ const handleGenerateBill = async () => {
                 const totalAmount = parseFloat(invoice.amount) || 0;
                 const paidAmount = parseFloat(invoice.paid_amount) || 0;
                 const pendingAmount = parseFloat(invoice.pending_amount) || 0;
+                const isSelected = selectedPartialInvoices.includes(invoice.invoice_id);
 
                 return (
                   <tr key={index} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
                     <td className="p-2">
                       <input
                         type="checkbox"
-                        checked={selectedPartialInvoices.includes(invoice.invoice_id)}
+                        checked={isSelected}
                         onChange={() => handleToggleSelectPartialInvoice(invoice.invoice_id)}
                         className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white 
                           rounded-sm bg-gray-100 dark:bg-black 
@@ -2198,11 +2859,11 @@ const handleGenerateBill = async () => {
             {selectedPartialInvoices.length > 0 && (
               <tfoot className="bg-gray-200 dark:bg-[#091810]">
                 <tr>
-                  <td colSpan="7" className="p-2 text-right font-semibold">
+                  <td colSpan="6" className="p-2 text-right font-semibold">
                     Total Selected Pending Amount:
                   </td>
                   <td className="p-2 text-right font-bold text-[#08994A] dark:text-[#0EFF7B]">
-                    ${formattedSelectedPartialTotal}
+                    ${totalPendingSelected.toLocaleString()}
                   </td>
                   <td colSpan="2"></td>
                 </tr>
@@ -2210,156 +2871,260 @@ const handleGenerateBill = async () => {
             )}
           </table>
         </div>
-      </div>
-    );
-  };
 
-  const renderConsolidateInvoicesSection = () => {
-    if (!showConsolidateInvoices || !patientInfo.patientID) return null;
-    
-    if (availablePaidInvoices.length === 0) {
-      return (
-        <div className="mt-6 p-4 border border-yellow-500 dark:border-yellow-700 rounded-lg bg-yellow-50 dark:bg-yellow-900/10">
-          <div>
-            <h4 className="text-yellow-700 dark:text-yellow-400 font-medium mb-2 flex items-center gap-2">
-              <FileText size={20} />
-              Consolidate Invoice
+        {/* NEW: Combined Partial Payment Section - Only when both current items AND pending invoices are selected */}
+        {hasNewItems && hasPendingInvoices && isPartialPayment && (
+          <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
+            <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium mb-3 flex items-center gap-2">
+              <DollarSign size={20} />
+              Partial Payment Details for Combined Invoice
             </h4>
-            <p className="text-gray-600 dark:text-gray-400">
-              No paid invoices available for consolidation. 
-              All paid invoices for this patient have already been consolidated.
-            </p>
-          </div>
-        </div>
-      );
-    }
 
-    return (
-      <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
-        <div className="flex justify-between items-center mb-3">
-          <div>
-            <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium flex items-center gap-2">
-              <Receipt size={20} />
-              Select Paid Invoices to Consolidate
-            </h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Only invoices not previously consolidated are shown
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleToggleSelectAllConsolidate}
-              className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline"
-            >
-              {selectedConsolidateInvoices.length === availablePaidInvoices.length ? "Deselect All" : "Select All"}
-            </button>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Selected: {selectedConsolidateInvoices.length} / {availablePaidInvoices.length}
-            </span>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Paid Amount ($) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={combinedPartialPaymentData.paidAmount}
+                  onChange={(e) =>
+                    handleCombinedPartialPaymentChange(e.target.value, "paidAmount")
+                  }
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                    bg-transparent text-[#08994A] dark:text-white outline-none"
+                  placeholder="Enter paid amount"
+                  min="0"
+                  max={parseFloat(displayTotal)}
+                  step="0.01"
+                />
+              </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 dark:bg-[#091810]">
-              <tr>
-                <th className="p-2 w-16">
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Due Date <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
                   <input
-                    type="checkbox"
-                    checked={selectedConsolidateInvoices.length === availablePaidInvoices.length && availablePaidInvoices.length > 0}
-                    onChange={handleToggleSelectAllConsolidate}
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white 
-                      rounded-sm bg-gray-100 dark:bg-black 
-                      checked:bg-[#08994A] dark:checked:bg-green-500 
-                      checked:border-[#0EFF7B] dark:checked:border-green-500 
-                      flex items-center justify-center 
-                      checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black 
-                      checked:before:text-sm"
+                    type="date"
+                    value={combinedPartialPaymentData.dueDate}
+                    onChange={(e) =>
+                      handleCombinedPartialPaymentChange(e.target.value, "dueDate")
+                    }
+                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                      bg-transparent text-[#08994A] dark:text-white outline-none
+                      [&::-webkit-calendar-picker-indicator]:opacity-0
+                      [&::-webkit-calendar-picker-indicator]:absolute
+                      [&::-webkit-calendar-picker-indicator]:w-5
+                      [&::-webkit-calendar-picker-indicator]:h-5
+                      [&::-webkit-calendar-picker-indicator]:right-2
+                      [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    min={new Date().toISOString().split("T")[0]}
                   />
-                </th>
-                <th className="p-2">Invoice ID</th>
-                <th className="p-2">Date</th>
-                <th className="p-2">Department</th>
-                <th className="p-2 text-right">Amount ($)</th>
-                <th className="p-2 text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
-              {availablePaidInvoices.map((invoice) => (
-                <tr key={invoice.invoice_id} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
-                  <td className="p-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedConsolidateInvoices.includes(invoice.invoice_id)}
-                      onChange={() => handleToggleSelectConsolidateInvoice(invoice.invoice_id)}
-                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white 
-                        rounded-sm bg-gray-100 dark:bg-black 
-                        checked:bg-[#08994A] dark:checked:bg-green-500 
-                        checked:border-[#0EFF7B] dark:checked:border-green-500 
-                        flex items-center justify-center 
-                        checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black 
-                        checked:before:text-sm"
-                    />
-                  </td>
-                  <td className="p-2 font-mono text-xs">
-                    {invoice.invoice_id}
-                  </td>
-                  <td className="p-2">
-                    {invoice.date}
-                  </td>
-                  <td className="p-2">
-                    {invoice.department || "General"}
-                  </td>
-                  <td className="p-2 text-right">
-                    ${parseFloat(invoice.amount || 0).toLocaleString()}
-                  </td>
-                  <td className="p-2 text-right">
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 rounded-full text-xs">
-                      {invoice.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            {selectedConsolidateInvoices.length > 0 && (
-              <tfoot className="bg-gray-200 dark:bg-[#091810]">
-                <tr>
-                  <td colSpan="4" className="p-2 text-right font-semibold">
-                    Total Selected Amount:
-                  </td>
-                  <td className="p-2 text-right font-bold text-[#08994A] dark:text-[#0EFF7B]">
-                    ${formattedConsolidateTotal}
-                  </td>
-                  <td colSpan="1"></td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                </div>
+              </div>
 
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <div className="flex items-start gap-2">
-            <AlertCircle size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-700 dark:text-blue-400">
-              <strong>Note:</strong> The consolidate invoice will combine all selected paid invoices into a single PDF document. 
-              Once generated, these invoices will be marked as consolidated and will no longer appear in this list.
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Remarks (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={combinedPartialPaymentData.remarks}
+                  onChange={(e) =>
+                    handleCombinedPartialPaymentChange(e.target.value, "remarks")
+                  }
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                    bg-transparent text-[#08994A] dark:text-white outline-none"
+                  placeholder="Payment remarks"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-gradient-to-r from-[#02512610] to-[#0D7F4110] rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    New Charges:
+                  </span>
+                  <div className="text-lg font-bold text-[#08994A] dark:text-[#0EFF7B]">
+                    ${formattedGrand}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Pending Selected:
+                  </span>
+                  <div className="text-lg font-bold text-orange-600 dark:text-orange-500">
+                    ${formattedSelectedPartialTotal}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Today's Payment:
+                  </span>
+                  <div className="text-lg font-bold text-green-600 dark:text-green-500">
+                    ${parseFloat(combinedPartialPaymentData.paidAmount || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Balance After Payment:
+                  </span>
+                  <div className="text-lg font-bold text-orange-600 dark:text-orange-500">
+                    ${(parseFloat(displayTotal) - parseFloat(combinedPartialPaymentData.paidAmount || 0)).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <div className="flex items-start gap-2 text-xs text-yellow-700 dark:text-yellow-400">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                <p>
+                  <strong>Note:</strong> The partial payment amount will be distributed proportionally between new charges and pending invoices based on their share of the total.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Only pending invoices selected - use existing partial pending payment section */}
+        {!hasNewItems && hasPendingInvoices && isPartialPayment && (
+          <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
+            <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium mb-3 flex items-center gap-2">
+              <DollarSign size={20} />
+              Partial Payment Details for Selected Pending Invoices
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Paid Amount ($) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={partialPendingPaymentData.paidAmount}
+                  onChange={(e) =>
+                    handlePartialPendingPaymentChange(e.target.value, "paidAmount")
+                  }
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                    bg-transparent text-[#08994A] dark:text-white outline-none"
+                  placeholder="Enter paid amount"
+                  min="0"
+                  max={totalPendingSelected}
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Due Date <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={partialPendingPaymentData.dueDate}
+                    onChange={(e) =>
+                      handlePartialPendingPaymentChange(e.target.value, "dueDate")
+                    }
+                    className="w-full h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                      bg-transparent text-[#08994A] dark:text-white outline-none
+                      [&::-webkit-calendar-picker-indicator]:opacity-0
+                      [&::-webkit-calendar-picker-indicator]:absolute
+                      [&::-webkit-calendar-picker-indicator]:w-5
+                      [&::-webkit-calendar-picker-indicator]:h-5
+                      [&::-webkit-calendar-picker-indicator]:right-2
+                      [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                  Remarks (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={partialPendingPaymentData.remarks}
+                  onChange={(e) =>
+                    handlePartialPendingPaymentChange(e.target.value, "remarks")
+                  }
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
+                    bg-transparent text-[#08994A] dark:text-white outline-none"
+                  placeholder="Payment remarks"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 p-3 bg-gradient-to-r from-[#02512610] to-[#0D7F4110] rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Total Selected Pending:
+                  </span>
+                  <div className="text-lg font-bold text-[#08994A] dark:text-[#0EFF7B]">
+                    ${totalPendingSelected.toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Today's Payment:
+                  </span>
+                  <div className="text-lg font-bold text-green-600 dark:text-green-500">
+                    ${parseFloat(partialPendingPaymentData.paidAmount || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Balance After Payment:
+                  </span>
+                  <div className="text-lg font-bold text-orange-600 dark:text-orange-500">
+                    ${(totalPendingSelected - parseFloat(partialPendingPaymentData.paidAmount || 0)).toLocaleString()}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    Due Date:
+                  </span>
+                  <div className="text-lg font-medium text-gray-700 dark:text-gray-300">
+                    {partialPendingPaymentData.dueDate || "Not set"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <div className="flex items-start gap-2 text-xs text-yellow-700 dark:text-yellow-400">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+                <p>
+                  <strong>Note:</strong> The partial payment amount will be distributed proportionally across the {selectedPartialInvoices.length} selected invoice(s) based on each invoice's pending amount.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
 
-  // ========== RENDER PARTIAL PAYMENT SECTION (ONLY in current invoice tab) ==========
-  const renderPartialPaymentSection = () => {
+  // ========== RENDER PARTIAL PAYMENT SECTION FOR CURRENT ITEMS ONLY ==========
+  const renderPartialPaymentForCurrentItems = () => {
     if (invoiceGenerationType !== "current") return null;
     if (patientInfo.paymentType !== "Partial Payment") return null;
+    if (billingItems.length === 0) return null;
+    
+    // Don't show if both current items AND pending invoices are selected (handled in combined section)
+    if (selectedPartialInvoices.length > 0) return null;
 
     return (
       <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
         <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium mb-3 flex items-center gap-2">
           <DollarSign size={20} />
-          Partial Payment Details
+          Partial Payment Details for Current Items
         </h4>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2377,7 +3142,7 @@ const handleGenerateBill = async () => {
                 bg-transparent text-[#08994A] dark:text-white outline-none"
               placeholder="Enter paid amount"
               min="0"
-              max={grandTotal}
+              max={parseFloat(grandTotal)}
               step="0.01"
             />
           </div>
@@ -2447,7 +3212,7 @@ const handleGenerateBill = async () => {
                 Balance After Payment:
               </span>
               <div className="text-lg font-bold text-orange-600 dark:text-orange-500">
-                ${formattedPending}
+                ${(parseFloat(grandTotal) - parseFloat(partialPaymentData.paidAmount || 0)).toLocaleString()}
               </div>
             </div>
             <div>
@@ -2460,6 +3225,345 @@ const handleGenerateBill = async () => {
             </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderConsolidateInvoicesSection = () => {
+    if (!showConsolidateInvoices || !patientInfo.patientID) return null;
+    
+    if (availablePaidInvoices.length === 0) {
+      return (
+        <div className="mt-6 p-4 border border-yellow-500 dark:border-yellow-700 rounded-lg bg-yellow-50 dark:bg-yellow-900/10">
+          <div>
+            <h4 className="text-yellow-700 dark:text-yellow-400 font-medium mb-2 flex items-center gap-2">
+              <FileText size={20} />
+              Consolidate Invoice
+            </h4>
+            <p className="text-gray-600 dark:text-gray-400">
+              No paid invoices available for consolidation. 
+              All paid invoices for this patient have already been consolidated.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    const totalPages = consolidatePagination.totalPages;
+    const startIndex = (consolidatePagination.currentPage - 1) * consolidatePagination.pageSize + 1;
+    const endIndex = Math.min(consolidatePagination.currentPage * consolidatePagination.pageSize, availablePaidInvoices.length);
+
+    return (
+      <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
+        <div className="flex justify-between items-center mb-3">
+          <div>
+            <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium flex items-center gap-2">
+              <Receipt size={20} />
+              Select Paid Invoices to Consolidate
+            </h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Only invoices not previously consolidated are shown (Page {consolidatePagination.currentPage} of {totalPages})
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleToggleSelectAllConsolidate}
+              className="text-sm text-[#08994A] dark:text-[#0EFF7B] hover:underline"
+            >
+              {paginatedSelectedConsolidateInvoices.length === paginatedAvailableInvoices.length ? "Deselect All" : "Select All"}
+            </button>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Selected: {paginatedSelectedConsolidateInvoices.length} / {paginatedAvailableInvoices.length} (Page)
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 dark:bg-[#091810]">
+              <tr>
+                <th className="p-2 w-16">
+                  <input
+                    type="checkbox"
+                    checked={paginatedSelectedConsolidateInvoices.length === paginatedAvailableInvoices.length && paginatedAvailableInvoices.length > 0}
+                    onChange={handleToggleSelectAllConsolidate}
+                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white 
+                      rounded-sm bg-gray-100 dark:bg-black 
+                      checked:bg-[#08994A] dark:checked:bg-green-500 
+                      checked:border-[#0EFF7B] dark:checked:border-green-500 
+                      flex items-center justify-center 
+                      checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black 
+                      checked:before:text-sm"
+                  />
+                </th>
+                <th className="p-2">Invoice ID</th>
+                <th className="p-2">Date</th>
+                <th className="p-2">Department</th>
+                <th className="p-2 text-right">Amount ($)</th>
+                <th className="p-2 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
+              {paginatedAvailableInvoices.map((invoice) => (
+                <tr key={invoice.invoice_id} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
+                  <td className="p-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedConsolidateInvoices.includes(invoice.invoice_id)}
+                      onChange={() => handleToggleSelectConsolidateInvoice(invoice.invoice_id)}
+                      className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white 
+                        rounded-sm bg-gray-100 dark:bg-black 
+                        checked:bg-[#08994A] dark:checked:bg-green-500 
+                        checked:border-[#0EFF7B] dark:checked:border-green-500 
+                        flex items-center justify-center 
+                        checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black 
+                        checked:before:text-sm"
+                    />
+                  </td>
+                  <td className="p-2 font-mono text-xs">
+                    {invoice.invoice_id}
+                  </td>
+                  <td className="p-2">
+                    {invoice.date}
+                  </td>
+                  <td className="p-2">
+                    {invoice.department || "General"}
+                  </td>
+                  <td className="p-2 text-right">
+                    ${parseFloat(invoice.amount || 0).toLocaleString()}
+                  </td>
+                  <td className="p-2 text-right">
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 rounded-full text-xs">
+                      {invoice.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {paginatedSelectedConsolidateInvoices.length > 0 && (
+              <tfoot className="bg-gray-200 dark:bg-[#091810]">
+                <tr>
+                  <td colSpan="4" className="p-2 text-right font-semibold">
+                    Total Selected Amount (Page):
+                  </td>
+                  <td className="p-2 text-right font-bold text-[#08994A] dark:text-[#0EFF7B]">
+                    ${formattedConsolidateTotal}
+                  </td>
+                  <td colSpan="1"></td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+
+        {/* Consolidate Pagination */}
+        {totalPages > 1 && (
+          <div className="flex justify-between items-center mt-4 pt-2 border-t border-[#0EFF7B33]">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {startIndex} to {endIndex} of {availablePaidInvoices.length} invoices
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleConsolidatePageChange(consolidatePagination.currentPage - 1)}
+                disabled={consolidatePagination.currentPage === 1}
+                className="p-1 rounded border border-[#0EFF7B] dark:border-[#0EFF7B1A] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="px-3 py-1 bg-[#0EFF7B1A] rounded text-sm">
+                Page {consolidatePagination.currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => handleConsolidatePageChange(consolidatePagination.currentPage + 1)}
+                disabled={consolidatePagination.currentPage === totalPages}
+                className="p-1 rounded border border-[#0EFF7B] dark:border-[#0EFF7B1A] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="text-xs text-blue-700 dark:text-blue-400">
+              <strong>Note:</strong> The consolidate invoice will combine all selected paid invoices into a single PDF document. 
+              Once generated, these invoices will be marked as consolidated and will no longer appear in this list.
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ========== Render Invoice History Table ==========
+  const renderInvoiceHistoryTable = () => {
+    return (
+      <div className="mt-8 mb-8 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-[#0EFF7B0A]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium flex items-center gap-2">
+            <FileText size={20} />
+            Patient Invoice History
+          </h4>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 bg-gray-200 dark:bg-[#091810] rounded-lg p-1">
+              <button
+                onClick={() => handleHistoryFilterChange("all")}
+                className={`px-3 py-1 text-xs rounded-md transition whitespace-nowrap ${
+                  historyFilter === "all"
+                    ? "bg-[#08994A] text-white"
+                    : "text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => handleHistoryFilterChange("paid")}
+                className={`px-3 py-1 text-xs rounded-md transition whitespace-nowrap ${
+                  historyFilter === "paid"
+                    ? "bg-[#08994A] text-white"
+                    : "text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+                }`}
+              >
+                Paid
+              </button>
+              <button
+                onClick={() => handleHistoryFilterChange("partial")}
+                className={`px-3 py-1 text-xs rounded-md transition whitespace-nowrap ${
+                  historyFilter === "partial"
+                    ? "bg-[#08994A] text-white"
+                    : "text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+                }`}
+              >
+                Partial
+              </button>
+              <button
+                onClick={() => handleHistoryFilterChange("pending")}
+                className={`px-3 py-1 text-xs rounded-md transition whitespace-nowrap ${
+                  historyFilter === "pending"
+                    ? "bg-[#08994A] text-white"
+                    : "text-[#08994A] dark:text-[#0EFF7B] hover:bg-[#0EFF7B1A]"
+                }`}
+              >
+                Pending
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {!patientInfo.patientID ? (
+          <div className="py-8 text-center text-gray-500 dark:text-gray-400">
+            <FileText size={40} className="mx-auto mb-3 opacity-30" />
+            <p>Select a patient to view invoice history</p>
+          </div>
+        ) : historyLoading ? (
+          <div className="py-8 text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#08994A]" />
+            <p className="mt-2 text-gray-500">Loading history...</p>
+          </div>
+        ) : invoiceHistory.length === 0 ? (
+          <div className="py-8 text-center text-gray-500">
+            <FileText size={40} className="mx-auto mb-3 opacity-30" />
+            <p>No invoice history found for this patient</p>
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 dark:bg-[#091810]">
+                  <tr>
+                    <th className="p-2">Invoice ID</th>
+                    <th className="p-2">Date</th>
+                    <th className="p-2">Department</th>
+                    <th className="p-2 text-right">Amount ($)</th>
+                    <th className="p-2 text-right">Paid ($)</th>
+                    <th className="p-2 text-right">Pending ($)</th>
+                    <th className="p-2">Type</th>
+                    <th className="p-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-[#08994A] dark:text-gray-300 bg-gray-100 dark:bg-black">
+                  {invoiceHistory.map((invoice, index) => {
+                    const totalAmount = parseFloat(invoice.amount) || 0;
+                    const paidAmount = parseFloat(invoice.paid_amount) || 0;
+                    const pendingAmount = parseFloat(invoice.pending_amount) || 0;
+
+                    return (
+                      <tr key={index} className="border-b border-gray-300 dark:border-gray-800 hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B0D]">
+                        <td className="p-2 font-mono text-xs">
+                          {invoice.invoice_id}
+                        </td>
+                        <td className="p-2">
+                          {invoice.date}
+                        </td>
+                        <td className="p-2">
+                          {invoice.department || "General"}
+                        </td>
+                        <td className="p-2 text-right">
+                          ${totalAmount.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right text-green-600 dark:text-green-500">
+                          ${paidAmount.toLocaleString()}
+                        </td>
+                        <td className="p-2 text-right text-orange-600 dark:text-orange-500">
+                          ${pendingAmount.toLocaleString()}
+                        </td>
+                        <td className="p-2">
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 whitespace-nowrap">
+                            {invoice.payment_type || "Full Payment"}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                            invoice.status === 'Paid'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300'
+                              : invoice.status === 'Partially Paid'
+                              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-300'
+                              : 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300'
+                          }`}>
+                            {invoice.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {historyPagination.totalPages > 1 && (
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-[#0EFF7B33]">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {((historyPagination.currentPage - 1) * historyPagination.pageSize) + 1} to{' '}
+                  {Math.min(historyPagination.currentPage * historyPagination.pageSize, historyPagination.totalRecords)} of{' '}
+                  {historyPagination.totalRecords} invoices
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleHistoryPageChange(historyPagination.currentPage - 1)}
+                    disabled={historyPagination.currentPage === 1}
+                    className="p-1 rounded border border-[#0EFF7B] dark:border-[#0EFF7B1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="px-3 py-1 bg-[#0EFF7B1A] rounded text-sm">
+                    Page {historyPagination.currentPage} of {historyPagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => handleHistoryPageChange(historyPagination.currentPage + 1)}
+                    disabled={historyPagination.currentPage === historyPagination.totalPages}
+                    className="p-1 rounded border border-[#0EFF7B] dark:border-[#0EFF7B1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
   };
@@ -2666,7 +3770,7 @@ const handleGenerateBill = async () => {
                            bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                            shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
                            hover:scale-105 transition disabled:opacity-70 disabled:cursor-not-allowed
-                           flex items-center justify-center gap-2"
+                           flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -2884,7 +3988,7 @@ const handleGenerateBill = async () => {
                            bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                            shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
                            hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed
-                           flex items-center justify-center gap-2"
+                           flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 {loading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -3078,7 +4182,7 @@ const handleGenerateBill = async () => {
         </div>
         
         {/* Patient Information Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
           {/* Patient Basic Info */}
           <div className="bg-[#F5F6F5] dark:bg-transparent border-[1.05px] border-[#0EFF7B] dark:border-[#0EFF7B1A] shadow-[0px_0px_4px_0px_#0EFF7B40] dark:shadow-[0px_0px_4px_0px_#FFFFFF1F] rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3">
@@ -3180,239 +4284,239 @@ const handleGenerateBill = async () => {
               />
               
               {/* Payment Mode Field */}
-<label className="text-sm text-gray-600 dark:text-gray-300">
-  Payment mode <span className="text-red-500">*</span>
-</label>
-<div className="relative">
-  <Listbox
-    value={patientInfo.paymentMode}
-    onChange={(value) => {
-      handleInputChange(value, "paymentMode");
-      if (value && value.trim() !== "") {
-        setValidationErrors(prev => ({ ...prev, paymentMode: "" }));
-      }
-    }}
-  >
-    <Listbox.Button
-      className="
-        w-full
-        h-[33.5px]
-        rounded-[8.38px]
-        border-[1.05px]
-        border-[#0EFF7B] dark:border-[#3C3C3C]
-        bg-[#F5F6F5] dark:bg-black
-        text-[#08994A] dark:text-white
-        shadow-[0_0_2.09px_#0EFF7B]
-        outline-none
-        focus:border-[#0EFF7B]
-        focus:shadow-[0_0_4px_#0EFF7B]
-        transition-all
-        duration-300
-        px-3
-        pr-8
-        font-helvetica
-        text-sm
-        text-left
-        relative
-      "
-    >
-      {patientInfo.paymentMode || "Select Mode"}
-      <svg
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M6 9l6 6 6-6"
-        />
-      </svg>
-    </Listbox.Button>
-    <Listbox.Options
-      className="
-        absolute
-        z-10
-        mt-1
-        w-full
-        bg-gray-100 dark:bg-black
-        border border-[#0EFF7B] dark:border-[#3C3C3C]
-        rounded-md
-        shadow-lg
-        max-h-60
-        overflow-auto
-        text-sm
-        font-helvetica
-        top-[100%]
-        left-0
-      "
-    >
-      {paymentModes.map((mode) => (
-        <Listbox.Option
-          key={mode}
-          value={mode}
-          className="
-            cursor-pointer
-            select-none
-            p-2
-            text-[#08994A] dark:text-white
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-          "
-        >
-          {mode}
-        </Listbox.Option>
-      ))}
-    </Listbox.Options>
-  </Listbox>
-  {validationErrors.paymentMode && (
-    <p className="text-red-500 text-xs mt-1">{validationErrors.paymentMode}</p>
-  )}
-</div>
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment mode <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Listbox
+                  value={patientInfo.paymentMode}
+                  onChange={(value) => {
+                    handleInputChange(value, "paymentMode");
+                    if (value && value.trim() !== "") {
+                      setValidationErrors(prev => ({ ...prev, paymentMode: "" }));
+                    }
+                  }}
+                >
+                  <Listbox.Button
+                    className="
+                      w-full
+                      h-[33.5px]
+                      rounded-[8.38px]
+                      border-[1.05px]
+                      border-[#0EFF7B] dark:border-[#3C3C3C]
+                      bg-[#F5F6F5] dark:bg-black
+                      text-[#08994A] dark:text-white
+                      shadow-[0_0_2.09px_#0EFF7B]
+                      outline-none
+                      focus:border-[#0EFF7B]
+                      focus:shadow-[0_0_4px_#0EFF7B]
+                      transition-all
+                      duration-300
+                      px-3
+                      pr-8
+                      font-helvetica
+                      text-sm
+                      text-left
+                      relative
+                    "
+                  >
+                    {patientInfo.paymentMode || "Select Mode"}
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 9l6 6 6-6"
+                      />
+                    </svg>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="
+                      absolute
+                      z-10
+                      mt-1
+                      w-full
+                      bg-gray-100 dark:bg-black
+                      border border-[#0EFF7B] dark:border-[#3C3C3C]
+                      rounded-md
+                      shadow-lg
+                      max-h-60
+                      overflow-auto
+                      text-sm
+                      font-helvetica
+                      top-[100%]
+                      left-0
+                    "
+                  >
+                    {paymentModes.map((mode) => (
+                      <Listbox.Option
+                        key={mode}
+                        value={mode}
+                        className="
+                          cursor-pointer
+                          select-none
+                          p-2
+                          text-[#08994A] dark:text-white
+                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
+                        "
+                      >
+                        {mode}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+                {validationErrors.paymentMode && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.paymentMode}</p>
+                )}
+              </div>
 
-{/* Payment Type Field */}
-<label className="text-sm text-gray-600 dark:text-gray-300">
-  Payment Type <span className="text-red-500">*</span>
-</label>
-<div className="relative">
-  <Listbox
-    value={patientInfo.paymentType}
-    onChange={(value) => {
-      handleInputChange(value, "paymentType");
-      if (value && value.trim() !== "") {
-        setValidationErrors(prev => ({ ...prev, paymentType: "" }));
-      }
-    }}
-  >
-    <Listbox.Button
-      className="
-        w-full h-[33.5px] rounded-[8.38px]
-        border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
-        bg-[#F5F6F5] dark:bg-black
-        text-[#08994A] dark:text-white
-        shadow-[0_0_2.09px_#0EFF7B]
-        outline-none
-        focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-        transition-all duration-300
-        px-3 pr-8 font-helvetica text-sm text-left relative
-      "
-    >
-      {patientInfo.paymentType || "Select Type"}
-      <svg
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M6 9l6 6 6-6"
-        />
-      </svg>
-    </Listbox.Button>
-    <Listbox.Options
-      className="
-        absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
-        border border-[#0EFF7B] dark:border-[#3C3C3C]
-        rounded-md shadow-lg max-h-60 overflow-auto
-        text-sm font-helvetica top-[100%] left-0
-      "
-    >
-      {paymentTypes.map((type) => (
-        <Listbox.Option
-          key={type}
-          value={type}
-          className="
-            cursor-pointer select-none p-2
-            text-[#08994A] dark:text-white
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-          "
-        >
-          {type}
-        </Listbox.Option>
-      ))}
-    </Listbox.Options>
-  </Listbox>
-  {validationErrors.paymentType && (
-    <p className="text-red-500 text-xs mt-1">{validationErrors.paymentType}</p>
-  )}
-</div>
+              {/* Payment Type Field */}
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment Type <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Listbox
+                  value={patientInfo.paymentType}
+                  onChange={(value) => {
+                    handleInputChange(value, "paymentType");
+                    if (value && value.trim() !== "") {
+                      setValidationErrors(prev => ({ ...prev, paymentType: "" }));
+                    }
+                  }}
+                >
+                  <Listbox.Button
+                    className="
+                      w-full h-[33.5px] rounded-[8.38px]
+                      border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
+                      bg-[#F5F6F5] dark:bg-black
+                      text-[#08994A] dark:text-white
+                      shadow-[0_0_2.09px_#0EFF7B]
+                      outline-none
+                      focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
+                      transition-all duration-300
+                      px-3 pr-8 font-helvetica text-sm text-left relative
+                    "
+                  >
+                    {patientInfo.paymentType || "Select Type"}
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 9l6 6 6-6"
+                      />
+                    </svg>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
+                      border border-[#0EFF7B] dark:border-[#3C3C3C]
+                      rounded-md shadow-lg max-h-60 overflow-auto
+                      text-sm font-helvetica top-[100%] left-0
+                    "
+                  >
+                    {paymentTypes.map((type) => (
+                      <Listbox.Option
+                        key={type}
+                        value={type}
+                        className="
+                          cursor-pointer select-none p-2
+                          text-[#08994A] dark:text-white
+                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
+                        "
+                      >
+                        {type}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+                {validationErrors.paymentType && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.paymentType}</p>
+                )}
+              </div>
 
-{/* Payment Status Field */}
-<label className="text-sm text-gray-600 dark:text-gray-300">
-  Payment Status <span className="text-red-500">*</span>
-</label>
-<div className="relative">
-  <Listbox
-    value={patientInfo.paymentStatus}
-    onChange={(value) => {
-      handleInputChange(value, "paymentStatus");
-      if (value && value.trim() !== "") {
-        setValidationErrors(prev => ({ ...prev, paymentStatus: "" }));
-      }
-    }}
-  >
-    <Listbox.Button
-      className="
-        w-full h-[33.5px] rounded-[8.38px]
-        border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
-        bg-[#F5F6F5] dark:bg-black
-        text-[#08994A] dark:text-white
-        shadow-[0_0_2.09px_#0EFF7B]
-        outline-none
-        focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-        transition-all duration-300
-        px-3 pr-8 font-helvetica text-sm text-left relative
-      "
-    >
-      {patientInfo.paymentStatus || "Select Status"}
-      <svg
-        className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M6 9l6 6 6-6"
-        />
-      </svg>
-    </Listbox.Button>
-    <Listbox.Options
-      className="
-        absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
-        border border-[#0EFF7B] dark:border-[#3C3C3C]
-        rounded-md shadow-lg max-h-60 overflow-auto
-        text-sm font-helvetica top-[100%] left-0
-      "
-    >
-      {paymentStatuses.map((status) => (
-        <Listbox.Option
-          key={status}
-          value={status}
-          className="
-            cursor-pointer select-none p-2
-            text-[#08994A] dark:text-white
-            hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
-          "
-        >
-          {status}
-        </Listbox.Option>
-      ))}
-    </Listbox.Options>
-  </Listbox>
-  {validationErrors.paymentStatus && (
-    <p className="text-red-500 text-xs mt-1">{validationErrors.paymentStatus}</p>
-  )}
-</div>
+              {/* Payment Status Field */}
+              <label className="text-sm text-gray-600 dark:text-gray-300">
+                Payment Status <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Listbox
+                  value={patientInfo.paymentStatus}
+                  onChange={(value) => {
+                    handleInputChange(value, "paymentStatus");
+                    if (value && value.trim() !== "") {
+                      setValidationErrors(prev => ({ ...prev, paymentStatus: "" }));
+                    }
+                  }}
+                >
+                  <Listbox.Button
+                    className="
+                      w-full h-[33.5px] rounded-[8.38px]
+                      border-[1.05px] border-[#0EFF7B] dark:border-[#3C3C3C]
+                      bg-[#F5F6F5] dark:bg-black
+                      text-[#08994A] dark:text-white
+                      shadow-[0_0_2.09px_#0EFF7B]
+                      outline-none
+                      focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
+                      transition-all duration-300
+                      px-3 pr-8 font-helvetica text-sm text-left relative
+                    "
+                  >
+                    {patientInfo.paymentStatus || "Select Status"}
+                    <svg
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B] pointer-events-none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 9l6 6 6-6"
+                      />
+                    </svg>
+                  </Listbox.Button>
+                  <Listbox.Options
+                    className="
+                      absolute z-10 mt-1 w-full bg-gray-100 dark:bg-black
+                      border border-[#0EFF7B] dark:border-[#3C3C3C]
+                      rounded-md shadow-lg max-h-60 overflow-auto
+                      text-sm font-helvetica top-[100%] left-0
+                    "
+                  >
+                    {paymentStatuses.map((status) => (
+                      <Listbox.Option
+                        key={status}
+                        value={status}
+                        className="
+                          cursor-pointer select-none p-2
+                          text-[#08994A] dark:text-white
+                          hover:bg-[#0EFF7B1A] dark:hover:bg-[#025126]
+                        "
+                      >
+                        {status}
+                      </Listbox.Option>
+                    ))}
+                  </Listbox.Options>
+                </Listbox>
+                {validationErrors.paymentStatus && (
+                  <p className="text-red-500 text-xs mt-1">{validationErrors.paymentStatus}</p>
+                )}
+              </div>
             </div>
           </div>
           
@@ -3543,6 +4647,9 @@ const handleGenerateBill = async () => {
           </div>
         </div>
         
+        {/* ========== Invoice History Table (Between patient info and treatment charges) ========== */}
+        {renderInvoiceHistoryTable()}
+        
         {/* Billing Items Section */}
         <div className="bg-[#F5F6F5] dark:bg-transparent border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
@@ -3559,7 +4666,7 @@ const handleGenerateBill = async () => {
                     patientInfo.patientID 
                       ? "bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white hover:scale-105" 
                       : "bg-gray-300 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed"
-                  } font-medium text-[14px] transition`}
+                  } font-medium text-[14px] transition whitespace-nowrap`}
                 >
                   <Plus size={18} className={patientInfo.patientID ? "text-white" : "text-gray-400"} />
                   Add Item
@@ -3669,18 +4776,18 @@ const handleGenerateBill = async () => {
                 </tbody>
               </table>
               
-              {/* Partial Payment Section - ONLY in current invoice tab */}
-              {renderPartialPaymentSection()}
-              
-              {/* Partial Invoices Section - Now with checkboxes */}
+              {/* Partial Invoices Selection Section */}
               {renderPartialInvoicesSection()}
+              
+              {/* Partial Payment Section for Current Items - Renders only when pending invoices are NOT selected */}
+              {renderPartialPaymentForCurrentItems()}
             </>
           )}
           
           {/* Consolidate Invoices Section */}
           {invoiceGenerationType === "consolidate" && renderConsolidateInvoicesSection()}
         
-          {/* Payment Summary Card - NEW - Only show for current invoice */}
+          {/* Payment Summary Card - Show when there are current items OR when only paying partial invoices */}
           {invoiceGenerationType === "current" && (billingItems.length > 0 || selectedPartialInvoices.length > 0) && (
             <div className="mt-6 p-4 border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-lg bg-gradient-to-r from-[#0EFF7B0A] to-[#0251261A]">
               <h4 className="text-[#08994A] dark:text-[#0EFF7B] font-medium mb-3 flex items-center gap-2">
@@ -3688,268 +4795,316 @@ const handleGenerateBill = async () => {
                 Payment Summary
               </h4>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-3 bg-[#F5F6F5] dark:bg-black/50 rounded-lg border border-[#0EFF7B33]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">New Charges</span>
+              {billingItems.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                  <div className="p-3 bg-[#F5F6F5] dark:bg-black/50 rounded-lg border border-[#0EFF7B33]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Subtotal</span>
+                    </div>
+                    <div className="text-2xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
+                      ${formattedSubtotalBeforeDiscount}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Before discount & tax
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold text-[#08994A] dark:text-[#0EFF7B]">
-                    ${formattedNewChargesSubtotal}
+                  
+                  <div className="p-3 bg-[#F5F6F5] dark:bg-black/50 rounded-lg border border-[#0EFF7B33]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Minus size={18} className="text-red-500" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Discount</span>
+                    </div>
+                    <div className="text-2xl font-bold text-red-500">
+                      ${formattedTotalDiscountAmount}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      After discount: ${formattedSubtotalAfterDiscount}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Before tax & discount
+                  
+                  <div className="p-3 bg-[#F5F6F5] dark:bg-black/50 rounded-lg border border-[#0EFF7B33]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Plus size={18} className="text-blue-500" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tax (CGST+SGST)</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-500">
+                      ${(parseFloat(cgstAmount) + parseFloat(sgstAmount)).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      CGST: ${formattedCgst} | SGST: ${formattedSgst}
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-gradient-to-r from-[#025126] to-[#0D7F41] rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard size={18} className="text-white" />
+                      <span className="text-sm font-medium text-white">Grand Total</span>
+                    </div>
+                    <div className="text-2xl font-bold text-white">
+                      ${formattedGrand}
+                    </div>
+                    <div className="text-xs text-white/80 mt-1">
+                      After discount & tax
+                    </div>
                   </div>
                 </div>
-                
-                <div className="p-3 bg-[#F5F6F5] dark:bg-black/50 rounded-lg border border-[#0EFF7B33]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock size={18} className="text-orange-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pending Amount</span>
-                  </div>
-                  <div className="text-2xl font-bold text-orange-500">
+              )}
+              
+              {/* Show partial payment impact when applicable */}
+              {patientInfo.paymentType === "Partial Payment" && (
+                <>
+                  {/* Show combined partial payment impact */}
+                  {billingItems.length > 0 && selectedPartialInvoices.length > 0 && parseFloat(combinedPartialPaymentData.paidAmount) > 0 && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex flex-wrap justify-between items-center">
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Partial Payment Applied:
+                      </span>
+                      <span className="text-xl font-bold text-green-600 dark:text-green-500">
+                        ${parseFloat(combinedPartialPaymentData.paidAmount).toLocaleString()}
+                      </span>
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Remaining Balance:
+                      </span>
+                      <span className="text-xl font-bold text-orange-600 dark:text-orange-500">
+                        ${(parseFloat(displayTotal) - parseFloat(combinedPartialPaymentData.paidAmount || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Show partial payment for current items only */}
+                  {billingItems.length > 0 && selectedPartialInvoices.length === 0 && parseFloat(partialPaymentData.paidAmount) > 0 && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex flex-wrap justify-between items-center">
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Partial Payment Applied (Current Items):
+                      </span>
+                      <span className="text-xl font-bold text-green-600 dark:text-green-500">
+                        ${parseFloat(partialPaymentData.paidAmount).toLocaleString()}
+                      </span>
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Remaining from Current:
+                      </span>
+                      <span className="text-xl font-bold text-orange-600 dark:text-orange-500">
+                        ${(parseFloat(grandTotal) - parseFloat(partialPaymentData.paidAmount || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Show partial payment for pending invoices only */}
+                  {billingItems.length === 0 && selectedPartialInvoices.length > 0 && parseFloat(partialPendingPaymentData.paidAmount) > 0 && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg flex flex-wrap justify-between items-center">
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Partial Payment Applied (Pending Invoices):
+                      </span>
+                      <span className="text-xl font-bold text-green-600 dark:text-green-500">
+                        ${parseFloat(partialPendingPaymentData.paidAmount).toLocaleString()}
+                      </span>
+                      <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                        Remaining from Pending:
+                      </span>
+                      <span className="text-xl font-bold text-orange-600 dark:text-orange-500">
+                        ${(selectedPartialTotal - parseFloat(partialPendingPaymentData.paidAmount || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Show selected pending invoices summary */}
+              {selectedPartialInvoices.length > 0 && (
+                <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg flex flex-wrap justify-between items-center">
+                  <span className="font-medium text-orange-700 dark:text-orange-400">
+                    Selected Pending Amount ({selectedPartialInvoices.length} invoice{selectedPartialInvoices.length > 1 ? 's' : ''}):
+                  </span>
+                  <span className="text-xl font-bold text-orange-600 dark:text-orange-500">
                     ${formattedSelectedPartialTotal}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    From {selectedPartialInvoices.length} selected invoice(s)
-                  </div>
+                  </span>
                 </div>
-                
-                <div className="p-3 bg-gradient-to-r from-[#025126] to-[#0D7F41] rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <CreditCard size={18} className="text-white" />
-                    <span className="text-sm font-medium text-white">Total Payable</span>
-                  </div>
-                  <div className="text-2xl font-bold text-white">
-                    ${formattedTotalPayable}
-                  </div>
-                  <div className="text-xs text-white/80 mt-1">
-                    New charges after tax + pending
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           )}
         
           {/* Total and Action Buttons */}
-<div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
-  {invoiceGenerationType === "current" ? (
-    // Current Invoice Total Display - Show appropriate totals based on payment type
-    <div
-      className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[500px] max-w-[800px] w-auto"
-      style={{
-        height: billingItems.length > 0 || selectedPartialInvoices.length > 0 ? "103px" : "103px",
-        backgroundColor: "#0B0B0B",
-      }}
-    >
-      {billingItems.length > 0 || selectedPartialInvoices.length > 0 ? (
-        <>
-          {/* Left section - Flexible width */}
-          <div className="flex flex-col justify-center flex-1 min-w-[250px] pl-5 pr-4 py-3 text-sm font-medium text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard size={18} className="text-[#0EFF7B]" />
-              <span className="text-white text-base whitespace-nowrap">
-                {patientInfo.paymentType === "Partial Payment" ? "Partial Bill" : "Total Payable"}
-              </span>
-            </div>
-            
-            {/* For Partial Payment - Show compact breakdown */}
-            {patientInfo.paymentType === "Partial Payment" && billingItems.length > 0 ? (
-              <div className="flex flex-col">
-                <div className="text-xl font-bold text-[#0EFF7B]">
-                  ${formattedGrand}
-                </div>
-                <div className="flex gap-3 text-xs mt-1">
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">Paid:</span>
-                    <span className="text-green-500 font-semibold">${parseFloat(partialPaymentData.paidAmount || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">Due:</span>
-                    <span className="text-orange-500 font-semibold">${formattedPending}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-gray-400">By:</span>
-                    <span className="text-white text-xs">{partialPaymentData.dueDate ? partialPaymentData.dueDate.split('-').slice(1).join('/') : '—'}</span>
-                  </div>
-                </div>
+          <div className="flex justify-end items-center mt-6 pr-4 gap-4 w-full overflow-x-hidden no-scrollbar">
+            {invoiceGenerationType === "current" ? (
+              // Current Invoice Total Display - Show appropriate totals based on what's selected
+              <div
+                className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[500px] max-w-[800px] w-auto"
+                style={{
+                  height: billingItems.length > 0 || selectedPartialInvoices.length > 0 ? "103px" : "103px",
+                  backgroundColor: "#0B0B0B",
+                }}
+              >
+                {billingItems.length > 0 || selectedPartialInvoices.length > 0 ? (
+                  <>
+                    {/* Left section - Flexible width */}
+                    <div className="flex flex-col justify-center flex-1 min-w-[250px] pl-5 pr-4 py-3 text-sm font-medium text-white">
+                      <div className="flex items-center gap-2 mb-1 whitespace-nowrap">
+                        <CreditCard size={18} className="text-[#0EFF7B]" />
+                        <span className="text-white text-base whitespace-nowrap">
+                          Total Before Payment
+                        </span>
+                      </div>
+                      
+                      {/* Show appropriate total based on what's selected */}
+                      <>
+                        <div className="text-2xl font-bold text-[#0EFF7B] whitespace-nowrap">
+                          ${formattedDisplayTotal}
+                        </div>
+                        {billingItems.length > 0 && selectedPartialInvoices.length > 0 && (
+                          <div className="text-xs text-gray-400 mt-1 truncate max-w-[250px]">
+                            New: ${formattedGrand} + Pending: ${formattedSelectedPartialTotal}
+                          </div>
+                        )}
+                        {billingItems.length > 0 && selectedPartialInvoices.length === 0 && (
+                          <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
+                            New charges only
+                          </div>
+                        )}
+                        {billingItems.length === 0 && selectedPartialInvoices.length > 0 && (
+                          <div className="text-xs text-gray-400 mt-1 whitespace-nowrap">
+                            Pending invoices only
+                          </div>
+                        )}
+                      </>
+                      
+                      {/* Show today's payment if partial payment */}
+                      {patientInfo.paymentType === "Partial Payment" && parseFloat(totalPaidToday) > 0 && (
+                        <div className="text-xs text-green-400 mt-1">
+                          Today's Payment: ${formattedTotalPaidToday}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Divider */}
+                    <div
+                      className="h-full w-[2px] flex-shrink-0"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
+                      }}
+                    ></div>
+                    
+                    {/* Right section - Fixed width */}
+                    <div className="flex flex-col justify-center px-4 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[130px] flex-shrink-0">
+                      <span className="text-white text-xs font-semibold whitespace-nowrap">
+                        Amount Due
+                      </span>
+                      <span className="text-[#0EFF7B] text-lg font-bold whitespace-nowrap">
+                        ${formattedTotalPayable}
+                      </span>
+                      <span className="text-white text-[10px] leading-tight mt-0.5 whitespace-nowrap">
+                        {patientInfo.paymentType === "Partial Payment" && parseFloat(totalPaidToday) > 0
+                          ? `After $${formattedTotalPaidToday} payment`
+                          : billingItems.length > 0 && selectedPartialInvoices.length > 0 
+                          ? "New + Pending"
+                          : billingItems.length > 0 
+                          ? "New charges" 
+                          : "Pending only"
+                        }
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  // Show placeholder if no billing items and no selected invoices
+                  <>
+                    <div className="flex flex-col justify-center flex-1 min-w-[200px] pl-5 pr-4 py-3 text-sm font-medium text-white">
+                      <div className="flex items-center gap-2 mb-1 whitespace-nowrap">
+                        <CreditCard size={18} className="text-[#0EFF7B]" />
+                        <span className="text-white text-base">Total Before Payment</span>
+                      </div>
+                      <div className="text-2xl font-bold text-[#0EFF7B] whitespace-nowrap">
+                        $0.00
+                      </div>
+                    </div>
+                    <div
+                      className="h-full w-[2px] flex-shrink-0"
+                      style={{
+                        background:
+                          "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
+                      }}
+                    ></div>
+                    <div className="flex flex-col justify-center px-4 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[130px] flex-shrink-0">
+                      <span className="text-white text-xs font-semibold whitespace-nowrap">Amount Due</span>
+                      <span className="text-[#0EFF7B] text-lg font-bold whitespace-nowrap">$0.00</span>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
-              /* Regular Total Payable Display */
-              <>
-                <div className="text-2xl font-bold text-[#0EFF7B]">
-                  ${formattedTotalPayable}
-                </div>
-                {billingItems.length > 0 && (
-                  <div className="text-xs text-gray-400 mt-1 truncate max-w-[250px]">
-                    New: ${formattedGrand}
-                    {selectedPartialInvoices.length > 0 && ` + Pending: $${formattedSelectedPartialTotal}`}
+              // Consolidate Invoice Total Display
+              <div
+                className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[404.31px] max-w-[744.31px]"
+                style={{
+                  height: "103px",
+                  backgroundColor: "#0B0B0B",
+                }}
+              >
+                <div className="flex flex-col justify-center flex-1 pl-5 pr-6 py-3 text-sm font-medium text-white gap-2">
+                  <div className="flex justify-between w-full whitespace-nowrap">
+                    <span>Selected Invoices:</span>
+                    <span className="text-[#FFB100] font-semibold">
+                      {paginatedSelectedConsolidateInvoices.length} / {paginatedAvailableInvoices.length} (Page)
+                    </span>
                   </div>
-                )}
-              </>
+                  <div className="flex justify-between w-full whitespace-nowrap">
+                    <span>Total Amount (Page):</span>
+                    <span className="text-[#FFB100] font-semibold">
+                      ${formattedConsolidateTotal}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="h-full w-[2px]"
+                  style={{
+                    background:
+                      "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
+                  }}
+                ></div>
+                <div className="flex flex-col justify-center px-6 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[120px]">
+                  <span className="text-white text-sm font-semibold whitespace-nowrap">Total</span>
+                  <span className="text-[#0EFF7B] text-lg font-bold whitespace-nowrap">
+                    ${formattedConsolidateTotal}
+                  </span>
+                </div>
+              </div>
             )}
-          </div>
-          
-          {/* Divider */}
-          <div
-            className="h-full w-[2px] flex-shrink-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
-            }}
-          ></div>
-          
-          {/* Right section - Fixed width */}
-          <div className="flex flex-col justify-center px-4 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[130px] flex-shrink-0">
-            <span className="text-white text-xs font-semibold whitespace-nowrap">
-              {patientInfo.paymentType === "Partial Payment" ? "Due Amount" : "Amount Due"}
-            </span>
-            <span className="text-[#0EFF7B] text-lg font-bold">
-              {patientInfo.paymentType === "Partial Payment" 
-                ? `$${formattedPending}`
-                : `$${formattedTotalPayable}`
-              }
-            </span>
-            <span className="text-white text-[10px] leading-tight mt-0.5">
-              {patientInfo.paymentType === "Partial Payment"
-                ? "Balance due"
-                : billingItems.length > 0 && selectedPartialInvoices.length > 0 
-                ? "New + Pending"
-                : billingItems.length > 0 
-                ? "New charges" 
-                : "Pending only"
-              }
-            </span>
-          </div>
-        </>
-      ) : (
-        // Show placeholder if no billing items and no selected invoices
-        <>
-          <div className="flex flex-col justify-center flex-1 min-w-[200px] pl-5 pr-4 py-3 text-sm font-medium text-white">
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard size={18} className="text-[#0EFF7B]" />
-              <span className="text-white text-base">Total Payable</span>
-            </div>
-            <div className="text-2xl font-bold text-[#0EFF7B]">
-              $0.00
+            
+            {/* Button section */}
+            <div className="flex items-center gap-3 flex-nowrap">
+              <button
+                className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  width: invoiceGenerationType === "consolidate" ? "256px" : "256px",
+                  height: "50px",
+                  paddingTop: "4px",
+                  paddingRight: "12px",
+                  paddingBottom: "4px",
+                  paddingLeft: "12px",
+                  gap: "4px",
+                  background:
+                    "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
+                }}
+                disabled={
+                  (generatingBill || generatingConsolidateInvoice || loading) ||
+                  (invoiceGenerationType === "consolidate" && selectedConsolidateInvoices.length === 0) ||
+                  (invoiceGenerationType === "current" && billingItems.length === 0 && selectedPartialInvoices.length === 0)
+                }
+                onClick={handleGenerateBill}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {generatingBill ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : generatingConsolidateInvoice ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : null}
+                  <span className="truncate max-w-[200px]">{getGenerateButtonText()}</span>
+                </div>
+              </button>
             </div>
           </div>
-          <div
-            className="h-full w-[2px] flex-shrink-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
-            }}
-          ></div>
-          <div className="flex flex-col justify-center px-4 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[130px] flex-shrink-0">
-            <span className="text-white text-xs font-semibold">Amount Due</span>
-            <span className="text-[#0EFF7B] text-lg font-bold">$0.00</span>
-          </div>
-        </>
-      )}
-    </div>
-  ) : (
-    // Consolidate Invoice Total Display (unchanged)
-    <div
-      className="flex items-center border border-[#0EFF7B] rounded-[8px] overflow-hidden min-w-[404.31px] max-w-[744.31px]"
-      style={{
-        height: "103px",
-        backgroundColor: "#0B0B0B",
-      }}
-    >
-      <div className="flex flex-col justify-center flex-1 pl-5 pr-6 py-3 text-sm font-medium text-white gap-2">
-        <div className="flex justify-between w-full">
-          <span>Selected Invoices:</span>
-          <span className="text-[#FFB100] font-semibold">
-            {selectedConsolidateInvoices.length} / {availablePaidInvoices.length}
-          </span>
-        </div>
-        <div className="flex justify-between w-full">
-          <span>Total Amount:</span>
-          <span className="text-[#FFB100] font-semibold">
-            ${formattedConsolidateTotal}
-          </span>
-        </div>
-      </div>
-      <div
-        className="h-full w-[2px]"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(14,255,123,0.1) 0%, #0EFF7B 50%, rgba(14,255,123,0.1) 100%)",
-        }}
-      ></div>
-      <div className="flex flex-col justify-center px-6 py-3 bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-right h-full min-w-[120px]">
-        <span className="text-white text-sm font-semibold">Total</span>
-        <span className="text-[#0EFF7B] text-lg font-bold">
-          ${formattedConsolidateTotal}
-        </span>
-      </div>
-    </div>
-  )}
-  
-  {/* Button section remains the same */}
-  <div className="flex items-center gap-3 flex-nowrap">
-    <button
-      className="text-white border border-[#0EFF7B] rounded-[10px] text-sm font-medium transition-transform hover:scale-105 whitespace-nowrap disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
-      style={{
-        width: invoiceGenerationType === "consolidate" ? "256px" : "256px",
-        height: "50px",
-        paddingTop: "4px",
-        paddingRight: "12px",
-        paddingBottom: "4px",
-        paddingLeft: "12px",
-        gap: "4px",
-        background:
-          "linear-gradient(90deg, #025126 0%, #0D7F41 50%, #025126 100%)",
-      }}
-      disabled={
-        (generatingBill || generatingConsolidateInvoice || loading) ||
-        (invoiceGenerationType === "consolidate" && selectedConsolidateInvoices.length === 0) ||
-        (invoiceGenerationType === "current" && billingItems.length === 0 && selectedPartialInvoices.length === 0)
-      }
-      onClick={handleGenerateBill}
-    >
-      {generatingBill ? (
-        <div className="flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Generating Invoice...
-        </div>
-      ) : generatingConsolidateInvoice ? (
-        <div className="flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Generating Consolidate...
-        </div>
-      ) : loading ? (
-        <div className="flex items-center justify-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Processing...
-        </div>
-      ) : payPendingInvoice ? (
-        <div className="flex items-center justify-center gap-2">
-          <CheckCircle size={16} />
-          Pay Pending Invoice
-        </div>
-      ) : invoiceGenerationType === "consolidate" ? (
-        <div className="flex items-center justify-center gap-2">
-          <Receipt size={16} />
-          Generate Consolidate Invoice
-        </div>
-      ) : billingItems.length === 0 && selectedPartialInvoices.length > 0 ? (
-        <div className="flex items-center justify-center gap-2">
-          <CheckCircle size={16} />
-          Pay Selected Invoices (${formattedSelectedPartialTotal})
-        </div>
-      ) : patientInfo.paymentType === "Partial Payment" ? (
-        <div className="flex items-center justify-center gap-2">
-          <Receipt size={16} />
-          Partial Invoice (${parseFloat(partialPaymentData.paidAmount || 0).toLocaleString()} paid)
-        </div>
-      ) : (
-        "Generate Invoice"
-      )}
-    </button>
-  </div>
-</div>
         </div>
       </div>
       
@@ -4140,7 +5295,7 @@ const handleGenerateBill = async () => {
                   className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
                              bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                              shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px]
-                             hover:scale-105 transition flex items-center justify-center gap-2"
+                             hover:scale-105 transition flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   {editingIndex !== null ? "Update" : "Add"}
                 </button>

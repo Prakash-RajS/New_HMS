@@ -774,6 +774,7 @@ import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -791,6 +792,15 @@ const AppointmentListOPD = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [showDel, setShowDel] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+  
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEdit =
+    isAdmin ||
+    userRole === "doctor" ||
+    userRole === "receptionist";
+  
+  const canDelete = isAdmin;
 
   const [filters, setFilters] = useState({
     patientName: "",
@@ -1188,52 +1198,60 @@ const AppointmentListOPD = () => {
                         {a.status}
                       </span>
                     </td>
-                    <td className="text-center">
-  <div className="flex items-center justify-center gap-4 relative">
-    
-    {/* EDIT ICON + TOOLTIP */}
+<td className="text-center">
+  <div className="flex items-center justify-center gap-4 relative overflow-visible">
+
+    {/* EDIT ICON */}
     <div className="relative group">
       <Edit2
         size={16}
         onClick={() => {
+          if (!canEdit) return;
           setSelAppt(a);
           setShowEdit(true);
         }}
-        className="text-[#08994A] cursor-pointer"
+        className={`cursor-pointer transition ${
+          canEdit
+            ? "text-[#08994A] dark:text-[#08994A]"
+            : "text-gray-400 opacity-40 cursor-not-allowed"
+        }`}
       />
+
       <span
-        className="absolute bottom-full mb-1
-          left-1/2 -translate-x-[60%]
+        className="absolute right-1 bottom-2 -translate-y-1/2
           whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
           bg-gray-100 dark:bg-black text-black dark:text-white
           opacity-0 group-hover:opacity-100
-          transition-opacity duration-150
-          pointer-events-none z-50"
+          transition-all duration-150 z-50 pointer-events-none"
       >
-        Edit
+        {canEdit ? "Edit" : "Access Denied"}
       </span>
     </div>
 
-    {/* DELETE ICON + TOOLTIP */}
+    {/* DELETE ICON */}
     <div className="relative group">
       <Trash2
         size={16}
         onClick={() => {
+          if (!canDelete) return;
           setSelAppt(a);
           setShowDel(true);
         }}
-        className="text-red-500 cursor-pointer"
+        className={`cursor-pointer transition ${
+          canDelete
+            ? "text-red-500 dark:text-red-400"
+            : "text-gray-400 opacity-40 cursor-not-allowed"
+        }`}
       />
+
       <span
-        className="absolute bottom-full mb-1
-          left-1/2 -translate-x-[60%]
+        className="absolute right-1 bottom-2 -translate-y-1/2
           whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
           bg-gray-100 dark:bg-black text-black dark:text-white
           opacity-0 group-hover:opacity-100
-          transition-opacity duration-150
-          pointer-events-none z-50"
+          transition-all duration-150 z-50 pointer-events-none"
       >
-        Delete
+        {canDelete ? "Delete" : "Admin Only"}
       </span>
     </div>
 
