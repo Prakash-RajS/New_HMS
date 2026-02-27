@@ -1277,7 +1277,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
       type="submit"
       disabled={loading || !canAddStaff}
       className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base ${
-        !canAddStaff ? 'opacity-50 cursor-not-allowed' : ''
+        !canAddStaff ? 'opacity-100 cursor-not-allowed' : ''
       }`}
       style={{
         background:

@@ -419,8 +419,10 @@ const PatientCard = memo(({ patient, onEdit, onViewProfile }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-const userRole = currentUser?.role?.toLowerCase();
-const canEdit = isAdmin || userRole === "receptionist";
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEdit = isAdmin || userRole === "receptionist";
+  
+
 
   return (
     <div
@@ -476,8 +478,8 @@ const canEdit = isAdmin || userRole === "receptionist";
       className={`flex items-center gap-1 text-[12px] transition-colors
         ${
           canEdit
-            ? "text-[#08994A] dark:text-[#4D58FF] hover:text-green-800 dark:hover:text-blue-300"
-            : "text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-50"
+            ? "text-[#4D58FF] dark:text-[#4D58FF] hover:text-green-800 dark:hover:text-blue-300"
+            : "text-[#4D58FF] dark:text-[#4D58FF] hover:text-green-800 dark:hover:text-blue-300 cursor-not-allowed opacity-100"
         }`}
       type="button"
     >
@@ -537,6 +539,9 @@ const ProfileSection = () => {
   const navigate = useNavigate();
   const itemsPerPage = 10;
   const searchTimeoutRef = useRef(null);
+   const { isAdmin, currentUser } = usePermissions();
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "receptionist";
   
 
   /* ==================== DEBOUNCED SEARCH ==================== */
@@ -731,17 +736,44 @@ const ProfileSection = () => {
       ></div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-2 mt-4 relative z-10">
-        <h2 className="text-xl font-semibold font-[Helvetica] text-black dark:text-white">
-          IPD/OPD - Patient's Profiles
+      <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
+        <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
+          IPD - Patient Lists
         </h2>
-        <button
-          onClick={() => navigate("/patients/new-registration")}
-          className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition-opacity"
-          type="button"
-        >
-          <Plus size={18} /> Add Patient
-        </button>
+      
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (!canAdd) return;
+              navigate("/patients/new-registration");
+            }}
+            className={`flex items-center gap-2 
+              bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+              border-b-[2px] border-[#0EFF7B]
+              shadow-[0px_2px_12px_0px_#00000040]
+              text-white font-semibold px-4 py-2 rounded-[8px]
+              transition duration-300 ease-in-out
+              ${
+                canAdd
+                  ? "hover:opacity-90 cursor-pointer"
+                  : "cursor-not-allowed opacity-100"
+              }`}
+          >
+            <Plus size={18} className="text-white font-[Helvetica]" />
+            Add Patients
+          </button>
+      
+          {/* Tooltip */}
+          <span
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+            px-3 py-1 text-xs rounded-md shadow-md
+            bg-gray-100 dark:bg-black text-black dark:text-white
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 z-50"
+          >
+            {canAdd ? "Add Patients" : "Access Denied"}
+          </span>
+        </div>
       </div>
 
       {/* Counts */}
@@ -865,7 +897,7 @@ const ProfileSection = () => {
 
       {/* Pagination */}
       {!loading && filteredPatients.length > 0 && (
-        <div className="flex items-center mt-7 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+        <div className="flex items-center mt-7 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
           <div className="text-sm text-black dark:text-white">
             Page{" "}
             <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

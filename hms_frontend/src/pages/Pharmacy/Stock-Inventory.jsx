@@ -3290,6 +3290,11 @@ const canDelete = isAdmin; // Only admin can delete
   };
 
   const addStock = async (stockData) => {
+    if (!canAdd) {
+      const errorMessage = "You do not have permission to add stock.";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
+    }
     try {
       const response = await api.post("/stock/add", stockData);
       successToast("Stock added successfully!");
@@ -3303,6 +3308,11 @@ const canDelete = isAdmin; // Only admin can delete
   };
 
   const updateStock = async (stockId, stockData) => {
+    if (!canEdit) {
+      const errorMessage = "You do not have permission to edit stock.";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
+    }
     try {
       const response = await api.put(`/stock/edit/${stockId}`, stockData);
       successToast("Stock updated successfully!");
@@ -3316,6 +3326,11 @@ const canDelete = isAdmin; // Only admin can delete
   };
 
   const deleteStock = async (stockId) => {
+    if (!canDelete) {
+      const errorMessage = "You do not have permission to delete stock.";
+      errorToast(errorMessage);
+      throw new Error(errorMessage);
+    }
     try {
       await api.delete(`/stock/delete/${stockId}`);
       successToast("Stock deleted successfully!");
@@ -4060,7 +4075,7 @@ const canDelete = isAdmin; // Only admin can delete
       }}
       disabled={!canAdd}
       className={`w-[200px] h-[40px] flex items-center justify-center bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
-        !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+        !canAdd ? 'opacity-100 cursor-not-allowed' : ''
       }`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
@@ -4074,7 +4089,7 @@ const canDelete = isAdmin; // Only admin can delete
                    whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
                    bg-gray-100 dark:bg-black text-black dark:text-white
                    opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
+                   transition-all duration-150 z-10 pointer-events-none"
       >
         Access Denied - Admin Only
       </span>
@@ -4811,13 +4826,13 @@ const canDelete = isAdmin; // Only admin can delete
       className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
         canEdit
           ? "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-          : "text-gray-400 cursor-not-allowed opacity-50"
+          : "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] cursor-not-allowed opacity-100"
       }`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
       <Edit2
         size={14}
-        className={canEdit ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400"}
+        className={canEdit ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-[#08994A]"}
       />
       Edit
     </button>
@@ -4849,13 +4864,13 @@ const canDelete = isAdmin; // Only admin can delete
       className={`w-full flex items-center gap-2 px-4 py-2 text-sm ${
         canDelete
           ? "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A]"
-          : "text-gray-400 cursor-not-allowed opacity-50"
+          : "text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] cursor-not-allowed opacity-100"
       }`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     >
       <Trash2
         size={14}
-        className={canDelete ? "text-red-500" : "text-gray-400"}
+        className={canDelete ? "text-red-500" : "text-red-400"}
       />
       Delete
     </button>

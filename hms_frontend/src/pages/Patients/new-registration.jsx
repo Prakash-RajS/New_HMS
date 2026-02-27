@@ -1504,8 +1504,8 @@ const validateEmailFormat = (value) => {
       }}
       className={`w-[144px] h-[32px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] 
                  text-white border-b-[2px] border-[#0EFF7B] 
-                 ${!canAddPatient ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'}
-                 disabled:opacity-70`}
+                 ${!canAddPatient ? 'opacity-100 cursor-not-allowed' : 'hover:opacity-90'}
+                 disabled:opacity-100`}
     >
       {isSubmitting ? "Submitting..." : "Add Patient..!"}
     </button>

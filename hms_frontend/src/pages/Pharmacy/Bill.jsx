@@ -3263,7 +3263,7 @@ const generateBill = useCallback(async () => {
       disabled={billingItems.length === 0 || generatingBill || !canGenerateBill}
       className={`flex items-center justify-center w-[200px] h-[40px] gap-2 rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] transition ${
         billingItems.length === 0 || !canGenerateBill
-          ? "opacity-50 cursor-not-allowed hover:scale-100"
+          ? "opacity-100 cursor-not-allowed hover:scale-100"
           : generatingBill
           ? "opacity-80 cursor-wait"
           : "hover:scale-105"

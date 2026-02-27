@@ -1151,7 +1151,7 @@ const canadd = isAdmin; // Only admin can add
       }`}
       style={{
         background: !canEdit 
-          ? "border-[2px] border-[#0EFF7B66] dark:border-[#025126] bg-[#08994A] dark:bg-[#0EFF7B1A]" 
+          ? "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)" 
           : "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
       }}
     >
@@ -1166,7 +1166,7 @@ const canadd = isAdmin; // Only admin can add
                    whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
                    bg-gray-100 dark:bg-black text-black dark:text-white
                    opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
+                   transition-all duration-150 z-10 pointer-events-none"
       >
         Access Denied - Admin Only
       </span>

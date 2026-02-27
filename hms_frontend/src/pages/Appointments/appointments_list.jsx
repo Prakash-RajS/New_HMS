@@ -469,7 +469,7 @@ const handleDelete = async (id) => {
       onClick={() => canAdd && setShowAddPopup(true)}
       disabled={!canAdd}
       className={`flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
-        !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+        !canAdd ? 'opacity-100 cursor-not-allowed' : ''
       }`}
     >
       <Plus size={18} className="text-white font-[Helvetica]" /> Add Appointments
@@ -736,7 +736,7 @@ const handleDelete = async (id) => {
         className={`cursor-pointer transition ${
           canEdit
             ? "text-[#08994A] dark:text-blue-400 hover:scale-110"
-            : "text-gray-400 opacity-40 cursor-not-allowed"
+            : "text-blue-600 opacity-100 cursor-not-allowed"
         }`}
       />
       
@@ -764,7 +764,7 @@ const handleDelete = async (id) => {
         className={`cursor-pointer transition ${
           canDelete
             ? "text-red-500 hover:scale-110"
-            : "text-gray-400 opacity-40 cursor-not-allowed"
+            : "text-red-500 opacity-100 cursor-not-allowed"
         }`}
       />
       
@@ -798,7 +798,7 @@ const handleDelete = async (id) => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

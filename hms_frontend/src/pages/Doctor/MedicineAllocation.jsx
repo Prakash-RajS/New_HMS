@@ -1407,6 +1407,69 @@ import api from "../../utils/axiosConfig";
 import { Loader2 } from "lucide-react";
 import { usePermissions } from "../../components/PermissionContext";
 
+
+// Move CustomInput OUTSIDE the main component
+const CustomInput = React.memo(({
+  label,
+  name,
+  value,
+  index,
+  placeholder,
+  type = "text",
+  readOnly = false,
+  required = false,
+  onInputChange,
+  onFieldBlur,
+  validationErrors,
+  touchedFields
+}) => {
+  const fieldKey = `medicine_${index}_${name}`;
+  const isTouched = touchedFields[fieldKey];
+  const error = validationErrors[fieldKey];
+  const showError = isTouched && error;
+
+  const handleChange = (e) => {
+    const newValue =
+      type === "number" ? parseInt(e.target.value) || "" : e.target.value;
+    const fakeEvent = { target: { name, value: newValue } };
+    onInputChange(fakeEvent, index, "medicine");
+  };
+
+  const handleBlur = () => {
+    onFieldBlur(fieldKey);
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
+        {label} {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <input
+        type={type}
+        name={name}
+        value={value || ""}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        className={`
+          w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
+          ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
+          bg-gray-100 dark:bg-black
+          text-black dark:text-white text-sm leading-none
+          shadow-[0_0_2.09px_#0EFF7B] outline-none
+          transition-all duration-300 font-[Helvetica]
+          focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
+          ${!value ? "text-gray-500" : ""}
+          ${readOnly ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : ""}
+        `}
+      />
+      {showError && (
+        <p className="text-red-500 text-xs mt-1">{error}</p>
+      )}
+    </div>
+  );
+});
 export default function ViewPatientProfile() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -2509,67 +2572,8 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
     [departments],
   );
 
-  // ================ Updated CustomInput with Validation ================
-  const CustomInput = useCallback(
-    ({
-      label,
-      name,
-      value,
-      index,
-      placeholder,
-      type = "text",
-      readOnly = false,
-      required = false,
-    }) => {
-      const fieldKey = `medicine_${index}_${name}`;
-      const isTouched = touchedFields[fieldKey];
-      const error = validationErrors[fieldKey];
-      const showError = isTouched && error;
+  
 
-      const handleChange = (e) => {
-        const newValue =
-          type === "number" ? parseInt(e.target.value) || "" : e.target.value;
-        const fakeEvent = { target: { name, value: newValue } };
-        handleInputChange(fakeEvent, index, "medicine");
-      };
-
-      const handleBlur = () => {
-        handleFieldBlur(fieldKey);
-      };
-
-      return (
-        <div className="relative">
-          <label className="block text-sm font-medium mb-1 text-black dark:text-white capitalize">
-            {label} {required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          <input
-            type={type}
-            name={name}
-            value={value}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            className={`
-            w-full h-[33.5px] px-3 rounded-[8.38px] border-[1.05px]
-            ${showError ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-[#3C3C3C]'}
-            bg-gray-100 dark:bg-black
-            text-black dark:text-white text-sm leading-none
-            shadow-[0_0_2.09px_#0EFF7B] outline-none
-            transition-all duration-300 font-[Helvetica]
-            focus:border-[#0EFF7B] focus:shadow-[0_0_4px_#0EFF7B]
-            ${!value ? "text-gray-500" : ""}
-            ${readOnly ? "bg-gray-200 dark:bg-gray-800 cursor-not-allowed" : ""}
-          `}
-          />
-          {showError && (
-            <p className="text-red-500 text-xs mt-1">{error}</p>
-          )}
-        </div>
-      );
-    },
-    [handleInputChange, handleFieldBlur, validationErrors, touchedFields],
-  );
 
   // ================ Updated MedicineDropdown with Validation ================
   const MedicineDropdown = useCallback(
@@ -2791,8 +2795,8 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
     [dosageMap, getAvailableQuantity, handleInputChange, handleFieldBlur, validationErrors, touchedFields],
   );
 
-  // ================ Updated MultiFrequencyDropdown with Validation ================
-  const MultiFrequencyDropdown = useCallback(
+
+const MultiFrequencyDropdown = useCallback(
     ({ index, selected, onChange }) => {
       const fieldKey = `medicine_${index}_frequency`;
       const isTouched = touchedFields[fieldKey];
@@ -2880,7 +2884,6 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
     },
     [handleFieldBlur, validationErrors, touchedFields],
   );
-
   const PatientNameDropdown = useCallback(
     () => (
       <div className="relative">
@@ -3519,38 +3522,53 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
                     index={index}
                   />
                   <CustomInput
-                    label="Quantity"
-                    name="quantity"
-                    value={med.quantity}
-                    index={index}
-                    placeholder="Auto-calculated"
-                    type="number"
-                    readOnly={true}
-                    required={true}
-                  />
-                  <MultiFrequencyDropdown
-                    index={index}
-                    selected={med.frequency}
-                    onChange={(selected) =>
-                      handleFrequencyChange(index, selected)
-                    }
-                  />
-                  <CustomInput
-                    label="Duration"
-                    name="duration"
-                    value={med.duration}
-                    index={index}
-                    placeholder="e.g. 5 days"
-                    required={true}
-                  />
-                  <CustomInput
-                    label="Time"
-                    name="time"
-                    value={med.time}
-                    index={index}
-                    placeholder="e.g. 8:00 AM"
-                    required={true}
-                  />
+  label="Quantity"
+  name="quantity"
+  value={med.quantity}
+  index={index}
+  placeholder="Auto-calculated"
+  type="number"
+  readOnly={true}
+  required={true}
+  onInputChange={handleInputChange}
+  onFieldBlur={handleFieldBlur}
+  validationErrors={validationErrors}
+  touchedFields={touchedFields}
+/>
+
+<MultiFrequencyDropdown
+  index={index}
+  selected={med.frequency}
+  onChange={(selected) =>
+    handleFrequencyChange(index, selected)
+  }
+/>
+
+<CustomInput
+  label="Duration"
+  name="duration"
+  value={med.duration}
+  index={index}
+  placeholder="e.g. 5 days"
+  required={true}
+  onInputChange={handleInputChange}
+  onFieldBlur={handleFieldBlur}
+  validationErrors={validationErrors}
+  touchedFields={touchedFields}
+/>
+
+<CustomInput
+  label="Time"
+  name="time"
+  value={med.time}
+  index={index}
+  placeholder="e.g. 8:00 AM"
+  required={true}
+  onInputChange={handleInputChange}
+  onFieldBlur={handleFieldBlur}
+  validationErrors={validationErrors}
+  touchedFields={touchedFields}
+/>
                 </div>
                 {med.medicineName && med.dosage && (
                   <div className="mt-2 text-sm">

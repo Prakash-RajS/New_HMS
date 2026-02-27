@@ -5,6 +5,7 @@ import { X, Calendar, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 /* -------------------------------------------------
    Dropdown Component
@@ -69,6 +70,12 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
   const [availableBeds, setAvailableBeds] = useState([]);
   const [selectedBedGroupId, setSelectedBedGroupId] = useState(null);
   const [updating, setUpdating] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+      const userRole = currentUser?.role?.toLowerCase();
+      const canAdmitDischarge =
+        isAdmin ||
+        userRole === "staff" ||
+        userRole === "nurse";
 
   // Fetch available beds for a specific bed group
   const fetchAvailableBeds = async (groupId) => {
@@ -248,6 +255,10 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
 
   /* ---------- Handle Update ---------- */
   const handleUpdate = async () => {
+    if (!canAdmitDischarge) {
+      errorToast("You do not have permission to update admissions.");
+      return;
+    }
     if (!validateForm()) {
       errorToast("Please fill all required fields");
       return;

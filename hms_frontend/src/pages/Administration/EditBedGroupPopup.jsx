@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast"; // adjust path if needed
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,8 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState("");
+  const { isAdmin } = usePermissions();
+      const canCRUD = isAdmin;
 
   // Prefill form when `data` changes
   useEffect(() => {
@@ -37,6 +40,10 @@ const EditBedGroupPopup = ({ onClose, onUpdate, data }) => {
   };
 
   const handleUpdate = async () => {
+    if (!canCRUD) {
+      errorToast("You do not have permission to perform this action.");
+      return;
+    }
     if (!validateForm()) return;
 
     setLoading(true);

@@ -4,6 +4,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown, AlertCircle } from "lucide-react";
 import { successToast, errorToast, warningToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 /* -------------------------------------------------
    TypeAhead Dropdown Component
@@ -21,6 +22,7 @@ const TypeAheadDropdown = ({
   const [inputValue, setInputValue] = useState(value || "");
   const [filteredOptions, setFilteredOptions] = useState(options);
   const dropdownRef = useRef(null);
+  
 
   // Update input value when value prop changes
   useEffect(() => {
@@ -143,6 +145,12 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   const [patientNameOptions, setPatientNameOptions] = useState([]);
   const [patientIdOptions, setPatientIdOptions] = useState([]);
   const [patientFetchError, setPatientFetchError] = useState("");
+  const { isAdmin, currentUser } = usePermissions();
+    const userRole = currentUser?.role?.toLowerCase();
+    const canAdmitDischarge =
+      isAdmin ||
+      userRole === "staff" ||
+      userRole === "nurse";
 
   // Load bed groups AND patients
   useEffect(() => {
@@ -398,6 +406,11 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
   };
 
   const handleAdmit = async () => {
+    if (!canAdmitDischarge) {
+      errorToast("You do not have permission to admit patients.");
+      return;
+    }
+
     if (!validateForm()) {
       errorToast("Please fill all required fields correctly");
       return;

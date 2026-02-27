@@ -1637,7 +1637,7 @@ const DashboardCard = ({ title, change, value, onClick, isAdmin }) => {
     className={`px-4 py-2 text-white text-sm rounded-[8px] w-full transition-all ${
       isAdmin 
         ? "cursor-pointer opacity-100" 
-        : "cursor-not-allowed opacity-50"
+        : "cursor-not-allowed opacity-100"
     }`}
     style={{
       background: isAdmin 

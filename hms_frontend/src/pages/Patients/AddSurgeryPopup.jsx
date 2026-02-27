@@ -3,6 +3,7 @@ import { X, Calendar, ChevronDown, AlertCircle, Clock } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast, warningToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 export default function AddSurgeryPopup({ onClose, onSuccess }) {
   // State
@@ -32,6 +33,10 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   const [focusedField, setFocusedField] = useState(null);
   const [apiErrors, setApiErrors] = useState({});
   const [showDuplicateError, setShowDuplicateError] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+    
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "doctor" || userRole === "staff";
   
   // Use ref to prevent multiple toast calls
   const toastShownRef = useRef(false);
@@ -485,7 +490,12 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   const handleSave = async () => {
     // Reset toast flag
     toastShownRef.current = false;
-    
+
+    if (!canAdd) {
+      errorToast("You do not have permission to add a surgery.");
+      return;
+    }
+
     if (!validateForm()) {
       if (!toastShownRef.current) {
         errorToast("Please fix all validation errors before saving");

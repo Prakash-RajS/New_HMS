@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { X, AlertTriangle, Check } from "lucide-react";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext"; // ✅ Import permissions
 
 const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,8 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   const [suggestedRange, setSuggestedRange] = useState("");
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
   const [rangeAvailable, setRangeAvailable] = useState(true);
+  const { isAdmin } = usePermissions();
+    const canCRUD = isAdmin;
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateBedGroupNameFormat = (value) => {
@@ -240,6 +243,11 @@ const AddBedGroupPopup = ({ onClose, onAdd }) => {
   };
 
   const handleAdd = async () => {
+
+    if (!canCRUD) {
+      errorToast("You do not have permission to perform this action.");
+      return;
+    }
     // Validate all fields
     if (!validateForm()) {
       errorToast("Please fix all validation errors before saving.");

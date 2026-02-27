@@ -3,6 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext"; // ✅ Import permissions
 
 const EditDepartmentPopup = ({ onClose, onSave, department }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +14,8 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { isAdmin } = usePermissions();
+    const canCRUD = isAdmin;
 
   useEffect(() => {
     if (department) {
@@ -32,6 +35,10 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
   };
 
   const handleUpdate = async () => {
+    if (!canCRUD) {
+      errorToast("You do not have permission to perform this action.");
+      return;
+    }
     if (!formData.name.trim()) {
       setError("Department name is required.");
       errorToast("Department name is required.");

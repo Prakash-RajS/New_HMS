@@ -5,6 +5,7 @@ import { X, Calendar, ChevronDown, Upload, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 const EditPatientPopup = ({
   patientId,
@@ -20,6 +21,15 @@ const EditPatientPopup = ({
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
+  const { isAdmin, currentUser } = usePermissions();
+  
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEdit =
+    isAdmin ||
+    userRole === "doctor" ||
+    userRole === "receptionist";
+   
+  
   // Fetch departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -202,6 +212,10 @@ const handlePhoneChange = (value) => {
   // Submit update
   const handleUpdate = async () => {
     // Final phone validation
+    if (!canEdit) {
+      errorToast("You do not have permission to edit patient details.");
+      return;
+    }
     if (formData.phone_number.length !== 10) {
     setPhoneError("Phone number must be exactly 10 digits");
     errorToast("Please enter a valid 10-digit phone number");

@@ -950,6 +950,10 @@ const DepartmentList = () => {
 
   const updateDepartmentStatus = useCallback(
     async (departmentId, newStatus) => {
+      if (!canCRUD) {
+        errorToast("Only admins can change department status.");
+        return;
+      }
       try {
         await api.put(`/departments/${departmentId}`, {
           status: newStatus.toLowerCase(),
@@ -960,11 +964,15 @@ const DepartmentList = () => {
         errorToast(err.response?.data?.message || "Failed to update status");
       }
     },
-    [fetchDepartments]
+    [fetchDepartments, canCRUD]
   );
 
   const deleteDepartment = useCallback(
     async (departmentId, departmentName = "Department") => {
+      if (!canCRUD) {
+        errorToast("Only admins can delete departments.");
+        return;
+      }
       try {
         await api.delete(`/departments/${departmentId}`);
         successToast(`"${departmentName}" deleted successfully!`);
@@ -980,7 +988,7 @@ const DepartmentList = () => {
         console.error("Delete error:", err);
       }
     },
-    [fetchDepartments]
+    [fetchDepartments, canCRUD]
   );
 
   useEffect(() => {
@@ -1241,7 +1249,7 @@ const DepartmentList = () => {
               className={`flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300 ${
                 canCRUD
                   ? "cursor-pointer hover:opacity-90"
-                  : "opacity-50 cursor-not-allowed"
+                  : "opacity-100 cursor-not-allowed"
               }`}
               style={{
                 background:
@@ -1304,7 +1312,7 @@ const DepartmentList = () => {
               <div className="relative w-[164px]">
                 <Listbox.Button
                   className={`w-full h-[40px] rounded-[8px] dark:border-[#3C3C3C] bg-[#025126] dark:bg-[#025126] text-white dark:text-white text-[16px] flex items-center justify-between px-4 ${
-                    !canCRUD ? "opacity-50 cursor-not-allowed" : ""
+                    !canCRUD ? "opacity-100 cursor-not-allowed" : ""
                   }`}
                 >
                   {bulkStatus || "Change Status"}
@@ -1505,7 +1513,7 @@ const DepartmentList = () => {
                                   <button
                                     className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
                                       !canCRUD
-                                        ? "opacity-50 cursor-not-allowed"
+                                        ? "opacity-100 cursor-not-allowed"
                                         : ""
                                     }`}
                                     onClick={() => {
@@ -1520,7 +1528,7 @@ const DepartmentList = () => {
                                       className={`mr-2 ${
                                         canCRUD
                                           ? "text-blue-500 dark:text-blue-400"
-                                          : "text-gray-400"
+                                          : "text-green-500 dark:text-green-400"
                                       }`}
                                     />
                                     Edit
@@ -1543,7 +1551,7 @@ const DepartmentList = () => {
                                   <button
                                     className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
                                       !canCRUD
-                                        ? "opacity-50 cursor-not-allowed"
+                                        ? "opacity-100 cursor-not-allowed"
                                         : ""
                                     }`}
                                     onClick={() => {
@@ -1558,7 +1566,7 @@ const DepartmentList = () => {
                                       className={`mr-2 ${
                                         canCRUD
                                           ? "text-red-500 dark:text-red-400"
-                                          : "text-gray-400"
+                                          : "text-red-400 dark:text-red-300"
                                       }`}
                                     />
                                     Delete
@@ -1595,7 +1603,7 @@ const DepartmentList = () => {
           </table>
 
           {/* Pagination */}
-          <div className="flex items-center mt-7 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center mt-7 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

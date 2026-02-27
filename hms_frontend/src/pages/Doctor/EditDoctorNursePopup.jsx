@@ -261,6 +261,10 @@ const canEdit = isAdmin; // Only admin can edit
 };
 
   const handleUpdate = async () => {
+    if (!canEdit) {
+    errorToast("You don't have permission to update staff profiles");
+    return;
+  }
     if (!validateForm()) return;
 
     if (!profile?.id) {
@@ -297,10 +301,6 @@ const canEdit = isAdmin; // Only admin can edit
           'Content-Type': 'multipart/form-data'
         }
       });
-      if (!canEdit) {
-    errorToast("You don't have permission to update staff profiles");
-    return;
-  }
 
       if (response.status === 200) {
         const updatedStaff = response.data;

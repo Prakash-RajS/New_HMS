@@ -3,6 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext"; // ✅ Import permissions
 
 const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,8 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   const [fieldErrors, setFieldErrors] = useState({}); // Required validation (submit only)
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { isAdmin } = usePermissions();
+    const canCRUD = isAdmin;
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateDepartmentNameFormat = (value) => {
@@ -125,6 +128,10 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
   };
 
   const handleSave = async () => {
+    if (!canCRUD) {
+      errorToast("You do not have permission to perform this action.");
+      return;
+    }
     // Validate all fields
     if (!validateForm()) {
       errorToast("Please fix all validation errors before saving.");

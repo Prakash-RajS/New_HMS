@@ -799,6 +799,8 @@ const AppointmentListOPD = () => {
     isAdmin ||
     userRole === "doctor" ||
     userRole === "receptionist";
+    const canAdd =
+    isAdmin || userRole === "receptionist";
   
   const canDelete = isAdmin;
 
@@ -1020,15 +1022,42 @@ const AppointmentListOPD = () => {
       {/* Header */}
       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-          OPD - Discharged Patients
+          OPD - Patient Lists
         </h2>
-        <button
-          onClick={() => navigate("/patients/new-registration")}
-          className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
-        >
-          <Plus size={18} className="text-white font-[Helvetica]" /> Add
-          Patients
-        </button>
+      
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (!canAdd) return;
+              navigate("/patients/new-registration");
+            }}
+            className={`flex items-center gap-2 
+              bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+              border-b-[2px] border-[#0EFF7B]
+              shadow-[0px_2px_12px_0px_#00000040]
+              text-white font-semibold px-4 py-2 rounded-[8px]
+              transition duration-300 ease-in-out
+              ${
+                canAdd
+                  ? "hover:opacity-90 cursor-pointer"
+                  : "cursor-not-allowed opacity-100"
+              }`}
+          >
+            <Plus size={18} className="text-white font-[Helvetica]" />
+            Add Patients
+          </button>
+      
+          {/* Tooltip */}
+          <span
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+            px-3 py-1 text-xs rounded-md shadow-md
+            bg-gray-100 dark:bg-black text-black dark:text-white
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 z-50"
+          >
+            {canAdd ? "Add Patients" : "Access Denied"}
+          </span>
+        </div>
       </div>
 
       {/* Totals */}
@@ -1213,7 +1242,7 @@ const AppointmentListOPD = () => {
         className={`cursor-pointer transition ${
           canEdit
             ? "text-[#08994A] dark:text-[#08994A]"
-            : "text-gray-400 opacity-40 cursor-not-allowed"
+            : "text-[#08994A] opacity-100 cursor-not-allowed"
         }`}
       />
 
@@ -1240,7 +1269,7 @@ const AppointmentListOPD = () => {
         className={`cursor-pointer transition ${
           canDelete
             ? "text-red-500 dark:text-red-400"
-            : "text-gray-400 opacity-40 cursor-not-allowed"
+            : "text-red-400 opacity-100 cursor-not-allowed"
         }`}
       />
 
@@ -1276,7 +1305,7 @@ const AppointmentListOPD = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+      <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
         <div className="text-sm text-black dark:text-white">
           Page{" "}
           <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

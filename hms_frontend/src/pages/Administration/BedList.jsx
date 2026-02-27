@@ -1008,6 +1008,10 @@ const BedList = () => {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canCRUD) {
+      errorToast("You do not have permission to delete bed groups.");
+      return;
+    }
     if (roomToDelete !== null) {
       const roomId = roomsData[roomToDelete].id;
       try {
@@ -1049,6 +1053,10 @@ const BedList = () => {
   const handleRoomManagementClick = () => navigate("/Administration/roommanagement");
 
   const handleUpdateBedGroup = async (updatedData) => {
+    if (!canCRUD) {
+      errorToast("You do not have permission to edit bed groups.");
+      return;
+    }
     const { id, bedGroup, bedFrom, bedTo } = updatedData;
 
     try {
@@ -1308,7 +1316,7 @@ const BedList = () => {
               className={`flex items-center gap-2 border-b-[2px] border-[#0EFF7B] px-4 py-2 rounded-[8px] text-white font-semibold transition-all duration-300 ${
                 canCRUD
                   ? "cursor-pointer hover:opacity-90"
-                  : "opacity-50 cursor-not-allowed"
+                  : "opacity-100 cursor-not-allowed"
               }`}
               style={{
                 background:
@@ -1323,7 +1331,7 @@ const BedList = () => {
                   px-3 py-1 text-xs rounded-md shadow-md
                   bg-gray-100 dark:bg-black text-black dark:text-white
                   opacity-0 group-hover:opacity-100
-                  transition-all duration-150 z-50"
+                  transition-all duration-150 z-10"
               >
                 Admin Only
               </span>
@@ -1495,14 +1503,14 @@ const BedList = () => {
                                       } flex items-center px-4 py-2 text-sm w-full gap-2 ${
                                         canCRUD
                                           ? "text-black dark:text-white"
-                                          : "text-gray-400 cursor-not-allowed opacity-50"
+                                          : "text-black dark:text-white cursor-not-allowed opacity-100"
                                       }`}
                                     >
                                       <Edit
                                         className={`w-5 h-5 ${
                                           canCRUD
                                             ? "text-blue-500 dark:text-blue-400"
-                                            : "text-gray-400"
+                                            : "text-blue-500 dark:text-blue-400"
                                         }`}
                                       />
                                       Edit
@@ -1531,14 +1539,14 @@ const BedList = () => {
                                       } flex items-center px-4 py-2 text-sm w-full gap-2 ${
                                         canCRUD
                                           ? "text-black dark:text-white"
-                                          : "text-gray-400 cursor-not-allowed opacity-50"
+                                          : "text-black dark:text-white cursor-not-allowed opacity-100"
                                       }`}
                                     >
                                       <Trash2
                                         className={`w-5 h-5 ${
                                           canCRUD
                                             ? "text-red-500 dark:text-red-400"
-                                            : "text-gray-400"
+                                            : "text-red-400 dark:text-red-500"
                                         }`}
                                       />
                                       Delete
@@ -1608,7 +1616,7 @@ const BedList = () => {
 
         {/* Pagination */}
         {isBedListRoute && (
-          <div className="flex items-center h-full bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
+          <div className="flex items-center h-full bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E]">
             <div className="text-sm text-black dark:text-white">
               Page{" "}
               <span className="text-[#08994A] dark:text-[#0EFF7B]">{currentPage}</span>{" "}

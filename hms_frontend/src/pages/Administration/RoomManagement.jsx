@@ -946,7 +946,10 @@ const RoomManagement = () => {
   };
 
   const handleConfirmDischarge = async () => {
-    if (!dischargeRoom) return;
+    if (!canAdmitDischarge) {
+      errorToast("You do not have permission to discharge patients.");
+      return;
+    }
 
     try {
       await api.post(
@@ -1222,7 +1225,7 @@ const RoomManagement = () => {
                         className={`w-8 h-8 flex items-center justify-center rounded-full 
                           border border-[#08994A1A] dark:border-[#0EFF7B1A] 
                           bg-[#08994A1A] dark:bg-[#0EFF7B1A]
-                          ${canAdmitDischarge ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                          ${canAdmitDischarge ? "cursor-pointer" : "opacity-100 cursor-not-allowed"}`}
                         onClick={() => handleEditClick(room)}
                       >
                         <Edit
@@ -1230,7 +1233,7 @@ const RoomManagement = () => {
                           className={`${
                             canAdmitDischarge
                               ? "text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                              : "text-gray-400"
+                              : "text-[#08994A]"
                           }`}
                         />
                       </div>
@@ -1251,7 +1254,7 @@ const RoomManagement = () => {
                         className={`w-8 h-8 flex items-center justify-center rounded-full 
                           border border-red-200 dark:border-red-900/50 
                           bg-red-50 dark:bg-red-900/20
-                          ${canAdmitDischarge ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+                          ${canAdmitDischarge ? "cursor-pointer" : "opacity-100 cursor-not-allowed"}`}
                         onClick={() => handleDischargeClick(room)}
                       >
                         <UserMinus
@@ -1259,7 +1262,7 @@ const RoomManagement = () => {
                           className={`${
                             canAdmitDischarge
                               ? "text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                              : "text-gray-400"
+                              : "text-red-600"
                           }`}
                         />
                       </div>
@@ -1351,7 +1354,7 @@ const RoomManagement = () => {
               className={`flex items-center gap-2 px-4 py-2 rounded-[8px] border-b border-[#0EFF7B] text-white font-semibold transition-all duration-300 ${
                 canAdmitDischarge
                   ? "cursor-pointer hover:opacity-90"
-                  : "opacity-50 cursor-not-allowed"
+                  : "opacity-100 cursor-not-allowed"
               }`}
               style={{
                 background:
@@ -1366,7 +1369,7 @@ const RoomManagement = () => {
                   px-3 py-1 text-xs rounded-md shadow-md
                   bg-gray-100 dark:bg-black text-black dark:text-white
                   opacity-0 group-hover:opacity-100
-                  transition-all duration-150 z-50"
+                  transition-all duration-150 z-10"
               >
                 Access Denied
               </span>
