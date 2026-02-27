@@ -3462,12 +3462,12 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
   className={`relative group text-xl ${
     canManage 
       ? "text-green-500 hover:text-green-600" 
-      : "text-gray-400 opacity-40 cursor-not-allowed"
+      : "text-green-600 opacity-100 cursor-not-allowed"
   }`}
 >
   +
   <span
-    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-7 left-3 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"
@@ -3489,7 +3489,7 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
 >
   ×
   <span
-    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-7 left-3 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"
@@ -3679,12 +3679,12 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
   className={`relative group text-xl mt-5 ${
     canManage 
       ? "text-green-500 hover:text-green-600" 
-      : "text-gray-400 opacity-40 cursor-not-allowed"
+      : "text-green-600 opacity-100 cursor-not-allowed"
   }`}
 >
   +
   <span
-    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-7 left-3 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"
@@ -3701,12 +3701,12 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
   className={`relative group text-xl mt-5 ${
     canManage 
       ? "text-red-500 hover:text-red-700" 
-      : "text-gray-400 opacity-40 cursor-not-allowed"
+      : "text-gray-400 opacity-100 cursor-not-allowed"
   }`}
 >
   ×
   <span
-    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-7 left-3 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"
@@ -3830,7 +3830,7 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
 >
   <Edit size={16} />
   <span
-    className="absolute bottom-5 left-1/4 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-5 left-0 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"
@@ -3849,7 +3849,7 @@ const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can mana
 >
   <Trash2 size={16} />
   <span
-    className="absolute bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap
+    className="absolute bottom-5 left-0 -translate-x-1/2 whitespace-nowrap
       px-3 py-1 text-xs rounded-md shadow-md
       bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
       transition-all duration-150"

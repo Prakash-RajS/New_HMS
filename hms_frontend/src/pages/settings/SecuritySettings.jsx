@@ -1,3 +1,4 @@
+// src/pages/settings/SecuritySettings.jsx
 import React, { useState, useEffect, useContext } from "react";
 import { toast } from "react-toastify";
 import api from "../../utils/axiosConfig";

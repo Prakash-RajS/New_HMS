@@ -931,6 +931,8 @@ import {
   Scissors,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import { usePermissions } from "../../components/PermissionContext";
+import { successToast, errorToast } from "../../components/Toast.jsx";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -942,6 +944,10 @@ export default function ViewPatientProfile() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+    
+  const userRole = currentUser?.role?.toLowerCase();
+  const canManage = isAdmin || userRole === "doctor" || userRole === "nurse";
  
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
@@ -1225,11 +1231,19 @@ export default function ViewPatientProfile() {
   };
   // Alternative: Simple view/download if you want to skip the API call for file path
   const handleViewReportSimple = (reportId) => {
+    if (!canManage) {
+      errorToast("You do not have permission to view this report.");
+      return;
+    }
     // This assumes you have an endpoint that serves the file by report ID
     const url = `${API_BASE}/labreports/${reportId}/view`;
     window.open(url, '_blank');
   };
   const handleDownloadReportSimple = (reportId, testType) => {
+    if (!canManage) {
+      errorToast("You do not have permission to download this report.");
+      return;
+    }
     const url = `${API_BASE}/labreports/${reportId}/download`;
     const link = document.createElement('a');
     link.href = url;

@@ -21,6 +21,7 @@ import AddBloodTypePopup from "./AddBloodTypesPopup.jsx";
 import AddDonorPopup from "./AddDonorPopup.jsx";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
 import api from "../../../../utils/axiosConfig"; // Import axios
+import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const BloodBank = () => {
   /* ---------- Pop-up states ---------- */
@@ -38,6 +39,11 @@ const BloodBank = () => {
   const [showDonorFilterPopup, setShowDonorFilterPopup] = useState(false);
   const [sendingEmails, setSendingEmails] = useState({}); // Track email sending per donor
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+const userRole = currentUser?.role?.toLowerCase();
+const canAdd = isAdmin || userRole === "nurse";
+const canEdit = isAdmin || userRole === "nurse";
+const canDelete = isAdmin; // Only admin can delete
 
   /* ---------- Filter states ---------- */
   const [bloodStatusFilter, setBloodStatusFilter] = useState("All");
@@ -250,6 +256,10 @@ const BloodBank = () => {
   };
 
   const handleDeleteSelectedDonors = async () => {
+    if (!canDelete) { 
+      errorToast("You don't have permission to delete donors");
+      return;
+    }
     for (const donor of selectedDonors) {
       await handleDeleteDonor(donor);
     }
@@ -258,11 +268,19 @@ const BloodBank = () => {
   };
 
   const handleDeleteSingleDonor = (donor) => {
+    if (!canDelete) {
+      errorToast("You don't have permission to delete donors");
+      return;
+    }
     setDeleteDonor(donor);
     setShowDeleteDonorPopup(true);
   };
 
   const confirmDeleteDonors = () => {
+    if (!canDelete) {
+      errorToast("You don't have permission to delete donors");
+      return;
+    }
     if (deleteDonor) {
       handleDeleteDonor(deleteDonor);
       setDeleteDonor(null);
@@ -274,6 +292,10 @@ const BloodBank = () => {
 
   // Email Handler with Loader
   const handleSendEmail = async (donor) => {
+    if (!canEdit) {
+    errorToast("You don't have permission to send emails");
+    return;
+  }
     if (!donor.email) {
       errorToast(`No email address found for ${donor.name}`);
       return;
@@ -309,6 +331,10 @@ const BloodBank = () => {
   };
 
   const handleManualEligibilityCheck = async () => {
+    if (!canEdit) {
+      errorToast("You don't have permission to check eligibility");
+      return;
+    }
     try {
       setCheckingEligibility(true);
       const response = await api.post("/api/donors/check-eligibility");
@@ -470,13 +496,24 @@ const BloodBank = () => {
         <div className="p-6 relative z-10 flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Blood Bank</h2>
-            <button
-              onClick={() => setShowAddPopup(true)}
-              className="flex items-center gap-2 w-[200px] h-[40px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition px-8 py-2"
-            >
-              <Plus size={18} />
-              Add blood group
-            </button>
+            {/* Add Blood Group Button with Tooltip */}
+<div className="relative group">
+  <button
+    onClick={() => canAdd && setShowAddPopup(true)}
+    disabled={!canAdd}
+    className={`flex items-center gap-2 w-[200px] h-[40px] rounded-[8px] border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition px-8 py-2 ${
+      !canAdd ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+  >
+    <Plus size={18} />
+    Add blood group
+  </button>
+  {!canAdd && (
+    <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+      Access Denied - Admin/Nurse Only
+    </span>
+  )}
+</div>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
             Available Blood Types and Donor Registry
@@ -514,14 +551,24 @@ const BloodBank = () => {
                 </Listbox>
               </div>
               {selectedBloodTypes.length > 0 && (
-                <button
-                  onClick={() => setShowDeleteBloodPopup(true)}
-                  className="flex items-center gap-2 h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition whitespace-nowrap"
-                >
-                  <Trash2 size={16} />
-                  Delete Selected ({selectedBloodTypes.length})
-                </button>
-              )}
+  <div className="relative group">
+    <button
+      onClick={() => canDelete && setShowDeleteBloodPopup(true)}
+      disabled={!canDelete}
+      className={`flex items-center gap-2 h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition whitespace-nowrap ${
+        !canDelete ? 'opacity-100 cursor-not-allowed' : ''
+      }`}
+    >
+      <Trash2 size={16} />
+      Delete Selected ({selectedBloodTypes.length})
+    </button>
+    {!canDelete && (
+      <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+        Admin Only
+      </span>
+    )}
+  </div>
+)}
             </div>
             {/* Right side: Search, Check Eligibility, and Filter buttons */}
             <div className="flex gap-2 items-center flex-wrap">
@@ -623,50 +670,60 @@ const BloodBank = () => {
                       </span>
                     </td>
                     <td className="p-3 flex justify-end gap-2">
-                      <button
-                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                        onClick={() => {
-                          console.log(
-                            "🟡 Opening edit popup with blood data:",
-                            b
-                          );
-                          setEditBlood(b); // Make sure this contains the blood data
-                          setShowEditBloodPopup(true);
-                        }}
-                      >
-                        <Edit
-                          size={18}
-                          className="text-[#08994A] dark:text-[#0EFF7B]"
-                        />
-                        <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                        >
-                          Edit
-                        </span>
-                      </button>
-                      <button
-                        className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                        onClick={() => {
-                          setDeleteBlood(b);
-                          setShowDeleteBloodPopup(true);
-                        }}
-                      >
-                        <Trash2
-                          size={18}
-                          className="text-red-600 dark:text-red-700"
-                        />
-                        <span
-                          className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                        >
-                          Delete
-                        </span>
-                      </button>
+                      <div className="relative group">
+  <button
+    className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      !canEdit ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+    onClick={() => {
+      if (!canEdit) return;
+      console.log("🟡 Opening edit popup with blood data:", b);
+      setEditBlood(b);
+      setShowEditBloodPopup(true);
+    }}
+    disabled={!canEdit}
+  >
+    <Edit
+      size={18}
+      className={`${canEdit ? 'text-[#08994A] dark:text-[#0EFF7B]' : 'text-[#0EFF7B]'}`}
+    />
+    <span
+      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+    >
+      {canEdit ? "Edit" : "Access Denied"}
+    </span>
+  </button>
+</div>
+                      {/* Delete Button with permission check */}
+<div className="relative group">
+  <button
+    className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      !canDelete ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+    onClick={() => {
+      if (!canDelete) return;
+      setDeleteBlood(b);
+      setShowDeleteBloodPopup(true);
+    }}
+    disabled={!canDelete}
+  >
+    <Trash2
+      size={18}
+      className={`${canDelete ? 'text-red-600 dark:text-red-700' : 'text-red-600'}`}
+    />
+    <span
+      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+    >
+      {canDelete ? "Delete" : "Admin Only"}
+    </span>
+  </button>
+</div>
                     </td>
                   </tr>
                 ))
@@ -731,13 +788,24 @@ const BloodBank = () => {
         <div className="p-6 relative z-10 flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Donor List</h2>
-            <button
-              onClick={() => setShowAddDonorPopup(true)}
-              className="flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition"
-            >
-              <Plus size={18} />
-              <span className="leading-none">Add Donor</span>
-            </button>
+            {/* Add Donor Button with Tooltip */}
+<div className="relative group">
+  <button
+    onClick={() => canAdd && setShowAddDonorPopup(true)}
+    disabled={!canAdd}
+    className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition ${
+      !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+  >
+    <Plus size={18} />
+    <span className="leading-none">Add Donor</span>
+  </button>
+  {!canAdd && (
+    <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+      Access Denied - Admin/Nurse Only
+    </span>
+  )}
+</div>
           </div>
           <p className="text-gray-600 dark:text-gray-400">
             Registered Donors and Blood Type Information
@@ -802,14 +870,24 @@ const BloodBank = () => {
               </Listbox>
             </div>
             {selectedDonors.length > 0 && (
-              <button
-                onClick={() => setShowDeleteDonorPopup(true)}
-                className="flex items-center gap-2 w-auto h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition"
-              >
-                <Trash2 size={16} />
-                Delete Selected ({selectedDonors.length})
-              </button>
-            )}
+  <div className="relative group">
+    <button
+      onClick={() => canDelete && setShowDeleteDonorPopup(true)}
+      disabled={!canDelete}
+      className={`flex items-center gap-2 w-auto h-[32px] px-3 rounded-[8px] bg-red-600 text-white font-medium text-sm hover:bg-red-700 transition ${
+        !canDelete ? 'opacity-100 cursor-not-allowed' : ''
+      }`}
+    >
+      <Trash2 size={16} />
+      Delete Selected ({selectedDonors.length})
+    </button>
+    {!canDelete && (
+      <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+        Admin Only
+      </span>
+    )}
+  </div>
+)}
           </div>
           <div className="flex gap-2 items-center">
             {showDonorSearch && (
@@ -944,80 +1022,105 @@ const BloodBank = () => {
                         </span>
                       </td>
                       <td className="p-3 flex justify-end gap-2">
-                        <button
-                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          onClick={() => {
-                            console.log("Editing donor:", d);
-                            setEditDonor(d);
-                            setShowEditDonorPopup(true);
-                          }}
-                        >
-                          <Edit
-                            size={18}
-                            className="text-[#08994A] dark:text-[#0EFF7B]"
-                          />
-                          <span
-                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                          >
-                            Edit
-                          </span>
-                        </button>
-                        <button
-                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          onClick={() => {
-                            if (d.email) {
-                              handleSendEmail(d);
-                            } else {
-                              errorToast(
-                                `${d.name} has no email address registered`
-                              );
-                            }
-                          }}
-                          disabled={!d.email || isSendingEmail}
-                        >
-                          {isSendingEmail ? (
-                            <Loader2
-                              size={18}
-                              className="animate-spin text-[#08994A] dark:text-[#0EFF7B]"
-                            />
-                          ) : (
-                            <Mail
-                              size={18}
-                              className={`${
-                                d.email
-                                  ? "text-[#08994A] dark:text-[#0EFF7B]"
-                                  : "text-gray-400 dark:text-gray-600"
-                              }`}
-                            />
-                          )}
-                          <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                            {isSendingEmail
-                              ? "Sending..."
-                              : d.email
-                              ? "Send Urgent Request"
-                              : "No Email"}
-                          </span>
-                        </button>
-                        <button
-                          className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
-                          onClick={() => handleDeleteSingleDonor(d)}
-                        >
-                          <Trash2
-                            size={18}
-                            className="text-red-600 dark:text-red-700"
-                          />
-                          <span
-                            className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                    px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                    transition-all duration-150"
-                          >
-                            Delete
-                          </span>
-                        </button>
+                        {/* Edit Button with permission check */}
+<div className="relative group">
+  <button
+    className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      !canEdit ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+    onClick={() => {
+      if (!canEdit) return;
+      console.log("Editing donor:", d);
+      setEditDonor(d);
+      setShowEditDonorPopup(true);
+    }}
+    disabled={!canEdit}
+  >
+    <Edit
+      size={18}
+      className={`${canEdit ? 'text-[#08994A] dark:text-[#0EFF7B]' : 'text-[#0EFF7B]'}`}
+    />
+    <span
+      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+    >
+      {canEdit ? "Edit" : "Access Denied"}
+    </span>
+  </button>
+</div>
+                       {/* Email Button with permission check for Admin/Nurse only */}
+<div className="relative group">
+  <button
+    className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      (!canEdit || !d.email) ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+    onClick={() => {
+      if (!canEdit) {
+        errorToast("You don't have permission to send emails");
+        return;
+      }
+      if (d.email) {
+        handleSendEmail(d);
+      } else {
+        errorToast(`${d.name} has no email address registered`);
+      }
+    }}
+    disabled={!canEdit || !d.email || isSendingEmail}
+  >
+    {isSendingEmail ? (
+      <Loader2
+        size={18}
+        className="animate-spin text-[#08994A] dark:text-[#0EFF7B]"
+      />
+    ) : (
+      <Mail
+        size={18}
+        className={`${
+          canEdit && d.email
+            ? "text-[#08994A] dark:text-[#0EFF7B]"
+            : "text-[#0EFF7B] dark:text-[#0EFF7B]"
+        }`}
+      />
+    )}
+    <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+      {isSendingEmail
+        ? "Sending..."
+        : !canEdit
+        ? "Access Denied"
+        : d.email
+        ? "Send Urgent Request"
+        : "No Email"}
+    </span>
+  </button>
+</div>
+                        {/* Delete Button with permission check */}
+<div className="relative group">
+  <button
+    className={`w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33] ${
+      !canDelete ? 'opacity-100 cursor-not-allowed' : ''
+    }`}
+    onClick={() => {
+      if (!canDelete) return;
+      handleDeleteSingleDonor(d);
+    }}
+    disabled={!canDelete}
+  >
+    <Trash2
+      size={18}
+      className={`${canDelete ? 'text-red-600 dark:text-red-700' : 'text-red-600'}`}
+    />
+    <span
+      className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+      px-3 py-1 text-xs rounded-md shadow-md
+      bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+      transition-all duration-150"
+    >
+      {canDelete ? "Delete" : "Admin Only"}
+    </span>
+  </button>
+</div>
                       </td>
                     </tr>
                   );

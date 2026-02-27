@@ -1325,12 +1325,12 @@ const menuItems = [
         icon: ClipboardList,
         permission: "patients_profile",
       },
-       {
-        name: "Treatment Charges",
-        path: "/patients/treatment-charges",
-        icon: DollarSign,
-        permission: "treatment_charges",
-      },
+      //  {
+      //   name: "Treatment Charges",
+      //   path: "/patients/treatment-charges",
+      //   icon: DollarSign,
+      //   permission: "treatment_charges",
+      // },
       
       {
         name: "Surgeries",

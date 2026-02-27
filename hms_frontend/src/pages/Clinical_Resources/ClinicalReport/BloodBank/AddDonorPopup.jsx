@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
 import api from "../../../../utils/axiosConfig";
+import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const AddDonorPopup = ({ onClose, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,10 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
   const [errors, setErrors] = useState({});           // Submit-time errors
   const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+    const userRole = currentUser?.role?.toLowerCase();
+    const canAdd = isAdmin || userRole === "nurse";
+
 
   // Format date → YYYY-MM-DD for API
   const formatDateForAPI = (date) => {
@@ -156,6 +161,11 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!canAdd) {
+      errorToast("You don't have permission to add donors");
+      return;
+    }
 
     if (!validateForm()) {
       errorToast("Please fix the errors in the form");

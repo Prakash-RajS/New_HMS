@@ -422,6 +422,7 @@ import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../../utils/axiosConfig";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
+import { usePermissions } from "../../../components/PermissionContext.jsx";
 
 const Dropdown = ({
   label,
@@ -531,6 +532,10 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+    const userRole = currentUser?.role?.toLowerCase();
+    const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
+    
 
   // Fix for test case: Validate description doesn't contain special characters or numbers
   const validateDescriptionFormat = (value) => {
@@ -687,7 +692,12 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
   };
 
   const handleSubmit = async (e) => {
+    
     e.preventDefault();
+    if (!canAdd) {
+      errorToast("You do not have permission to add tests.");
+      return;
+    }
     setSubmitted(true);
     
     const errors = validateForm();

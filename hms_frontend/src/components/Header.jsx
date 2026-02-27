@@ -784,38 +784,49 @@ const Header = ({ isCollapsed }) => {
 
   // === SEARCH LOGIC ===
   const getModulePermissionKey = (item) => {
-    const mapping = {
-      Dashboard: "dashboard",
-      Appointments: "appointments",
-      Patients: "patients_view",
-      "New Registration": "patients_create",
-      "Patient Profile": "patients_profile",
-      Administration: "room_management",
-      Departments: "departments",
-      "Room Management": "room_management",
-      "Bed Management": "bed_management",
-      "Staff Management": "staff_management",
-      Pharmacy: "pharmacy_inventory",
-      "Stock & Inventory": "pharmacy_inventory",
-      Bill: "pharmacy_billing",
-      "Doctors / Nurse": "doctors_manage",
-      "Add Doctor / Nurse": "doctors_manage",
-      "Doctor / Nurse": "doctors_manage",
-      MedicineAllocation: "medicine_allocation",
-      "Clinical Resources": "lab_reports",
-      "Laboratory Reports": "lab_reports",
-      "Blood Bank": "blood_bank",
-      "Ambulance Management": "ambulance",
-      Billing: "billing",
-      Accounts: "user_settings",
-      Settings: "security_settings",
-    };
+  const mapping = {
+    Dashboard: "dashboard",
+    Appointments: "appointments",
 
-    return (
-      mapping[item.name] ||
-      item.path.replace(/^\//, "").replace(/[-/]/g, "_").toLowerCase()
-    );
+    Patients: "patients_view",
+    "New Registration": "patients_create",
+    "IPD / OPD Patient": "patients_view",
+    "Patient Profile": "patients_profile",
+    Surgeries: "surgeries",
+
+    Administration: "room_management",
+    Departments: "departments",
+    "Room Management": "room_management",
+
+    Pharmacy: "pharmacy_inventory",
+    "Stock & Inventory": "pharmacy_inventory",
+    Bill: "pharmacy_billing",
+
+    "Doctors / Nurse": "doctors_manage",
+    "Add Doctor / Nurse": "doctors_manage",
+    "Doctor / Nurse": "doctors_manage",
+    "Medicine Allocation": "medicine_allocation",
+
+    "Clinical Resources": "lab_reports",
+    "Laboratory Reports": "lab_reports",
+    "Laboratory Management": "laboratory_manage",
+    "Blood Bank": "blood_bank",
+    "Ambulance Management": "ambulance",
+
+    Billing: "billing",
+    "Charges Management": "charges_management",
+    "Billing Preview": "billing_preview",
+
+    Accounts: "user_settings",
+    Settings: "settings_access",
   };
+
+  return (
+    mapping[item.name] ||
+    item.path.replace(/^\//, "").replace(/[-/]/g, "_").toLowerCase()
+  );
+};
+
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -824,59 +835,50 @@ const Header = ({ isCollapsed }) => {
     const results = [];
 
     const walk = (items, depth = 0) => {
-      items.forEach((item) => {
-        const label = item.name.toLowerCase();
-        const matchesQuery = label.includes(q);
-        const moduleKey = getModulePermissionKey(item);
-        const userHasAccess = hasPermission(moduleKey);
+  items.forEach((item) => {
+    const label = item.name.toLowerCase();
+    const matchesQuery = label.includes(q);
+    const moduleKey = getModulePermissionKey(item);
+    const userHasAccess = hasPermission(moduleKey);
 
-        let hasAccessibleChild = false;
+    let hasAccessibleChild = false;
 
-        if (item.dropdown) {
-          item.dropdown.forEach((sub) => {
-            const subKey = getModulePermissionKey(sub);
-            if (hasPermission(subKey)) {
-              hasAccessibleChild = true;
-            }
-          });
-        }
+    if (item.dropdown) {
+      hasAccessibleChild = item.dropdown.some((sub) =>
+        hasPermission(getModulePermissionKey(sub))
+      );
+    }
 
-        if (matchesQuery && (userHasAccess || hasAccessibleChild)) {
+    // ✅ Only push parent ONCE
+    if (matchesQuery && (userHasAccess || hasAccessibleChild)) {
+      results.push({
+        label: item.name,
+        path: item.path,
+        icon: item.icon,
+        depth,
+      });
+    }
+
+    // ✅ Only handle children separately
+    if (item.dropdown) {
+      item.dropdown.forEach((sub) => {
+        const subLabel = sub.name.toLowerCase();
+        const subHasAccess = hasPermission(
+          getModulePermissionKey(sub)
+        );
+
+        if (subLabel.includes(q) && subHasAccess) {
           results.push({
-            label: item.name,
-            path: item.path,
-            icon: item.icon,
-            depth,
+            label: sub.name,
+            path: sub.path,
+            icon: sub.icon,
+            depth: depth + 1,
           });
-        }
-
-        if (item.dropdown) {
-          item.dropdown.forEach((sub) => {
-            const subLabel = sub.name.toLowerCase();
-            const subKey = getModulePermissionKey(sub);
-            const subHasAccess = hasPermission(subKey);
-
-            if (subLabel.includes(q) && subHasAccess) {
-              results.push({
-                label: sub.name,
-                path: sub.path,
-                icon: sub.icon,
-                depth: depth + 1,
-              });
-            }
-          });
-        } else {
-          if (matchesQuery && userHasAccess) {
-            results.push({
-              label: item.name,
-              path: item.path,
-              icon: item.icon,
-              depth,
-            });
-          }
         }
       });
-    };
+    }
+  });
+};
 
     walk(menuItems);
     return results.slice(0, 10);
@@ -1369,7 +1371,7 @@ const Header = ({ isCollapsed }) => {
             </div>
 
             {isDropdownOpen && (
-              <div className="absolute right-[60px] top-full mt-5 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
+              <div className="absolute right-[60px] top-full mt-5 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-100">
                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
                 <div className="py-3">
                   <ul>

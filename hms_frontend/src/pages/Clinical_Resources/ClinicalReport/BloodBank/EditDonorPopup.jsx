@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
 import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,9 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   const [errors, setErrors] = useState({});
   const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+      const userRole = currentUser?.role?.toLowerCase();
+      const canEdit = isAdmin || userRole === "nurse";
 
   // Levenshtein distance for typo detection
   const levenshtein = (a, b) => {
@@ -254,6 +258,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   };
 
   const handleUpdate = async () => {
+    if (!canEdit) {
+      errorToast("You don't have permission to edit donors");
+      return;
+    }
     if (!validateForm()) return;
     setLoading(true);
     try {

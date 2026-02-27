@@ -1257,6 +1257,7 @@ const LabReport = () => {
   const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
   const canEdit = isAdmin || userRole === "doctor" || userRole === "nurse";
   const canDelete = isAdmin; // Only admin can delete
+  const canViewDownload = isAdmin || userRole === "doctor" || userRole === "nurse";
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -1366,6 +1367,10 @@ const LabReport = () => {
 
   // === API handlers ===
   const handleCreateReport = async (formData) => {
+    if (!canAdd) {
+    errorToast("You don't have permission to create test orders");
+    throw new Error("Permission denied");
+  }
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('patient_name', formData.patientName);
@@ -1393,6 +1398,10 @@ const LabReport = () => {
   };
 
   const handleUpdateReport = async (id, formData) => {
+    if (!canEdit) {
+    errorToast("You don't have permission to update test orders");
+    throw new Error("Permission denied");
+  }
     try {
       const formDataToSend = new FormData();
       formDataToSend.append("patient_name", formData.patientName);
@@ -1426,6 +1435,10 @@ const LabReport = () => {
   };
 
   const handleDeleteReport = async (id, orderId) => {
+    if (!canDelete) {
+    errorToast("You don't have permission to delete test orders");
+    throw new Error("Permission denied");
+  }
     try {
       const response = await api.delete(`/labreports/${id}`);
 
@@ -1451,6 +1464,10 @@ const LabReport = () => {
   };
 
   const handleViewReport = (filePath) => {
+    if (!canViewDownload) {
+      errorToast("You do not have permission to view lab reports.");
+      return;
+    }
     if (!filePath) {
       errorToast("No lab report file available yet.");
       return;
@@ -1477,6 +1494,10 @@ const LabReport = () => {
   };
 
   const handleDownloadReport = (filePath, orderId, testType) => {
+    if (!canViewDownload) {
+      errorToast("You do not have permission to download lab reports.");
+      return;
+    }
     if (!filePath) {
       errorToast("No lab report file available to download.");
       return;
@@ -1582,6 +1603,10 @@ const LabReport = () => {
   };
 
   const openEditPopup = (order) => {
+    if (!canEdit) {
+    errorToast("You don't have permission to edit test orders");
+    return;
+  }
     setSelectedOrderForEdit(order);
     setFormData({
       patientName: order.patientName,
@@ -1595,6 +1620,10 @@ const LabReport = () => {
   };
 
   const openDeletePopup = (order) => {
+    if (!canDelete) {
+    errorToast("You don't have permission to delete test orders");
+    return;
+  }
     setSelectedOrderForDelete(order);
     setShowDeletePopup(true);
   };
@@ -1611,6 +1640,10 @@ const LabReport = () => {
   };
 
   const handleSaveEdit = async () => {
+     if (!canEdit) {
+    errorToast("You don't have permission to edit test orders");
+    return;
+  }
     if (!validateForm()) return;
     try {
       await handleUpdateReport(selectedOrderForEdit.id, formData);
@@ -1916,43 +1949,60 @@ const LabReport = () => {
                     </td>
                     <td className="py-3 px-4">
                       {order.filePath ? (
-                        <div className="flex items-center gap-2">
-                          <div className="relative group">
-                            <button
-                              onClick={() => handleViewReport(order.filePath)}
-                              className="flex items-center justify-center w-8 h-8 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
-                            >
-                              <Eye
-                                size={18}
-                                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                              />
-                            </button>
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                              View Report
-                            </span>
-                          </div>
-                          <div className="relative group">
-                            <button
-                              onClick={() =>
-                                handleDownloadReport(order.filePath, order.id, order.testType)
-                              }
-                              className="flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
-                            >
-                              <Download
-                                size={18}
-                                className="text-[#08994A] dark:text-[#0EFF7B] hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                              />
-                            </button>
-                            <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-                              Download Report
-                            </span>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400 text-sm">
-                          No report
-                        </span>
-                      )}
+  <div className="flex items-center gap-2">
+    {/* VIEW REPORT BUTTON with permission check */}
+    <div className="relative group">
+      <button
+        onClick={() => {
+          if (!canViewDownload) return;
+          handleViewReport(order.filePath);
+        }}
+        disabled={!canViewDownload}
+        className={`flex items-center justify-center w-8 h-8 rounded-full border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] ${
+          canViewDownload 
+            ? "cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]" 
+            : "opacity-100 cursor-not-allowed"
+        }`}
+      >
+        <Eye
+          size={18}
+          className="text-[#08994A] dark:text-[#0EFF7B]"
+        />
+      </button>
+      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+        {canViewDownload ? "View Report" : "Access Denied"}
+      </span>
+    </div>
+
+    {/* DOWNLOAD REPORT BUTTON with permission check */}
+    <div className="relative group">
+      <button
+        onClick={() => {
+          if (!canViewDownload) return;
+          handleDownloadReport(order.filePath, order.id, order.testType);
+        }}
+        disabled={!canViewDownload}
+        className={`flex items-center justify-center w-8 h-8 rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] ${
+          canViewDownload 
+            ? "cursor-pointer hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]" 
+            : "opacity-100 cursor-not-allowed"
+        }`}
+      >
+        <Download
+          size={18}
+          className="text-[#08994A] dark:text-[#0EFF7B]"
+        />
+      </button>
+      <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+        {canViewDownload ? "Download Report" : "Access Denied"}
+      </span>
+    </div>
+  </div>
+) : (
+  <span className="text-gray-500 dark:text-gray-400 text-sm">
+    No report
+  </span>
+)}
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2 relative overflow-visible">
@@ -1967,7 +2017,7 @@ const LabReport = () => {
                             className={`cursor-pointer ${
                               canEdit
                                 ? "text-[#08994A] dark:text-blue-400"
-                                : "text-gray-400 cursor-not-allowed opacity-50"
+                                : "text-blue-500 dark:text-blue-400 cursor-not-allowed opacity-100"
                             }`}
                           />
                           <span
@@ -1991,8 +2041,8 @@ const LabReport = () => {
                             }}
                             className={`cursor-pointer ${
                               canDelete
-                                ? "text-red-500 dark:text-gray-400"
-                                : "text-gray-400 cursor-not-allowed opacity-50"
+                                ? "text-red-500 dark:text-red-400"
+                                : "text-red-600 dark:text-red-500 cursor-not-allowed opacity-50"
                             }`}
                           />
                           <span

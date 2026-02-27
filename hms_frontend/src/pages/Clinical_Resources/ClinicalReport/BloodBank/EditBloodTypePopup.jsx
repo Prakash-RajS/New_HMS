@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
 import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -20,6 +21,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
   const [bloodTypes, setBloodTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+  const userRole = currentUser?.role?.toLowerCase();
+  
+  const canEdit = isAdmin || userRole === "nurse";
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -88,6 +93,10 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
   };
 
   const handleUpdate = async () => {
+    if (!canEdit) {
+      errorToast("You don't have permission to edit blood types");
+      return;
+    }
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);
 

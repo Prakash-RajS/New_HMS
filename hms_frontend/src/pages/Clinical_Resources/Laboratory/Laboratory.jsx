@@ -759,7 +759,7 @@ const Laboratory = () => {
             className={`flex items-center gap-2 ${
               canAdd 
                 ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer" 
-                : "bg-gray-400 dark:bg-gray-700 opacity-50 cursor-not-allowed"
+                : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
             } border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out`}
           >
             <Plus size={18} className="text-white font-[Helvetica]" /> Add Test
@@ -932,7 +932,7 @@ const Laboratory = () => {
                               className={`cursor-pointer transition ${
                                 canEdit
                                   ? "text-[#08994A] dark:text-blue-400 hover:scale-110"
-                                  : "text-gray-400 opacity-50 cursor-not-allowed"
+                                  : "text-[#08994A] dark:text-blue-400 cursor-not-allowed"
                               }`}
                             />
                             <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
@@ -952,7 +952,7 @@ const Laboratory = () => {
                               className={`cursor-pointer transition ${
                                 canDelete
                                   ? "text-red-500 hover:scale-110"
-                                  : "text-gray-400 opacity-50 cursor-not-allowed"
+                                  : "text-red-500 cursor-not-allowed"
                               }`}
                             />
                             <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
@@ -981,7 +981,7 @@ const Laboratory = () => {
 
           {/* Pagination */}
           {totalPages > 0 && (
-            <div className="flex items-center mt-4 bg-gray-100 dark:bg-black p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
+            <div className="flex items-center mt-4 bg-gray-100 dark:bg-transparent p-4 rounded gap-x-4 dark:border-[#1E1E1E] relative z-10">
               <div className="text-sm text-black dark:text-white">
                 Page{" "}
                 <span className="text-[#08994A] dark:text-[#0EFF7B] font-semibold">

@@ -3,6 +3,7 @@ import { X, ChevronDown } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
 import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,11 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   const [errors, setErrors] = useState({}); // Required errors (show only after submission)
   const [formatErrors, setFormatErrors] = useState({}); // Format errors (show while typing)
   const [loading, setLoading] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+const userRole = currentUser?.role?.toLowerCase();
+const canAdd = isAdmin || userRole === "nurse";
+const canEdit = isAdmin || userRole === "nurse";
+
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const statuses = ["Available", "Low Stock", "Out of Stock"];
@@ -58,6 +64,11 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   };
 
   const handleSubmit = async () => {
+
+    if (!canAdd) {
+    errorToast("You don't have permission to add blood types");
+    return;
+  }
     // Check required fields
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);
@@ -111,6 +122,11 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   };
 
   const handleUpdate = async () => {
+
+    if (!canEdit) {
+    errorToast("You don't have permission to edit blood types");
+    return;
+  }
     // Check required fields
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);

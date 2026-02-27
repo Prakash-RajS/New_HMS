@@ -3,6 +3,7 @@ import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../../utils/axiosConfig";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
+import { usePermissions } from "../../../components/PermissionContext.jsx";
 
 const Dropdown = ({
   label,
@@ -113,6 +114,9 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
   const [error, setError] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+      const userRole = currentUser?.role?.toLowerCase();
+      const canedit = isAdmin || userRole === "doctor" || userRole === "nurse";
 
   useEffect(() => {
     if (test) {
@@ -188,6 +192,10 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canedit) {
+      errorToast("You do not have permission to edit tests.");
+      return;
+    }
     setSubmitted(true);
     
     const errors = validateForm();

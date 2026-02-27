@@ -1256,7 +1256,7 @@ const DepartmentList = () => {
                 px-3 py-1 text-xs rounded-md shadow-md
                 bg-gray-100 dark:bg-black text-black dark:text-white
                 opacity-0 group-hover:opacity-100
-                transition-all duration-150 z-50"
+                transition-all duration-150 z-10"
               >
                 Admin Only
               </span>
