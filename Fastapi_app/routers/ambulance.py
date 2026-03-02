@@ -1118,7 +1118,7 @@ async def check_duplicate_unit(unit_number: str, phone: Optional[str], contact_n
     if await sync_to_async(lambda: AmbulanceUnit.objects.filter(unit_query).exists())():
         duplicates['unit_number'] = "Unit number already exists"
     
-    # Check phone if provided
+    # Check phone if provided and not empty
     if phone and phone.strip():
         phone_clean = phone.strip()
         # Check if this phone is used in either phone or contact_number fields
@@ -1129,17 +1129,40 @@ async def check_duplicate_unit(unit_number: str, phone: Optional[str], contact_n
         if await sync_to_async(lambda: AmbulanceUnit.objects.filter(phone_query).exists())():
             duplicates['phone'] = "Phone number already exists"
     
-    # Check contact_number if provided and different from phone
-    if contact_number and contact_number.strip() and contact_number != phone:
+    # Check contact_number if provided and not empty and different from phone
+    if contact_number and contact_number.strip():
         contact_clean = contact_number.strip()
-        contact_query = Q(phone=contact_clean) | Q(contact_number=contact_clean)
-        if exclude_id:
-            contact_query &= ~Q(id=exclude_id)
-        
-        if await sync_to_async(lambda: AmbulanceUnit.objects.filter(contact_query).exists())():
-            duplicates['contact_number'] = "Alternate phone number already exists"
+        # Only check if it's different from phone to avoid duplicate error messages
+        if contact_clean != (phone.strip() if phone else ''):
+            contact_query = Q(phone=contact_clean) | Q(contact_number=contact_clean)
+            if exclude_id:
+                contact_query &= ~Q(id=exclude_id)
+            
+            if await sync_to_async(lambda: AmbulanceUnit.objects.filter(contact_query).exists())():
+                duplicates['contact_number'] = "Alternate phone number already exists"
     
     return duplicates
+
+# Add this helper function after the check_duplicate_unit function
+async def check_active_dispatch_for_unit(unit_id: int, exclude_dispatch_id: Optional[int] = None):
+    """
+    Check if there's already an active dispatch (not completed/cancelled) for the same unit
+    """
+    if not unit_id:
+        return False
+    
+    # Define active statuses that should prevent new dispatches
+    active_statuses = ["Standby", "En Route", "Dispatched", "Responding"]
+    
+    # Build query
+    query = Q(unit_id=unit_id, status__in=active_statuses)
+    
+    # Exclude current dispatch if updating
+    if exclude_dispatch_id:
+        query &= ~Q(id=exclude_dispatch_id)
+    
+    # Check if any active dispatch exists
+    return await sync_to_async(lambda: Dispatch.objects.filter(query).exists())()
 
 # ==============================================
 # Notification Helper Functions
@@ -1282,11 +1305,17 @@ async def list_units(in_service: Optional[bool] = None):
 @router.post("/units", response_model=AmbulanceUnitResponse, status_code=201)
 async def create_unit(payload: AmbulanceUnitCreate):
     try:
+        # Convert empty strings to None for optional fields
+        data = payload.dict()
+        for field in ['phone', 'contact_number', 'notes']:
+            if field in data and data[field] == "":
+                data[field] = None
+        
         # First check for duplicates manually to provide structured error response
         duplicates = await check_duplicate_unit(
-            unit_number=payload.unit_number,
-            phone=payload.phone,
-            contact_number=payload.contact_number
+            unit_number=data['unit_number'],
+            phone=data['phone'],
+            contact_number=data['contact_number']
         )
         
         if duplicates:
@@ -1298,7 +1327,7 @@ async def create_unit(payload: AmbulanceUnitCreate):
                 }
             )
         
-        unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.create(**payload.dict()))[1])()
+        unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.create(**data))[1])()
         unit_response = AmbulanceUnitResponse.from_orm(unit)
         
         # Notify about unit creation
@@ -1418,6 +1447,27 @@ async def list_dispatches():
 
 @router.post("/dispatch", response_model=DispatchResponse, status_code=201)
 async def create_dispatch(payload: DispatchCreate):
+    # Check if unit is already assigned to an active dispatch
+    if payload.unit_id:
+        is_active = await check_active_dispatch_for_unit(payload.unit_id)
+        if is_active:
+            # Get unit details for better error message
+            try:
+                unit = await sync_to_async(lambda: AmbulanceUnit.objects.get(id=payload.unit_id))()
+                unit_number = unit.unit_number
+            except:
+                unit_number = f"ID {payload.unit_id}"
+            
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "message": f"Ambulance unit {unit_number} is already assigned to an active dispatch",
+                    "errors": {
+                        "unit_id": f"Unit {unit_number} is currently in use. Please select a different unit or wait until the current dispatch is completed."
+                    }
+                }
+            )
+    
     unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
     dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.create(
         timestamp=payload.timestamp, unit=unit, dispatcher=payload.dispatcher,
@@ -1443,6 +1493,27 @@ async def create_dispatch(payload: DispatchCreate):
 async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
     try:
         d = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=dispatch_id))[1])()
+        
+        # Check if updating unit_id and that unit is already assigned to another active dispatch
+        if payload.unit_id is not None and payload.unit_id != d.unit_id:
+            is_active = await check_active_dispatch_for_unit(payload.unit_id, exclude_dispatch_id=dispatch_id)
+            if is_active:
+                try:
+                    unit = await sync_to_async(lambda: AmbulanceUnit.objects.get(id=payload.unit_id))()
+                    unit_number = unit.unit_number
+                except:
+                    unit_number = f"ID {payload.unit_id}"
+                
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": f"Ambulance unit {unit_number} is already assigned to another active dispatch",
+                        "errors": {
+                            "unit_id": f"Unit {unit_number} is currently in use. Please select a different unit."
+                        }
+                    }
+                )
+        
         if payload.timestamp is not None: d.timestamp = payload.timestamp
         if payload.dispatcher is not None: d.dispatcher = payload.dispatcher
         if payload.call_type is not None: d.call_type = payload.call_type

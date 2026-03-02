@@ -828,61 +828,77 @@ const Header = ({ isCollapsed }) => {
 };
 
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+  // In Header.jsx, update the searchResults useMemo
 
-    const q = searchQuery.toLowerCase();
-    const results = [];
+const searchResults = useMemo(() => {
+  if (!searchQuery.trim()) return [];
 
-    const walk = (items, depth = 0) => {
-  items.forEach((item) => {
-    const label = item.name.toLowerCase();
-    const matchesQuery = label.includes(q);
-    const moduleKey = getModulePermissionKey(item);
-    const userHasAccess = hasPermission(moduleKey);
+  const q = searchQuery.toLowerCase();
+  const results = [];
 
-    let hasAccessibleChild = false;
-
-    if (item.dropdown) {
-      hasAccessibleChild = item.dropdown.some((sub) =>
-        hasPermission(getModulePermissionKey(sub))
-      );
-    }
-
-    // ✅ Only push parent ONCE
-    if (matchesQuery && (userHasAccess || hasAccessibleChild)) {
-      results.push({
-        label: item.name,
-        path: item.path,
-        icon: item.icon,
-        depth,
-      });
-    }
-
-    // ✅ Only handle children separately
-    if (item.dropdown) {
-      item.dropdown.forEach((sub) => {
-        const subLabel = sub.name.toLowerCase();
-        const subHasAccess = hasPermission(
-          getModulePermissionKey(sub)
+  const walk = (items, depth = 0) => {
+    items.forEach((item) => {
+      const label = item.name.toLowerCase();
+      const matchesQuery = label.includes(q);
+      
+      // Check if user has access to this item
+      let userHasAccess = false;
+      
+      // Special handling for Settings
+      if (item.name === "Settings") {
+        userHasAccess = currentUser?.is_superuser || 
+                       currentUser?.role === "admin" || 
+                       hasPermission("settings_access");
+      }
+      // Special handling for Accounts
+      else if (item.name === "Accounts") {
+        userHasAccess = hasPermission("user_settings");
+      }
+      // For items with dropdowns
+      else if (item.dropdown) {
+        userHasAccess = item.dropdown.some((sub) =>
+          hasPermission(getModulePermissionKey(sub))
         );
+      }
+      // Regular items
+      else {
+        userHasAccess = hasPermission(getModulePermissionKey(item));
+      }
 
-        if (subLabel.includes(q) && subHasAccess) {
-          results.push({
-            label: sub.name,
-            path: sub.path,
-            icon: sub.icon,
-            depth: depth + 1,
-          });
-        }
-      });
-    }
-  });
-};
+      // Push parent if matches and has access
+      if (matchesQuery && userHasAccess) {
+        results.push({
+          label: item.name,
+          path: item.path,
+          icon: item.icon,
+          depth,
+        });
+      }
 
-    walk(menuItems);
-    return results.slice(0, 10);
-  }, [searchQuery, hasPermission]);
+      // Handle children
+      if (item.dropdown) {
+        item.dropdown.forEach((sub) => {
+          const subLabel = sub.name.toLowerCase();
+          const subHasAccess = hasPermission(
+            getModulePermissionKey(sub)
+          );
+
+          if (subLabel.includes(q) && subHasAccess) {
+            results.push({
+              label: sub.name,
+              path: sub.path,
+              icon: sub.icon,
+              depth: depth + 1,
+            });
+          }
+        });
+      }
+    });
+  };
+
+  walk(menuItems);
+  return results.slice(0, 10);
+}, [searchQuery, hasPermission, currentUser]);
 
   // Function to clear search properly
   const handleClearSearch = () => {

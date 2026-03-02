@@ -2387,8 +2387,21 @@ const saveDispatch = async (payload) => {
     successToast(editingDispatch ? "Dispatch updated!" : "Dispatch created!");
     return res.data;
   } catch (err) {
+    // Check if it's a 409 conflict (unit already in use)
+    if (err.response?.status === 409) {
+      const errorData = err.response.data;
+      if (errorData.detail?.errors?.unit_id) {
+        errorToast(errorData.detail.errors.unit_id);
+      } else if (errorData.detail?.message) {
+        errorToast(errorData.detail.message);
+      } else {
+        errorToast("This ambulance unit is already assigned to an active dispatch");
+      }
+      // Re-throw so the modal knows an error occurred
+      throw err;
+    }
     // Check if it's a 422 validation error
-    if (err.response?.status === 422) {
+    else if (err.response?.status === 422) {
       // Pass the validation errors to the modal
       throw err;
     } else {
@@ -2453,15 +2466,20 @@ const saveDispatch = async (payload) => {
   // In AmbulanceManagement.jsx - update the saveUnit function
 // In AmbulanceManagement.jsx - update the saveUnit function
 const saveUnit = async (payload) => {
-   if (!canManage) {
+  if (!canManage) {
     errorToast("You don't have permission to save ambulance units");
     throw new Error("Permission denied");
   }
+  
+  // Log the payload being sent
+  console.log('Saving unit payload:', payload);
+  
   const url = editingUnit
     ? `/ambulance/units/${editingUnit.id}`
     : `/ambulance/units`;
   try {
     const res = await (editingUnit ? api.put(url, payload) : api.post(url, payload));
+    console.log('Save unit response:', res.data);
     await fetchData();
     setEditUnitOpen(false);
     setEditingUnit(null);
@@ -2472,9 +2490,29 @@ const saveUnit = async (payload) => {
     );
     return res.data;
   } catch (err) {
+    // Log the full error response
+    console.error('Error saving unit:', {
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      config: err.config
+    });
+    
     // Check if it's a 409 conflict (duplicate entry)
     if (err.response?.status === 409) {
-      // Re-throw for modal to handle
+      // Show a more user-friendly error message
+      const errorData = err.response.data;
+      if (errorData.detail?.errors) {
+        // Handle structured error response
+        const errorMessages = Object.values(errorData.detail.errors).join(', ');
+        errorToast(`Duplicate entry: ${errorMessages}`);
+      } else if (errorData.detail?.message) {
+        errorToast(errorData.detail.message);
+      } else if (typeof errorData.detail === 'string') {
+        errorToast(errorData.detail);
+      } else {
+        errorToast("A unit with this number or phone already exists");
+      }
       throw err;
     } 
     // Check if it's a 422 validation error
@@ -2485,11 +2523,9 @@ const saveUnit = async (payload) => {
       // For other errors, show toast here
       let errorMessage = editingUnit ? "Failed to update unit!" : "Failed to create unit!";
       if (err.response) {
-        // Handle different error formats
         const responseData = err.response.data;
         if (responseData.detail) {
           if (Array.isArray(responseData.detail)) {
-            // FastAPI validation errors come as an array
             errorMessage = responseData.detail.map(e => e.msg || e).join(', ');
           } else if (typeof responseData.detail === 'string') {
             errorMessage = responseData.detail;

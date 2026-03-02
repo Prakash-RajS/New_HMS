@@ -726,64 +726,68 @@ const AmbulanceUnitsModal = ({
     return isValid;
   }, [isCreateMode, form, validateField]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (isCreateMode) {
-      setSubmitted(true);
-      if (!validateForm()) {
-        // Focus on first error field
-        const firstErrorField = Object.keys(errors).find(key => errors[key]);
-        if (firstErrorField === 'unit_number' && unitNumberRef.current) unitNumberRef.current.focus();
-        else if (firstErrorField === 'vehicle_make' && vehicleMakeRef.current) vehicleMakeRef.current.focus();
-        else if (firstErrorField === 'vehicle_model' && vehicleModelRef.current) vehicleModelRef.current.focus();
-        else if (firstErrorField === 'phone' && phoneRef.current) phoneRef.current.focus();
-        else if (firstErrorField === 'contact_number' && contactNumberRef.current) contactNumberRef.current.focus();
-        else if (firstErrorField === 'notes' && notesRef.current) notesRef.current.focus();
-        return;
-      }
-    } else {
-      // For edit mode, use original validation
-      if (!e.target.checkValidity()) {
-        e.target.reportValidity();
-        return;
-      }
+ const handleSubmit = (e) => {
+  e.preventDefault();
+  
+  if (isCreateMode) {
+    setSubmitted(true);
+    if (!validateForm()) {
+      // Focus on first error field
+      const firstErrorField = Object.keys(errors).find(key => errors[key]);
+      if (firstErrorField === 'unit_number' && unitNumberRef.current) unitNumberRef.current.focus();
+      else if (firstErrorField === 'vehicle_make' && vehicleMakeRef.current) vehicleMakeRef.current.focus();
+      else if (firstErrorField === 'vehicle_model' && vehicleModelRef.current) vehicleModelRef.current.focus();
+      else if (firstErrorField === 'phone' && phoneRef.current) phoneRef.current.focus();
+      else if (firstErrorField === 'contact_number' && contactNumberRef.current) contactNumberRef.current.focus();
+      else if (firstErrorField === 'notes' && notesRef.current) notesRef.current.focus();
+      return;
     }
-    
-    try {
-      // Prepare data for saving
-      const dataToSave = {
-        unit_number: form.unit_number.trim(),
-        vehicle_make: form.vehicle_make.trim(),
-        vehicle_model: form.vehicle_model.trim(),
-        phone: form.phone.trim() || null,
-        contact_number: form.contact_number.trim() || null,
-        in_service: form.in_service,
-        notes: form.notes.trim() || null,
-      };
-
-      // Add id only if editing
-      if (isEdit) {
-        dataToSave.id = unit.id;
-      }
-
-      onSave(dataToSave);
-
-      // Success toast
-      successToast(
-        isEdit
-          ? `Ambulance "${form.unit_number}" updated successfully!`
-          : `Ambulance "${form.unit_number}" added successfully!`
-      );
-
-      // Close modal
-      onClose();
-    } catch (error) {
-      errorToast(
-        isEdit ? "Failed to update ambulance" : "Failed to add ambulance"
-      );
+  } else {
+    // For edit mode, use original validation
+    if (!e.target.checkValidity()) {
+      e.target.reportValidity();
+      return;
     }
-  };
+  }
+  
+  try {
+    // Prepare data for saving
+    const dataToSave = {
+      unit_number: form.unit_number.trim(),
+      vehicle_make: form.vehicle_make.trim(),
+      vehicle_model: form.vehicle_model.trim(),
+      phone: form.phone.trim() || null,
+      contact_number: form.contact_number.trim() || null,
+      in_service: form.in_service,
+      notes: form.notes.trim() || null,
+    };
+
+    // Add id only if editing
+    if (isEdit) {
+      dataToSave.id = unit.id;
+    }
+
+    // Log the data being sent (for debugging)
+    console.log('Saving unit data:', dataToSave);
+
+    onSave(dataToSave);
+
+    // Success toast
+    successToast(
+      isEdit
+        ? `Ambulance "${form.unit_number}" updated successfully!`
+        : `Ambulance "${form.unit_number}" added successfully!`
+    );
+
+    // Close modal
+    onClose();
+  } catch (error) {
+    console.error('Error saving unit:', error);
+    errorToast(
+      isEdit ? "Failed to update ambulance" : "Failed to add ambulance"
+    );
+  }
+};
 
   if (!isOpen) return null;
 

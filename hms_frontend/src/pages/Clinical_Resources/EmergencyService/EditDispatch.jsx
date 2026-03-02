@@ -508,76 +508,85 @@ const EditDispatchModal = ({
   };
 
   const validateField = (name, value) => {
-    switch (name) {
-      case 'dispatcher':
-        if (!value.trim()) return "Dispatcher name is required";
-        if (!/^[A-Za-z\s]+$/.test(value.trim())) return "Only letters and spaces allowed";
-        if (value.trim().length < 2) return "Must be at least 2 characters";
-        if (value.trim().length > 50) return "Must be less than 50 characters";
-        return '';
+  switch (name) {
+    case 'dispatcher':
+      if (!value.trim()) return "Dispatcher name is required";
+      if (!/^[A-Za-z\s]+$/.test(value.trim())) return "Only letters and spaces allowed";
+      if (value.trim().length < 2) return "Must be at least 2 characters";
+      if (value.trim().length > 50) return "Must be less than 50 characters";
+      return '';
+    
+    case 'location':
+      if (!value.trim()) return "Location is required";
       
-      case 'location':
-        if (!value.trim()) return "Location is required";
+      // Check for invalid characters
+      const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
+      if (invalidChars.test(value)) {
+        return "Special characters $, *, @, #, %, ^, &, !, {, }, [, ], <, >, \\ are not allowed";
+      }
+      
+      // Check if it's a valid Vizag location (case-insensitive)
+      const isVizagLocation = vizagLocations.some(loc => 
+        value.toLowerCase().includes(loc.toLowerCase())
+      );
+      
+      if (!isVizagLocation) {
+        // Allow custom locations but validate format
+        if (value.trim().length < 3) return "Must be at least 3 characters";
+        if (value.trim().length > 100) return "Must be less than 100 characters";
         
-        // Check for invalid characters
-        const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
-        if (invalidChars.test(value)) {
-          return "Special characters $, *, @, #, %, ^, &, !, {, }, [, ], <, >, \\ are not allowed";
+        // Validate address format (should contain at least a word and number)
+        const words = value.trim().split(/\s+/);
+        if (words.length < 2) {
+          return "Please provide more specific location (e.g., 'Main Road, Gajuwaka')";
         }
+      }
+      return '';
+    
+    case 'unit_id':
+      if (!value) return "Unit selection is required";
+      return '';
+    
+    case 'phone_number':
+      if (value && value.trim()) {
+        const phoneRegex = /^[\d\s\-+()]{10,15}$/;
+        const digitsOnly = value.replace(/\D/g, '');
         
-        // Check if it's a valid Vizag location (case-insensitive)
-        const isVizagLocation = vizagLocations.some(loc => 
-          value.toLowerCase().includes(loc.toLowerCase())
-        );
-        
-        if (!isVizagLocation) {
-          // Allow custom locations but validate format
-          if (value.trim().length < 3) return "Must be at least 3 characters";
-          if (value.trim().length > 100) return "Must be less than 100 characters";
-          
-          // Validate address format (should contain at least a word and number)
-          const words = value.trim().split(/\s+/);
-          if (words.length < 2) {
-            return "Please provide more specific location (e.g., 'Main Road, Gajuwaka')";
-          }
+        if (!phoneRegex.test(value)) {
+          return "Invalid phone number format";
         }
-        return '';
-      
-      case 'unit_id':
-        if (!value) return "Unit selection is required";
-        return '';
-      
-      case 'phone_number':
-        if (value && value.trim()) {
-          const phoneRegex = /^[\d\s\-+()]{10,15}$/;
-          const digitsOnly = value.replace(/\D/g, '');
-          
-          if (!phoneRegex.test(value)) {
-            return "Invalid phone number format";
-          }
-          if (digitsOnly.length < 10) {
-            return "Phone number must have at least 10 digits";
-          }
-          if (digitsOnly.length > 15) {
-            return "Phone number too long";
-          }
+        if (digitsOnly.length < 10) {
+          return "Phone number must have at least 10 digits";
         }
-        return '';
-      
-      case 'timestamp':
-        if (form.timestamp) {
-          const selectedDate = new Date(form.timestamp);
-          const now = new Date();
-          if (selectedDate > now) {
-            return "Timestamp cannot be in the future";
-          }
+        if (digitsOnly.length > 15) {
+          return "Phone number too long";
         }
-        return '';
+      }
+      return '';
+    
+    case 'timestamp':
+      if (!form.timestamp) return "Timestamp is required";
       
-      default:
-        return '';
-    }
-  };
+      const selectedDate = new Date(form.timestamp);
+      const now = new Date();
+      
+      // Set both dates to have same precision (remove milliseconds)
+      now.setMilliseconds(0);
+      selectedDate.setMilliseconds(0);
+      
+      // Allow current time and future times (including up to 1 minute in the past to handle clock sync issues)
+      const oneMinuteAgo = new Date(now.getTime() - 60000); // 1 minute ago
+      
+      if (selectedDate < oneMinuteAgo) {
+        return "Timestamp cannot be more than 1 minute in the past";
+      }
+      
+      return '';
+    
+    default:
+      return '';
+  }
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;

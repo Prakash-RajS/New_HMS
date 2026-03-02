@@ -193,7 +193,6 @@
 //   return results.slice(0, 10); // limit results
 // };
 
-// src/components/SearchMenu.ts
 import {
   LayoutDashboard,
   CalendarDays,
@@ -218,8 +217,6 @@ import {
   Calendar,
   Stethoscope,
   BadgeDollarSign,
-  FileText,
-  Eye,
 } from "lucide-react";
 
 // This is now just the raw menu structure – search logic moved to Header
@@ -249,6 +246,12 @@ export const menuItems = [
         path: "/patients/profile",
         paths: ["/patients/profile", "/patients/profile/details"],
         icon: ClipboardList,
+      },
+       {
+        name: "Charges Management",
+        path: "/billing/charges-management",
+        icon: BadgeDollarSign,
+        permission: "charges_management",
       },
       {
               name: "Surgeries",
@@ -319,26 +322,18 @@ export const menuItems = [
   },
   {
   name: "Billing Management",
-  path: "/billing",
+  path: "/billing-page",   // default landing page
   icon: DollarSign,
   dropdown: [
     {
-      name: "Billing",
+      name: "Billing Dashboard",
       path: "/billing-page",
-      icon: FileText,
-      permission: "billing",
-    },
-    {
-      name: "Charges Management",
-      path: "/billing/charges-management",
-      icon: BadgeDollarSign,
-      permission: "charges_management",
+      icon: DollarSign,
     },
     {
       name: "Billing Preview",
       path: "/BillingPreview",
-      icon: Eye,
-      permission: "billing_preview",
+      icon: ReceiptText,
     },
   ],
 },
@@ -350,7 +345,7 @@ export const menuItems = [
   },
   {
     name: "Settings",
-    path: "/security",
+    path: "/settings",
     icon: UserCog,
   },
 ];
