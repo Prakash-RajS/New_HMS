@@ -1437,7 +1437,7 @@ const OverviewTab = ({ data, navigate, isAdmin }) => {
         title="Today's Revenue"
         change="Hospital earnings"
         value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
-        onClick={() => navigate("/Billing")}
+        onClick={() => navigate("/billing-page")}
         isAdmin={isAdmin}
       />
 
@@ -1574,16 +1574,35 @@ const SurgeryRecordTab = ({ data, navigate, isAdmin }) => {
 };
 
 // =================== REVENUE SUMMARY TAB ===================
+// =================== REVENUE SUMMARY TAB ===================
 const RevenueSummaryTab = ({ data, navigate, isAdmin }) => {
   const financials = data.financials || {};
 
+  // If not admin, show admin-only message
+  if (!isAdmin) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px] w-full">
+        <div className="text-center p-8 rounded-lg bg-gray-100 dark:bg-gray-800/50 border border-black dark:border-[#0EFF7B20]">
+          <div className="text-5xl mb-4">🔒</div>
+          <h3 className="text-xl font-semibold text-black dark:text-white mb-2">
+            Admin Only
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Revenue summary is only visible to administrators
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Admin view - show revenue data
   return (
     <div className="grid grid-cols-4 gap-[43px] responsive-grid">
       <DashboardCard
         title="Total Revenue"
         change="This month"
         value={`₹${((financials.hospital_revenue?.monthly || 0) / 1000).toFixed(1)}K`}
-        onClick={() => navigate("/Billing")}
+        onClick={() => navigate("/billing-page")}
         isAdmin={isAdmin}
       />
 
@@ -1591,7 +1610,7 @@ const RevenueSummaryTab = ({ data, navigate, isAdmin }) => {
         title="Today's Revenue"
         change="+12% from yesterday"
         value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
-        onClick={() => navigate("/Billing")}
+        onClick={() => navigate("/billing-page")}
         isAdmin={isAdmin}
       />
 
@@ -1599,7 +1618,7 @@ const RevenueSummaryTab = ({ data, navigate, isAdmin }) => {
         title="Pharmacy Revenue"
         change="Today's sales"
         value={`₹${(financials.pharmacy_revenue?.today || 0).toLocaleString()}`}
-        onClick={() => navigate("/pharmacy/inventory")}
+        onClick={() => navigate("/billing-page")}
         isAdmin={isAdmin}
       />
 
@@ -1607,13 +1626,12 @@ const RevenueSummaryTab = ({ data, navigate, isAdmin }) => {
         title="Outstanding"
         change="Pending payments"
         value={`₹${((financials.outstanding_payments || 0) / 1000).toFixed(1)}K`}
-        onClick={() => navigate("/Billing")}
+        onClick={() => navigate("/billing-page")}
         isAdmin={isAdmin}
       />
     </div>
   );
 };
-
 // =================== DASHBOARD CARD COMPONENT ===================
 const DashboardCard = ({ title, change, value, onClick, isAdmin }) => {
   const [showTooltip, setShowTooltip] = useState(false);

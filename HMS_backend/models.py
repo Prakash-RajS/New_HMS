@@ -1410,7 +1410,7 @@ class TreatmentCharge(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, help_text="Optional. Can be auto-calculated.")
-    
+
     # NEW FIELDS FOR PARTIAL BILLING
     billed_amount = models.DecimalField(
         max_digits=12, 
@@ -1431,7 +1431,7 @@ class TreatmentCharge(models.Model):
         default=0.00,
         null=True, blank=True
     )
-    
+
     # NEW: Tax field for treatment charge
     tax_percent = models.DecimalField(
         max_digits=5, 
@@ -1439,7 +1439,7 @@ class TreatmentCharge(models.Model):
         default=0.00,
         null=True, blank=True        
     )
-    
+
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)  # Changed max_length to 20
 
@@ -1454,14 +1454,14 @@ class TreatmentCharge(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # Auto-calculate amount if not provided
+    # Auto-calculate amount if not provided
         if not self.amount or self.amount == 0:
             self.amount = self.quantity * self.unit_price
-        
+
         # Auto-calculate remaining amount if not set
         if not self.remaining_amount and self.amount:
             self.remaining_amount = self.amount
-        
+
         # Update status based on billing
         if self.billed_amount >= self.amount:
             self.status = self.BILLED
@@ -1471,12 +1471,12 @@ class TreatmentCharge(models.Model):
             self.remaining_amount = self.amount - self.billed_amount
         else:
             self.status = self.PENDING
-        
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.status})"
-    
+
     @property
     def billing_progress(self):
         """Calculate billing progress percentage"""

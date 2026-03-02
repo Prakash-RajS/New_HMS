@@ -58,7 +58,7 @@ import {
   PermissionProvider,
   PermissionContext,
 } from "./components/PermissionContext";
-import TreatmentCharges from "./pages/Patients/TreatmentCharges.jsx";
+//import TreatmentCharges from "./pages/Patients/TreatmentCharges.jsx";
 import SurgeryList from "./pages/Patients/SurgeryList.jsx";
 import { UserProvider } from "./contexts/UserContext";
 import { HospitalProvider } from "./components/HospitalContext.jsx";
@@ -188,6 +188,7 @@ function AppContent({ contentRef }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { theme } = useContext(ThemeContext);
   const location = useLocation();
+  const isNotFound = location.pathname === "/404";
   const isLoginPage = location.pathname === "/";
 
   // Different layout for login page vs authenticated pages
@@ -204,6 +205,10 @@ function AppContent({ contentRef }) {
       </div>
     );
   }
+  if (isNotFound) {
+  return <NotFound />;
+}
+
 
   // Authenticated layout
   return (
@@ -323,7 +328,7 @@ function AppContent({ contentRef }) {
                   </ProtectedRoute>
                 }
               />
-              <Route
+              {/* <Route
                 path="/patients/treatment-charges"
                 element={
                   <ProtectedRoute>
@@ -332,7 +337,7 @@ function AppContent({ contentRef }) {
                     </PermissionGate>
                   </ProtectedRoute>
                 }
-              />
+              /> */}
              
               <Route
                 path="/patients/surgeries"
@@ -568,14 +573,14 @@ function AppContent({ contentRef }) {
               />
 
               {/* Security Settings */}
-              <Route
+              {/* <Route
                 path="/security"
                 element={
                   <ProtectedRoute>
                     <Security />
                   </ProtectedRoute>
                 }
-              />
+              /> */}
 
               <Route
                 path="/settings"
@@ -608,7 +613,7 @@ function AppContent({ contentRef }) {
                 }
               />
 
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
           </div>
         </main>

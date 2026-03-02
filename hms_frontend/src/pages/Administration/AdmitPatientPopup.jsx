@@ -149,7 +149,7 @@ const AdmitPatientPopup = ({ onClose, onSuccess }) => {
     const userRole = currentUser?.role?.toLowerCase();
     const canAdmitDischarge =
       isAdmin ||
-      userRole === "staff" ||
+      userRole === "receptionist" ||
       userRole === "nurse";
 
   // Load bed groups AND patients

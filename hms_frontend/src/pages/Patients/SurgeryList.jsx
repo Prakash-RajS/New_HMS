@@ -564,7 +564,7 @@ const canAdd = isAdmin || userRole === "doctor" || userRole === "staff";
       {/* Table */}
       <div className="overflow-x-auto relative z-10">
         <table className="w-full text-left text-sm">
-          <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+          <thead className="text-[#08994A] dark:text-[#0EFF7B] bg-gray-200 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
             <tr>
               <th className="py-3 px-2">
                 <input

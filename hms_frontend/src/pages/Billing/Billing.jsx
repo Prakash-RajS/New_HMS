@@ -1899,9 +1899,29 @@ const BillingManagement = () => {
 
   // ========== CONSTANTS ==========
 
-  const statusOptions = ["All", "Paid", "Unpaid"];
+  const statusOptions = ["All", "Pending", "Partial", "Paid", "Partially Paid"];
   const departmentOptions = ["All", "Cardiology", "Radiology", "Oncology", "Emergency", "Neurology", "Orthopedics", "Dermatology"];
   const paymentMethodOptions = ["All", "Insurance", "Cash", "Credit Card", "None"];
+
+  const handleClearFilters = () => {
+  setFilterStatus("");
+  setFilterDepartment("");
+  setFilterPaymentMethod("");
+  setFilterDate("");
+  setSearchTerm(""); // Add this if you want to clear search too
+  setShowFilterPopup(false);
+  setCurrentPage(1);
+};
+
+const handleHospitalClearFilters = () => {
+  setHospitalFilterStatus("");
+  setHospitalFilterDepartment("");
+  setHospitalFilterPaymentMethod("");
+  setHospitalFilterDate("");
+  setHospitalSearchTerm(""); // Add this if you want to clear search too
+  setShowHospitalFilterPopup(false);
+  setHospitalCurrentPage(1);
+};
 
   // ========== STATISTICS ==========
 
@@ -2126,6 +2146,7 @@ const fetchHospitalInvoices = async () => {
     }
   }, [hospitalInvoiceData, calculateStatistics]);
 
+  
   // ========== DATA PROCESSING ==========
 
   const filteredData = invoiceData.filter((item) => {
@@ -2182,6 +2203,27 @@ const fetchHospitalInvoices = async () => {
   const hospitalIndexOfLast = hospitalCurrentPage * hospitalItemsPerPage;
   const displayedHospitalData = sortedHospitalData.slice(hospitalIndexOfFirst, hospitalIndexOfLast);
 
+  useEffect(() => {
+  // When displayed data changes (pagination, filtering), update selectAll state
+  if (displayedData.length > 0) {
+    const allSelected = selectedRows.length > 0 && 
+      displayedData.every(row => selectedRows.includes(row.id));
+    setSelectAll(allSelected);
+  } else {
+    setSelectAll(false);
+  }
+}, [displayedData, selectedRows]);
+
+useEffect(() => {
+  if (displayedHospitalData.length > 0) {
+    const allSelected = selectedHospitalRows.length > 0 && 
+      displayedHospitalData.every(row => selectedHospitalRows.includes(row.id));
+    setHospitalSelectAll(allSelected);
+  } else {
+    setHospitalSelectAll(false);
+  }
+}, [displayedHospitalData, selectedHospitalRows]);
+
   // ========== EVENT HANDLERS ==========
 
   const handleSort = (column) => {
@@ -2195,17 +2237,50 @@ const fetchHospitalInvoices = async () => {
   };
 
   const handleSelectAll = () => {
-    setSelectAll(!selectAll);
-    setSelectedRows(selectAll ? [] : displayedData.map((row) => row.id));
-  };
+  if (selectAll) {
+    // If currently all selected, clear everything
+    setSelectedRows([]);
+    setSelectAll(false);
+  } else {
+    // Select all displayed rows
+    setSelectedRows(displayedData.map((row) => row.id));
+    setSelectAll(true);
+  }
+};
 
   const handleHospitalSelectAll = () => {
-    setHospitalSelectAll(!hospitalSelectAll);
-    setSelectedHospitalRows(hospitalSelectAll ? [] : displayedHospitalData.map((row) => row.id));
-  };
+  if (hospitalSelectAll) {
+    setSelectedHospitalRows([]);
+    setHospitalSelectAll(false);
+  } else {
+    setSelectedHospitalRows(displayedHospitalData.map((row) => row.id));
+    setHospitalSelectAll(true);
+  }
+};
 
-  const handleRowSelect = (id) => setSelectedRows((prev) => prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]);
-  const handleHospitalRowSelect = (id) => setSelectedHospitalRows((prev) => prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]);
+  const handleRowSelect = (id) => {
+  setSelectedRows((prev) => {
+    const newSelection = prev.includes(id) 
+      ? prev.filter((r) => r !== id) 
+      : [...prev, id];
+    
+    // Update selectAll based on whether all displayed rows are selected
+    setSelectAll(newSelection.length === displayedData.length && displayedData.length > 0);
+    
+    return newSelection;
+  });
+};
+  const handleHospitalRowSelect = (id) => {
+  setSelectedHospitalRows((prev) => {
+    const newSelection = prev.includes(id) 
+      ? prev.filter((r) => r !== id) 
+      : [...prev, id];
+    
+    setHospitalSelectAll(newSelection.length === displayedHospitalData.length && displayedHospitalData.length > 0);
+    
+    return newSelection;
+  });
+};
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(1, prev - 1));
   const handleNextPage = () => setCurrentPage((prev) => Math.min(totalPages, prev + 1));
@@ -2508,19 +2583,48 @@ const fetchHospitalInvoices = async () => {
               </div>
 
               {invoiceData.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
-                    <FileDown size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No invoices found</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Generate a new bill to get started</p>
-                  {canBill && (
-                    <button onClick={handleGenerateBill} className="mt-4 px-4 py-2 bg-[#08994A] dark:bg-[#0EFF7B] text-white rounded-lg hover:opacity-90 transition">
-                      + Generate First Bill
-                    </button>
-                  )}
-                </div>
-              ) : (
+  <div className="text-center py-12">
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
+      <FileDown size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
+    </div>
+    <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Data Found</h3>
+    <p className="text-gray-500 dark:text-gray-400">
+      {searchTerm || filterStatus || filterDepartment || filterPaymentMethod || filterDate
+        ? "No results match your search criteria"
+        : "No pharmacy invoices available"}
+    </p>
+    {canBill && !searchTerm && !filterStatus && !filterDepartment && !filterPaymentMethod && !filterDate && (
+      <button onClick={handleGenerateBill} className="mt-4 px-4 py-2 bg-[#08994A] dark:bg-[#0EFF7B] text-white rounded-lg hover:opacity-90 transition">
+        + Generate First Bill
+      </button>
+    )}
+    {(searchTerm || filterStatus || filterDepartment || filterPaymentMethod || filterDate) && (
+      <button 
+        onClick={handleClearFilters} 
+        className="mt-4 px-4 py-2 border border-[#0EFF7B] text-[#08994A] dark:text-[#0EFF7B] rounded-lg hover:bg-[#0EFF7B1A] transition"
+      >
+        Clear Filters
+      </button>
+    )}
+  </div>
+) : filteredData.length === 0 ? (
+  <div className="text-center py-12">
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
+      <Search size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
+    </div>
+    <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Results Found</h3>
+    <p className="text-gray-500 dark:text-gray-400">
+      No invoices match your current search or filter criteria
+    </p>
+     <button 
+      onClick={handleClearFilters} 
+      className="mt-4 px-4 py-2 border border-[#0EFF7B] text-[#08994A] dark:text-[#0EFF7B] rounded-lg hover:bg-[#0EFF7B1A] transition"
+    >
+      Clear Filters
+    </button>
+  </div>
+  
+) : (
                 <>
                   <div className="overflow-hidden rounded-lg">
                     <table className="w-full border-collapse min-w-[800px]">
@@ -2657,14 +2761,47 @@ const fetchHospitalInvoices = async () => {
               </div>
 
               {hospitalInvoiceData.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
-                    <FileDown size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No hospital invoices found</h3>
-                  <p className="text-gray-500 dark:text-gray-400">Generate a hospital bill to get started</p>
-                </div>
-              ) : (
+  <div className="text-center py-12">
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
+      <FileDown size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
+    </div>
+    <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Data Found</h3>
+    <p className="text-gray-500 dark:text-gray-400">
+      {hospitalSearchTerm || hospitalFilterStatus || hospitalFilterDepartment || hospitalFilterPaymentMethod || hospitalFilterDate
+        ? "No results match your search criteria"
+        : "No hospital invoices available"}
+    </p>
+    {canBill && !hospitalSearchTerm && !hospitalFilterStatus && !hospitalFilterDepartment && !hospitalFilterPaymentMethod && !hospitalFilterDate && (
+      <button onClick={handleGenerateBill} className="mt-4 px-4 py-2 bg-[#08994A] dark:bg-[#0EFF7B] text-white rounded-lg hover:opacity-90 transition">
+        + Generate Hospital Bill
+      </button>
+    )}
+    {(hospitalSearchTerm || hospitalFilterStatus || hospitalFilterDepartment || hospitalFilterPaymentMethod || hospitalFilterDate) && (
+      <button 
+        onClick={handleHospitalClearFilters} 
+        className="mt-4 px-4 py-2 border border-[#0EFF7B] text-[#08994A] dark:text-[#0EFF7B] rounded-lg hover:bg-[#0EFF7B1A] transition"
+      >
+        Clear Filters
+      </button>
+    )}
+  </div>
+) : filteredHospitalData.length === 0 ? (
+  <div className="text-center py-12">
+    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#0EFF7B1A] flex items-center justify-center">
+      <Search size={24} className="text-[#08994A] dark:text-[#0EFF7B]" />
+    </div>
+    <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No Results Found</h3>
+    <p className="text-gray-500 dark:text-gray-400">
+      No hospital invoices match your current search or filter criteria
+    </p>
+    <button 
+      onClick={handleHospitalClearFilters} 
+      className="mt-4 px-4 py-2 border border-[#0EFF7B] text-[#08994A] dark:text-[#0EFF7B] rounded-lg hover:bg-[#0EFF7B1A] transition"
+    >
+      Clear Filters
+    </button>
+  </div>
+) : (
                 <>
                   <div className="overflow-hidden rounded-lg">
                     <table className="w-full border-collapse min-w-[800px]">

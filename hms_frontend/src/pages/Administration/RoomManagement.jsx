@@ -808,7 +808,7 @@ const RoomManagement = () => {
   const userRole = currentUser?.role?.toLowerCase();
   const canAdmitDischarge =
     isAdmin ||
-    userRole === "staff" ||
+    userRole === "receptionist" ||
     userRole === "nurse";
 
   // Fetch rooms with correct patient data

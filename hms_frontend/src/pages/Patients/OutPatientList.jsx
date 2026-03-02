@@ -797,7 +797,6 @@ const AppointmentListOPD = () => {
   const userRole = currentUser?.role?.toLowerCase();
   const canEdit =
     isAdmin ||
-    userRole === "doctor" ||
     userRole === "receptionist";
     const canAdd =
     isAdmin || userRole === "receptionist";

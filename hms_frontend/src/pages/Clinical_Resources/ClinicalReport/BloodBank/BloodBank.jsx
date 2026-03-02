@@ -794,7 +794,7 @@ const canDelete = isAdmin; // Only admin can delete
     onClick={() => canAdd && setShowAddDonorPopup(true)}
     disabled={!canAdd}
     className={`flex items-center justify-center border-b-[2px] border-[#0EFF7B] gap-2 w-[200px] h-[40px] rounded-[8px] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium text-[14px] hover:scale-105 transition ${
-      !canAdd ? 'opacity-50 cursor-not-allowed' : ''
+      !canAdd ? 'opacity-100 cursor-not-allowed' : ''
     }`}
   >
     <Plus size={18} />

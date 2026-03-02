@@ -72,15 +72,15 @@ const SecuritySettings = ({ data, onUpdate }) => {
         "charges_management",
       ],
     },
-    {
-      label: "Settings",
-      keys: [
-        "settings_access",
-        "settings_hospital",
-        "settings_security",
-        "settings_general",
-      ],
-    },
+    // {
+    //   label: "Settings",
+    //   keys: [
+    //     "settings_access",
+    //     "settings_hospital",
+    //     "settings_security",
+    //     "settings_general",
+    //   ],
+    // },
     {
       label: "Accounts",
       keys: [

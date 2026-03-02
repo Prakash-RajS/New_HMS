@@ -1059,6 +1059,7 @@ import {
 import ProfileImage from "../../assets/image.png";
 import { successToast, errorToast } from "../../components/Toast";
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -1078,6 +1079,10 @@ const Profile = () => {
   const [removePicture, setRemovePicture] = useState(false);
   const [temporaryImage, setTemporaryImage] = useState(null); // Track temporary image changes
   const countryDropdownRef = useRef(null);
+  const { isAdmin, currentUser } = usePermissions();
+  
+const userRole = currentUser?.role?.toLowerCase();
+const canEditAdminFields = isAdmin; // Only admin can edit role, email, department, joining date
   
   // Country list for dropdown
   const [countries] = useState([
@@ -1604,69 +1609,91 @@ const Profile = () => {
   };
 
   // Save Changes
-  const handleSaveChanges = async () => {
-    if (!validateFields()) {
-      errorToast("Please fix all validation errors before saving");
+ // Save Changes
+const handleSaveChanges = async () => {
+  if (!validateFields()) {
+    errorToast("Please fix all validation errors before saving");
+    return;
+  }
+
+  // Prevent non-admin from saving email or role changes
+  if (!canEditAdminFields) {
+    // Check if email or role was modified
+    if (profileData.email !== originalProfileData.email) {
+      errorToast("You don't have permission to change email");
       return;
     }
-
-    const formData = new FormData();
-
-    // Profile picture handling
-    if (removePicture) {
-      // Send special flag to backend to remove profile picture
-      formData.append("remove_profile_picture", "true");
-    } else if (selectedFile) {
-      formData.append("profile_picture", selectedFile);
+    if (profileData.role !== originalProfileData.role) {
+      errorToast("You don't have permission to change role");
+      return;
     }
+  }
 
-    // Other fields
-    if (profileData.name) formData.append("full_name", profileData.name);
+  const formData = new FormData();
+
+  // Profile picture handling
+  if (removePicture) {
+    formData.append("remove_profile_picture", "true");
+  } else if (selectedFile) {
+    formData.append("profile_picture", selectedFile);
+  }
+
+  // Other fields - only append if user has permission
+  if (profileData.name) formData.append("full_name", profileData.name);
+  if (profileData.phone) formData.append("phone", profileData.phone);
+  
+  // Admin-only fields
+  if (canEditAdminFields) {
     if (profileData.email) formData.append("email", profileData.email);
-    if (profileData.phone) formData.append("phone", profileData.phone);
     if (profileData.role) formData.append("designation", profileData.role);
+  }
 
-    // Send only country (not full location string)
-    if (profileData.country) {
-      formData.append("country", profileData.country);
+  // Send only country (not full location string) - anyone can edit
+  if (profileData.country) {
+    formData.append("country", profileData.country);
+  }
+
+  try {
+    const response = await api.put("/profile/update/me/", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    console.log("Update response:", response.data);
+
+    // Update image from backend response
+    if (response.data.profile_picture) {
+      setProfileImage(response.data.profile_picture);
+      setOriginalImage(response.data.profile_picture);
+    } else {
+      setProfileImage(ProfileImage);
+      setOriginalImage(ProfileImage);
     }
 
-    try {
-      const response = await api.put("/profile/update/me/", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+    // Reset all states
+    setRemovePicture(false);
+    setSelectedFile(null);
+    setTemporaryImage(null);
+    setFieldErrors({ name: "", email: "", phone: "", role: "", location: "" });
+    setValidationErrors({ name: "", email: "", phone: "", role: "", location: "" });
 
-      console.log("Update response:", response.data);
-
-      // Update image from backend response
-      if (response.data.profile_picture) {
-        setProfileImage(response.data.profile_picture);
-        setOriginalImage(response.data.profile_picture);
-      } else {
-        // If no profile_picture in response, use default
-        setProfileImage(ProfileImage);
-        setOriginalImage(ProfileImage);
-      }
-
-      await fetchProfile();               // refresh everything
-      setIsEditing(false);
-      setRemovePicture(false);
-      setSelectedFile(null);
-      setTemporaryImage(null); // Clear temporary image
-      setFieldErrors({ name: "", email: "", phone: "", role: "", location: "" });
-      setValidationErrors({ name: "", email: "", phone: "", role: "", location: "" });
-
-      successToast("Profile updated successfully!");
-    } catch (err) {
-      console.error("Update error:", err);
-      if (err.response?.status === 401) {
-        errorToast("Session expired. Please login again.");
-        setTimeout(() => window.location.href = '/', 2000);
-      } else {
-        errorToast(err.response?.data?.detail || "Update failed");
-      }
+    // Show success message
+    successToast("Profile updated successfully!");
+    
+    // Wait a moment for user to see success message, then refresh
+    setTimeout(() => {
+      window.location.reload(); // Full page refresh
+    }, 1500); // 1.5 second delay gives user time to see the success message
+    
+  } catch (err) {
+    console.error("Update error:", err);
+    if (err.response?.status === 401) {
+      errorToast("Session expired. Please login again.");
+      setTimeout(() => window.location.href = '/', 2000);
+    } else {
+      errorToast(err.response?.data?.detail || "Update failed");
     }
-  };
+  }
+};
 
   // Change Password
   const handleChangePassword = () => {
@@ -1937,92 +1964,111 @@ const Profile = () => {
             ></div>
 
             {[
-              { 
-                label: "Full name", 
-                field: "name", 
-                type: "text", 
-                required: true,
-                formatError: validationErrors.name,
-                requiredError: fieldErrors.name
-              },
-              { 
-                label: "Email", 
-                field: "email", 
-                type: "email", 
-                required: true,
-                formatError: validationErrors.email,
-                requiredError: fieldErrors.email
-              },
-              { 
-                label: "Phone", 
-                field: "phone", 
-                type: "tel", 
-                required: true,
-                formatError: validationErrors.phone,
-                requiredError: fieldErrors.phone
-              },
-              { 
-                label: "Role", 
-                field: "role", 
-                type: "text", 
-                required: true,
-                formatError: validationErrors.role,
-                requiredError: fieldErrors.role
-              },
-              {
-                label: "Department",
-                field: "department",
-                type: "text",
-                readOnly: true,
-              },
-              {
-                label: "Joined date",
-                field: "joinedDate",
-                type: "text",
-                readOnly: true,
-              },
-            ].map(({ label, field, type, readOnly, icon, required, formatError, requiredError }) => (
-              <div key={field} className="flex flex-col">
-                <div className="flex items-center mb-1">
-                  <label className="text-sm">{label}</label>
-                  {required && isEditing && (
-                    <span className="text-red-500 ml-1">*</span>
-                  )}
-                </div>
+  { 
+    label: "Full name", 
+    field: "name", 
+    type: "text", 
+    required: true,
+    formatError: validationErrors.name,
+    requiredError: fieldErrors.name,
+    adminOnly: false // Anyone can edit name
+  },
+  { 
+    label: "Email", 
+    field: "email", 
+    type: "email", 
+    required: true,
+    formatError: validationErrors.email,
+    requiredError: fieldErrors.email,
+    adminOnly: true // Only admin can edit
+  },
+  { 
+    label: "Phone", 
+    field: "phone", 
+    type: "tel", 
+    required: true,
+    formatError: validationErrors.phone,
+    requiredError: fieldErrors.phone,
+    adminOnly: false // Anyone can edit phone
+  },
+  { 
+    label: "Role", 
+    field: "role", 
+    type: "text", 
+    required: true,
+    formatError: validationErrors.role,
+    requiredError: fieldErrors.role,
+    adminOnly: true // Only admin can edit
+  },
+  {
+    label: "Department",
+    field: "department",
+    type: "text",
+    readOnly: true, // Always read-only? Or make editable only by admin?
+    adminOnly: true, // Only admin can edit (if made editable)
+  },
+  {
+    label: "Joined date",
+    field: "joinedDate",
+    type: "text",
+    readOnly: true, // Always read-only
+    adminOnly: true, // Only admin can view/edit (if made editable)
+  },
+].map(({ label, field, type, readOnly, required, formatError, requiredError, adminOnly }) => {
+  // Determine if this field should be editable
+  const isFieldEditable = isEditing && !readOnly && (!adminOnly || canEditAdminFields);
+  
+  return (
+    <div key={field} className="flex flex-col">
+      <div className="flex items-center mb-1">
+        <label className="text-sm">{label}</label>
+        {required && isEditing && adminOnly && !canEditAdminFields ? (
+          // Show lock icon for admin-only fields that user can't edit
+          <span className="text-gray-400 ml-1 text-xs">(Admin only)</span>
+        ) : required && isEditing ? (
+          <span className="text-red-500 ml-1">*</span>
+        ) : null}
+      </div>
 
-                {/* Input wrapper */}
-                <div className="relative">
-                  {icon && (
-                    <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                      {icon}
-                    </span>
-                  )}
-                  <input
-                    type={type}
-                    value={profileData[field]}
-                    onChange={(e) => {
-                      handleInputChange(field, e.target.value);
-                    }}
-                    readOnly={!isEditing || readOnly}
-                    className={`w-full ${icon ? "pl-9" : "pl-2"} p-2 rounded-lg ${
-                      isEditing && !readOnly
-                        ? "bg-gray-100 dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B] focus:outline-none transition-all duration-200"
-                        : "bg-gray-100 dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
-                    }`}
-                  />
-                </div>
-                
-                {/* Format validation error - shows while typing */}
-                {isEditing && formatError && (
-                  <p className="text-red-500 text-xs mt-1">{formatError}</p>
-                )}
-                
-                {/* Required field error - only shows after submit attempt */}
-                {isEditing && requiredError && !formatError && (
-                  <p className="text-red-500 text-xs mt-1">{requiredError}</p>
-                )}
-              </div>
-            ))}
+      {/* Input wrapper */}
+      <div className="relative">
+        <input
+          type={type}
+          value={profileData[field]}
+          onChange={(e) => {
+            handleInputChange(field, e.target.value);
+          }}
+          readOnly={!isFieldEditable}
+          disabled={adminOnly && !canEditAdminFields && isEditing}
+          className={`w-full p-2 rounded-lg ${
+            isFieldEditable
+              ? "bg-gray-100 dark:bg-black border border-[#0EFF7B] focus:ring-2 focus:ring-[#0EFF7B] focus:outline-none transition-all duration-200"
+              : adminOnly && !canEditAdminFields && isEditing
+              ? "bg-gray-300 dark:bg-gray-800 border border-gray-400 dark:border-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70"
+              : "bg-gray-100 dark:bg-[#0EFF7B1A] border border-[#0EFF7B] text-green-500"
+          }`}
+        />
+      </div>
+      
+      {/* Format validation error - shows while typing */}
+      {isFieldEditable && formatError && (
+        <p className="text-red-500 text-xs mt-1">{formatError}</p>
+      )}
+      
+      {/* Required field error - only shows after submit attempt */}
+      {isFieldEditable && requiredError && !formatError && (
+        <p className="text-red-500 text-xs mt-1">{requiredError}</p>
+      )}
+      
+      {/* Tooltip for admin-only fields */}
+      {adminOnly && !canEditAdminFields && isEditing && (
+        <p className="text-yellow-600 dark:text-yellow-500 text-xs mt-1 flex items-center">
+          <span className="mr-1">🔒</span> Only administrators can edit this field
+        </p>
+      )}
+    </div>
+  );
+})}
 
             {/* Location field with custom dropdown */}
             <div className="flex flex-col">
@@ -2070,21 +2116,23 @@ const Profile = () => {
             </div>
 
             {isEditing && (
-              <div className="col-span-2 flex justify-end mt-4">
-                <button
-                  onClick={handleSaveChanges}
-                  className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 disabled:opacity-50"
-                  disabled={
-                    Object.values(validationErrors).some(e => e !== "") ||
-                    Object.values(fieldErrors).some(e => e !== "") ||
-                    !profileData.name || !profileData.email || !profileData.phone ||
-                    !profileData.role || !profileData.location
-                  }
-                >
-                  Save changes
-                </button>
-              </div>
-            )}
+  <div className="col-span-2 flex justify-end mt-4">
+    <button
+      onClick={handleSaveChanges}
+      className="bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] px-6 py-2 rounded-lg text-white border-b-2 border-[#0EFF7B] hover:opacity-90 disabled:opacity-50"
+      disabled={
+        Object.values(validationErrors).some(e => e !== "") ||
+        Object.values(fieldErrors).some(e => e !== "") ||
+        !profileData.name || !profileData.phone ||
+        // Only require email and role if user is admin OR if fields are editable by non-admin
+        (canEditAdminFields && (!profileData.email || !profileData.role || !profileData.location)) ||
+        (!canEditAdminFields && !profileData.location)
+      }
+    >
+      Save changes
+    </button>
+  </div>
+)}
           </div>
         </div>
 
