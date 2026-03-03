@@ -681,12 +681,24 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
         db_invoice = await _get_invoice_by_id(invoice_id)
         db_items = await _get_invoice_items_for_invoice(db_invoice)
 
+        cgst_percent = float(data.cgst_percent)
+        sgst_percent = float(data.sgst_percent)
+
+        subtotal = float(db_invoice.subtotal)
+
+        cgst_amount = subtotal * (cgst_percent / 100)
+        sgst_amount = subtotal * (sgst_percent / 100)
+
         amount_words = number_to_words(grand_total)
         template = env.get_template("invoice_pharmacy_template.html")
         html_content = template.render(
             invoice=db_invoice,
             items=db_items,
             amount_in_words=amount_words,
+            cgst_percent=cgst_percent,
+            sgst_percent=sgst_percent,
+            cgst_amount=cgst_amount,
+            sgst_amount=sgst_amount,
             tax_total=tax_total,
             tax_percent=float(data.cgst_percent + data.sgst_percent),
         )

@@ -1,3 +1,4 @@
+from django.db import close_old_connections, connection
 from pydantic import BaseModel, validator, Field
 from datetime import datetime
 from typing import Optional, List
@@ -6,11 +7,32 @@ from django.db import transaction
 from django.db.models import Q
 from asgiref.sync import sync_to_async
 from Fastapi_app.routers.user_profile import get_current_user
+from Fastapi_app.services.notification_service import NotificationService
 
 # Import models
 from HMS_backend.models import Charge, User
 
 router = APIRouter(prefix="/charges", tags=["Charges"])
+
+# ---------- Database Connection Helpers ----------
+def check_db_connection():
+    """Ensure database connection is alive"""
+    try:
+        close_old_connections()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return True
+    except Exception:
+        return False
+
+def ensure_db_connection():
+    """Reconnect if database connection is lost"""
+    if not check_db_connection():
+        try:
+            connection.close()
+            connection.connect()
+        except Exception:
+            pass
 
 # ---------- Charge Schemas ----------
 class ChargeCreate(BaseModel):
@@ -77,6 +99,7 @@ async def get_or_404(model, **kwargs):
     """Helper to get object or raise 404"""
     @sync_to_async
     def _get():
+        ensure_db_connection()  # Ensure connection before DB operation
         try:
             return model.objects.get(**kwargs)
         except model.DoesNotExist:
@@ -109,6 +132,7 @@ async def create_charge(
     try:
         @sync_to_async
         def create_charge_with_transaction():
+            ensure_db_connection()  # Ensure connection before DB operation
             with transaction.atomic():
                 # Check if charge with same name already exists
                 if Charge.objects.filter(charge__iexact=payload.charge).exists():
@@ -126,6 +150,20 @@ async def create_charge(
                 return charge_obj
 
         charge_obj = await create_charge_with_transaction()
+
+        await NotificationService.send_notification(
+            event_type="charge_created",
+            message=f"New charge created: {charge_obj.charge}",
+            notification_type="success",
+            data={
+                "charge_id": charge_obj.id,
+                "charge_name": charge_obj.charge,
+                "unit_price": float(charge_obj.unit_price),
+                "charge_scope": charge_obj.charge_scope,
+                "redirect_to": "/billing/charges-management"
+            }
+        )
+
         return charge_to_out(charge_obj)
 
     except HTTPException:
@@ -144,6 +182,7 @@ async def list_charges(
     """Get all charges with optional search and scope filter"""
     @sync_to_async
     def get_charges():
+        ensure_db_connection()  # Ensure connection before DB operation
         queryset = Charge.objects.all().order_by("-created_at")
 
         if search:
@@ -191,6 +230,7 @@ async def update_charge(
 
         @sync_to_async
         def update_charge_with_transaction():
+            ensure_db_connection()  # Ensure connection before DB operation
             with transaction.atomic():
                 if payload.charge is not None and payload.charge != charge.charge:
                     if Charge.objects.filter(charge__iexact=payload.charge).exclude(id=charge_id).exists():
@@ -213,6 +253,20 @@ async def update_charge(
                 return charge
 
         updated_charge = await update_charge_with_transaction()
+
+        await NotificationService.send_notification(
+            event_type="charge_updated",
+            message=f"Charge updated: {updated_charge.charge}",
+            notification_type="info",
+            data={
+                "charge_id": updated_charge.id,
+                "charge_name": updated_charge.charge,
+                "unit_price": float(updated_charge.unit_price),
+                "charge_scope": updated_charge.charge_scope,
+                "redirect_to": "/billing/charges-management"
+            }
+        )
+
         return charge_to_out(updated_charge)
 
     except HTTPException:
@@ -231,15 +285,31 @@ async def delete_charge(
     """Delete a charge"""
     try:
         charge = await get_or_404(Charge, id=charge_id)
+        charge_data = {
+            "charge_id": charge.id,
+            "charge_name": charge.charge,
+            "unit_price": float(charge.unit_price),
+            "charge_scope": charge.charge_scope
+        }
 
         @sync_to_async
         def delete_charge_with_transaction():
+            ensure_db_connection()  # Ensure connection before DB operation
             with transaction.atomic():
                 charge.delete()
                 return True
 
         await delete_charge_with_transaction()
 
+        await NotificationService.send_notification(
+            event_type="charge_deleted",
+            message=f"Charge deleted: {charge_data['charge_name']}",
+            notification_type="warning",
+            data={
+                **charge_data,
+                "redirect_to": "/billing/charges-management"
+            }
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
