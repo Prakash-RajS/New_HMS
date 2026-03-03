@@ -3454,11 +3454,16 @@ const canDelete = isAdmin; // Only admin can delete
 
   // Handle input change for Add form
   const handleAddInputChange = (field, value) => {
+ 
+    if (field === "item_code") {
+  value = value.toUpperCase();
+}
     setNewStock(prev => ({
       ...prev,
       [field]: value
     }));
-
+ 
+ 
     // Clear any existing required field error for this field
     if (fieldErrors[field]) {
       setFieldErrors(prev => {
@@ -3467,7 +3472,7 @@ const canDelete = isAdmin; // Only admin can delete
         return newErrors;
       });
     }
-
+ 
     // Perform real-time format validation
     let formatError = "";
     switch (field) {
@@ -3512,7 +3517,7 @@ const canDelete = isAdmin; // Only admin can delete
       default:
         break;
     }
-
+ 
     if (formatError) {
       setValidationErrors(prev => ({
         ...prev,

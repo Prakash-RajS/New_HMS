@@ -503,7 +503,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "status": invoice.status,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -519,7 +519,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "payment_method": invoice.payment_method,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -535,7 +535,7 @@ class NotificationService:
                 "amount": str(invoice.amount),
                 "reason": reason,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -550,7 +550,7 @@ class NotificationService:
                 "patient_name": invoice.patient_name,
                 "amount": str(invoice.amount),
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -1173,7 +1173,7 @@ class NotificationService:
             event_type="invoice_created",
             message=f"New invoice: {invoice_data.get('patient_name')} - ₹{invoice_data.get('amount', 0)}",
             notification_type="success",
-            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
         )
 
     @staticmethod
@@ -1182,7 +1182,7 @@ class NotificationService:
             event_type="invoice_deleted",
             message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
             notification_type="warning",
-            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
+            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
         )
 
     @staticmethod
@@ -1230,7 +1230,7 @@ class NotificationService:
                 "count": count,
                 "is_bulk": bulk,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -1253,7 +1253,7 @@ class NotificationService:
                 "error_message": error_message,
                 "invoice_id": invoice_id,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/Billing"
+                "redirect_to": "/billing-page"
             }
         )
 
@@ -1286,7 +1286,7 @@ class NotificationService:
                     "billing_staff": invoice_data.get("billing_staff", "Unknown"),
                     "patient_type": invoice_data.get("patient_type", "Outpatient"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Pharmacy bill generated notification broadcasted successfully")
@@ -1311,7 +1311,7 @@ class NotificationService:
                     "payment_mode": invoice_data.get("payment_mode", "Unknown"),
                     "payment_type": invoice_data.get("payment_type", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Pharmacy payment notification broadcasted successfully")
@@ -1338,7 +1338,7 @@ class NotificationService:
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "status": invoice_data.get("status", "Pending"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Hospital bill generated notification broadcasted successfully")
@@ -1363,7 +1363,7 @@ class NotificationService:
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "status": "Paid",
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Hospital payment notification broadcasted successfully")
@@ -1433,7 +1433,7 @@ class NotificationService:
                 data={
                     "invoice_id": invoice_id,
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Invoice not found notification broadcasted successfully")
@@ -1460,7 +1460,7 @@ class NotificationService:
                     "department": invoice_data.get("department", "Pharmacy"),
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Invoice deleted notification broadcasted successfully")
@@ -1488,7 +1488,7 @@ class NotificationService:
                     "department": invoice_data.get("department", "Pharmacy"),
                     "payment_method": invoice_data.get("payment_method", "Unknown"),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Invoice status changed notification broadcasted successfully")
@@ -1510,7 +1510,7 @@ class NotificationService:
                     "export_type": export_data.get("export_type"),
                     "invoice_count": export_data.get("invoice_count", 0),
                     "timestamp": datetime.now().isoformat(),
-                    "redirect_to": "/billing"
+                    "redirect_to": "/billing-page"
                 }
             )
             print("✅ Pharmacy bulk export notification broadcasted successfully")
@@ -2167,7 +2167,7 @@ async def test_notification():
 #                 "amount": str(invoice.amount),
 #                 "status": invoice.status,
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 
@@ -2183,7 +2183,7 @@ async def test_notification():
 #                 "amount": str(invoice.amount),
 #                 "payment_method": invoice.payment_method,
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 
@@ -2199,7 +2199,7 @@ async def test_notification():
 #                 "amount": str(invoice.amount),
 #                 "reason": reason,
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 
@@ -2214,7 +2214,7 @@ async def test_notification():
 #                 "patient_name": invoice.patient_name,
 #                 "amount": str(invoice.amount),
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 
@@ -2837,7 +2837,7 @@ async def test_notification():
 #             event_type="invoice_created",
 #             message=f"New invoice: {invoice_data.get('patient_name')} - ₹{invoice_data.get('amount', 0)}",
 #             notification_type="success",
-#             data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
+#             data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
 #         )
 
 #     @staticmethod
@@ -2846,7 +2846,7 @@ async def test_notification():
 #             event_type="invoice_deleted",
 #             message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
 #             notification_type="warning",
-#             data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/Billing"}
+#             data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
 #         )
 
 #     @staticmethod
@@ -2894,7 +2894,7 @@ async def test_notification():
 #                 "count": count,
 #                 "is_bulk": bulk,
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 
@@ -2917,7 +2917,7 @@ async def test_notification():
 #                 "error_message": error_message,
 #                 "invoice_id": invoice_id,
 #                 "timestamp": datetime.now().isoformat(),
-#                 "redirect_to": "/Billing"
+#                 "redirect_to": "/billing-page"
 #             }
 #         )
 

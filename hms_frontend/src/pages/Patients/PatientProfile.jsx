@@ -421,6 +421,7 @@ const PatientCard = memo(({ patient, onEdit, onViewProfile }) => {
   const { isAdmin, currentUser } = usePermissions();
   const userRole = currentUser?.role?.toLowerCase();
   const canEdit = isAdmin || userRole === "receptionist";
+  const canAdd = isAdmin || userRole === "receptionist";
   
 
 
@@ -539,9 +540,7 @@ const ProfileSection = () => {
   const navigate = useNavigate();
   const itemsPerPage = 10;
   const searchTimeoutRef = useRef(null);
-   const { isAdmin, currentUser } = usePermissions();
-  const userRole = currentUser?.role?.toLowerCase();
-  const canAdd = isAdmin || userRole === "receptionist";
+   
   
 
   /* ==================== DEBOUNCED SEARCH ==================== */
@@ -705,6 +704,9 @@ const ProfileSection = () => {
     setCurrentPage((p) => Math.min(totalPages, p + 1));
   }, [totalPages]);
 
+  const { isAdmin, currentUser } = usePermissions();
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "receptionist";
   /* ==================== RENDER ==================== */
   return (
     <div className="mb-4 bg-gray-100 dark:bg-black rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">

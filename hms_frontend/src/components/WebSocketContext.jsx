@@ -311,7 +311,7 @@ export const WebSocketProvider = ({ children }) => {
 
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const HEARTBEAT_INTERVAL = 30000;
   const PATH_POLL_INTERVAL = 100;
@@ -383,7 +383,6 @@ export const WebSocketProvider = ({ children }) => {
         };
 
         setNotifications((prev) => [notification, ...prev].slice(0, 50));
-        setUnreadCount((c) => c + 1);
       }
     } catch (err) {
       console.error("WebSocket message error:", err);
@@ -488,11 +487,12 @@ export const WebSocketProvider = ({ children }) => {
      ACTIONS
   ===================================================== */
   const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-    setUnreadCount((c) => Math.max(0, c - 1));
-  };
+  setNotifications(prev =>
+    prev.map(n =>
+      n.id === id ? { ...n, read: true } : n
+    )
+  );
+};
 
   const markAllAsRead = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

@@ -1400,6 +1400,7 @@ const searchResults = useMemo(() => {
                     >
                       Profile
                     </li>
+                    {isAdmin && (
                     <li
                       onClick={() => {
                         setIsDropdownOpen(false);
@@ -1408,7 +1409,7 @@ const searchResults = useMemo(() => {
                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
                     >
                       Settings
-                    </li>
+                    </li>)}
                     <li
                       onClick={() => {
                         setIsDropdownOpen(false);

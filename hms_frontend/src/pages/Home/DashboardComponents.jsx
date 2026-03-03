@@ -1758,7 +1758,26 @@ const ConsultationStats = ({ data }) => {
   const consultationToday = appointments.today?.total || 0;
 
   const colors = ["#0EFF7B", "#089648", "#5CD592", "#3E614E", "#6A8F7B", "#B6DEC8"];
-  const total = departments.reduce((sum, dept) => sum + (dept.today_appointments || 0), 0) || 1;
+
+  // Only show departments with at least 1 appointment today
+  const activeDepartments = departments
+    .filter((dept) => (dept.today_appointments || 0) > 0)
+    .slice(0, 6);
+
+  const total = activeDepartments.reduce((sum, dept) => sum + (dept.today_appointments || 0), 0);
+
+  // Correct SVG donut math: r=40, circumference = 2π×40 ≈ 251.33
+  const RADIUS = 40;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+  let cumulativePercent = 0;
+  const segments = activeDepartments.map((dept, index) => {
+    const percent = total > 0 ? (dept.today_appointments || 0) / total : 0;
+    const dashArray = `${percent * CIRCUMFERENCE} ${(1 - percent) * CIRCUMFERENCE}`;
+    const dashOffset = CIRCUMFERENCE * (1 - cumulativePercent) + CIRCUMFERENCE / 4;
+    cumulativePercent += percent;
+    return { dept, index, dashArray, dashOffset };
+  });
 
   return (
     <div className="relative rounded-[20px] p-5 w-full h-[338px] text-white shadow-[0_0_4px_0_#FFFFFF1F] border border-transparent bg-gray-100 dark:bg-transparent overflow-visible">
@@ -1783,82 +1802,60 @@ const ConsultationStats = ({ data }) => {
           pointerEvents: "none",
         }}
       ></div>
-
       <div className="flex justify-between items-center mb-3 relative z-10">
-        <h3 className="text-xl text-black dark:text-white font-semibold">
-          Appointment Consultation
-        </h3>
+        <h3 className="text-xl text-black dark:text-white font-semibold">Appointment Consultation</h3>
         <div className="flex flex-col items-end text-right">
           <span className="text-sm text-[#0EFF7B]">Today ↑</span>
-          <span className="text-xs text-gray-400">
-            {appointments.today?.completed || 0} completed
-          </span>
+          <span className="text-xs text-gray-400">{appointments.today?.completed || 0} completed</span>
         </div>
       </div>
 
       <div className="flex items-baseline relative z-10">
-        <span className="text-4xl font-bold text-[#0EFF7B]">
-          {consultationToday.toLocaleString()}
-        </span>
-        <span className="text-xs text-gray-400 ml-2">
-          (Today)
-        </span>
+        <span className="text-4xl font-bold text-[#0EFF7B]">{consultationToday.toLocaleString()}</span>
+        <span className="text-xs text-gray-400 ml-2">(Today)</span>
       </div>
 
-      <p className="text-sm text-gray-400 mt-2 relative z-10">
-        Average consultation per doctor
-      </p>
+      <p className="text-sm text-gray-400 mt-2 relative z-10">Average consultation per doctor</p>
 
       <div className="flex mt-5 justify-between items-start relative z-10">
         <ul className="space-y-2 text-sm">
-          {departments.slice(0, 6).map((dept, index) => (
-            <li
-              key={dept.id || index}
-              className="flex text-black dark:text-white items-center"
-            >
-              <span
-                className="min-w-3 h-3 rounded-full mr-2"
-                style={{ backgroundColor: colors[index] }}
-              ></span>
-              {dept.name || `Department ${index + 1}`} ({dept.today_appointments || 0})
-            </li>
-          ))}
+          {activeDepartments.length > 0 ? (
+            activeDepartments.map((dept, index) => (
+              <li key={dept.id || index} className="flex text-black dark:text-white items-center">
+                <span className="min-w-3 h-3 rounded-full mr-2" style={{ backgroundColor: colors[index] }}></span>
+                {dept.name || `Department ${index + 1}`} ({dept.today_appointments})
+              </li>
+            ))
+          ) : (
+            <li className="text-gray-400 text-xs">No active departments today</li>
+          )}
         </ul>
 
-        <div className="relative min-w-[148px] h-[148px] rotate-[-7deg] flex-shrink-0 group">
+        <div className="relative min-w-[148px] h-[148px] rotate-[-7deg] flex-shrink-0">
           <svg viewBox="0 0 100 100" className="w-full h-full">
-            <circle
-              cx="50"
-              cy="50"
-              r="40"
-              stroke="#1A1A1A"
-              strokeWidth="6"
-              fill="transparent"
-            />
-            {departments.slice(0, 6).map((dept, index) => {
-              const percentage = ((dept.today_appointments || 0) / total) * 100;
-              const strokeDasharray = `${percentage} ${100 - percentage}`;
-              const strokeDashoffset = -departments
-                .slice(0, index)
-                .reduce((sum, d) => sum + ((d.today_appointments || 0) / total) * 100, 0);
-
-              return (
+            <circle cx="50" cy="50" r={RADIUS} stroke="#1A1A1A" strokeWidth="6" fill="transparent" />
+            {total === 0 ? (
+              <circle cx="50" cy="50" r={RADIUS} stroke="#2A2A2A" strokeWidth="6" fill="transparent" />
+            ) : (
+              segments.map(({ dept, index, dashArray, dashOffset }) => (
                 <circle
-                  key={index}
-                  cx="50"
-                  cy="50"
-                  r="40"
+                  key={dept.id || index}
+                  cx="50" cy="50" r={RADIUS}
                   stroke={colors[index]}
                   strokeWidth="6"
                   fill="transparent"
-                  strokeDasharray={strokeDasharray}
-                  strokeDashoffset={strokeDashoffset}
+                  strokeDasharray={dashArray}
+                  strokeDashoffset={dashOffset}
+                  strokeLinecap="round"
                 />
-              );
-            })}
+              ))
+            )}
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center text-[#0EFF7B] text-sm font-semibold opacity-80">
-            {total}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-[#0EFF7B] text-sm font-bold leading-tight">
+              {total > 0 ? total : "—"}
+            </span>
+            {total > 0 && <span className="text-gray-400 text-[9px] leading-tight">total</span>}
           </div>
         </div>
       </div>

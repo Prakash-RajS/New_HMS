@@ -548,19 +548,23 @@ const EditDispatchModal = ({
       return '';
     
     case 'phone_number':
-      if (value && value.trim()) {
-        const phoneRegex = /^[\d\s\-+()]{10,15}$/;
-        const digitsOnly = value.replace(/\D/g, '');
-        
-        if (!phoneRegex.test(value)) {
-          return "Invalid phone number format";
-        }
-        if (digitsOnly.length < 10) {
-          return "Phone number must have at least 10 digits";
-        }
-        if (digitsOnly.length > 15) {
-          return "Phone number too long";
-        }
+      // Phone number is required - validate if provided or empty
+      if (!value || !value.trim()) {
+        return "Phone number is required";
+      }
+      
+      // Validate format if provided
+      const phoneRegex = /^[\d\s\-+()]{10,15}$/;
+      const digitsOnly = value.replace(/\D/g, '');
+      
+      if (!phoneRegex.test(value)) {
+        return "Invalid phone number format";
+      }
+      if (digitsOnly.length < 10) {
+        return "Phone number must have at least 10 digits";
+      }
+      if (digitsOnly.length > 15) {
+        return "Phone number too long";
       }
       return '';
     
@@ -866,6 +870,7 @@ const EditDispatchModal = ({
             <div>
               <label className="text-sm text-black dark:text-white">
                 Phone Number
+                {!isEdit && <span className="text-red-500 ml-1">*</span>}
               </label>
               <input
                 name="phone_number"
