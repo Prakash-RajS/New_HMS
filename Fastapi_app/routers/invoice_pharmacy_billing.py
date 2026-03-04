@@ -753,7 +753,7 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
                 "shelf_no": getattr(stock, "shelf_no", "")
             })
 
-        await NotificationService.send_pdf_downloaded(invoice_id=auto_bill_no, bulk=False, count=1)
+        # await NotificationService.send_pdf_downloaded(invoice_id=auto_bill_no, bulk=False, count=1)
 
         if not os.path.exists(pdf_path):
             raise HTTPException(status_code=500, detail="PDF generation failed")
@@ -787,20 +787,20 @@ async def get_pharmacy_invoice(bill_no: str):
             await NotificationService.send_invoice_not_found(bill_no)
             raise HTTPException(status_code=404, detail="PDF not found")
 
-        await NotificationService.send_pdf_downloaded(invoice_id=bill_no, bulk=False, count=1)
+        # await NotificationService.send_pdf_downloaded(invoice_id=bill_no, bulk=False, count=1)
         
         # Add notification for bill access
-        await NotificationService.send_pharmacy_bill_generated({
-            "bill_no": bill_no,
-            "patient_name": invoice.patient_name,
-            "patient_id": invoice.patient_id,
-            "net_amount": float(getattr(invoice, "net_amount", 0)),
-            "payment_status": invoice.payment_status,
-            "billing_staff": invoice.billing_staff,
-            "patient_type": invoice.patient_type,
-            "payment_mode": invoice.payment_mode,
-            "doctor_name": invoice.doctor_name
-        })
+        # await NotificationService.send_pharmacy_bill_generated({
+        #     "bill_no": bill_no,
+        #     "patient_name": invoice.patient_name,
+        #     "patient_id": invoice.patient_id,
+        #     "net_amount": float(getattr(invoice, "net_amount", 0)),
+        #     "payment_status": invoice.payment_status,
+        #     "billing_staff": invoice.billing_staff,
+        #     "patient_type": invoice.patient_type,
+        #     "payment_mode": invoice.payment_mode,
+        #     "doctor_name": invoice.doctor_name
+        # })
 
         return FileResponse(path=invoice.path, media_type="application/pdf", filename=f"{bill_no}.pdf")
 

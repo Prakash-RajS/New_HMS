@@ -1176,14 +1176,14 @@ class NotificationService:
             data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
         )
 
-    @staticmethod
-    async def send_invoice_deleted(invoice_data: Dict[str, Any]):
-        await notify_clients(
-            event_type="invoice_deleted",
-            message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
-            notification_type="warning",
-            data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
-        )
+    # @staticmethod
+    # async def send_invoice_deleted(invoice_data: Dict[str, Any]):
+    #     await notify_clients(
+    #         event_type="invoice_deleted",
+    #         message=f"Invoice deleted: {invoice_data.get('invoice_id')}",
+    #         notification_type="warning",
+    #         data={**invoice_data, "timestamp": datetime.now().isoformat(), "redirect_to": "/billing-page"}
+    #     )
 
     @staticmethod
     async def send_payment_received(invoice_data: Dict[str, Any]):
@@ -1194,28 +1194,28 @@ class NotificationService:
             data={**invoice_data, "timestamp": datetime.now().isoformat()}
         )
 
-    @staticmethod
-    async def send_invoice_status_changed(invoice_data: Dict[str, Any], old_status: str, new_status: str):
-        await notify_clients(
-            event_type="invoice_status_changed",
-            message=f"Status: {old_status} → {new_status}",
-            notification_type="info",
-            data={
-                **invoice_data,
-                "old_status": old_status,
-                "new_status": new_status,
-                "timestamp": datetime.now().isoformat()
-            }
-        )
+    # @staticmethod
+    # async def send_invoice_status_changed(invoice_data: Dict[str, Any], old_status: str, new_status: str):
+    #     await notify_clients(
+    #         event_type="invoice_status_changed",
+    #         message=f"Status: {old_status} → {new_status}",
+    #         notification_type="info",
+    #         data={
+    #             **invoice_data,
+    #             "old_status": old_status,
+    #             "new_status": new_status,
+    #             "timestamp": datetime.now().isoformat()
+    #         }
+    #     )
 
-    @staticmethod
-    async def send_invoice_not_found(invoice_id: str):
-        await notify_clients(
-            event_type="invoice_not_found",
-            message=f"Invoice not found: {invoice_id}",
-            notification_type="warning",
-            data={"invoice_id": invoice_id, "timestamp": datetime.now().isoformat()}
-        )
+    # @staticmethod
+    # async def send_invoice_not_found(invoice_id: str):
+    #     await notify_clients(
+    #         event_type="invoice_not_found",
+    #         message=f"Invoice not found: {invoice_id}",
+    #         notification_type="warning",
+    #         data={"invoice_id": invoice_id, "timestamp": datetime.now().isoformat()}
+    #     )
 
     @staticmethod
     async def send_pdf_downloaded(invoice_id: str = "", bulk: bool = False, count: int = 1):
@@ -1257,14 +1257,14 @@ class NotificationService:
             }
         )
 
-    @staticmethod
-    async def send_statistics_updated(statistics: Dict[str, Any]):
-        await notify_clients(
-            event_type="billing_statistics_updated",
-            message="Billing statistics updated",
-            notification_type="info",
-            data={**statistics, "timestamp": datetime.now().isoformat()}
-        )
+    # @staticmethod
+    # async def send_statistics_updated(statistics: Dict[str, Any]):
+    #     await notify_clients(
+    #         event_type="billing_statistics_updated",
+    #         message="Billing statistics updated",
+    #         notification_type="info",
+    #         data={**statistics, "timestamp": datetime.now().isoformat()}
+    #     )
 
     # ========== PHARMACY & HOSPITAL BILLING NOTIFICATIONS ==========
     @staticmethod
@@ -1633,25 +1633,25 @@ class NotificationService:
         except Exception as e:
             print(f"Failed to send treatment charge status notification: {e}")
 
-    @staticmethod
-    async def send_billing_error(error_message: str, bill_type: str = "", reference_id: str = ""):
-        """
-        Send billing error notification
-        """
-        try:
-            from Fastapi_app.services.websocket_service import notify_clients
+    # @staticmethod
+    # async def send_billing_error(error_message: str, bill_type: str = "", reference_id: str = ""):
+    #     """
+    #     Send billing error notification
+    #     """
+    #     try:
+    #         from Fastapi_app.services.websocket_service import notify_clients
             
-            await notify_clients({
-                "type": "billing_error",
-                "message": f"Billing Error: {error_message}",
-                "bill_type": bill_type,
-                "reference_id": reference_id,
-                "timestamp": datetime.now().isoformat(),
-                "alert": True,
-                "color": "error"
-            })
-        except Exception as e:
-            print(f"Failed to send billing error notification: {e}")
+    #         await notify_clients({
+    #             "type": "billing_error",
+    #             "message": f"Billing Error: {error_message}",
+    #             "bill_type": bill_type,
+    #             "reference_id": reference_id,
+    #             "timestamp": datetime.now().isoformat(),
+    #             "alert": True,
+    #             "color": "error"
+    #         })
+    #     except Exception as e:
+    #         print(f"Failed to send billing error notification: {e}")
 
 
 
@@ -3002,7 +3002,7 @@ async def test_notification():
 #                     "payment_method": invoice_data.get("payment_method", "Unknown"),
 #                     "status": invoice_data.get("status", "Pending"),
 #                     "timestamp": datetime.now().isoformat(),
-#                     "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+#                     "redirect_to": f"/hospital/billing-page/{invoice_data.get('invoice_id')}"
 #                 }
 #             )
 #             print("✅ Hospital bill generated notification broadcasted successfully")
@@ -3027,7 +3027,7 @@ async def test_notification():
 #                     "payment_method": invoice_data.get("payment_method", "Unknown"),
 #                     "status": "Paid",
 #                     "timestamp": datetime.now().isoformat(),
-#                     "redirect_to": f"/hospital/billing/{invoice_data.get('invoice_id')}"
+#                     "redirect_to": f"/hospital/billing-page/{invoice_data.get('invoice_id')}"
 #                 }
 #             )
 #             print("✅ Hospital payment notification broadcasted successfully")
