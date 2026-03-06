@@ -233,7 +233,7 @@
 
 # fastapi_app/routers/billing.py
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 from HMS_backend.models import PharmacyInvoiceHistory, Patient
 from datetime import date, datetime
@@ -247,6 +247,7 @@ from zipfile import ZipFile
 import tempfile
 from asgiref.sync import sync_to_async
 from django.db import transaction
+from Fastapi_app.routers.user_profile import get_current_user
 
 # Import NotificationService
 from Fastapi_app.services.notification_service import NotificationService
@@ -536,7 +537,7 @@ async def update_invoice_status(invoice_id: str, payload: StatusUpdate):
 # Download PDF
 # -------------------------------
 @router.get("/pdf/{invoice_id}")
-async def get_pdf(invoice_id: str):
+async def get_pdf(invoice_id: str, current_user=Depends(get_current_user),):
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     INVOICE_DIR = os.path.join(BASE_DIR, "Fastapi_app", "pharmacy", "invoices")
     pdf_path = os.path.join(INVOICE_DIR, f"{invoice_id}.pdf")
@@ -556,7 +557,7 @@ async def get_pdf(invoice_id: str):
 # Bulk Download PDFs
 # -------------------------------
 @router.post("/download-selected")
-async def download_selected(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks):
+async def download_selected(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks, current_user=Depends(get_current_user),):
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     INVOICE_DIR = os.path.join(BASE_DIR, "Fastapi_app", "pharmacy", "invoices")
 
@@ -594,7 +595,7 @@ async def download_selected(invoice_ids: InvoiceIds, background_tasks: Backgroun
 # Export CSV / Excel
 # -------------------------------
 @router.get("/export/csv")
-async def export_invoices_csv():
+async def export_invoices_csv(current_user=Depends(get_current_user),):
     try:
         @sync_to_async
         def fetch_all():
@@ -625,7 +626,7 @@ async def export_invoices_csv():
 
 
 @router.get("/export/excel")
-async def export_invoices_excel():
+async def export_invoices_excel(current_user=Depends(get_current_user),):
     try:
         @sync_to_async
         def fetch_all():

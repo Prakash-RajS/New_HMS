@@ -199,13 +199,14 @@ const UserSettings = () => {
   };
 
   // Validation functions
-  const validateUsername = (username) => {
-    if (!username.trim()) return "Username is required";
-    if (username.length < 2) return "Username must be at least 2 characters";
-    if (username.length > 50) return "Username cannot exceed 50 characters";
-    if (!/^[A-Za-z\s]+$/.test(username)) return "Username can only contain letters and spaces";
-    return "";
-  };
+const validateUsername = (username) => {
+  if (!username.trim()) return "Username is required";
+  if (username.length < 2) return "Username must be at least 2 characters";
+  if (username.length > 50) return "Username cannot exceed 50 characters";
+  if (!/^[A-Za-z]+$/.test(username))
+    return "Username can only contain letters (no spaces allowed)";
+  return "";
+};
 
   const validatePassword = (password) => {
     if (!password) return "Password is required";
@@ -507,14 +508,15 @@ const UserSettings = () => {
 
   // Update handleInputChange for username field
   const handleUsernameChange = (e) => {
-    const value = e.target.value;
-    setNewUser(prev => ({ ...prev, username: value }));
-    
-    // Clear validation error when user starts typing
-    if (validationErrors.username) {
-      setValidationErrors(prev => ({ ...prev, username: "" }));
-    }
-  };
+  // Remove all whitespace automatically
+  const value = e.target.value.replace(/\s/g, "");
+
+  setNewUser((prev) => ({ ...prev, username: value }));
+
+  if (validationErrors.username) {
+    setValidationErrors((prev) => ({ ...prev, username: "" }));
+  }
+};
 
   const handlePasswordChange = (e) => {
     const value = e.target.value;

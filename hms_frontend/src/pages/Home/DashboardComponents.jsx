@@ -1433,13 +1433,24 @@ const OverviewTab = ({ data, navigate, isAdmin }) => {
       />
 
       {/* Today's Revenue */}
-      <DashboardCard
-        title="Today's Revenue"
-        change="Hospital earnings"
-        value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
-        onClick={() => navigate("/billing-page")}
-        isAdmin={isAdmin}
-      />
+      {/* Today's Revenue - Admin only with placeholder for others */}
+{isAdmin ? (
+  <DashboardCard
+    title="Today's Revenue"
+    change="Hospital earnings"
+    value={`₹${(financials.hospital_revenue?.today || 0).toLocaleString()}`}
+    onClick={() => navigate("/billing-page")}
+    isAdmin={isAdmin}
+  />
+) : (
+  <DashboardCard
+    title="Today's Revenue"
+    change="Admin only"
+    value="🔒"
+    onClick={() => {}}
+    isAdmin={isAdmin}
+  />
+)}
 
       {/* Active In-Patients */}
       <DashboardCard

@@ -1089,7 +1089,7 @@ class NotificationService:
                 "alert": True,
                 "message": message,
                 "timestamp": datetime.now().isoformat(),
-                "redirect_to": "/emergency",
+                "redirect_to": "/dashboard",
                 **(data or {})
             }
         )

@@ -573,17 +573,17 @@ const canDelete = isAdmin; // Only admin can delete
             {/* Right side: Search, Check Eligibility, and Filter buttons */}
             <div className="flex gap-2 items-center flex-wrap">
               {showBloodSearch && (
-                <div className="relative w-48 sm:w-72">
-                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A]" />
-                  <input
-                    type="text"
-                    placeholder="Search blood types..."
-                    value={bloodSearch}
-                    onChange={(e) => setBloodSearch(e.target.value)}
-                    className="w-full bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-[#5CD592] rounded-[40px] border border-[#0EFF7B1A] text-[#08994A] text-sm focus:outline-none"
-                  />
-                </div>
-              )}
+  <div className="relative w-48 sm:w-72">
+    <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A]" />
+    <input
+      type="text"
+      placeholder="Search blood types..."
+      value={bloodSearch}
+      onChange={(e) => setBloodSearch(e.target.value)}
+      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-gray-400 dark:placeholder-[#5CD592] rounded-[40px] border border-gray-300 dark:border-[#00000] text-gray-900 dark:text-[#08994A] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent"
+    />
+  </div>
+)}
               {/* Search Toggle Button */}
               <button
                 className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
@@ -891,17 +891,17 @@ const canDelete = isAdmin; // Only admin can delete
           </div>
           <div className="flex gap-2 items-center">
             {showDonorSearch && (
-              <div className="relative w-72">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
-                <input
-                  type="text"
-                  placeholder="Search by name, blood type, phone, gender, or date..."
-                  value={donorSearch}
-                  onChange={(e) => setDonorSearch(e.target.value)}
-                  className="w-full bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border border-[#0EFF7B1A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm focus:outline-none"
-                />
-              </div>
-            )}
+  <div className="relative w-72">
+    <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
+    <input
+      type="text"
+      placeholder="Search by name, blood type, phone, gender, or date..."
+      value={donorSearch}
+      onChange={(e) => setDonorSearch(e.target.value)}
+      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border border-gray-300 dark:border-[#0EFF7B1A] text-gray-900 dark:text-[#0EFF7B] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent placeholder-gray-400 dark:placeholder-[#5CD592]"
+    />
+  </div>
+)}
             {/* Check Eligibility Button */}
             <button
               onClick={handleManualEligibilityCheck}

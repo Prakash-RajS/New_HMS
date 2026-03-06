@@ -641,7 +641,6 @@ const vizagLocations = [
 // ErrorMessage
 // ---------------------------------------------------------------------------
 const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
-  // Show errors in BOTH create and edit modes when submitted
   if (!errors[field]) return null;
 
   const isFormatError =
@@ -664,7 +663,6 @@ const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
     errors[field].includes("must contain letters") ||
     errors[field].includes("Valid Vizag locations");
 
-  // Show errors for BOTH modes when submitted or for format errors
   if (submitted || isFormatError) {
     return (
       <div className="mt-1 text-red-500 text-xs">
@@ -730,7 +728,13 @@ const TextInput = React.memo(({
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}
-                onClick={() => onSuggestionClick(suggestion)}
+                // FIX: Use onMouseDown instead of onClick so it fires BEFORE the
+                // input's onBlur event. Previously, onBlur cleared suggestions
+                // before onClick could register, making items unclickable.
+                onMouseDown={(e) => {
+                  e.preventDefault(); // Prevent input from losing focus / blur firing
+                  onSuggestionClick(suggestion);
+                }}
                 className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-800 dark:text-gray-200"
               >
                 {suggestion}
@@ -943,13 +947,11 @@ const Dropdown = React.memo(({
 const isValidLocationFormat = (value) => {
   const trimmed = value.trim();
   
-  // Check for invalid characters
   const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
   if (invalidChars.test(trimmed)) {
     return false;
   }
   
-  // Check if it's a valid Vizag location (case-insensitive)
   const isVizagLocation = vizagLocations.some(loc => 
     trimmed.toLowerCase().includes(loc.toLowerCase())
   );
@@ -958,17 +960,14 @@ const isValidLocationFormat = (value) => {
     return true;
   }
   
-  // For custom locations, validate format
   if (trimmed.length < 5) return false;
   if (trimmed.length > 100) return false;
   
-  // Validate address format (should contain at least a word)
   const words = trimmed.split(/\s+/);
   if (words.length < 2) {
     return false;
   }
   
-  // Check if it looks like a valid address (has letters)
   const hasLetters = /[A-Za-z]/.test(trimmed);
   if (!hasLetters) {
     return false;
@@ -991,24 +990,20 @@ const validatePhoneNumber = (value) => {
   
   const digitsOnly = value.replace(/\D/g, '');
   
-  // Check length - must be exactly 10 digits
   if (digitsOnly.length === 0) return "Phone number is required";
   if (digitsOnly.length < 10) return "Phone number must have exactly 10 digits";
   if (digitsOnly.length > 10) return "Phone number must have exactly 10 digits";
   
-  // Check for repeated digits (like 1111111111, 2222222222, 5555555555, 8888888888)
   const isRepeated = /^(\d)\1{9}$/.test(digitsOnly);
   if (isRepeated) {
     return "Invalid phone number - cannot have all digits same";
   }
   
-  // Check for sequential digits (like 1234567890, 9876543210)
   const isSequential = /^(0123456789|1234567890|2345678901|3456789012|4567890123|5678901234|6789012345|7890123456|8901234567|9012345678|9876543210)$/.test(digitsOnly);
   if (isSequential) {
     return "Invalid phone number - cannot be sequential";
   }
   
-  // Indian mobile number validation (starts with 6-9)
   if (!/^[6-9]/.test(digitsOnly)) {
     return "Phone number must start with 6, 7, 8, or 9";
   }
@@ -1024,29 +1019,24 @@ const validateLocation = (value, fieldName) => {
   
   const trimmed = value.trim();
   
-  // Check for invalid characters
   const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
   if (invalidChars.test(trimmed)) {
     return `Special characters $, *, @, #, %, ^, &, !, {, }, [, ], <, >, \\ are not allowed`;
   }
   
-  // Check if it's a valid Vizag location (case-insensitive)
   const isVizagLocation = vizagLocations.some(loc => 
     trimmed.toLowerCase().includes(loc.toLowerCase())
   );
   
   if (!isVizagLocation) {
-    // Allow custom locations but validate format
     if (trimmed.length < 5) return `Please enter a more specific location (at least 5 characters)`;
     if (trimmed.length > 100) return `${fieldName} cannot exceed 100 characters`;
     
-    // Validate address format (should contain at least a word)
     const words = trimmed.split(/\s+/);
     if (words.length < 2) {
       return `Please provide more specific location (e.g., 'Main Road, Gajuwaka')`;
     }
     
-    // Check if it looks like a valid address (has letters)
     const hasLetters = /[A-Za-z]/.test(trimmed);
     if (!hasLetters) {
       return `${fieldName} must contain letters`;
@@ -1057,7 +1047,7 @@ const validateLocation = (value, fieldName) => {
 };
 
 // ---------------------------------------------------------------------------
-// EditTripModal - ENHANCED with location validation and suggestions
+// EditTripModal
 // ---------------------------------------------------------------------------
 const EditTripModal = ({
   isOpen,
@@ -1102,20 +1092,14 @@ const EditTripModal = ({
   const notesRef = useRef(null);
   const phoneRef = useRef(null);
 
-  // FIXED: Get current local time properly
   const freshTime = () => {
     const now = new Date();
-    
-    // Add 5 minutes to current time
     now.setMinutes(now.getMinutes() + 5);
-    
-    // Format to local datetime-local string (YYYY-MM-DDTHH:MM)
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -1146,7 +1130,7 @@ const EditTripModal = ({
       setForm(prev => ({
         ...prev,
         unit_id: "",
-        start_time: freshTime(), // Now shows correct local time + 5 minutes
+        start_time: freshTime(),
         patient_id: "",
         status: "Standby",
         phone_number: "",
@@ -1159,7 +1143,6 @@ const EditTripModal = ({
   const sanitizeInput = (value) =>
     value.replace(/[$*@#%^&!{}[\]<>\\|]/gi, "");
 
-  // FIXED: Check if EITHER dispatcher OR unit is busy in another trip
   const checkDispatcherOrUnitBusy = useCallback(
     (currentForm) => {
       if (!currentForm.dispatch_id || !currentForm.unit_id || !currentForm.start_time) {
@@ -1168,23 +1151,13 @@ const EditTripModal = ({
 
       const newStart = new Date(currentForm.start_time);
       const newEnd = currentForm.end_time ? new Date(currentForm.end_time) : null;
-
-      // If no end time, assume a default duration of 2 hours for overlap checking
       const effectiveNewEnd = newEnd || new Date(newStart.getTime() + 2 * 60 * 60 * 1000);
-
-      console.log('Checking if dispatcher or unit is busy:', {
-        dispatch: currentForm.dispatch_id,
-        unit: currentForm.unit_id,
-        newStart: newStart.toISOString(),
-        newEnd: effectiveNewEnd.toISOString()
-      });
 
       let dispatcherBusy = false;
       let unitBusy = false;
       let conflictingTrip = null;
 
       existingTrips.forEach((t) => {
-        // Skip the trip currently being edited
         if (isEdit && String(t.id) === String(trip?.id)) return;
 
         const tripDispatchId = String(t.dispatch_id || t.dispatch?.id);
@@ -1197,30 +1170,21 @@ const EditTripModal = ({
 
         if (!existStart) return;
 
-        // If existing trip has no end time, assume it's ongoing
         const effectiveExistEnd = existEnd || new Date(existStart.getTime() + 2 * 60 * 60 * 1000);
-
-        // Check for time overlap
         const hasOverlap = newStart < effectiveExistEnd && effectiveNewEnd > existStart;
 
         if (hasOverlap) {
-          // Check if SAME DISPATCHER is busy in another trip (even with different unit)
           if (tripDispatchId === currentDispatchId) {
-            console.log('Dispatcher is busy in another trip:', t.id);
             dispatcherBusy = true;
             conflictingTrip = t;
           }
-          
-          // Check if SAME UNIT is busy in another trip (even with different dispatcher)
           if (tripUnitId === currentUnitId) {
-            console.log('Unit is busy in another trip:', t.id);
             unitBusy = true;
             conflictingTrip = t;
           }
         }
       });
 
-      // Return appropriate error messages based on what's busy
       if (dispatcherBusy && unitBusy) {
         return {
           isBusy: true,
@@ -1253,7 +1217,6 @@ const EditTripModal = ({
   const validateField = useCallback(
     (name, value, currentForm) => {
       const ctx = currentForm || form;
-      // Validate for BOTH create and edit modes - removed the !isCreateMode condition
       
       switch (name) {
         case "dispatch_id":
@@ -1345,7 +1308,7 @@ const EditTripModal = ({
           return "";
       }
     },
-    [form, checkDispatcherOrUnitBusy] // Removed isCreateMode dependency
+    [form, checkDispatcherOrUnitBusy]
   );
 
   // ── handleChange ─────────────────────────────────────────────────────────
@@ -1361,7 +1324,6 @@ const EditTripModal = ({
       if (["pickup_location", "destination"].includes(name)) {
         sanitizedValue = capitalizeWords(sanitizeInput(value));
         
-        // Show location suggestions
         if (sanitizedValue.trim().length > 1) {
           const searchTerm = sanitizedValue.toLowerCase();
           const filtered = vizagLocations.filter(loc => 
@@ -1389,11 +1351,9 @@ const EditTripModal = ({
       const updatedForm = { ...form, [name]: sanitizedValue };
       setForm(updatedForm);
 
-      // Validate for BOTH create and edit modes
       const error = validateField(name, sanitizedValue, updatedForm);
       const newErrors = { ...errors, [name]: error };
 
-      // Re-validate dependent fields
       if (name === "pickup_location" && updatedForm.destination) {
         newErrors.destination = validateField("destination", updatedForm.destination, updatedForm);
       }
@@ -1401,7 +1361,6 @@ const EditTripModal = ({
         newErrors.pickup_location = validateField("pickup_location", updatedForm.pickup_location, updatedForm);
       }
       
-      // Always re-validate both dispatch and unit when either changes or time changes
       if (["dispatch_id", "unit_id", "start_time", "end_time"].includes(name)) {
         if (updatedForm.dispatch_id) {
           newErrors.dispatch_id = validateField("dispatch_id", updatedForm.dispatch_id, updatedForm);
@@ -1418,16 +1377,20 @@ const EditTripModal = ({
 
   const handleFocus = useCallback((fieldName) => setFocusedField(fieldName), []);
 
+  // FIX: On blur, only clear suggestions — do NOT clear them immediately if
+  // a suggestion item is being clicked (mousedown on suggestion calls
+  // e.preventDefault() which stops the blur from firing in the first place,
+  // so this blur handler only runs when focus genuinely leaves without a pick).
   const handleBlur = useCallback(
     (fieldName, value) => {
       setFocusedField(null);
-      // Validate on blur for BOTH create and edit modes
       setErrors((prev) => ({
         ...prev,
         [fieldName]: validateField(fieldName, value),
       }));
       
-      // Clear suggestions on blur
+      // Safe to clear here — if a suggestion was clicked, blur never fires
+      // because onMouseDown called e.preventDefault() on the suggestion item.
       if (fieldName === "pickup_location") {
         setPickupSuggestions([]);
       } else if (fieldName === "destination") {
@@ -1441,14 +1404,12 @@ const EditTripModal = ({
     const sanitizedValue = capitalizeWords(suggestion);
     setForm(prev => ({ ...prev, [fieldName]: sanitizedValue }));
     
-    // Clear suggestions for this field
     if (fieldName === "pickup_location") {
       setPickupSuggestions([]);
     } else {
       setDestinationSuggestions([]);
     }
     
-    // Validate the field
     setErrors(prev => ({
       ...prev,
       [fieldName]: validateField(fieldName, sanitizedValue)
@@ -1468,7 +1429,6 @@ const EditTripModal = ({
       }
     });
 
-    // Check if dispatcher or unit is busy at form submit
     const busyCheck = checkDispatcherOrUnitBusy(form);
     if (busyCheck.isBusy) {
       if (busyCheck.dispatcherBusy && busyCheck.unitBusy) {
@@ -1761,7 +1721,7 @@ const EditTripModal = ({
               isCreateMode={isCreateMode}
             />
 
-            {/* Status dropdown - moved to row 3, column 4 */}
+            {/* Status */}
             <div className="flex flex-col">
               <label className="text-black dark:text-white mb-1">Status</label>
               <Listbox
@@ -1794,14 +1754,7 @@ const EditTripModal = ({
               </Listbox>
             </div>
 
-            {/* Location hint - Full width row */}
-            {/* <div className="col-span-4 mt-2">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Valid Vizag locations: {vizagLocations.slice(0, 5).join(", ")}...
-              </p>
-            </div> */}
-
-            {/* Actions - Full width row with centered buttons */}
+            {/* Actions */}
             <div className="col-span-4 flex justify-center gap-6 mt-4">
               <button
                 type="button"

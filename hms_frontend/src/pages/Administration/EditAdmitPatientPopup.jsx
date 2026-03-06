@@ -74,7 +74,7 @@ const EditAdmitPatientPopup = ({ onClose, room, onSuccess }) => {
       const userRole = currentUser?.role?.toLowerCase();
       const canAdmitDischarge =
         isAdmin ||
-        userRole === "staff" ||
+        userRole === "receptionist" ||
         userRole === "nurse";
 
   // Fetch available beds for a specific bed group

@@ -417,6 +417,7 @@
 
 // export default AddTestPopup;
 
+// AddTestPopup.jsx
 import React, { useState } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
@@ -533,10 +534,9 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
   const [validationErrors, setValidationErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-    const userRole = currentUser?.role?.toLowerCase();
-    const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
-    
-
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
+  
   // Fix for test case: Validate description doesn't contain special characters or numbers
   const validateDescriptionFormat = (value) => {
     if (!value.trim()) return "";
@@ -650,88 +650,84 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
   const validateForm = () => {
     const errors = {};
     
-    // Required field validation (only triggers after submission)
-    if (submitted && !formData.test_type.trim()) {
+    // Required field validation - ALWAYS check these when form is submitted
+    // Test type is required
+    if (!formData.test_type.trim()) {
       errors.test_type = "Test type is required";
     }
     
-    // Status required validation (only triggers after submission)
-    if (submitted && !formData.status.trim()) {
+    // Status is required
+    if (!formData.status) {
       errors.status = "Status is required";
     }
     
-    // Price validation (negative check - shows during typing too)
-    if (formData.price !== "") {
+    // Description is required
+    if (!formData.description.trim()) {
+      errors.description = "Description is required";
+    }
+    
+    // Price is required
+    if (formData.price === "" || formData.price === null) {
+      errors.price = "Price is required";
+    } else {
+      // Price negative validation
       const priceNum = parseFloat(formData.price);
       if (priceNum < 0) {
         errors.price = "Price cannot be negative";
       }
     }
     
-    // Duration validation (negative check - shows during typing too)
-    if (formData.duration_minutes !== "") {
+    // Duration is required
+    if (formData.duration_minutes === "" || formData.duration_minutes === null) {
+      errors.duration_minutes = "Duration is required";
+    } else {
+      // Duration negative validation
       const durationNum = parseInt(formData.duration_minutes);
       if (durationNum < 0) {
         errors.duration_minutes = "Duration cannot be negative";
       }
     }
     
-    // Fix for test case: Validate description format
-    const descError = validateDescriptionFormat(formData.description);
-    if (descError) {
-      errors.description = descError;
+    // Format validation for description (if provided)
+    if (formData.description.trim()) {
+      const descError = validateDescriptionFormat(formData.description);
+      if (descError) {
+        errors.description = descError;
+      }
     }
     
-    // Fix for test case: Validate test type format
-    const testTypeError = validateTestTypeFormat(formData.test_type);
-    if (testTypeError) {
-      errors.test_type = testTypeError;
+    // Format validation for test type (if provided)
+    if (formData.test_type.trim()) {
+      const testTypeError = validateTestTypeFormat(formData.test_type);
+      if (testTypeError) {
+        errors.test_type = testTypeError;
+      }
     }
     
     return errors;
   };
 
   const handleSubmit = async (e) => {
-    
     e.preventDefault();
+    
     if (!canAdd) {
       errorToast("You do not have permission to add tests.");
       return;
     }
+    
     setSubmitted(true);
     
     const errors = validateForm();
     
-    // Check for required fields
-    if (!formData.test_type.trim()) {
-      errors.test_type = "Test type is required";
-    }
-    
-    // Check for status required
-    if (!formData.status.trim()) {
-      errors.status = "Status is required";
-    }
-    
-    // Fix for test case: Final validation of description format
-    const descError = validateDescriptionFormat(formData.description);
-    if (descError) {
-      errors.description = descError;
-    }
-    
-    // Fix for test case: Final validation of test type format
-    const testTypeError = validateTestTypeFormat(formData.test_type);
-    if (testTypeError) {
-      errors.test_type = testTypeError;
-    }
-    
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       
-      // Show specific error toast for format issues
-      if (errors.description) {
+      // Show specific error toast for missing required fields
+      if (errors.test_type || errors.status || errors.description || errors.price || errors.duration_minutes) {
+        errorToast("Please fill in all required fields");
+      } else if (errors.description) {
         errorToast("Invalid description format. Must start with capital letter and not contain numbers or special characters.");
-      }
-      if (errors.test_type) {
+      } else if (errors.test_type) {
         errorToast("Invalid test type format. Must start with capital letter and not contain numbers or special characters.");
       }
       
@@ -840,7 +836,11 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   value={formData.test_type}
                   onChange={handleFormChange}
                   disabled={loading}
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border ${
+                    validationErrors.test_type 
+                      ? "border-red-500" 
+                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="Enter test type (e.g., X-Ray, Blood Test)"
                 />
                 {validationErrors.test_type && (
@@ -856,7 +856,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
               {/* Price */}
               <div>
                 <label className="text-sm text-black dark:text-white mb-1 block">
-                  Price ($)
+                  Price ($) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -864,8 +864,13 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   value={formData.price}
                   onChange={handleFormChange}
                   step="0.01"
+                  min="0"
                   disabled={loading}
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border ${
+                    validationErrors.price 
+                      ? "border-red-500" 
+                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="0.00"
                 />
                 {validationErrors.price && (
@@ -878,7 +883,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
               {/* Description */}
               <div className="col-span-2">
                 <label className="text-sm text-black dark:text-white mb-1 block">
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="description"
@@ -886,7 +891,11 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   onChange={handleFormChange}
                   rows="3"
                   disabled={loading}
-                  className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full px-3 py-2 rounded-[8px] border ${
+                    validationErrors.description 
+                      ? "border-red-500" 
+                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="Enter test description (e.g., Complete Blood Count test)"
                 />
                 {validationErrors.description && (
@@ -902,15 +911,20 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
               {/* Duration */}
               <div>
                 <label className="text-sm text-black dark:text-white mb-1 block">
-                  Duration (minutes)
+                  Duration (minutes) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
                   name="duration_minutes"
                   value={formData.duration_minutes}
                   onChange={handleFormChange}
+                  min="0"
                   disabled={loading}
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border ${
+                    validationErrors.duration_minutes 
+                      ? "border-red-500" 
+                      : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                  } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
                   placeholder="Enter duration"
                 />
                 {validationErrors.duration_minutes && (
@@ -934,8 +948,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                 />
               </div>
             </div>
-
-
 
             {/* Buttons */}
             <div className="flex justify-center gap-4 mt-6">

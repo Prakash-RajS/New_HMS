@@ -410,18 +410,20 @@ useEffect(() => {
                   Username
                 </label>
                 <input
-                  type="text"
-                  id="username"
-                  placeholder="Enter your username"
-                  className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2  focus:outline-none focus:bg-[#0EFF7B1A] transition-all duration-300 hover:border-[#0EFF7B] border border-transparent ${
-                    isLightMode
-                      ? "text-[#00E569E5] placeholder-[#00E569E5] bg-[#0EFF7B1A]"
-                      : "text-white placeholder-gray-400 bg-[#0EFF7B1A]"
-                  }`}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  aria-label="Username"
-                />
+  type="text"
+  id="username"
+  placeholder="Enter your username"
+  className={`min-w-[500px] h-[51px] rounded-[8px] px-3 py-2 focus:outline-none focus:bg-[#0EFF7B1A] transition-all duration-300 hover:border-[#0EFF7B] border border-transparent ${
+    isLightMode
+      ? "text-[#00E569E5] placeholder-[#00E569E5] bg-[#0EFF7B1A]"
+      : "text-white placeholder-gray-400 bg-[#0EFF7B1A]"
+  }`}
+  value={username}
+  onChange={(e) =>
+    setUsername(e.target.value.replace(/\s/g, ""))
+  }
+  aria-label="Username"
+/>
               </motion.div>
 
               <motion.div

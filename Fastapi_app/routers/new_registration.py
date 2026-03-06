@@ -1141,7 +1141,7 @@ async def edit_patient(
             # Out-Patient → In-Patient (RE-ADMIT)
             elif old_patient_type == "Out-patient" and new_patient_type == "in-patient":
 
-                patient.admission_date = today
+                patient.admission_date = None
                 patient.discharge_date = None
 
                 patient.save()

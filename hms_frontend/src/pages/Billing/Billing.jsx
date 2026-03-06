@@ -2293,8 +2293,37 @@ useEffect(() => {
     navigate("/BillingPreview");
   };
 
-  const handleViewInvoice = (invoiceId) => window.open(`${api.defaults.baseURL}/invoices/${invoiceId}.pdf`, "_blank");
-  const handleHospitalViewInvoice = (invoiceId) => window.open(`${api.defaults.baseURL}/invoices_generator/${invoiceId}.pdf`, "_blank");
+  const openAuthenticatedPDF = async (endpoint, invoiceId) => {
+  try {
+    const response = await api.get(endpoint, { responseType: "blob" });
+    const blobUrl = window.URL.createObjectURL(
+      new Blob([response.data], { type: "application/pdf" })
+    );
+    const tab = window.open(blobUrl, "_blank");
+    if (tab) {
+      tab.addEventListener("load", () => window.URL.revokeObjectURL(blobUrl));
+    } else {
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60_000);
+    }
+  } catch (err) {
+    if (err.response?.status === 401) {
+      errorToast("Session expired — please log in again.");
+    } else if (err.response?.status === 403) {
+      errorToast("Access denied — you don't have permission to view this invoice.");
+    } else if (err.response?.status === 404) {
+      errorToast(`Invoice PDF not found for ID: ${invoiceId}`);
+    } else {
+      errorToast("Failed to open invoice PDF.");
+    }
+  }
+};
+
+  const handleViewInvoice = (invoiceId) =>
+  openAuthenticatedPDF(`/billing/pdf/${invoiceId}`, invoiceId);
+
+const handleHospitalViewInvoice = (invoiceId) =>
+  openAuthenticatedPDF(`/hospital-billing/pdf/${invoiceId}`, invoiceId);
+
 
   // ✅ PDF Download — guarded
   const handlePDFDownload = async () => {

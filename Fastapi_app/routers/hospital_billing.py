@@ -1,10 +1,11 @@
 # fastapi_app/routers/hospital_billing.py
 import asyncio
 import json
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, EmailStr
 from django.db.models import F, Count
+from Fastapi_app.routers.user_profile import get_current_user
 
 from HMS_backend.models import (
     HospitalInvoiceHistory, 
@@ -1595,53 +1596,64 @@ async def delete_invoice(invoice_id: str):
 # PDF Download Endpoints
 # -------------------------------
 @router.get("/pdf/{invoice_id}")
-async def download_pdf(invoice_id: str):
+async def download_pdf(
+    invoice_id: str,
+    _current_user=Depends(get_current_user),
+):
     try:
         @sync_to_async
         def fetch_invoice():
             ensure_db_connection()
             return HospitalInvoiceHistory.objects.get(invoice_id=invoice_id)
-        
+
         invoice = await fetch_invoice()
 
-        # Validate PDF is linked in DB
-        if not invoice.pdf_file:
-            raise HTTPException(
-                status_code=404,
-                detail="PDF not generated for this invoice"
-            )
+        pdf_path = None
 
-        # Validate file exists on disk
-        pdf_path = invoice.pdf_file.path
-        if not os.path.exists(pdf_path):
+        # Try 1: path stored in DB
+        if invoice.pdf_file:
+            try:
+                candidate = invoice.pdf_file.path
+                if os.path.exists(candidate):
+                    pdf_path = candidate
+            except Exception:
+                pass
+
+        # Try 2: fallback to known output directory
+        if not pdf_path:
+            fallback = os.path.join(PDF_OUTPUT_DIR, f"{invoice_id}.pdf")
+            if os.path.exists(fallback):
+                pdf_path = fallback
+
+        if not pdf_path:
             raise HTTPException(
                 status_code=404,
-                detail="PDF file missing on server"
+                detail=f"PDF not found for invoice {invoice_id}. It may need to be regenerated."
             )
-        
-        invoice_data = await get_invoice_data(invoice)
-        # await NotificationService.send_hospital_bill_generated(invoice_data)
 
         return FileResponse(
             pdf_path,
             media_type="application/pdf",
             filename=f"{invoice_id}.pdf",
             headers={
-        "Content-Disposition": f"inline; filename={invoice_id}.pdf",
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        "Pragma": "no-cache",
-        "Expires": "0",
-    }
+                "Content-Disposition": f"inline; filename={invoice_id}.pdf",
+                "Cache-Control": "no-store",
+            }
         )
+
     except HospitalInvoiceHistory.DoesNotExist:
         raise HTTPException(status_code=404, detail="Invoice not found")
+    except HTTPException:
+        raise
     except Exception as e:
-        await NotificationService.send_billing_error(str(e), bill_type="PDF Download")
-        raise HTTPException(status_code=500, detail="PDF not available")
+        print(f"❌ PDF fetch error for {invoice_id}: {e}")
+        # Must raise HTTPException — a bare Exception causes FastAPI to
+        # return a 500 without CORS headers, blocking the browser entirely
+        raise HTTPException(status_code=500, detail=f"Failed to load PDF: {str(e)}")
 
 
 @router.post("/download-selected")
-async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks):
+async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: BackgroundTasks, current_user=Depends(get_current_user), ):
     if not invoice_ids.ids:
         raise HTTPException(status_code=400, detail="No invoice IDs provided")
 
@@ -1701,7 +1713,7 @@ async def download_selected_pdfs(invoice_ids: InvoiceIds, background_tasks: Back
 # Export: CSV & Excel (UPDATED)
 # -------------------------------
 @router.get("/export/csv")
-async def export_csv(include_items: bool = False):
+async def export_csv(include_items: bool = False, current_user=Depends(get_current_user), ):
     @sync_to_async
     def fetch_invoices():
         ensure_db_connection()

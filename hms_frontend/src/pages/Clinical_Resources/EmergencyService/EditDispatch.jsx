@@ -457,7 +457,7 @@ const EditDispatchModal = ({
   ];
 
   const [form, setForm] = useState({
-    unit_id: "",
+    unit_id: "", // Start with empty string to show placeholder
     dispatcher: "",
     call_type: "Emergency",
     status: "Standby",
@@ -475,6 +475,7 @@ const EditDispatchModal = ({
   useEffect(() => {
     if (isOpen) {
       if (dispatch) {
+        // For edit mode - populate with dispatch data
         setForm({
           unit_id: dispatch.unit?.id || dispatch.unit_id || "",
           dispatcher: dispatch.dispatcher || "",
@@ -485,8 +486,9 @@ const EditDispatchModal = ({
           timestamp: toLocalDateTimeValue(dispatch.timestamp),
         });
       } else {
+        // For add mode - start with empty unit_id to show "Select Unit" placeholder
         setForm({
-          unit_id: units[0]?.id || "",
+          unit_id: "", // Empty string to show placeholder
           dispatcher: "",
           call_type: "Emergency",
           status: "Standby",
@@ -710,34 +712,41 @@ const EditDispatchModal = ({
       }}>
         <div className="relative mt-1 w-[228px]">
           <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px]">
-            {value
-              ? isObject
-                ? options.find((o) => String(o.id) === String(value))
-                    ?.unit_number || value
+            {value ? (
+              isObject
+                ? options.find((o) => String(o.id) === String(value))?.unit_number || value
                 : value
-              : placeholder}
+            ) : (
+              <span className="text-gray-400 dark:text-gray-500">{placeholder}</span>
+            )}
             <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0EFF7B]" />
           </Listbox.Button>
           <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
-            {options.map((opt) => {
-              const label = isObject ? opt.unit_number || opt.id : opt;
-              const val = isObject ? opt.id : opt;
-              return (
-                <Listbox.Option
-                  key={val}
-                  value={val}
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
-                      active
-                        ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                        : "text-black dark:text-white"
-                    } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                  }
-                >
-                  {label}
-                </Listbox.Option>
-              );
-            })}
+            {options.length > 0 ? (
+              options.map((opt) => {
+                const label = isObject ? opt.unit_number || opt.id : opt;
+                const val = isObject ? opt.id : opt;
+                return (
+                  <Listbox.Option
+                    key={val}
+                    value={val}
+                    className={({ active, selected }) =>
+                      `cursor-pointer select-none py-2 px-2 text-sm rounded-md ${
+                        active
+                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                          : "text-black dark:text-white"
+                      } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+                    }
+                  >
+                    {label}
+                  </Listbox.Option>
+                );
+              })
+            ) : (
+              <div className="py-2 px-2 text-sm text-gray-400 dark:text-gray-500">
+                No units available
+              </div>
+            )}
           </Listbox.Options>
         </div>
       </Listbox>

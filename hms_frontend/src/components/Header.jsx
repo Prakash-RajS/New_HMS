@@ -1,678 +1,4 @@
-// import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
-// import { Moon, Sun, Bell, Settings, LogOut } from "lucide-react";
-// import { ThemeContext } from "./ThemeContext.jsx";
-// import { useNavigate } from "react-router-dom";
-// import { successToast, errorToast } from "./Toast.jsx";
-// import { menuItems } from "./SearchMenu";
-// import { useWebSocket } from "./WebSocketContext";
-// import { usePermissions } from "./PermissionContext";
-// import api from "../utils/axiosConfig";
-
-// // Helper to clear all cookies (used for client-side cleanup during logout)
-// const clearAllCookies = () => {
-//   document.cookie.split(";").forEach(cookie => {
-//     const eqPos = cookie.indexOf("=");
-//     const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-//     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-//   });
-// };
-
-// const Header = ({ isCollapsed }) => {
-//   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-//   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-//   const [isMailOpen, setIsMailOpen] = useState(false);
-//   const [searchQuery, setSearchQuery] = useState("");
-//   const [showSearchResults, setShowSearchResults] = useState(false);
-
-//   const dropdownRef = useRef(null);
-//   const notificationRef = useRef(null);
-//   const mailRef = useRef(null);
-//   const searchInputRef = useRef(null);
-//   const searchDropdownRef = useRef(null);
-
-//   const { theme, toggleTheme } = useContext(ThemeContext);
-//   const { notifications, unreadCount, markAsRead, markAllAsRead, isConnected } =
-//     useWebSocket();
-//   const { hasPermission, getUserName, getUserRole, currentUser } = usePermissions();
-//   const navigate = useNavigate();
-
-//   // Local state for user data (replacing UserContext)
-//   const [userData, setUserData] = useState({
-//     full_name: '',
-//     designation: '',
-//     profile_picture: null,
-//     email: '',
-//     phone: '',
-//     department: '',
-//   });
-
-//   const [userLoading, setUserLoading] = useState(true);
-
-//   // Fetch user data directly
-//   const fetchUserData = async () => {
-//     try {
-//       console.log("🔍 Fetching user data from API...");
-//       const response = await api.get("/profile/me/");
-      
-//       const data = response.data;
-//       const profile = data.profile || {};   // Nested profile
-
-//       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-//       // Use the full URL already provided by backend
-//       let profilePic = profile.profile_picture || null;
-
-//       // Only rebuild if it's a relative path
-//       if (profilePic && !profilePic.startsWith('http')) {
-//         const cleanedPath = profilePic.startsWith('/') ? profilePic : `/${profilePic}`;
-//         profilePic = `${API_BASE}${cleanedPath}`;
-//       }
-
-//       const user = {
-//         full_name:    profile.full_name    || '',
-//         designation:  profile.designation  || '',
-//         profile_picture: profilePic,
-//         email:        profile.email        || '',
-//         phone:        profile.phone        || '',
-//         department:   profile.department   || '',
-//       };
-
-//       console.log("✅ User data fetched:", user);
-//       setUserData(user);
-//       return user;
-//     } catch (error) {
-//       console.error("❌ Error fetching user data:", error);
-//       return null;
-//     } finally {
-//       setUserLoading(false);
-//     }
-//   };
-
-//   // Use userData as the source of truth
-//   const userProfile = useMemo(() => ({
-//     full_name: userData.full_name || getUserName() || "Loading...",
-//     role: userData.designation || getUserRole() || "User",
-//     profile_picture: userData.profile_picture || null,
-//   }), [userData, getUserName, getUserRole]);
-
-//   const initials = userProfile.full_name
-//     .split(" ")
-//     .map((n) => n[0])
-//     .join("")
-//     .toUpperCase()
-//     .slice(0, 2);
-
-//   // === SEARCH LOGIC ===
-//   const getModulePermissionKey = (item) => {
-//     const mapping = {
-//       Dashboard: "dashboard",
-//       Appointments: "appointments",
-//       Patients: "patients_view",
-//       "New Registration": "patients_create",
-//       "Patient Profile": "patients_profile",
-//       Administration: "room_management",
-//       Departments: "departments",
-//       "Room Management": "room_management",
-//       "Bed Management": "bed_management",
-//       "Staff Management": "staff_management",
-//       Pharmacy: "pharmacy_inventory",
-//       "Stock & Inventory": "pharmacy_inventory",
-//       Bill: "pharmacy_billing",
-//       "Doctors / Nurse": "doctors_manage",
-//       "Add Doctor / Nurse": "doctors_manage",
-//       "Doctor / Nurse": "doctors_manage",
-//       MedicineAllocation: "medicine_allocation",
-//       "Clinical Resources": "lab_reports",
-//       "Laboratory Reports": "lab_reports",
-//       "Blood Bank": "blood_bank",
-//       "Ambulance Management": "ambulance",
-//       Billing: "billing",
-//       Accounts: "user_settings",
-//       Settings: "security_settings",
-//     };
-
-//     return (
-//       mapping[item.name] ||
-//       item.path.replace(/^\//, "").replace(/[-/]/g, "_").toLowerCase()
-//     );
-//   };
-
-//   const searchResults = useMemo(() => {
-//     if (!searchQuery.trim()) return [];
-
-//     const q = searchQuery.toLowerCase();
-//     const results = [];
-
-//     const walk = (items, depth = 0) => {
-//       items.forEach((item) => {
-//         const label = item.name.toLowerCase();
-//         const matchesQuery = label.includes(q);
-//         const moduleKey = getModulePermissionKey(item);
-//         const userHasAccess = hasPermission(moduleKey);
-
-//         let hasAccessibleChild = false;
-
-//         if (item.dropdown) {
-//           item.dropdown.forEach((sub) => {
-//             const subKey = getModulePermissionKey(sub);
-//             if (hasPermission(subKey)) {
-//               hasAccessibleChild = true;
-//             }
-//           });
-//         }
-
-//         if (matchesQuery && (userHasAccess || hasAccessibleChild)) {
-//           results.push({
-//             label: item.name,
-//             path: item.path,
-//             icon: item.icon,
-//             depth,
-//           });
-//         }
-
-//         if (item.dropdown) {
-//           item.dropdown.forEach((sub) => {
-//             const subLabel = sub.name.toLowerCase();
-//             const subKey = getModulePermissionKey(sub);
-//             const subHasAccess = hasPermission(subKey);
-
-//             if (subLabel.includes(q) && subHasAccess) {
-//               results.push({
-//                 label: sub.name,
-//                 path: sub.path,
-//                 icon: sub.icon,
-//                 depth: depth + 1,
-//               });
-//             }
-//           });
-//         } else {
-//           if (matchesQuery && userHasAccess) {
-//             results.push({
-//               label: item.name,
-//               path: item.path,
-//               icon: item.icon,
-//               depth,
-//             });
-//           }
-//         }
-//       });
-//     };
-
-//     walk(menuItems);
-//     return results.slice(0, 10);
-//   }, [searchQuery, hasPermission]);
-
-//   const toggleDropdown = () => {
-//     setIsDropdownOpen(!isDropdownOpen);
-//     setIsNotificationOpen(false);
-//     setIsMailOpen(false);
-//     setShowSearchResults(false);
-//   };
-
-//   const toggleNotification = () => {
-//     setIsNotificationOpen(!isNotificationOpen);
-//     setIsDropdownOpen(false);
-//     setIsMailOpen(false);
-//     setShowSearchResults(false);
-//   };
-
-//   const handleNotificationClick = (notification) => {
-//     markAsRead(notification.id);
-//     if (notification.data?.redirect_to) {
-//       navigate(notification.data.redirect_to);
-//     }
-//     setIsNotificationOpen(false);
-//   };
-
-//   const handleLogout = async () => {
-//     setIsDropdownOpen(false);
-//     try {
-//       // Call logout endpoint to clear cookies server-side
-//       await api.post("/auth/logout", {}, { withCredentials: true });
-      
-//       // Clear all cookies client-side
-//       clearAllCookies();
-      
-//       // Trigger storage event for multi-tab sync
-//       window.dispatchEvent(new Event("storage"));
-//       window.dispatchEvent(new Event("userDataUpdated")); // Also trigger user data update
-      
-//       successToast("Logged out successfully!");
-      
-//       // Redirect to login
-//       setTimeout(() => {
-//         window.location.href = "/";
-//       }, 500);
-      
-//     } catch (err) {
-//       console.error("Logout error:", err);
-      
-//       // Even if API call fails, clear local data
-//       clearAllCookies();
-      
-//       if (window.location.pathname !== '/') {
-//         window.location.href = '/';
-//       }
-      
-//       errorToast("Logout failed. Please try again.");
-//     }
-//   };
-
-//   const handleSettingsClick = () => {
-//     navigate("/settings");
-//   };
-
-//   // Listen for profile updates and fetch directly
-//   useEffect(() => {
-//     const handleUserDataUpdate = () => {
-//       console.log("📢 Header: User data update event received");
-//       // Fetch fresh user data when updated from Profile page
-//       fetchUserData();
-//     };
-    
-//     window.addEventListener("userDataUpdated", handleUserDataUpdate);
-    
-//     return () => {
-//       window.removeEventListener("userDataUpdated", handleUserDataUpdate);
-//     };
-//   }, []);
-
-//   // Initial fetch on mount
-//   useEffect(() => {
-//     fetchUserData();
-//   }, []);
-
-//   useEffect(() => {
-//     const handleClickOutside = (event) => {
-//       if (dropdownRef.current && !dropdownRef.current.contains(event.target))
-//         setIsDropdownOpen(false);
-//       if (
-//         notificationRef.current &&
-//         !notificationRef.current.contains(event.target)
-//       )
-//         setIsNotificationOpen(false);
-//       if (mailRef.current && !mailRef.current.contains(event.target))
-//         setIsMailOpen(false);
-//       if (
-//         searchDropdownRef.current &&
-//         !searchDropdownRef.current.contains(event.target) &&
-//         searchInputRef.current &&
-//         !searchInputRef.current.contains(event.target)
-//       ) {
-//         setShowSearchResults(false);
-//       }
-//     };
-//     document.addEventListener("mousedown", handleClickOutside);
-//     return () => document.removeEventListener("mousedown", handleClickOutside);
-//   }, []);
-
-//   useEffect(() => {
-//     const handleKeyDown = (e) => {
-//       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-//         e.preventDefault();
-//         searchInputRef.current?.focus();
-//       }
-//     };
-//     document.addEventListener("keydown", handleKeyDown);
-//     return () => document.removeEventListener("keydown", handleKeyDown);
-//   }, []);
-
-//   const handleSearchKeyDown = (e) => {
-//     if (e.key === "Enter" && searchResults.length > 0) {
-//       navigate(searchResults[0].path);
-//       setSearchQuery("");
-//       setShowSearchResults(false);
-//     }
-//   };
-
-//   const getNotificationColor = (type) => {
-//     switch (type) {
-//       case "info":
-//         return "bg-blue-500";
-//       case "warning":
-//         return "bg-yellow-500";
-//       case "success":
-//         return "bg-green-500";
-//       case "error":
-//         return "bg-red-500";
-//       default:
-//         return "bg-gray-500";
-//     }
-//   };
-
-//   const formatTime = (timestamp) => {
-//     const now = new Date();
-//     const time = new Date(timestamp);
-//     const diffInMinutes = Math.floor((now - time) / (1000 * 60));
-//     if (diffInMinutes < 1) return "Just now";
-//     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-//     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-//     return `${Math.floor(diffInMinutes / 1440)}d ago`;
-//   };
-
-//   return (
-//     <div className="w-full font-[Helvetica]">
-//       <header
-//         className="flex items-center justify-between p-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
-//         style={{
-//     position: "fixed",
-//     top: 0,
-//     left: isCollapsed ? "70px" : "220px",
-//     right: "0",
-//     maxWidth: "100vw",
-//     zIndex: 40,
-//     transition: "left 300ms ease-in-out",
-//   }}
-//       >
-//         <div className="w-[394px]"></div>
-
-//         {/* GLOBAL SEARCH BAR */}
-//         <div className="relative w-[394px] h-[42px] mr-2">
-//           <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-//             <svg
-//               width="18"
-//               height="18"
-//               viewBox="0 0 20 20"
-//               fill="none"
-//               xmlns="http://www.w3.org/2000/svg"
-//             >
-//               <path
-//                 d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-//                 stroke="#08994A"
-//                 strokeWidth="2"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//               />
-//               <path
-//                 d="M17.5 17.5L13.875 13.875"
-//                 stroke="#08994A"
-//                 strokeWidth="2"
-//                 strokeLinecap="round"
-//                 strokeLinejoin="round"
-//               />
-//             </svg>
-//           </div>
-//           <input
-//             ref={searchInputRef}
-//             type="text"
-//             placeholder="Search menu..."
-//             value={searchQuery}
-//             onChange={(e) => {
-//               setSearchQuery(e.target.value);
-//               setShowSearchResults(true);
-//             }}
-//             onFocus={() => searchQuery && setShowSearchResults(true)}
-//             onKeyDown={handleSearchKeyDown}
-//             className="min-w-[393px] h-full rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] pl-12 pr-4 py-1 text-black dark:text-white placeholder-[#00A048] dark:placeholder-[#00A048] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-emerald-500 transition-all"
-//           />
-
-//           {/* SEARCH RESULTS */}
-//           {showSearchResults && (
-//             <div
-//               ref={searchDropdownRef}
-//               className="absolute left-0 right-0 top-full mt-2 w-full bg-gray-100 dark:bg-[#1E1E1E] border border-[#0EFF7B] rounded-lg shadow-xl z-50 overflow-hidden"
-//             >
-//               {searchResults.length > 0 ? (
-//                 <>
-//                   <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">
-//                     {searchResults.length} result
-//                     {searchResults.length > 1 ? "s" : ""}
-//                   </div>
-//                   <ul className="max-h-64 overflow-y-auto">
-//                     {searchResults.map((res, idx) => {
-//                       const Icon = res.icon;
-//                       const indent = res.depth * 16;
-//                       return (
-//                         <li
-//                           key={idx}
-//                           onClick={() => {
-//                             navigate(res.path);
-//                             setSearchQuery("");
-//                             setShowSearchResults(false);
-//                           }}
-//                           className="flex items-center gap-2 px-3 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-700 cursor-pointer transition-colors"
-//                           style={{ paddingLeft: `${indent + 12}px` }}
-//                         >
-//                           <Icon className="w-4 h-4 text-[#08994A] dark:text-emerald-500 flex-shrink-0" />
-//                           <span className="text-sm truncate">{res.label}</span>
-//                           <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
-//                             {res.path.replace(/^\/+/, "")}
-//                           </span>
-//                         </li>
-//                       );
-//                     })}
-//                   </ul>
-//                 </>
-//               ) : searchQuery ? (
-//                 <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-//                   No accessible menu items found
-//                 </div>
-//               ) : null}
-//             </div>
-//           )}
-//         </div>
-
-//         {/* RIGHT SIDE ICONS */}
-//         <div className="flex items-center gap-[20px]">
-//           <button
-//             onClick={toggleTheme}
-//             className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
-//           >
-//             {theme === "dark" ? (
-//               <Sun size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
-//             ) : (
-//               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
-//             )}
-//             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-//               Dark/Light
-//             </span>
-//           </button>
-
-//           <button
-//             onClick={handleSettingsClick}
-//             className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
-//           >
-//             <Settings
-//               size={20}
-//               className="text-[#08994A] dark:text-[#0EFF7B]"
-//             />
-//             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
-//               Settings
-//             </span>
-//           </button>
-
-//           <div className="relative" ref={notificationRef}>
-//             <button
-//               onClick={toggleNotification}
-//               className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
-//             >
-//               <Bell size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
-//               {unreadCount > 0 && (
-//                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-//                   {unreadCount > 9 ? "9+" : unreadCount}
-//                 </span>
-//               )}
-//             </button>
-//             {/* Notification dropdown */}
-//             {isNotificationOpen && (
-//               <div className="absolute right-0 top-full mt-3 w-96 bg-gray-100 dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
-//                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
-//                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-//                   <h3 className="font-semibold text-gray-800 dark:text-white">
-//                     Notifications
-//                   </h3>
-//                   <div className="flex gap-2">
-//                     {unreadCount > 0 && (
-//                       <button
-//                         onClick={markAllAsRead}
-//                         className="text-xs text-[#08994A] dark:text-emerald-400 hover:underline"
-//                       >
-//                         Mark all read
-//                       </button>
-//                     )}
-//                     <span
-//                       className={`text-xs px-2 py-1 rounded-full ${
-//                         isConnected
-//                           ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-//                           : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-//                       }`}
-//                     >
-//                       {isConnected ? "Live" : "Offline"}
-//                     </span>
-//                   </div>
-//                 </div>
-//                 <div className="max-h-80 overflow-auto">
-//                   {notifications.length > 0 ? (
-//                     <div className="p-2">
-//                       {notifications.map((notification) => (
-//                         <div
-//                           key={notification.id}
-//                           onClick={() => handleNotificationClick(notification)}
-//                           className={`p-3 rounded-lg mb-2 cursor-pointer transition-all ${
-//                             !notification.read
-//                               ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
-//                               : "hover:bg-gray-50 dark:hover:bg-gray-700"
-//                           }`}
-//                         >
-//                           <div className="flex items-start gap-3">
-//                             <div
-//                               className={`w-3 h-3 rounded-full mt-1.5 ${getNotificationColor(
-//                                 notification.type
-//                               )}`}
-//                             ></div>
-//                             <div className="flex-1">
-//                               <p
-//                                 className={`text-sm ${
-//                                   !notification.read
-//                                     ? "font-medium text-gray-900 dark:text-white"
-//                                     : "text-gray-700 dark:text-gray-300"
-//                                 }`}
-//                               >
-//                                 {notification.message}
-//                               </p>
-//                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-//                                 {formatTime(notification.timestamp)}
-//                               </p>
-//                             </div>
-//                             {!notification.read && (
-//                               <div className="w-2 h-2 bg-[#08994A] rounded-full mt-1.5"></div>
-//                             )}
-//                           </div>
-//                         </div>
-//                       ))}
-//                     </div>
-//                   ) : (
-//                     <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-//                       No notifications
-//                     </div>
-//                   )}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
-
-//           {/* Profile Dropdown */}
-//           <div className="relative font-[Helvetica]" ref={dropdownRef}>
-//             <div
-//               className="relative group flex items-center gap-3 cursor-pointer min-w-[163px] h-[32px]"
-//               onClick={toggleDropdown}
-//             >
-//               <div className="relative w-8 h-8 min-w-8 min-h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0 border-2 border-white dark:border-gray-800">
-//                 {userProfile.profile_picture ? (
-//                   <img
-//                     src={userProfile.profile_picture}
-//                     alt={userProfile.full_name}
-//                     className="w-full h-full object-cover"
-//                     onError={(e) => {
-//                       console.error("Error loading profile image:", e);
-//                       e.target.style.display = "none";
-//                     }}
-//                   />
-//                 ) : null}
-//                 <span
-//                   className={`flex items-center justify-center w-full h-full ${
-//                     userProfile.profile_picture ? "hidden" : ""
-//                   }`}
-//                 >
-//                   {initials}
-//                 </span>
-//               </div>
-//               <div className="flex flex-col">
-//                 <span className="text-sm font-medium whitespace-nowrap text-ellipsis group-hover:text-[#08994A] dark:group-hover:text-emerald-400 text-black dark:text-white transition-colors">
-//                   {userProfile.full_name}
-//                 </span>
-//                 <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
-//                   {userProfile.role}
-//                 </span>
-//               </div>
-//               <svg
-//                 width="16"
-//                 height="16"
-//                 viewBox="0 0 24 24"
-//                 fill="none"
-//                 xmlns="http://www.w3.org/2000/svg"
-//                 className={`text-gray-600 dark:text-gray-400 group-hover:text-[#08994A] dark:group-hover:text-emerald-400 transition-colors shrink-0 ${
-//                   isDropdownOpen ? "rotate-180" : ""
-//                 }`}
-//               >
-//                 <path
-//                   d="M6 9L12 15L18 9"
-//                   stroke="currentColor"
-//                   strokeWidth="2"
-//                   strokeLinecap="round"
-//                   strokeLinejoin="round"
-//                 />
-//               </svg>
-//             </div>
-
-//             {isDropdownOpen && (
-//               <div className="absolute right-[60px] top-full mt-5 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-50">
-//                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
-//                 <div className="py-3">
-//                   <ul>
-//                     <li
-//                       onClick={() => {
-//                         setIsDropdownOpen(false);
-//                         navigate("/profile");
-//                       }}
-//                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
-//                     >
-//                       Profile
-//                     </li>
-//                     <li
-//                       onClick={() => {
-//                         setIsDropdownOpen(false);
-//                         navigate("/UserSettings");
-//                       }}
-//                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
-//                     >
-//                       Settings
-//                     </li>
-//                     <li
-//                       onClick={() => {
-//                         setIsDropdownOpen(false);
-//                         handleLogout();
-//                       }}
-//                       className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer transition-colors rounded mx-2"
-//                     >
-//                       Logout
-//                     </li>
-//                   </ul>
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-//       </header>
-//     </div>
-//   );
-// };
-
-// export default Header;
-
-
+//src/components/Header.jsx
 import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
 import { Moon, Sun, Bell, Settings, LogOut } from "lucide-react";
 import { ThemeContext } from "./ThemeContext.jsx";
@@ -1431,3 +757,1046 @@ const searchResults = useMemo(() => {
 };
 
 export default Header;
+
+
+
+// //src/components/Header.jsx
+// import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
+// import { Moon, Sun, Bell, Settings, LogOut } from "lucide-react";
+// import { ThemeContext } from "./ThemeContext.jsx";
+// import { useNavigate } from "react-router-dom";
+// import { successToast, errorToast, warningToast } from "./Toast.jsx";
+// import { menuItems } from "./SearchMenu";
+// import { useWebSocket } from "./WebSocketContext";
+// import { usePermissions } from "./PermissionContext";
+// import api from "../utils/axiosConfig";
+
+// // Helper to clear all cookies (used for client-side cleanup during logout)
+// const clearAllCookies = () => {
+//   document.cookie.split(";").forEach(cookie => {
+//     const eqPos = cookie.indexOf("=");
+//     const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+//     document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+//   });
+// };
+
+// const Header = ({ isCollapsed }) => {
+//   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+//   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+//   const [isMailOpen, setIsMailOpen] = useState(false);
+//   const [searchQuery, setSearchQuery] = useState("");
+//   const [showSearchResults, setShowSearchResults] = useState(false);
+//   const [permissionDeniedNotification, setPermissionDeniedNotification] = useState(null);
+
+//   const dropdownRef = useRef(null);
+//   const notificationRef = useRef(null);
+//   const mailRef = useRef(null);
+//   const searchInputRef = useRef(null);
+//   const searchDropdownRef = useRef(null);
+
+//   const { theme, toggleTheme } = useContext(ThemeContext);
+//   const { 
+//     notifications, 
+//     unreadCount, 
+//     markAsRead, 
+//     markAllAsRead, 
+//     isConnected,
+//     handleNotificationClick: wsHandleNotificationClick 
+//   } = useWebSocket();
+  
+//   const { hasPermission, getUserName, getUserRole, currentUser } = usePermissions();
+//   const navigate = useNavigate();
+
+//   // Local state for user data (replacing UserContext)
+//   const [userData, setUserData] = useState({
+//     full_name: '',
+//     designation: '',
+//     profile_picture: null,
+//     email: '',
+//     phone: '',
+//     department: '',
+//   });
+
+//   const [userLoading, setUserLoading] = useState(true);
+
+//   const isAdmin = useMemo(() => {
+//     const role = getUserRole()?.toLowerCase() || userData.designation?.toLowerCase();
+//     return role === 'admin' || role === 'administrator' || hasPermission('admin_access');
+//   }, [getUserRole, userData.designation, hasPermission]);
+
+//   // Fetch user data directly
+//   const fetchUserData = async () => {
+//     try {
+//       console.log("🔍 Fetching user data from API...");
+//       const response = await api.get("/profile/me/");
+      
+//       const data = response.data;
+//       const profile = data.profile || {};   // Nested profile
+
+//       const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+//       // Use the full URL already provided by backend
+//       let profilePic = profile.profile_picture || null;
+
+//       // Only rebuild if it's a relative path
+//       if (profilePic && !profilePic.startsWith('http')) {
+//         const cleanedPath = profilePic.startsWith('/') ? profilePic : `/${profilePic}`;
+//         profilePic = `${API_BASE}${cleanedPath}`;
+//       }
+
+//       const user = {
+//         full_name:    profile.full_name    || '',
+//         designation:  profile.designation  || '',
+//         profile_picture: profilePic,
+//         email:        profile.email        || '',
+//         phone:        profile.phone        || '',
+//         department:   profile.department   || '',
+//       };
+
+//       console.log("✅ User data fetched:", user);
+//       setUserData(user);
+//       return user;
+//     } catch (error) {
+//       console.error("❌ Error fetching user data:", error);
+//       return null;
+//     } finally {
+//       setUserLoading(false);
+//     }
+//   };
+
+//   // Use userData as the source of truth
+//   const userProfile = useMemo(() => ({
+//     full_name: userData.full_name || getUserName() || "Loading...",
+//     role: userData.designation || getUserRole() || "User",
+//     profile_picture: userData.profile_picture || null,
+//   }), [userData, getUserName, getUserRole]);
+
+//   const initials = userProfile.full_name
+//     .split(" ")
+//     .map((n) => n[0])
+//     .join("")
+//     .toUpperCase()
+//     .slice(0, 2);
+
+//   // === PERMISSION-BASED ROUTE MAPPING ===
+//   const getAccessibleRoute = (originalRoute, requiredPermission) => {
+//     // Define fallback routes for users without permission
+//     const routeMapping = {
+//       '/Administration/Departments': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'departments'
+//       },
+//       '/appointments': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'appointments'
+//       },
+//       '/patients/profile': {
+//         fallback: '/dashboard',
+//         requiredPermissions: ['patients_view', 'patients_create', 'patients_edit', 'surgeries']
+//       },
+//       '/ClinicalResources/Laboratory/LaboratoryReports': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'lab_reports'
+//       },
+//       '/Administration/StaffManagement': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'staff_view'
+//       },
+//       '/ambulance': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'ambulance'
+//       },
+//       '/Doctors-Nurse/MedicineAllocation': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'medicine_allocation'
+//       },
+//       '/Pharmacy/Stock-Inventory': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'pharmacy_inventory'
+//       },
+//       '/billing-page': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'billing'
+//       },
+//       '/Administration/BedList': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'bed_management'
+//       },
+//       '/ClinicalResources/ClinicalReports/BloodBank': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'blood_bank'
+//       },
+//       '/Administration/roommanagement': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'room_management'
+//       },
+//       '/settings': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'settings_access'
+//       },
+//       '/profile': {
+//         fallback: '/dashboard',
+//         requiredPermission: 'profile_view'
+//       }
+//     };
+
+//     const mapping = routeMapping[originalRoute];
+    
+//     // If route is not in mapping, check if user has access based on path pattern
+//     if (!mapping) {
+//       // Try to extract permission from path
+//       if (originalRoute.includes('department') || originalRoute.includes('Departments')) {
+//         return hasPermission('departments') ? originalRoute : '/dashboard';
+//       }
+//       if (originalRoute.includes('appointment')) {
+//         return hasPermission('appointments') ? originalRoute : '/dashboard';
+//       }
+//       if (originalRoute.includes('patient')) {
+//         return hasPermission('patients_view') ? originalRoute : '/dashboard';
+//       }
+//       if (originalRoute.includes('billing')) {
+//         return hasPermission('billing') ? originalRoute : '/dashboard';
+//       }
+//       return originalRoute; // Return original route, let router handle 403
+//     }
+
+//     // Check if user has permission for this route
+//     if (hasPermission(mapping.requiredPermission)) {
+//       return originalRoute;
+//     }
+
+//     // User doesn't have permission, return fallback
+//     console.log(`🚫 User lacks ${mapping.requiredPermission} permission. Redirecting to ${mapping.fallback}`);
+//     return mapping.fallback;
+//   };
+
+//   // === ENHANCED NOTIFICATION CLICK HANDLER ===
+//   const handleNotificationClick = (notification) => {
+//     // Mark as read immediately
+//     markAsRead(notification.id);
+
+//     if (!notification.data?.redirect_to) {
+//       return;
+//     }
+
+//     // Get required permission from notification data or map from event type
+//     const requiredPermission = notification.required_permission || 
+//                                notification.data?.required_permission || 
+//                                mapEventToPermission(notification.event_type);
+
+//     // Check if user has permission
+//     if (requiredPermission && !hasPermission(requiredPermission)) {
+//       // Show permission denied message
+//       setPermissionDeniedNotification({
+//         message: `You don't have permission to view this page. Contact admin for ${requiredPermission} access.`,
+//         originalRoute: notification.data.redirect_to,
+//         requiredPermission
+//       });
+      
+//       // Auto-hide after 4 seconds
+//       setTimeout(() => setPermissionDeniedNotification(null), 4000);
+      
+//       // Show toast as additional feedback
+//       warningToast(`⚠️ Access denied: You need ${requiredPermission} permission`);
+      
+//       return;
+//     }
+
+//     // Get accessible route based on user permissions
+//     const targetRoute = getAccessibleRoute(
+//       notification.data.redirect_to,
+//       requiredPermission
+//     );
+
+//     // Navigate to accessible route
+//     navigate(targetRoute);
+    
+//     // Close notification dropdown
+//     setIsNotificationOpen(false);
+
+//     // Show feedback if redirected to fallback
+//     if (targetRoute !== notification.data.redirect_to) {
+//       warningToast(`Redirected to dashboard due to insufficient permissions`);
+//     }
+//   };
+
+//   // Map event type to required permission
+//   const mapEventToPermission = (eventType) => {
+//     const permissionMap = {
+//       // Department notifications
+//       'department_created': 'departments',
+//       'department_updated': 'departments',
+//       'department_deleted': 'departments',
+//       'department_status_changed': 'departments',
+      
+//       // Appointment notifications
+//       'appointment_created': 'appointments',
+//       'appointment_updated': 'appointments',
+//       'appointment_deleted': 'appointments',
+//       'appointment_status_changed': 'appointments',
+      
+//       // Patient notifications
+//       'patient_registered': 'patients_view',
+//       'patient_updated': 'patients_view',
+//       'patient_deleted': 'patients_view',
+//       'patient_admitted': 'patients_view',
+//       'patient_discharged': 'patients_view',
+      
+//       // Lab notifications
+//       'lab_report_created': 'lab_reports',
+//       'lab_report_updated': 'lab_reports',
+//       'lab_report_deleted': 'lab_reports',
+//       'lab_report_completed': 'lab_reports',
+      
+//       // Staff notifications
+//       'staff_registered': 'staff_view',
+//       'staff_updated': 'staff_view',
+//       'staff_deleted': 'staff_view',
+      
+//       // Ambulance notifications
+//       'ambulance_unit_created': 'ambulance',
+//       'ambulance_unit_updated': 'ambulance',
+//       'ambulance_unit_deleted': 'ambulance',
+//       'ambulance_dispatch_updated': 'ambulance',
+//       'ambulance_dispatch_deleted': 'ambulance',
+//       'ambulance_trip_deleted': 'ambulance',
+      
+//       // Medicine notifications
+//       'medicine_allocated': 'medicine_allocation',
+//       'medicine_updated': 'medicine_allocation',
+//       'medicine_deleted': 'medicine_allocation',
+      
+//       // Stock notifications
+//       'stock_added': 'pharmacy_inventory',
+//       'stock_updated': 'pharmacy_inventory',
+//       'stock_deleted': 'pharmacy_inventory',
+//       'stock_low': 'pharmacy_inventory',
+//       'stock_out': 'pharmacy_inventory',
+      
+//       // Billing notifications
+//       'invoice_generated': 'billing',
+//       'payment_received': 'billing',
+//       'payment_failed': 'billing',
+//       'invoice_updated': 'billing',
+//       'invoice_deleted': 'billing',
+//       'pharmacy_bill_generated': 'billing',
+//       'pharmacy_payment_received': 'billing',
+//       'hospital_bill_generated': 'billing',
+//       'hospital_payment_received': 'billing',
+      
+//       // Bed management notifications
+//       'bed_group_created': 'bed_management',
+//       'bed_group_updated': 'bed_management',
+//       'bed_group_deleted': 'bed_management',
+//       'bed_created': 'bed_management',
+//       'bed_updated': 'bed_management',
+//       'bed_deleted': 'bed_management',
+//       'bed_allocated': 'bed_management',
+//       'bed_vacated': 'bed_management',
+//       'room_occupancy_changed': 'bed_management',
+//       'bed_capacity_changed': 'bed_management',
+      
+//       // Blood bank notifications
+//       'blood_group_created': 'blood_bank',
+//       'blood_group_updated': 'blood_bank',
+//       'blood_group_deleted': 'blood_bank',
+//       'blood_stock_updated': 'blood_bank',
+//       'blood_stock_low': 'blood_bank',
+//       'blood_stock_out': 'blood_bank',
+//       'blood_donation_received': 'blood_bank',
+//       'blood_issued': 'blood_bank',
+//       'donor_registered': 'blood_bank',
+//       'donor_updated': 'blood_bank',
+//       'donor_deleted': 'blood_bank',
+//       'urgent_blood_request': 'blood_bank',
+      
+//       // System notifications
+//       'emergency_alert': 'dashboard',
+//       'system_alert': 'dashboard',
+//     };
+    
+//     return permissionMap[eventType] || null;
+//   };
+
+//   // === SEARCH LOGIC ===
+//   const getModulePermissionKey = (item) => {
+//     const mapping = {
+//       Dashboard: "dashboard",
+//       Appointments: "appointments",
+
+//       Patients: "patients_view",
+//       "New Registration": "patients_create",
+//       "IPD / OPD Patient": "patients_view",
+//       "Patient Profile": "patients_profile",
+//       Surgeries: "surgeries",
+
+//       Administration: "room_management",
+//       Departments: "departments",
+//       "Room Management": "room_management",
+
+//       Pharmacy: "pharmacy_inventory",
+//       "Stock & Inventory": "pharmacy_inventory",
+//       Bill: "pharmacy_billing",
+
+//       "Doctors / Nurse": "doctors_manage",
+//       "Add Doctor / Nurse": "doctors_manage",
+//       "Doctor / Nurse": "doctors_manage",
+//       "Medicine Allocation": "medicine_allocation",
+
+//       "Clinical Resources": "lab_reports",
+//       "Laboratory Reports": "lab_reports",
+//       "Laboratory Management": "laboratory_manage",
+//       "Blood Bank": "blood_bank",
+//       "Ambulance Management": "ambulance",
+
+//       Billing: "billing",
+//       "Charges Management": "charges_management",
+//       "Billing Preview": "billing_preview",
+
+//       Accounts: "user_settings",
+//       Settings: "settings_access",
+//     };
+
+//     return (
+//       mapping[item.name] ||
+//       item.path.replace(/^\//, "").replace(/[-/]/g, "_").toLowerCase()
+//     );
+//   };
+
+//   // In Header.jsx, update the searchResults useMemo
+//   const searchResults = useMemo(() => {
+//     if (!searchQuery.trim()) return [];
+
+//     const q = searchQuery.toLowerCase();
+//     const results = [];
+
+//     const walk = (items, depth = 0) => {
+//       items.forEach((item) => {
+//         const label = item.name.toLowerCase();
+//         const matchesQuery = label.includes(q);
+        
+//         // Check if user has access to this item
+//         let userHasAccess = false;
+        
+//         // Special handling for Settings
+//         if (item.name === "Settings") {
+//           userHasAccess = currentUser?.is_superuser || 
+//                          currentUser?.role === "admin" || 
+//                          hasPermission("settings_access");
+//         }
+//         // Special handling for Accounts
+//         else if (item.name === "Accounts") {
+//           userHasAccess = hasPermission("user_settings");
+//         }
+//         // For items with dropdowns
+//         else if (item.dropdown) {
+//           userHasAccess = item.dropdown.some((sub) =>
+//             hasPermission(getModulePermissionKey(sub))
+//           );
+//         }
+//         // Regular items
+//         else {
+//           userHasAccess = hasPermission(getModulePermissionKey(item));
+//         }
+
+//         // Push parent if matches and has access
+//         if (matchesQuery && userHasAccess) {
+//           results.push({
+//             label: item.name,
+//             path: item.path,
+//             icon: item.icon,
+//             depth,
+//           });
+//         }
+
+//         // Handle children
+//         if (item.dropdown) {
+//           item.dropdown.forEach((sub) => {
+//             const subLabel = sub.name.toLowerCase();
+//             const subHasAccess = hasPermission(
+//               getModulePermissionKey(sub)
+//             );
+
+//             if (subLabel.includes(q) && subHasAccess) {
+//               results.push({
+//                 label: sub.name,
+//                 path: sub.path,
+//                 icon: sub.icon,
+//                 depth: depth + 1,
+//               });
+//             }
+//           });
+//         }
+//       });
+//     };
+
+//     walk(menuItems);
+//     return results.slice(0, 10);
+//   }, [searchQuery, hasPermission, currentUser]);
+
+//   // Function to clear search properly
+//   const handleClearSearch = () => {
+//     setSearchQuery("");
+//     setShowSearchResults(false); // This ensures dropdown is completely hidden
+//     searchInputRef.current?.focus();
+//   };
+
+//   const toggleDropdown = () => {
+//     setIsDropdownOpen(!isDropdownOpen);
+//     setIsNotificationOpen(false);
+//     setIsMailOpen(false);
+//     setShowSearchResults(false);
+//     setPermissionDeniedNotification(null);
+//   };
+
+//   const toggleNotification = () => {
+//     setIsNotificationOpen(!isNotificationOpen);
+//     setIsDropdownOpen(false);
+//     setIsMailOpen(false);
+//     setShowSearchResults(false);
+//     setPermissionDeniedNotification(null);
+//   };
+
+//   const handleLogout = async () => {
+//     setIsDropdownOpen(false);
+//     try {
+//       // Call logout endpoint to clear cookies server-side
+//       await api.post("/auth/logout", {}, { withCredentials: true });
+      
+//       // Clear all cookies client-side
+//       clearAllCookies();
+      
+//       // Trigger storage event for multi-tab sync
+//       window.dispatchEvent(new Event("storage"));
+//       window.dispatchEvent(new Event("userDataUpdated")); // Also trigger user data update
+      
+//       successToast("Logged out successfully!");
+      
+//       // Redirect to login
+//       setTimeout(() => {
+//         window.location.href = "/";
+//       }, 500);
+      
+//     } catch (err) {
+//       console.error("Logout error:", err);
+      
+//       // Even if API call fails, clear local data
+//       clearAllCookies();
+      
+//       if (window.location.pathname !== '/') {
+//         window.location.href = '/';
+//       }
+      
+//       errorToast("Logout failed. Please try again.");
+//     }
+//   };
+
+//   const handleSettingsClick = () => {
+//     navigate("/settings");
+//   };
+
+//   // Listen for profile updates and fetch directly
+//   useEffect(() => {
+//     const handleUserDataUpdate = () => {
+//       console.log("📢 Header: User data update event received");
+//       // Fetch fresh user data when updated from Profile page
+//       fetchUserData();
+//     };
+    
+//     window.addEventListener("userDataUpdated", handleUserDataUpdate);
+    
+//     return () => {
+//       window.removeEventListener("userDataUpdated", handleUserDataUpdate);
+//     };
+//   }, []);
+
+//   // Initial fetch on mount
+//   useEffect(() => {
+//     fetchUserData();
+//   }, []);
+
+//   // Auto-hide permission denied notification
+//   useEffect(() => {
+//     if (permissionDeniedNotification) {
+//       const timer = setTimeout(() => {
+//         setPermissionDeniedNotification(null);
+//       }, 4000);
+//       return () => clearTimeout(timer);
+//     }
+//   }, [permissionDeniedNotification]);
+
+//   useEffect(() => {
+//     const handleClickOutside = (event) => {
+//       if (dropdownRef.current && !dropdownRef.current.contains(event.target))
+//         setIsDropdownOpen(false);
+//       if (
+//         notificationRef.current &&
+//         !notificationRef.current.contains(event.target)
+//       )
+//         setIsNotificationOpen(false);
+//       if (mailRef.current && !mailRef.current.contains(event.target))
+//         setIsMailOpen(false);
+//       if (
+//         searchDropdownRef.current &&
+//         !searchDropdownRef.current.contains(event.target) &&
+//         searchInputRef.current &&
+//         !searchInputRef.current.contains(event.target)
+//       ) {
+//         setShowSearchResults(false);
+//       }
+//       // Don't clear permission denied notification on outside click
+//     };
+//     document.addEventListener("mousedown", handleClickOutside);
+//     return () => document.removeEventListener("mousedown", handleClickOutside);
+//   }, []);
+
+//   useEffect(() => {
+//     const handleKeyDown = (e) => {
+//       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+//         e.preventDefault();
+//         searchInputRef.current?.focus();
+//       }
+//       if (e.key === "Escape" && (searchQuery || showSearchResults)) {
+//         e.preventDefault();
+//         handleClearSearch();
+//       }
+//     };
+//     document.addEventListener("keydown", handleKeyDown);
+//     return () => document.removeEventListener("keydown", handleKeyDown);
+//   }, [searchQuery, showSearchResults]);
+
+//   const handleSearchKeyDown = (e) => {
+//     if (e.key === "Enter" && searchResults.length > 0) {
+//       navigate(searchResults[0].path);
+//       handleClearSearch();
+//     }
+//     if (e.key === "Escape") {
+//       handleClearSearch();
+//     }
+//   };
+
+//   const getNotificationColor = (type) => {
+//     switch (type) {
+//       case "info":
+//         return "bg-blue-500";
+//       case "warning":
+//         return "bg-yellow-500";
+//       case "success":
+//         return "bg-green-500";
+//       case "error":
+//         return "bg-red-500";
+//       default:
+//         return "bg-gray-500";
+//     }
+//   };
+
+//   const formatTime = (timestamp) => {
+//     const now = new Date();
+//     const time = new Date(timestamp);
+//     const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+//     if (diffInMinutes < 1) return "Just now";
+//     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+//     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+//     return `${Math.floor(diffInMinutes / 1440)}d ago`;
+//   };
+
+//   return (
+//     <div className="w-full font-[Helvetica]">
+//       <header
+//         className="flex items-center justify-between p-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] gap-[20px] transition-all duration-300 ease-in-out"
+//         style={{
+//           position: "fixed",
+//           top: 0,
+//           left: isCollapsed ? "70px" : "220px",
+//           right: "0",
+//           maxWidth: "100vw",
+//           zIndex: 40,
+//           transition: "left 300ms ease-in-out",
+//         }}
+//       >
+//         <div className="w-[394px]"></div>
+
+//         {/* GLOBAL SEARCH BAR */}
+//         <div className="relative w-[394px] h-[42px] mr-2">
+//           <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+//             <svg
+//               width="18"
+//               height="18"
+//               viewBox="0 0 20 20"
+//               fill="none"
+//               xmlns="http://www.w3.org/2000/svg"
+//             >
+//               <path
+//                 d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+//                 stroke="#08994A"
+//                 strokeWidth="2"
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//               />
+//               <path
+//                 d="M17.5 17.5L13.875 13.875"
+//                 stroke="#08994A"
+//                 strokeWidth="2"
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//               />
+//             </svg>
+//           </div>
+          
+//           <input
+//             ref={searchInputRef}
+//             type="text"
+//             placeholder="Search menu..."
+//             value={searchQuery}
+//             onChange={(e) => {
+//               const value = e.target.value;
+//               setSearchQuery(value);
+//               // Only show results if there's actually text
+//               setShowSearchResults(value.trim().length > 0);
+//             }}
+//             onFocus={() => {
+//               // Only show results on focus if there's already text
+//               if (searchQuery.trim().length > 0) {
+//                 setShowSearchResults(true);
+//               }
+//             }}
+//             onKeyDown={handleSearchKeyDown}
+//             className="min-w-[393px] h-full rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] pl-12 pr-10 py-1 text-black dark:text-white placeholder-[#00A048] dark:placeholder-[#00A048] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-emerald-500 transition-all"
+//           />
+          
+//           {/* Clear button (X) - only show when there's text */}
+//           {searchQuery && (
+//             <button
+//               onClick={handleClearSearch}
+//               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+//               aria-label="Clear search"
+//               type="button"
+//             >
+//               <svg
+//                 width="16"
+//                 height="16"
+//                 viewBox="0 0 24 24"
+//                 fill="none"
+//                 xmlns="http://www.w3.org/2000/svg"
+//                 className="text-[#08994A] dark:text-emerald-400"
+//               >
+//                 <path
+//                   d="M18 6L6 18M6 6L18 18"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                   strokeLinecap="round"
+//                   strokeLinejoin="round"
+//                 />
+//               </svg>
+//             </button>
+//           )}
+
+//           {/* SEARCH RESULTS - Only show when there's a query AND we should show results */}
+//           {showSearchResults && searchQuery.trim() && (
+//             <div
+//               ref={searchDropdownRef}
+//               className="absolute left-0 right-0 top-full mt-2 w-full bg-gray-100 dark:bg-[#1E1E1E] border border-[#0EFF7B] rounded-lg shadow-xl z-50 overflow-hidden"
+//             >
+//               {searchResults.length > 0 ? (
+//                 <>
+//                   <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">
+//                     {searchResults.length} result{searchResults.length > 1 ? "s" : ""}
+//                   </div>
+//                   <ul className="max-h-64 overflow-y-auto">
+//                     {searchResults.map((res, idx) => {
+//                       const Icon = res.icon;
+//                       const indent = res.depth * 16;
+//                       return (
+//                         <li
+//                           key={idx}
+//                           onClick={() => {
+//                             navigate(res.path);
+//                             handleClearSearch();
+//                           }}
+//                           className="flex items-center gap-2 px-3 py-2 hover:bg-[#0EFF7B1A] dark:hover:bg-gray-700 cursor-pointer transition-colors"
+//                           style={{ paddingLeft: `${indent + 12}px` }}
+//                         >
+//                           <Icon className="w-4 h-4 text-[#08994A] dark:text-emerald-500 flex-shrink-0" />
+//                           <span className="text-sm truncate">{res.label}</span>
+//                           <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
+//                             {res.path.replace(/^\/+/, "")}
+//                           </span>
+//                         </li>
+//                       );
+//                     })}
+//                   </ul>
+//                 </>
+//               ) : (
+//                 <div className="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+//                   No accessible menu items found for "{searchQuery}"
+//                 </div>
+//               )}
+//             </div>
+//           )}
+//         </div>
+
+//         {/* RIGHT SIDE ICONS */}
+//         <div className="flex items-center gap-[20px]">
+//           <button
+//             onClick={toggleTheme}
+//             className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
+//           >
+//             {theme === "dark" ? (
+//               <Sun size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
+//             ) : (
+//               <Moon size={20} className="text-[#08994A] dark:text-[#E4E4E7]" />
+//             )}
+//             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+//               Dark/Light
+//             </span>
+//           </button>
+
+//           {isAdmin && (
+//             <button
+//               onClick={handleSettingsClick}
+//               className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
+//             >
+//               <Settings
+//                 size={20}
+//                 className="text-[#08994A] dark:text-[#0EFF7B]"
+//               />
+//               <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">
+//                 Settings
+//               </span>
+//             </button>
+//           )}
+
+//           <div className="relative" ref={notificationRef}>
+//             <button
+//               onClick={toggleNotification}
+//               className="relative group p-2 rounded-[8px] bg-[#0EFF7B1A] dark:bg-[#1E1E1E] border border-[#0EFF7B] hover:bg-[#0EFF7B1A] dark:hover:bg-gray-800 transition-colors"
+//             >
+//               <Bell size={20} className="text-[#08994A] dark:text-[#0EFF7B]" />
+//               {unreadCount > 0 && (
+//                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+//                   {unreadCount > 9 ? "9+" : unreadCount}
+//                 </span>
+//               )}
+//             </button>
+
+//             {/* Permission Denied Toast */}
+//             {permissionDeniedNotification && (
+//               <div className="absolute top-12 right-0 w-72 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow-lg z-[60]">
+//                 <div className="flex items-start space-x-2">
+//                   <svg
+//                     width="20"
+//                     height="20"
+//                     viewBox="0 0 24 24"
+//                     fill="none"
+//                     xmlns="http://www.w3.org/2000/svg"
+//                     className="text-yellow-500 flex-shrink-0 mt-0.5"
+//                   >
+//                     <path
+//                       d="M12 9V14M12 17V17.5M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+//                       stroke="currentColor"
+//                       strokeWidth="2"
+//                       strokeLinecap="round"
+//                     />
+//                     <circle cx="12" cy="9" r="1" fill="currentColor" />
+//                   </svg>
+//                   <p className="text-xs text-yellow-700 dark:text-yellow-300">
+//                     {permissionDeniedNotification.message}
+//                   </p>
+//                 </div>
+//               </div>
+//             )}
+
+//             {/* Notification dropdown */}
+//             {isNotificationOpen && (
+//               <div className="absolute right-0 top-full mt-3 w-96 bg-gray-100 dark:bg-[#1E1E1E] border-[1px] border-[#0EFF7B] dark:border-[#0EFF7B] rounded-lg shadow-xl z-50 font-[Helvetica]">
+//                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-[#1E1E1E] border-l border-t border-[#0EFF7B] dark:border-[#0EFF7B]"></div>
+//                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+//                   <h3 className="font-semibold text-gray-800 dark:text-white">
+//                     Notifications
+//                   </h3>
+//                   <div className="flex gap-2">
+//                     {unreadCount > 0 && (
+//                       <button
+//                         onClick={markAllAsRead}
+//                         className="text-xs text-[#08994A] dark:text-emerald-400 hover:underline"
+//                       >
+//                         Mark all read
+//                       </button>
+//                     )}
+//                     <span
+//                       className={`text-xs px-2 py-1 rounded-full ${
+//                         isConnected
+//                           ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+//                           : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+//                       }`}
+//                     >
+//                       {isConnected ? "Live" : "Offline"}
+//                     </span>
+//                   </div>
+//                 </div>
+//                 <div className="max-h-80 overflow-auto">
+//                   {notifications.length > 0 ? (
+//                     <div className="p-2">
+//                       {notifications.map((notification) => {
+//                         const requiredPermission = notification.required_permission || 
+//                                                    notification.data?.required_permission ||
+//                                                    mapEventToPermission(notification.event_type);
+//                         const hasAccess = !requiredPermission || hasPermission(requiredPermission);
+                        
+//                         return (
+//                           <div
+//                             key={notification.id}
+//                             onClick={() => handleNotificationClick(notification)}
+//                             className={`p-3 rounded-lg mb-2 cursor-pointer transition-all ${
+//                               !notification.read
+//                                 ? "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+//                                 : "hover:bg-gray-50 dark:hover:bg-gray-700"
+//                             } ${!hasAccess ? 'opacity-75' : ''}`}
+//                           >
+//                             <div className="flex items-start gap-3">
+//                               <div
+//                                 className={`w-3 h-3 rounded-full mt-1.5 ${getNotificationColor(
+//                                   notification.type
+//                                 )}`}
+//                               ></div>
+//                               <div className="flex-1">
+//                                 <p
+//                                   className={`text-sm ${
+//                                     !notification.read
+//                                       ? "font-medium text-gray-900 dark:text-white"
+//                                       : "text-gray-700 dark:text-gray-300"
+//                                   }`}
+//                                 >
+//                                   {notification.message}
+//                                 </p>
+//                                 <div className="flex items-center justify-between mt-1">
+//                                   <p className="text-xs text-gray-500 dark:text-gray-400">
+//                                     {formatTime(notification.timestamp)}
+//                                   </p>
+//                                   {!hasAccess && (
+//                                     <span className="text-xs text-yellow-600 dark:text-yellow-400">
+//                                       ⚠️ No access
+//                                     </span>
+//                                   )}
+//                                 </div>
+//                               </div>
+//                               {!notification.read && (
+//                                 <div className="w-2 h-2 bg-[#08994A] rounded-full mt-1.5"></div>
+//                               )}
+//                             </div>
+//                           </div>
+//                         );
+//                       })}
+//                     </div>
+//                   ) : (
+//                     <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+//                       No notifications
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+//             )}
+//           </div>
+
+//           <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
+
+//           {/* Profile Dropdown */}
+//           <div className="relative font-[Helvetica]" ref={dropdownRef}>
+//             <div
+//               className="relative group flex items-center gap-3 cursor-pointer min-w-[163px] h-[32px]"
+//               onClick={toggleDropdown}
+//             >
+//               <div className="relative w-8 h-8 min-w-8 min-h-8 rounded-full overflow-hidden bg-gradient-to-br from-[#0EFF7B] to-[#08994A] dark:from-emerald-500 dark:to-emerald-700 flex items-center justify-center text-white font-medium shrink-0 border-2 border-white dark:border-gray-800">
+//                 {userProfile.profile_picture ? (
+//                   <img
+//                     src={userProfile.profile_picture}
+//                     alt={userProfile.full_name}
+//                     className="w-full h-full object-cover"
+//                     onError={(e) => {
+//                       console.error("Error loading profile image:", e);
+//                       e.target.style.display = "none";
+//                     }}
+//                   />
+//                 ) : null}
+//                 <span
+//                   className={`flex items-center justify-center w-full h-full ${
+//                     userProfile.profile_picture ? "hidden" : ""
+//                   }`}
+//                 >
+//                   {initials}
+//                 </span>
+//               </div>
+//               <div className="flex flex-col">
+//                 <span className="text-sm font-medium whitespace-nowrap text-ellipsis group-hover:text-[#08994A] dark:group-hover:text-emerald-400 text-black dark:text-white transition-colors">
+//                   {userProfile.full_name}
+//                 </span>
+//                 <span className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">
+//                   {userProfile.role}
+//                 </span>
+//               </div>
+//               <svg
+//                 width="16"
+//                 height="16"
+//                 viewBox="0 0 24 24"
+//                 fill="none"
+//                 xmlns="http://www.w3.org/2000/svg"
+//                 className={`text-gray-600 dark:text-gray-400 group-hover:text-[#08994A] dark:group-hover:text-emerald-400 transition-colors shrink-0 ${
+//                   isDropdownOpen ? "rotate-180" : ""
+//                 }`}
+//               >
+//                 <path
+//                   d="M6 9L12 15L18 9"
+//                   stroke="currentColor"
+//                   strokeWidth="2"
+//                   strokeLinecap="round"
+//                   strokeLinejoin="round"
+//                 />
+//               </svg>
+//             </div>
+
+//             {isDropdownOpen && (
+//               <div className="absolute right-[60px] top-full mt-5 w-48 bg-gray-100 dark:bg-gray-800 border border-[#0EFF7B] dark:border-[#1E1E1E] rounded-lg shadow-xl z-100">
+//                 <div className="absolute -top-2 right-4 w-4 h-4 transform rotate-45 bg-gray-100 dark:bg-gray-800 border-l border-t border-[#0EFF7B] dark:border-[#1E1E1E]"></div>
+//                 <div className="py-3">
+//                   <ul>
+//                     <li
+//                       onClick={() => {
+//                         setIsDropdownOpen(false);
+//                         navigate("/profile");
+//                       }}
+//                       className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
+//                     >
+//                       Profile
+//                     </li>
+//                     {isAdmin && (
+//                       <li
+//                         onClick={() => {
+//                           setIsDropdownOpen(false);
+//                           navigate("/UserSettings");
+//                         }}
+//                         className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-[#08994A] dark:hover:bg-gray-700 hover:text-white cursor-pointer transition-colors rounded mx-2"
+//                       >
+//                         Settings
+//                       </li>
+//                     )}
+//                     <li
+//                       onClick={() => {
+//                         setIsDropdownOpen(false);
+//                         handleLogout();
+//                       }}
+//                       className="px-4 py-2 text-red-500 hover:bg-red-600 hover:text-white cursor-pointer transition-colors rounded mx-2"
+//                     >
+//                       Logout
+//                     </li>
+//                   </ul>
+//                 </div>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       </header>
+//     </div>
+//   );
+// };
+
+// export default Header;
