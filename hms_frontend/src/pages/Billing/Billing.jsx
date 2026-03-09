@@ -2102,17 +2102,21 @@ const fetchHospitalInvoices = async () => {
       throw new Error("Invalid response format");
     }
     const mappedData = data.map((inv) => ({
-      id: inv.invoice_id,
-      date: inv.date,
-      patientName: inv.patient_name,
-      patientId: inv.patient_id,
-      department: inv.department,
-      amount: `$${inv.amount?.toFixed(2) || "0.00"}`,
-      paymentMethod: inv.payment_method || "-",
-      status: inv.status,
-      rawAmount: inv.amount,
-      rawPaymentMethod: inv.payment_method,
-    }));
+  id: inv.invoice_id,
+  date: inv.date,
+  patientName: inv.patient_name,
+  patientId: inv.patient_id,
+  department: inv.department,
+
+  // ✅ show paid amount
+  amount: `$${inv.paid_amount?.toFixed(2) || "0.00"}`,
+
+  paymentMethod: inv.payment_method || "-",
+  status: inv.status,
+
+  rawAmount: inv.paid_amount,
+  rawPaymentMethod: inv.payment_method,
+}));
     setHospitalInvoiceData(mappedData);
     const stats = calculateStatistics(mappedData);
     setHospitalTotalBillsToday(stats.todayCount);

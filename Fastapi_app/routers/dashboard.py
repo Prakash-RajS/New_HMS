@@ -1406,25 +1406,43 @@ def get_financial_statistics():
     year_ago = today - timedelta(days=365)
     
     # Hospital revenue
-    total_revenue = HospitalInvoiceHistory.objects.aggregate(
-        total=Sum('amount')
-    )['total'] or 0
+    total_revenue = HospitalInvoiceHistory.objects.exclude(
+    payment_type__in=["Consolidate", "Full Settlement", "Partial Settlement"]
+).aggregate(
+    total=Sum('amount')
+)['total'] or 0
     
     today_revenue = HospitalInvoiceHistory.objects.filter(
-        date=today
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    date=today
+).exclude(
+    payment_type__in=["Consolidate", "Full Settlement", "Partial Settlement"]
+).aggregate(
+    total=Sum('amount')
+)['total'] or 0
     
     weekly_revenue = HospitalInvoiceHistory.objects.filter(
-        date__gte=week_ago
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    date__gte=week_ago
+).exclude(
+    payment_type__in=["Consolidate", "Full Settlement", "Partial Settlement"]
+).aggregate(
+    total=Sum('amount')
+)['total'] or 0
     
     monthly_revenue = HospitalInvoiceHistory.objects.filter(
-        date__gte=month_ago
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    date__gte=month_ago
+).exclude(
+    payment_type__in=["Consolidate", "Full Settlement", "Partial Settlement"]
+).aggregate(
+    total=Sum('amount')
+)['total'] or 0
     
     yearly_revenue = HospitalInvoiceHistory.objects.filter(
-        date__gte=year_ago
-    ).aggregate(total=Sum('amount'))['total'] or 0
+    date__gte=year_ago
+).exclude(
+    payment_type__in=["Consolidate", "Full Settlement", "Partial Settlement"]
+).aggregate(
+    total=Sum('amount')
+)['total'] or 0
     
     # Pharmacy revenue
     try:

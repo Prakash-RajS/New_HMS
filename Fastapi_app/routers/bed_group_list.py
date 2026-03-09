@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Form, Body, Depends
 from pydantic import BaseModel, ConfigDict, validator, Field
 from typing import List, Optional, Dict, Any
-from HMS_backend.models import BedGroup, Bed, Patient
+from HMS_backend.models import BedGroup, Bed, Patient, PatientHistory
 import django.db.models as models
 from datetime import datetime
 from asgiref.sync import sync_to_async
@@ -437,15 +437,67 @@ async def check_bed_range(payload: dict = Body(...)):
 # GET ALL BED GROUPS
 @router.get("/all", response_model=List[BedGroupResponse])
 async def get_bed_groups():
-    """Get all bed groups with their beds"""
-    # Prefetch all related data in one query
-    groups = await sync_to_async(lambda: (ensure_db_connection(), list(
-        BedGroup.objects.all().prefetch_related('beds__patient')
-    ))[1])()
+    """Get all bed groups with their beds (Optimized)"""
+
+    # ✅ Fetch everything in ONE DB hit
+    groups = await sync_to_async(
+        lambda: list(
+            BedGroup.objects.prefetch_related(
+                models.Prefetch(
+                    "beds",
+                    queryset=Bed.objects.select_related("patient")
+                )
+            )
+        )
+    )()
+
     results = []
+
     for group in groups:
-        result = await BedGroupResponse.from_orm_with_beds(group)
-        results.append(result)
+
+        beds = []
+        bed_numbers = []
+
+        # ✅ Uses PREFETCHED DATA (NO DB QUERY HERE)
+        for bed in group.beds.all():
+            bed_numbers.append(bed.bed_number)
+
+            patient_info = None
+            if bed.patient:
+                patient_info = PatientInfo(
+                    id=str(bed.patient.patient_unique_id),
+                    name=str(bed.patient.full_name),
+                    admission_date=bed.patient.admission_date,
+                )
+
+            beds.append(
+                BedResponse(
+                    id=bed.id,
+                    bed_number=bed.bed_number,
+                    is_occupied=bed.is_occupied,
+                    patient=patient_info,
+                )
+            )
+
+        # ✅ Bed range calculation
+        if bed_numbers:
+            bed_range = f"{min(bed_numbers)}-{max(bed_numbers)}"
+        else:
+            bed_range = "1-1"
+
+        results.append(
+            BedGroupResponse(
+                id=group.id,
+                bedGroup=group.bedGroup,
+                capacity=group.capacity,
+                occupied=group.occupied,
+                unoccupied=group.unoccupied,
+                status=group.status,
+                bed_range=bed_range,
+                beds=beds,
+            )
+        )
+
     return results
 
 # GET BEDS OF A GROUP
@@ -661,6 +713,19 @@ async def admit_patient(admit_request: AdmitPatientRequest):
     formatted_room = f"{bed_group.bedGroup} - {admit_request.bed_number}"
     patient.admission_date = admit_date
     patient.room_number = formatted_room
+
+    await sync_to_async(
+    lambda: PatientHistory.objects.create(
+        patient=patient,
+        patient_name=patient.full_name,
+        doctor=patient.staff.full_name if patient.staff else None,
+        department=patient.department.name if patient.department else None,
+        status="Admitted",
+        current_status="In-patient",
+        admission_date=admit_date,
+        discharge_date=None
+    )
+)()
     
     # Save only these fields
     await sync_to_async(lambda: (ensure_db_connection(), patient.save(
@@ -784,28 +849,55 @@ async def vacate_bed(group_id: int, bed_number: int):
             exists = await sync_to_async(
                 lambda: TreatmentCharge.objects.filter(
                     patient=patient,
-                    description=charge.charge
+                    description=charge.charge,
+                    hospital_invoice__isnull=True
                 ).exists()
             )()
 
             if not exists:
+                # Calculate amount
+                amount = charge.unit_price * stay_days
+                
+                # Get tax percent (if exists)
+                tax_percent = charge.tax_percent if hasattr(charge, 'tax_percent') and charge.tax_percent is not None else 0
+                
                 await sync_to_async(
                     lambda: TreatmentCharge.objects.create(
                         patient=patient,
                         description=charge.charge,
-                        quantity=stay_days,   # 🔥 Daily calculation
+                        quantity=stay_days,
                         unit_price=charge.unit_price,
+                        amount=amount,
+                        tax_percent=tax_percent,  # Include tax percent from charge
+                        status="PENDING"
                     )
                 )()
+
                 charges_created = True
                 created_count += 1
 
     # -----------------------------
-    # DISCHARGE PATIENT
+    # DISCHARGE PATIENT (Bed Vacate Only)
     # -----------------------------
     if patient:
-        patient.discharge_date = datetime.now().date()
-        await sync_to_async(lambda: patient.save())()
+        discharge_date = datetime.now().date()
+
+        patient.discharge_date = discharge_date
+
+        await sync_to_async(lambda: patient.save(update_fields=["discharge_date"]))()
+
+        await sync_to_async(
+            lambda: PatientHistory.objects.create(
+                patient=patient,
+                patient_name=patient.full_name,
+                doctor=patient.staff.full_name if patient.staff else None,
+                department=patient.department.name if patient.department else None,
+                status="Discharged",
+                current_status="In-patient",
+                admission_date=patient.admission_date,
+                discharge_date=discharge_date
+            )
+        )()
 
     bed.is_occupied = False
     bed.patient = None

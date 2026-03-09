@@ -468,6 +468,8 @@ class PatientHistory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     admission_date = models.DateField(null=True, blank=True)
     discharge_date = models.DateField(null=True, blank=True)
+
+    current_status = models.CharField(max_length=50, blank=True, null=True)
     
     class Meta:
         db_table = "patient_history"
@@ -969,7 +971,7 @@ class Permission(models.Model):
     @classmethod
     def initialize_default_permissions(cls):
         """Initialize default permissions for all roles"""
-        roles = ["receptionist", "doctor", "nurse", "billing_staff", "admin"]
+        roles = ["receptionist", "doctor", "nurse", "Billing Staff", "admin", "staff"]
 
         default_permissions = {
             "receptionist": [
@@ -985,7 +987,7 @@ class Permission(models.Model):
                 "dashboard", "patients_view", "patients_profile",
                 "medicine_allocation", "bed_management"
             ],
-            "billing_staff": [
+            "Billing Staff": [
                 "dashboard",
                 "billing",
                 "pharmacy_billing",
@@ -1111,7 +1113,7 @@ class HospitalInvoiceHistory(models.Model):
         default="Full Payment"
     )
 
-    admission_date = models.DateField(default=timezone.now)
+    admission_date = models.DateField(null=True, blank=True)
     discharge_date = models.DateField(null=True, blank=True)
     doctor = models.CharField(max_length=100, default="N/A")
     phone = models.CharField(max_length=20, default="N/A")
@@ -1531,6 +1533,12 @@ class Charge(models.Model):
         max_length=20,
         choices=CHARGE_SCOPE,
         default=GENERAL
+    )
+    tax_percent = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        blank=True, 
+        null=True,
     )
     
     def __str__(self):

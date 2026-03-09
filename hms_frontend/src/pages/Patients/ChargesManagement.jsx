@@ -1,4 +1,4 @@
-// ChargesManagement.jsx (COMPLETE UPDATED CODE WITH LISTBOX DROPDOWNS)
+// ChargesManagement.jsx (COMPLETE UPDATED CODE WITH LISTBOX DROPDOWNS AND TAX PERCENT FIELD)
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -15,11 +15,11 @@ import {
   Globe,
   Lock,
   ChevronDown,
+  Percent,
 } from "lucide-react";
 import { Dialog, Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig.js";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-import { usePermissions } from "../../components/PermissionContext"; // ✅ RBAC
 
 const ChargesManagement = () => {
   // State for charges
@@ -34,8 +34,7 @@ const ChargesManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-const { isAdmin } = usePermissions();
-  const canManage = isAdmin;
+
   // Selected charge
   const [selectedCharge, setSelectedCharge] = useState(null);
 
@@ -45,6 +44,7 @@ const { isAdmin } = usePermissions();
     unit_price: "",
     description: "",
     charge_scope: "GENERAL", // Default to GENERAL
+    tax_percent: "", // Optional tax percentage
   });
 
   const [editFormData, setEditFormData] = useState({
@@ -52,6 +52,7 @@ const { isAdmin } = usePermissions();
     unit_price: "",
     description: "",
     charge_scope: "GENERAL",
+    tax_percent: "",
   });
 
   // Validation errors
@@ -153,6 +154,7 @@ const { isAdmin } = usePermissions();
       unit_price: "",
       description: "",
       charge_scope: "GENERAL",
+      tax_percent: "",
     });
     setValidationErrors({});
   };
@@ -164,6 +166,7 @@ const { isAdmin } = usePermissions();
       unit_price: "",
       description: "",
       charge_scope: "GENERAL",
+      tax_percent: "",
     });
     setEditValidationErrors({});
   };
@@ -220,15 +223,23 @@ const { isAdmin } = usePermissions();
       errors.charge_scope = "Invalid charge scope";
     }
 
+    // Validate tax_percent if provided
+    if (data.tax_percent && data.tax_percent.trim() !== "") {
+      const taxValue = parseFloat(data.tax_percent);
+      if (isNaN(taxValue)) {
+        errors.tax_percent = "Tax percent must be a valid number";
+      } else if (taxValue < 0) {
+        errors.tax_percent = "Tax percent cannot be negative";
+      } else if (taxValue > 100) {
+        errors.tax_percent = "Tax percent cannot exceed 100";
+      }
+    }
+
     return errors;
   };
 
   // Handle add charge
   const handleAddCharge = async () => {
-    if (!canManage) {
-    errorToast("You don't have permission to add charges");
-    return;
-  }
     const errors = validateForm(formData);
 
     if (Object.keys(errors).length > 0) {
@@ -243,6 +254,11 @@ const { isAdmin } = usePermissions();
         description: formData.description.trim() || null,
         charge_scope: formData.charge_scope,
       };
+
+      // Add tax_percent only if provided and not empty
+      if (formData.tax_percent && formData.tax_percent.trim() !== "") {
+        chargeData.tax_percent = parseFloat(formData.tax_percent);
+      }
 
       console.log("Creating charge:", chargeData);
 
@@ -267,10 +283,6 @@ const { isAdmin } = usePermissions();
 
   // Handle edit charge
   const handleEditCharge = async () => {
-    if (!canManage) {
-    errorToast("You don't have permission to edit charges");
-    return;
-  }
     if (!selectedCharge) return;
 
     const errors = validateForm(editFormData);
@@ -287,6 +299,13 @@ const { isAdmin } = usePermissions();
         description: editFormData.description.trim() || null,
         charge_scope: editFormData.charge_scope,
       };
+
+      // Add tax_percent if provided and not empty, otherwise set to null to clear it
+      if (editFormData.tax_percent && editFormData.tax_percent.trim() !== "") {
+        chargeData.tax_percent = parseFloat(editFormData.tax_percent);
+      } else {
+        chargeData.tax_percent = null; // Explicitly set to null to clear tax percent
+      }
 
       console.log("Updating charge:", selectedCharge.id, chargeData);
 
@@ -312,10 +331,6 @@ const { isAdmin } = usePermissions();
 
   // Handle delete charge
   const handleDeleteCharge = async () => {
-    if (!canManage) {
-    errorToast("You don't have permission to delete charges");
-    return;
-  }
     if (!selectedCharge) return;
 
     try {
@@ -340,16 +355,13 @@ const { isAdmin } = usePermissions();
 
   // Open edit modal
   const openEditModal = (charge) => {
-    if (!canManage) {
-    errorToast("You don't have permission to edit charges");
-    return;
-  }
     setSelectedCharge(charge);
     setEditFormData({
       charge: charge.charge,
       unit_price: charge.unit_price.toString(),
       description: charge.description || "",
       charge_scope: charge.charge_scope || "GENERAL",
+      tax_percent: charge.tax_percent ? charge.tax_percent.toString() : "",
     });
     setEditValidationErrors({});
     setShowEditModal(true);
@@ -357,10 +369,6 @@ const { isAdmin } = usePermissions();
 
   // Open delete modal
   const openDeleteModal = (charge) => {
-    if (!canManage) {
-    errorToast("You don't have permission to delete charges");
-    return;
-  }
     setSelectedCharge(charge);
     setShowDeleteModal(true);
   };
@@ -378,6 +386,18 @@ const { isAdmin } = usePermissions();
     } catch (e) {
       return dateString;
     }
+  };
+
+  // Format tax percent to remove .00 if it's a whole number
+  const formatTaxPercent = (taxValue) => {
+    if (!taxValue) return null;
+    const num = parseFloat(taxValue);
+    // Check if it's a whole number (no decimal or .00)
+    if (Number.isInteger(num)) {
+      return num.toString();
+    }
+    // Otherwise show with 2 decimal places
+    return num.toFixed(2);
   };
 
   // Get scope badge styling
@@ -442,28 +462,15 @@ const { isAdmin } = usePermissions();
           <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
             Charges Management
           </h2>
-          <div className="relative group">
-            <button
-              onClick={() => {
-                if (!canManage) return;
-                resetForm();
-                setShowAddModal(true);
-              }}
-              disabled={!canManage}
-              className={`flex items-center gap-2 border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out
-                ${canManage
-                  ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
-                  : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
-                }`}
-            >
-              <Plus size={18} className="text-white" /> Add New Charge
-            </button>
-            {!canManage && (
-              <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
-                Admin Only
-              </span>
-            )}
-          </div>
+          <button
+            onClick={() => {
+              resetForm();
+              setShowAddModal(true);
+            }}
+            className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
+          >
+            <Plus size={18} className="text-white font-[Helvetica]" /> Add New Charge
+          </button>
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
@@ -510,7 +517,7 @@ const { isAdmin } = usePermissions();
 
           {/* Scope Filter Dropdown - Now using Listbox */}
           <div className="flex items-center gap-2">
-            {/* <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" /> */}
+            <Filter size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
             <div className="relative min-w-[140px]">
               <Listbox value={scopeFilter} onChange={setScopeFilter}>
                 <Listbox.Button
@@ -597,17 +604,18 @@ const { isAdmin } = usePermissions();
                 <th className="py-3 px-2">S No</th>
                 <th>Charge Name</th>
                 <th>Unit Price ($)</th>
+                <th>Tax (%)</th>
                 <th>Scope</th>
                 <th>Description</th>
                 <th>Created At</th>
-                {canManage && <th className="text-center">Actions</th>}
+                <th className="text-center">Actions</th>
               </tr>
             </thead>
 
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={canManage ? 6 : 5} className="text-center py-12">
+                  <td colSpan="8" className="text-center py-12">
                     <div className="flex justify-center items-center">
                       <Loader2 className="w-8 h-8 text-[#0EFF7B] animate-spin" />
                       <span className="ml-3 text-[#0EFF7B]">Loading charges...</span>
@@ -617,6 +625,7 @@ const { isAdmin } = usePermissions();
               ) : currentCharges.length > 0 ? (
                 currentCharges.map((charge, idx) => {
                   const scopeBadge = getScopeBadge(charge.charge_scope);
+                  const formattedTax = charge.tax_percent ? formatTaxPercent(charge.tax_percent) : null;
                   return (
                     <tr
                       key={charge.id}
@@ -641,6 +650,17 @@ const { isAdmin } = usePermissions();
                         </div>
                       </td>
 
+                      <td className="text-black dark:text-white">
+                        {formattedTax ? (
+                          <div className="flex items-center gap-1">
+                            {formattedTax}
+                            <Percent size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 dark:text-gray-600">—</span>
+                        )}
+                      </td>
+
                       <td>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${scopeBadge.bg} ${scopeBadge.text}`}>
                           {scopeBadge.icon}
@@ -656,10 +676,8 @@ const { isAdmin } = usePermissions();
                         {formatDate(charge.created_at)}
                       </td>
 
-                      {canManage && (
                       <td className="text-center">
                         <div className="flex justify-center gap-4 relative overflow-visible">
-                          {/* Edit */}
                           <div className="relative group">
                             <Pencil
                               size={16}
@@ -670,7 +688,7 @@ const { isAdmin } = usePermissions();
                               Edit
                             </span>
                           </div>
-                          {/* Delete */}
+
                           <div className="relative group">
                             <Trash
                               size={16}
@@ -683,13 +701,12 @@ const { isAdmin } = usePermissions();
                           </div>
                         </div>
                       </td>
-                    )}
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={canManage ? 6 : 5} className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  <td colSpan="8" className="text-center py-12 text-gray-500 dark:text-gray-400">
                     {searchQuery || scopeFilter !== "ALL" ? (
                       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                         <Package className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600" />
@@ -834,6 +851,35 @@ const { isAdmin } = usePermissions();
                   )}
                 </div>
 
+                {/* Tax Percent Field - New */}
+                <div>
+                  <label className="text-sm text-black dark:text-white block mb-1">
+                    Tax Percent (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={formData.tax_percent}
+                      onChange={(e) => handleFormChange("tax_percent", e.target.value)}
+                      onFocus={() => setFocusedField("addTaxPercent")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Enter tax percentage"
+                      className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                        focusedField === "addTaxPercent"
+                          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                      }`}
+                    />
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
+                  </div>
+                  {validationErrors.tax_percent && (
+                    <p className="text-red-500 text-xs mt-1">{validationErrors.tax_percent}</p>
+                  )}
+                </div>
+
                 {/* Charge Scope Dropdown - Now using Listbox */}
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
@@ -906,7 +952,7 @@ const { isAdmin } = usePermissions();
 
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
-                    Description (Optional)
+                    Description
                   </label>
                   <textarea
                     value={formData.description}
@@ -1039,6 +1085,35 @@ const { isAdmin } = usePermissions();
                   )}
                 </div>
 
+                {/* Tax Percent Field - New */}
+                <div>
+                  <label className="text-sm text-black dark:text-white block mb-1">
+                    Tax Percent (%)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={editFormData.tax_percent}
+                      onChange={(e) => handleEditFormChange("tax_percent", e.target.value)}
+                      onFocus={() => setFocusedField("editTaxPercent")}
+                      onBlur={() => setFocusedField(null)}
+                      placeholder="Enter tax percentage"
+                      className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+                        focusedField === "editTaxPercent"
+                          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                      }`}
+                    />
+                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
+                  </div>
+                  {editValidationErrors.tax_percent && (
+                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.tax_percent}</p>
+                  )}
+                </div>
+
                 {/* Charge Scope Dropdown - Now using Listbox */}
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
@@ -1111,7 +1186,7 @@ const { isAdmin } = usePermissions();
 
                 <div>
                   <label className="text-sm text-black dark:text-white block mb-1">
-                    Description (Optional)
+                    Description
                   </label>
                   <textarea
                     value={editFormData.description}
@@ -1212,6 +1287,13 @@ const { isAdmin } = usePermissions();
                     ${selectedCharge ? parseFloat(selectedCharge.unit_price).toFixed(2) : '0.00'}
                   </span>
                 </p>
+                {selectedCharge?.tax_percent && (
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Tax: <span className="font-semibold">
+                      {formatTaxPercent(selectedCharge.tax_percent)}%
+                    </span>
+                  </p>
+                )}
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
                   Scope: <span className="font-semibold">
                     {selectedCharge?.charge_scope === "GENERAL" ? "General" : "Specific"}

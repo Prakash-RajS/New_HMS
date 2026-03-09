@@ -764,7 +764,7 @@
 // export default AppointmentListIPD;
 
 // src/components/patients/AppointmentListIPD.jsx
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -788,7 +788,6 @@ import { usePermissions } from "../../components/PermissionContext";
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
-  const [allAppointments, setAllAppointments] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
   const [page, setPage] = useState(1);
@@ -811,14 +810,10 @@ const AppointmentListIPD = () => {
   const [loadingFilterDocs, setLoadingFilterDocs] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
 
-const userRole = currentUser?.role?.toLowerCase();
-const canEdit =
-  isAdmin ||
-  userRole === "receptionist";
-  const canAdd =
-  isAdmin || userRole === "receptionist";
-
-const canDelete = isAdmin;
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEdit = isAdmin || userRole === "receptionist";
+  const canAdd = isAdmin || userRole === "receptionist";
+  const canDelete = isAdmin;
   
   // Add state for patient counts from backend
   const [patientCounts, setPatientCounts] = useState({
@@ -842,75 +837,83 @@ const canDelete = isAdmin;
   // Status filters - removed "Completed"
   const statusFilters = ["All", "New", "Normal", "Severe", "Cancelled"];
 
-  // ---------- FETCH PATIENT COUNTS FROM BACKEND ----------
-  const fetchPatientCounts = async () => {
+  // ---------- FETCH PATIENT COUNTS FROM BACKEND (Parallel requests) ----------
+  const fetchPatientCounts = useCallback(async () => {
     try {
-      // You might need to create a new endpoint for counts, or use existing one with limit=1 to get total
-      // For now, we'll fetch a small batch to get total count from response
-      const response = await api.get("/patients/", {
-        params: { limit: 1, page: 1 }
-      });
-      
-      const json = response.data;
-      
-      // Get in-patients count (excluding completed/discharged)
-      const inPatientResponse = await api.get("/patients/", {
-        params: { 
-          limit: 1, 
-          page: 1,
-          type: "in-patient" 
-        }
-      });
-      
-      // Get out-patients count
-      const outPatientResponse = await api.get("/patients/", {
-        params: { 
-          limit: 1, 
-          page: 1,
-          type: "out-patient" 
-        }
-      });
-      
-      // For OPD (completed/discharged) you might want to use your /opd endpoint
-      const opdResponse = await api.get("/patients/opd", {
-        params: { limit: 1, page: 1 }
-      });
+      // Make parallel requests for better performance
+      const [totalResponse, inPatientResponse, outPatientResponse] = await Promise.all([
+        api.get("/patients/", { params: { limit: 1, page: 1 } }),
+        api.get("/patients/", { params: { limit: 1, page: 1, type: "in-patient" } }),
+        api.get("/patients/", { params: { limit: 1, page: 1, type: "out-patient" } })
+      ]);
       
       setPatientCounts({
-        total: json.total || 0,
+        total: totalResponse.data.total || 0,
         inPatient: inPatientResponse.data.total || 0,
         outPatient: outPatientResponse.data.total || 0
-        // If you want OPD count separately, you can add it here
       });
       
     } catch (e) {
       console.error("Error fetching patient counts:", e);
-      // Fallback to frontend calculation if backend fails
-      if (allAppointments.length > 0) {
-        const inCount = allAppointments.filter(p => p.patient_type === "in-patient" && p.status !== "Completed").length;
-        const outCount = allAppointments.filter(p => p.patient_type === "out-patient").length;
-        setPatientCounts({
-          total: inCount + outCount,
-          inPatient: inCount,
-          outPatient: outCount
-        });
-      }
     }
-  };
+  }, []);
 
-  // ---------- FETCH ALL DATA ----------
-  const fetchAllData = async () => {
+  // ---------- FETCH PATIENTS WITH PAGINATION (Server-side filtering) ----------
+  const fetchPatients = useCallback(async () => {
     setDataLoading(true);
     setErr("");
+    
+    const startTime = performance.now();
+    
     try {
-      console.log("Fetching patients from API...");
+      console.log("Fetching patients with pagination...");
 
-      const response = await api.get("/patients/", {
-        params: { limit: 100 }
-      });
+      // Build query parameters for server-side filtering
+      const params = {
+        page: page,
+        limit: perPage,
+        type: activeTab === "In-Patients" ? "in-patient" : "out-patient"
+      };
+      
+      // Add search filter if present
+      if (search) {
+        params.search = search;
+      }
+      
+      // Add status filter if not "All"
+      if (activeFilter && activeFilter !== "All") {
+        params.status = activeFilter;
+      }
+      
+      // Add other filters if present
+      if (filters.department) {
+        params.department_id = filters.department;
+      }
+      
+      if (filters.doctor) {
+        params.doctor = filters.doctor;
+      }
+      
+      if (filters.patientName) {
+        params.patient_name = filters.patientName;
+      }
+      
+      if (filters.patientId) {
+        params.patient_id = filters.patientId;
+      }
+      
+      if (filters.status && filters.status !== "") {
+        params.status = filters.status;
+      }
+      
+      if (filters.date) {
+        params.date = filters.date;
+      }
+
+      const response = await api.get("/patients/", { params });
       
       const json = response.data;
-      console.log("API Response:", json);
+      console.log("API Response time:", performance.now() - startTime, "ms");
 
       if (!json.patients) {
         console.error("No patients array in response:", json);
@@ -934,16 +937,11 @@ const canDelete = isAdmin;
         photo_url: p.photo_url || null,
       }));
 
-      console.log("Total patients fetched:", mapped.length);
+      console.log(`Fetched ${mapped.length} patients`);
       
-      // Store ALL patients
-      setAllAppointments(mapped);
-      
-      // Fetch patient counts from backend
-      await fetchPatientCounts();
-      
-      // Apply initial filter based on activeTab
-      applyClientSideFilter(mapped, activeTab);
+      setAppointments(mapped);
+      setTotal(json.total || mapped.length);
+      setPages(Math.ceil((json.total || mapped.length) / perPage) || 1);
       
     } catch (e) {
       console.error("Fetch error details:", e);
@@ -952,166 +950,50 @@ const canDelete = isAdmin;
       setDataLoading(false);
       setInitialLoading(false);
     }
-  };
+  }, [page, perPage, activeTab, activeFilter, search, filters]);
 
-  // ---------- CLIENT-SIDE FILTERING FUNCTION ----------
-  const applyClientSideFilter = (allPatients, patientType) => {
-    if (!allPatients || allPatients.length === 0) {
-      setAppointments([]);
-      setTotal(0);
-      setPages(1);
-      return;
-    }
-    
-    let filteredData = [...allPatients];
-    
-    // Apply patient type filter based on activeTab
-    if (patientType === "In-Patients") {
-      filteredData = filteredData.filter(patient => 
-        patient.patient_type === "in-patient" && patient.status !== "Completed"
-      );
-    } else if (patientType === "Out-Patients") {
-      filteredData = filteredData.filter(patient => 
-        patient.patient_type === "out-patient"
-      );
-    }
-    
-    // Apply status filter
-    if (activeFilter && activeFilter !== "All") {
-      filteredData = filteredData.filter(patient => {
-        return patient.status === activeFilter;
-      });
-    }
-    
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredData = filteredData.filter(patient => 
-        patient.patient.toLowerCase().includes(searchLower) || 
-        (patient.patientId && patient.patientId.toLowerCase().includes(searchLower))
-      );
-    }
-    
-    // Apply other filters from filter popup
-    if (filters.patientName) {
-      const nameLower = filters.patientName.toLowerCase();
-      filteredData = filteredData.filter(patient => 
-        patient.patient.toLowerCase().includes(nameLower)
-      );
-    }
-    
-    if (filters.patientId) {
-      filteredData = filteredData.filter(patient => 
-        patient.patientId && patient.patientId.includes(filters.patientId)
-      );
-    }
-    
-    // Department filter
-    if (filters.department && filters.department !== "") {
-      let deptNameToMatch = filters.department;
+  // Initial load - fetch counts and first page of patients in parallel
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setInitialLoading(true);
       
-      if (filterDepartments.length > 0) {
-        const foundDept = filterDepartments.find(dept => 
-          dept.id === filters.department || 
-          dept.department_id === filters.department
-        );
-        
-        if (foundDept) {
-          deptNameToMatch = foundDept.name || foundDept.department_name || filters.department;
-        }
-      }
+      const startTime = performance.now();
       
-      filteredData = filteredData.filter(patient => 
-        patient.department === deptNameToMatch
-      );
-    }
-    
-    // Doctor filter
-    if (filters.doctor && filters.doctor !== "") {
-      filteredData = filteredData.filter(patient => 
-        patient.doctor === filters.doctor || 
-        patient.doctor.includes(filters.doctor)
-      );
-    }
-    
-    if (filters.status && filters.status !== "") {
-      filteredData = filteredData.filter(patient => 
-        patient.status === filters.status
-      );
-    }
-    
-    if (filters.date) {
       try {
-        const filterDate = new Date(filters.date).toLocaleDateString("en-GB");
-        filteredData = filteredData.filter(patient => 
-          patient.date === filterDate
-        );
-      } catch (e) {
-        console.error("Date filter error:", e);
+        // Fetch counts and first page in parallel
+        await Promise.all([
+          fetchPatientCounts(),
+          fetchPatients()
+        ]);
+        
+        console.log("Total initial load time:", performance.now() - startTime, "ms");
+      } catch (error) {
+        console.error("Error loading initial data:", error);
       }
-    }
+    };
     
-    // Calculate pagination
-    const totalFiltered = filteredData.length;
-    const totalPages = Math.ceil(totalFiltered / perPage);
-    const currentPage = Math.min(page, totalPages || 1);
-    const startIndex = (currentPage - 1) * perPage;
-    const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
+    loadInitialData();
+  }, [fetchPatientCounts, fetchPatients]);
+
+  // When dependencies change - fetch with debounce
+  useEffect(() => {
+    if (initialLoading) return;
     
-    setAppointments(paginatedData);
-    setTotal(totalFiltered);
-    setPages(totalPages || 1);
-    if (currentPage !== page) {
-      setPage(currentPage);
-    }
-  };
+    const timer = setTimeout(() => {
+      setPage(1); // Reset to first page when filters change
+      fetchPatients();
+    }, 400); // Debounce for search
+    
+    return () => clearTimeout(timer);
+  }, [activeTab, activeFilter, search, filters]);
 
-  // Initial load - fetch ALL data
+  // When page changes - fetch immediately
   useEffect(() => {
-    fetchAllData();
-  }, []);
-
-  // When activeTab changes - apply client-side filter
-  useEffect(() => {
-    if (!initialLoading && allAppointments.length > 0) {
-      console.log("Active tab changed to:", activeTab);
-      applyClientSideFilter(allAppointments, activeTab);
-    }
-  }, [activeTab]);
-
-  // When activeFilter changes - apply client-side filter
-  useEffect(() => {
-    if (!initialLoading && allAppointments.length > 0) {
-      console.log("Active filter changed to:", activeFilter);
-      applyClientSideFilter(allAppointments, activeTab);
-    }
-  }, [activeFilter]);
-
-  // When search changes - apply client-side filter
-  useEffect(() => {
-    if (!initialLoading && allAppointments.length > 0) {
-      const timer = setTimeout(() => {
-        applyClientSideFilter(allAppointments, activeTab);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [search]);
-
-  // When page changes - just update pagination
-  useEffect(() => {
-    if (!initialLoading && allAppointments.length > 0) {
-      applyClientSideFilter(allAppointments, activeTab);
-    }
+    if (initialLoading) return;
+    fetchPatients();
   }, [page]);
 
-  // When filters change - apply client-side filter
-  useEffect(() => {
-    if (!initialLoading && allAppointments.length > 0) {
-      applyClientSideFilter(allAppointments, activeTab);
-    }
-  }, [filters]);
-
-  // Load departments for filter
+  // Load departments for filter (only once)
   useEffect(() => {
     api.get("/patients/departments")
       .then((response) => {
@@ -1168,9 +1050,6 @@ const canDelete = isAdmin;
     });
     setActiveFilter("All");
     setPage(1);
-    if (allAppointments.length > 0) {
-      applyClientSideFilter(allAppointments, activeTab);
-    }
   };
 
   // ---------- APPLY FILTER POPUP ----------
@@ -1178,22 +1057,22 @@ const canDelete = isAdmin;
     setShowFilter(false);
     setActiveFilter("All");
     setPage(1);
-    if (allAppointments.length > 0) {
-      applyClientSideFilter(allAppointments, activeTab);
-    }
   };
 
   // ---------- REFRESH AFTER UPDATE ----------
-  const refreshData = async () => {
-    await fetchAllData();
-  };
+  const refreshData = useCallback(async () => {
+    await Promise.all([
+      fetchPatientCounts(),
+      fetchPatients()
+    ]);
+  }, [fetchPatientCounts, fetchPatients]);
 
   // ---------- DELETE ----------
   const onDelete = async () => {
     if (!canDelete) {
-    errorToast("You don't have permission to delete patients");
-    return;
-  }
+      errorToast("You don't have permission to delete patients");
+      return;
+    }
     if (!selAppt?.patientId) {
       errorToast("No patient selected");
       return;
@@ -1282,15 +1161,15 @@ const canDelete = isAdmin;
   const endItem = Math.min(page * perPage, total);
 
   return (
-    <div className=" mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        ></div>
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
       <div
         style={{
           position: "absolute",
@@ -1313,50 +1192,51 @@ const canDelete = isAdmin;
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100/80 dark:bg-black/80 z-40 rounded-xl">
           <div className="flex justify-center items-center h-64">
             <div className="w-8 h-8 border-2 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Loading patients...</span>
           </div>
         </div>
       )}
 
       {/* Header */}
       <div className="flex justify-between mt-4 items-center mb-2 relative z-10">
-  <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-    IPD - Patient Lists
-  </h2>
+        <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
+          IPD - Patient Lists
+        </h2>
 
-  <div className="relative group">
-    <button
-      onClick={() => {
-        if (!canAdd) return;
-        navigate("/patients/new-registration");
-      }}
-      className={`flex items-center gap-2 
-        bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
-        border-b-[2px] border-[#0EFF7B]
-        shadow-[0px_2px_12px_0px_#00000040]
-        text-white font-semibold px-4 py-2 rounded-[8px]
-        transition duration-300 ease-in-out
-        ${
-          canAdd
-            ? "hover:opacity-90 cursor-pointer"
-            : "cursor-not-allowed opacity-100"
-        }`}
-    >
-      <Plus size={18} className="text-white font-[Helvetica]" />
-      Add Patients
-    </button>
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (!canAdd) return;
+              navigate("/patients/new-registration");
+            }}
+            className={`flex items-center gap-2 
+              bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]
+              border-b-[2px] border-[#0EFF7B]
+              shadow-[0px_2px_12px_0px_#00000040]
+              text-white font-semibold px-4 py-2 rounded-[8px]
+              transition duration-300 ease-in-out
+              ${
+                canAdd
+                  ? "hover:opacity-90 cursor-pointer"
+                  : "cursor-not-allowed opacity-100"
+              }`}
+          >
+            <Plus size={18} className="text-white font-[Helvetica]" />
+            Add Patients
+          </button>
 
-    {/* Tooltip */}
-    <span
-      className="absolute bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap
-      px-3 py-1 text-xs rounded-md shadow-md
-      bg-gray-100 dark:bg-black text-black dark:text-white
-      opacity-0 group-hover:opacity-100
-      transition-all duration-150 z-50"
-    >
-      {canAdd ? "Add Patients" : "Access Denied"}
-    </span>
-  </div>
-</div>
+          {/* Tooltip */}
+          <span
+            className="absolute bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap
+            px-3 py-1 text-xs rounded-md shadow-md
+            bg-gray-100 dark:bg-black text-black dark:text-white
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 z-50"
+          >
+            {canAdd ? "Add Patients" : "Access Denied"}
+          </span>
+        </div>
+      </div>
 
       {/* Today's Total - Using backend counts */}
       <div className="mb-3 min-w-[800px] relative z-10">
@@ -1396,7 +1276,7 @@ const canDelete = isAdmin;
           {["In-Patients", "Out-Patients"].map((t) => (
             <button
               key={t}
-              className={`min-w-[104px] h-[31px]  rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
+              className={`min-w-[104px] h-[31px] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
                 ${activeTab === t
                   ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] font-[Helvetica] text-white border-[#0EFF7B]"
                   : "bg-gray-200 text-gray-800 border-gray-300 font-[Helvetica] dark:bg-[#1E1E1E] dark:text-gray-300 dark:border-[#3A3A3A]"
@@ -1425,6 +1305,9 @@ const canDelete = isAdmin;
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-48 leading-none tracking-normal"
             />
+            {dataLoading && search && (
+              <Loader2 size={14} className="animate-spin text-green-600 dark:text-green-400 ml-auto" />
+            )}
           </div>
           <button
             onClick={() => setShowFilter(true)}
@@ -1444,14 +1327,14 @@ const canDelete = isAdmin;
         </div>
       </div>
 
-      {/* Status Filters - Removed "Completed" */}
+      {/* Status Filters */}
       <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
         <div className="w-full flex gap-3 justify-between">
           {statusFilters.map((f) => (
             <button
               key={f}
               className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-        ${activeFilter === f
+                ${activeFilter === f
                   ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
                   : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
                 }`}
@@ -1552,57 +1435,57 @@ const canDelete = isAdmin;
 
                         {/* EDIT ICON + TOOLTIP */}
                         <div className="relative group">
-  <Edit2
-    size={16}
-    onClick={() => {
-      if (!canEdit) return;
-      setSelAppt(a);
-      setShowEdit(true);
-    }}
-    className={`cursor-pointer ${
-      canEdit
-        ? "text-[#08994A] dark:text-[#08994A]"
-        : "text-[#08994A] cursor-not-allowed opacity-100"
-    }`}
-  />
+                          <Edit2
+                            size={16}
+                            onClick={() => {
+                              if (!canEdit) return;
+                              setSelAppt(a);
+                              setShowEdit(true);
+                            }}
+                            className={`cursor-pointer ${
+                              canEdit
+                                ? "text-[#08994A] dark:text-[#08994A]"
+                                : "text-[#08994A] cursor-not-allowed opacity-100"
+                            }`}
+                          />
 
-  <span
-    className="absolute bottom-5 left-0 -translate-x-1/2 whitespace-nowrap
-    px-3 py-1 text-xs rounded-md shadow-md
-    bg-gray-100 dark:bg-black text-black dark:text-white
-    opacity-0 group-hover:opacity-100
-    transition-all duration-150 z-50"
-  >
-    {canEdit ? "Edit" : "Access Denied "}
-  </span>
-</div>
+                          <span
+                            className="absolute bottom-5 left-0 -translate-x-1/2 whitespace-nowrap
+                            px-3 py-1 text-xs rounded-md shadow-md
+                            bg-gray-100 dark:bg-black text-black dark:text-white
+                            opacity-0 group-hover:opacity-100
+                            transition-all duration-150 z-50"
+                          >
+                            {canEdit ? "Edit" : "Access Denied "}
+                          </span>
+                        </div>
 
                         {/* DELETE ICON + TOOLTIP */}
                         <div className="relative group">
-  <Trash2
-    size={16}
-    onClick={() => {
-      if (!canDelete) return;
-      setSelAppt(a);
-      setShowDel(true);
-    }}
-    className={`cursor-pointer ${
-      canDelete
-        ? "text-red-500 dark:text-red-400"
-        : "text-red-400 cursor-not-allowed opacity-100"
-    }`}
-  />
+                          <Trash2
+                            size={16}
+                            onClick={() => {
+                              if (!canDelete) return;
+                              setSelAppt(a);
+                              setShowDel(true);
+                            }}
+                            className={`cursor-pointer ${
+                              canDelete
+                                ? "text-red-500 dark:text-red-400"
+                                : "text-red-400 cursor-not-allowed opacity-100"
+                            }`}
+                          />
 
-  <span
-    className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
-    px-3 py-1 text-xs rounded-md shadow-md
-    bg-gray-100 dark:bg-black text-black dark:text-white
-    opacity-0 group-hover:opacity-100
-    transition-all duration-150 z-50"
-  >
-    {canDelete ? "Delete" : "Admin Only"}
-  </span>
-</div>
+                          <span
+                            className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap
+                            px-3 py-1 text-xs rounded-md shadow-md
+                            bg-gray-100 dark:bg-black text-black dark:text-white
+                            opacity-0 group-hover:opacity-100
+                            transition-all duration-150 z-50"
+                          >
+                            {canDelete ? "Delete" : "Admin Only"}
+                          </span>
+                        </div>
 
                       </div>
                     </td>
@@ -1752,12 +1635,12 @@ const canDelete = isAdmin;
                   value={filters.status}
                   onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
                   options={[
-    "Active",
-    "New",
-    "Normal",
-    "Severe",
-    "Cancelled",
-  ]}
+                    "Active",
+                    "New",
+                    "Normal",
+                    "Severe",
+                    "Cancelled",
+                  ]}
                 />
                 <div>
                   <label className="text-sm text-black dark:text-white">
@@ -1765,21 +1648,20 @@ const canDelete = isAdmin;
                   </label>
                   <div className="relative mt-1">
                     <input
-  id="dateInput"
-  type="date"
-  name="date"
-  value={filters.date}
-  onChange={onFilterChange}
-  onClick={(e) => e.target.showPicker()}
-  className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
-             border border-[#0EFF7B] dark:border-[#3A3A3A]
-             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-             outline-none cursor-pointer
-             appearance-none
-             [&::-webkit-calendar-picker-indicator]:opacity-0
-             [&::-webkit-calendar-picker-indicator]:hidden"
-/>
-
+                      id="dateInput"
+                      type="date"
+                      name="date"
+                      value={filters.date}
+                      onChange={onFilterChange}
+                      onClick={(e) => e.target.showPicker()}
+                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
+                               border border-[#0EFF7B] dark:border-[#3A3A3A]
+                               bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
+                               outline-none cursor-pointer
+                               appearance-none
+                               [&::-webkit-calendar-picker-indicator]:opacity-0
+                               [&::-webkit-calendar-picker-indicator]:hidden"
+                    />
                     <Calendar
                       className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
                       onClick={() =>

@@ -580,7 +580,7 @@ const canDelete = isAdmin; // Only admin can delete
       placeholder="Search blood types..."
       value={bloodSearch}
       onChange={(e) => setBloodSearch(e.target.value)}
-      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-gray-400 dark:placeholder-[#5CD592] rounded-[40px] border border-gray-300 dark:border-[#00000] text-gray-900 dark:text-[#08994A] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent"
+      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 placeholder-gray-400 dark:placeholder-[#5CD592] rounded-[40px] border-2 border-[#0EFF7B] dark:border-[#00000] text-gray-900 dark:text-[#08994A] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent"
     />
   </div>
 )}
@@ -898,7 +898,7 @@ const canDelete = isAdmin; // Only admin can delete
       placeholder="Search by name, blood type, phone, gender, or date..."
       value={donorSearch}
       onChange={(e) => setDonorSearch(e.target.value)}
-      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border border-gray-300 dark:border-[#0EFF7B1A] text-gray-900 dark:text-[#0EFF7B] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent placeholder-gray-400 dark:placeholder-[#5CD592]"
+      className="w-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-2 border-[#0EFF7B] dark:border-[#0EFF7B] text-gray-900 dark:text-[#0EFF7B] text-sm focus:outline-none focus:ring-2 focus:ring-[#0EFF7B] focus:border-transparent placeholder-gray-400 dark:placeholder-[#5CD592]"
     />
   </div>
 )}

@@ -724,13 +724,15 @@ async def register_patient(
     def create_register_history():
         ensure_db_connection()
         PatientHistory.objects.create(
-            patient=patient,
-            patient_name=patient.full_name,
-            doctor=staff.full_name if staff else None,
-            department=department.name if department else None,
-            admission_date=patient.admission_date, 
-            status="In-patient"
-        )
+    patient=patient,
+    patient_name=patient.full_name,
+    doctor=staff.full_name if staff else None,
+    department=department.name if department else None,
+    status="Registered",
+    current_status="Out-patient",
+    admission_date=None,
+    discharge_date=None
+)
 
     await create_register_history()
 
@@ -1129,14 +1131,15 @@ async def edit_patient(
                 patient.save()
 
                 PatientHistory.objects.create(
-                    patient=patient,
-                    patient_name=patient.full_name,
-                    doctor=patient.staff.full_name if patient.staff else None,
-                    department=patient.department.name if patient.department else None,
-                    status="Out-patient",
-                    admission_date=patient.admission_date,
-                    discharge_date=today
-                )
+    patient=patient,
+    patient_name=patient.full_name,
+    doctor=patient.staff.full_name if patient.staff else None,
+    department=patient.department.name if patient.department else None,
+    status="Discharged",
+    current_status="Out-patient",
+    admission_date=patient.admission_date,
+    discharge_date=today
+)
 
             # Out-Patient → In-Patient (RE-ADMIT)
             elif old_patient_type == "Out-patient" and new_patient_type == "in-patient":
@@ -1147,14 +1150,15 @@ async def edit_patient(
                 patient.save()
 
                 PatientHistory.objects.create(
-                    patient=patient,
-                    patient_name=patient.full_name,
-                    doctor=patient.staff.full_name if patient.staff else None,
-                    department=patient.department.name if patient.department else None,
-                    status="In-patient",
-                    admission_date=today,
-                    discharge_date=None
-                )
+    patient=patient,
+    patient_name=patient.full_name,
+    doctor=patient.staff.full_name if patient.staff else None,
+    department=patient.department.name if patient.department else None,
+    status="Marked for Admission",
+    current_status="In-patient",
+    admission_date=None,
+    discharge_date=None
+)
 
             else:
                 patient.save()
@@ -1184,30 +1188,24 @@ async def get_patient_history(
 ):
     """
     Get history records for a specific patient.
-    Includes admission_date and discharge_date.
+    Includes admission_date, discharge_date and current_status.
     """
 
     try:
+
         # -----------------------------
         # FETCH PATIENT
         # -----------------------------
-        if patient_id.isdigit():
+        @sync_to_async
+        def get_patient():
+            ensure_db_connection()
 
-            @sync_to_async
-            def get_patient_by_id():
-                ensure_db_connection()
+            if patient_id.isdigit():
                 return Patient.objects.get(id=int(patient_id))
-
-            patient = await get_patient_by_id()
-
-        else:
-
-            @sync_to_async
-            def get_patient_by_uid():
-                ensure_db_connection()
+            else:
                 return Patient.objects.get(patient_unique_id=patient_id)
 
-            patient = await get_patient_by_uid()
+        patient = await get_patient()
 
         # -----------------------------
         # FETCH HISTORY QUERYSET
@@ -1232,9 +1230,13 @@ async def get_patient_history(
         start = (page - 1) * limit
         end = start + limit
 
+        # -----------------------------
+        # FETCH HISTORY RECORDS
+        # -----------------------------
         @sync_to_async
         def fetch_history():
             ensure_db_connection()
+
             return list(
                 history_qs[start:end].values(
                     "id",
@@ -1242,8 +1244,9 @@ async def get_patient_history(
                     "doctor",
                     "department",
                     "status",
-                    "admission_date",     # ✅ NEW
-                    "discharge_date",     # ✅ NEW
+                    "current_status",     # ✅ NEW FIELD
+                    "admission_date",
+                    "discharge_date",
                     "created_at"
                 )
             )
@@ -1270,15 +1273,24 @@ async def get_patient_history(
         return {
             "patient_id": patient.patient_unique_id,
             "patient_name": patient.full_name,
+
             "current_status": patient.casualty_status,
             "current_patient_type": patient.patient_type,
-            "current_admission_date": patient.admission_date.strftime("%Y-%m-%d") if patient.admission_date else None,
-            "current_discharge_date": patient.discharge_date.strftime("%Y-%m-%d") if patient.discharge_date else None,
+
+            "current_admission_date":
+                patient.admission_date.strftime("%Y-%m-%d") if patient.admission_date else None,
+
+            "current_discharge_date":
+                patient.discharge_date.strftime("%Y-%m-%d") if patient.discharge_date else None,
+
             "history": history,
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "pages": (total + limit - 1) // limit
+
+            "pagination": {
+                "total": total,
+                "page": page,
+                "limit": limit,
+                "pages": (total + limit - 1) // limit
+            }
         }
 
     except Patient.DoesNotExist:

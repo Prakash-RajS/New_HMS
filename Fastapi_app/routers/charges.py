@@ -40,6 +40,7 @@ class ChargeCreate(BaseModel):
     unit_price: float = Field(..., ge=0, description="Unit price")
     description: Optional[str] = Field(None, description="Description of the charge")
     charge_scope: str = Field("GENERAL", description="Charge scope: GENERAL or SPECIFIC")
+    tax_percent: Optional[float] = Field(None, ge=0, le=100, description="Tax percentage (optional)")
 
     @validator("charge")
     def validate_charge(cls, v):
@@ -58,12 +59,22 @@ class ChargeCreate(BaseModel):
         if v not in ["GENERAL", "SPECIFIC"]:
             raise ValueError("Charge scope must be either 'GENERAL' or 'SPECIFIC'")
         return v
+    
+    @validator("tax_percent")
+    def validate_tax_percent(cls, v):
+        if v is not None:
+            if v < 0:
+                raise ValueError("Tax percentage cannot be negative")
+            if v > 100:
+                raise ValueError("Tax percentage cannot exceed 100")
+        return v
 
 class ChargeUpdate(BaseModel):
     charge: Optional[str] = Field(None, max_length=255, description="Charge name")
     unit_price: Optional[float] = Field(None, ge=0, description="Unit price")
     description: Optional[str] = Field(None, description="Description of the charge")
     charge_scope: Optional[str] = Field(None, description="Charge scope: GENERAL or SPECIFIC")
+    tax_percent: Optional[float] = Field(None, ge=0, le=100, description="Tax percentage (optional)")
 
     @validator("charge")
     def validate_charge_update(cls, v):
@@ -82,6 +93,15 @@ class ChargeUpdate(BaseModel):
         if v is not None and v not in ["GENERAL", "SPECIFIC"]:
             raise ValueError("Charge scope must be either 'GENERAL' or 'SPECIFIC'")
         return v
+    
+    @validator("tax_percent")
+    def validate_tax_percent_update(cls, v):
+        if v is not None:
+            if v < 0:
+                raise ValueError("Tax percentage cannot be negative")
+            if v > 100:
+                raise ValueError("Tax percentage cannot exceed 100")
+        return v
 
 class ChargeOut(BaseModel):
     id: int
@@ -89,6 +109,7 @@ class ChargeOut(BaseModel):
     unit_price: float
     description: Optional[str]
     charge_scope: str
+    tax_percent: Optional[float]
     created_at: datetime
 
     class Config:
@@ -118,6 +139,7 @@ def charge_to_out(charge: Charge) -> ChargeOut:
         unit_price=float(charge.unit_price),
         description=charge.description,
         charge_scope=charge.charge_scope,
+        tax_percent=float(charge.tax_percent) if charge.tax_percent is not None else None,
         created_at=charge.created_at,
     )
 
@@ -145,7 +167,8 @@ async def create_charge(
                     charge=payload.charge,
                     unit_price=payload.unit_price,
                     description=payload.description,
-                    charge_scope=payload.charge_scope
+                    charge_scope=payload.charge_scope,
+                    tax_percent=payload.tax_percent
                 )
                 return charge_obj
 
@@ -160,6 +183,7 @@ async def create_charge(
                 "charge_name": charge_obj.charge,
                 "unit_price": float(charge_obj.unit_price),
                 "charge_scope": charge_obj.charge_scope,
+                "tax_percent": float(charge_obj.tax_percent) if charge_obj.tax_percent else None,
                 "redirect_to": "/billing/charges-management"
             }
         )
@@ -248,6 +272,12 @@ async def update_charge(
                 
                 if payload.charge_scope is not None:
                     charge.charge_scope = payload.charge_scope
+                
+                if payload.tax_percent is not None:
+                    charge.tax_percent = payload.tax_percent
+                elif payload.tax_percent is None and 'tax_percent' in payload.dict(exclude_unset=True):
+                    # Explicitly set to None if field was included with null value
+                    charge.tax_percent = None
 
                 charge.save()
                 return charge
@@ -263,6 +293,7 @@ async def update_charge(
                 "charge_name": updated_charge.charge,
                 "unit_price": float(updated_charge.unit_price),
                 "charge_scope": updated_charge.charge_scope,
+                "tax_percent": float(updated_charge.tax_percent) if updated_charge.tax_percent else None,
                 "redirect_to": "/billing/charges-management"
             }
         )
@@ -289,7 +320,8 @@ async def delete_charge(
             "charge_id": charge.id,
             "charge_name": charge.charge,
             "unit_price": float(charge.unit_price),
-            "charge_scope": charge.charge_scope
+            "charge_scope": charge.charge_scope,
+            "tax_percent": float(charge.tax_percent) if charge.tax_percent else None
         }
 
         @sync_to_async

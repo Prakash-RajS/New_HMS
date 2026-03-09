@@ -905,7 +905,7 @@
 //   );
 // }
 
-//Pages/patients/ViewPatientProfile.jsx
+
 //Pages/patients/ViewPatientProfile.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -931,8 +931,6 @@ import {
   Scissors,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
-import { usePermissions } from "../../components/PermissionContext";
-import { successToast, errorToast } from "../../components/Toast.jsx";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -944,10 +942,6 @@ export default function ViewPatientProfile() {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isAdmin, currentUser } = usePermissions();
-    
-  const userRole = currentUser?.role?.toLowerCase();
-  const canManage = isAdmin || userRole === "doctor" || userRole === "nurse";
  
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
@@ -1231,19 +1225,11 @@ export default function ViewPatientProfile() {
   };
   // Alternative: Simple view/download if you want to skip the API call for file path
   const handleViewReportSimple = (reportId) => {
-    if (!canManage) {
-      errorToast("You do not have permission to view this report.");
-      return;
-    }
     // This assumes you have an endpoint that serves the file by report ID
     const url = `${API_BASE}/labreports/${reportId}/view`;
     window.open(url, '_blank');
   };
   const handleDownloadReportSimple = (reportId, testType) => {
-    if (!canManage) {
-      errorToast("You do not have permission to download this report.");
-      return;
-    }
     const url = `${API_BASE}/labreports/${reportId}/download`;
     const link = document.createElement('a');
     link.href = url;
@@ -2256,23 +2242,28 @@ export default function ViewPatientProfile() {
                   headers={[
   "Doctor",
   "Department",
-  "Status",
+  "Event",
+  "Current Status",
   "Admission Date",
   "Discharge Date",
   "Date & Time"
 ]}
-                  mobileData={currentHistory.map((h) => [
+                 mobileData={currentHistory.map((h) => [
   h.doctor || "—",
   h.department || "—",
 
+  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+    {h.status || "—"}
+  </span>,
+
   <span
     className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-      h.status?.toLowerCase() === "in-patient"
+      h.current_status === "In-patient"
         ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
         : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
     }`}
   >
-    {h.status}
+    {h.current_status || "—"}
   </span>,
 
   h.admission_date || "—",
@@ -2284,7 +2275,8 @@ export default function ViewPatientProfile() {
                     <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
                       <th className="py-3 px-2 sm:px-4">Doctor</th>
                       <th className="py-3 px-2 sm:px-4">Department</th>
-                      <th className="py-3 px-2 sm:px-4">Status</th>
+                      <th className="py-3 px-2 sm:px-4">Event</th>
+<th className="py-3 px-2 sm:px-4">Current Status</th>
                       <th className="py-3 px-2 sm:px-4">Admission</th>
                       <th className="py-3 px-2 sm:px-4">Discharge</th>
                       <th className="py-3 px-2 sm:px-4">Date & Time</th>
@@ -2307,21 +2299,25 @@ export default function ViewPatientProfile() {
       </td>
 
       {/* Status */}
-      <td className="py-3 px-2 sm:px-4">
-        <span
-          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-            h.status?.toLowerCase() === "in-patient"
-              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-              : h.status?.toLowerCase() === "out-patient"
-              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-              : h.status?.toLowerCase() === "pending"
-              ? "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-              : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-          }`}
-        >
-          {h.status || "—"}
-        </span>
-      </td>
+      {/* Event Status */}
+<td className="py-3 px-2 sm:px-4">
+  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+    {h.status || "—"}
+  </span>
+</td>
+
+{/* Current Patient Status */}
+<td className="py-3 px-2 sm:px-4">
+  <span
+    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+      h.current_status === "In-patient"
+        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+        : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+    }`}
+  >
+    {h.current_status || "—"}
+  </span>
+</td>
 
       {/* Admission Date */}
       <td className="py-3 px-2 sm:px-4">

@@ -219,7 +219,14 @@ const BillingPreview = () => {
     { value: "consolidate", label: "Consolidate Invoice" },
   ];
 
+  const parseTaxPercent = (value) => {
+  if (value === '' || value === null || value === undefined) return 0;
+  const num = parseFloat(value);
+  return isNaN(num) ? 0 : num;
+};
+
   // ========== USE EFFECTS ==========
+  
   useEffect(() => {
     fetchPatients();
     fetchStaffInfo();
@@ -707,8 +714,9 @@ const BillingPreview = () => {
         charge.discount_percent != null
           ? charge.discount_percent.toString()
           : "0",
+      // Use tax percent from charge, default to 0 if not set
       taxPercent:
-        charge.tax_percent != null ? charge.tax_percent.toString() : "18",
+        charge.tax_percent != null ? charge.tax_percent.toString() : "0",
     }));
 
     setBillingItems(treatmentChargesItems);
@@ -1194,61 +1202,66 @@ const BillingPreview = () => {
   };
 
   const createTreatmentCharges = async (
-    patientInternalId,
-    billingItemsData,
-    paymentStatus,
-    paymentType
-  ) => {
-    try {
-      if (!patientInternalId) {
-        console.error("No patient internal ID available");
-        return [];
-      }
-
-      let treatmentChargeStatus = "PENDING";
-
-      if (paymentStatus === "Paid" && paymentType === "Full Payment") {
-        treatmentChargeStatus = "BILLED";
-      } else if (paymentType === "Partial Payment") {
-        treatmentChargeStatus = "PARTIALLY_BILLED";
-      }
-
-      const createdCharges = [];
-
-      for (const item of billingItemsData) {
-        if (item.isFromTreatmentCharge) continue;
-
-        const treatmentChargeData = {
-          patient_id: patientInternalId,
-          description: item.description,
-          quantity: parseInt(item.quantity) || 1,
-          unit_price: parseFloat(item.unitPrice) || 0,
-          discount_percent: parseFloat(item.discountPercent) || 0,
-          tax_percent: parseFloat(item.taxPercent) || 18,
-          status: treatmentChargeStatus,
-        };
-
-        try {
-          console.log("Creating treatment charge with discount:", treatmentChargeData.discount_percent);
-          const res = await api.post(
-            "/hospital-billing/treatment-charges/",
-            treatmentChargeData
-          );
-          createdCharges.push(res.data);
-        } catch (chargeError) {
-          console.error(
-            `Failed to create treatment charge for item: ${item.description}`,
-            chargeError
-          );
-        }
-      }
-
-      return createdCharges;
-    } catch (err) {
-      console.error("Failed to create treatment charges:", err);
-      throw err;
+  patientInternalId,
+  billingItemsData,
+  paymentStatus,
+  paymentType
+) => {
+  try {
+    if (!patientInternalId) {
+      console.error("No patient internal ID available");
+      return [];
     }
-  };
+
+    let treatmentChargeStatus = "PENDING";
+
+    if (paymentStatus === "Paid" && paymentType === "Full Payment") {
+      treatmentChargeStatus = "BILLED";
+    } else if (paymentType === "Partial Payment") {
+      treatmentChargeStatus = "PARTIALLY_BILLED";
+    }
+
+    const createdCharges = [];
+
+    for (const item of billingItemsData) {
+      if (item.isFromTreatmentCharge) continue;
+
+      // Get tax percent, default to 0 if not set
+      const taxPercent = item.taxPercent && item.taxPercent !== "" 
+        ? parseFloat(item.taxPercent) 
+        : 0;
+
+      const treatmentChargeData = {
+        patient_id: patientInternalId,
+        description: item.description,
+        quantity: parseInt(item.quantity) || 1,
+        unit_price: parseFloat(item.unitPrice) || 0,
+        discount_percent: parseFloat(item.discountPercent) || 0,
+        tax_percent: taxPercent,
+        status: treatmentChargeStatus,
+      };
+
+      try {
+        console.log("Creating treatment charge with discount:", treatmentChargeData.discount_percent);
+        const res = await api.post(
+          "/hospital-billing/treatment-charges/",
+          treatmentChargeData
+        );
+        createdCharges.push(res.data);
+      } catch (chargeError) {
+        console.error(
+          `Failed to create treatment charge for item: ${item.description}`,
+          chargeError
+        );
+      }
+    }
+
+    return createdCharges;
+  } catch (err) {
+    console.error("Failed to create treatment charges:", err);
+    throw err;
+  }
+};
 
   // ========== CALCULATION FUNCTIONS ==========
   const calculateEffectiveTaxRate = () => {
@@ -1329,19 +1342,59 @@ const BillingPreview = () => {
   };
 
   // Calculate tax breakdown (on subtotal after discount)
-  const calculateTaxBreakdown = () => {
-    const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
-    const cgstAmount = (subtotalAfterDiscount * (taxConfig.cgstRate / 100)).toFixed(2);
-    const sgstAmount = (subtotalAfterDiscount * (taxConfig.sgstRate / 100)).toFixed(2);
-    return { cgstAmount, sgstAmount };
-  };
+  // Calculate tax breakdown (on subtotal after discount)
+const calculateTaxBreakdown = () => {
+  // Check if any items have tax percent > 0
+  const hasTaxableItems = billingItems.some(item => {
+    const taxPercent = parseFloat(item.taxPercent) || 0;
+    return taxPercent > 0;
+  });
+  
+  // If no taxable items, return zero tax
+  if (!hasTaxableItems) {
+    return { cgstAmount: "0.00", sgstAmount: "0.00" };
+  }
+  
+  // Otherwise calculate tax normally
+  const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
+  
+  // For tax breakdown, we need to split the effective tax rate into CGST and SGST
+  // First calculate the weighted average tax rate from all items
+  let totalTaxableAmount = 0;
+  let weightedTaxSum = 0;
+  
+  billingItems.forEach(item => {
+    const quantity = parseFloat(item.quantity) || 0;
+    const unitPrice = parseFloat(item.unitPrice) || 0;
+    const discountPercent = parseFloat(item.discountPercent) || 0;
+    const subtotal = quantity * unitPrice;
+    const discountAmount = (subtotal * discountPercent) / 100;
+    const afterDiscount = subtotal - discountAmount;
+    
+    const taxPercent = parseFloat(item.taxPercent) || 0;
+    
+    totalTaxableAmount += afterDiscount;
+    weightedTaxSum += (afterDiscount * taxPercent);
+  });
+  
+  // Calculate effective tax rate
+  const effectiveTaxRate = totalTaxableAmount > 0 ? weightedTaxSum / totalTaxableAmount : 0;
+  const halfTaxRate = effectiveTaxRate / 2;
+  
+  // Calculate CGST and SGST amounts based on effective rate
+  const cgstAmount = (subtotalAfterDiscount * (halfTaxRate / 100)).toFixed(2);
+  const sgstAmount = (subtotalAfterDiscount * (halfTaxRate / 100)).toFixed(2);
+  
+  return { cgstAmount, sgstAmount };
+};
 
   // Calculate grand total (after discount + tax)
   const calculateGrandTotal = () => {
-    const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
-    const { cgstAmount, sgstAmount } = calculateTaxBreakdown();
-    return (subtotalAfterDiscount + parseFloat(cgstAmount) + parseFloat(sgstAmount)).toFixed(2);
-  };
+  const subtotalAfterDiscount = parseFloat(calculateSubtotalAfterDiscount());
+  const { cgstAmount, sgstAmount } = calculateTaxBreakdown();
+  const totalTax = parseFloat(cgstAmount) + parseFloat(sgstAmount);
+  return (subtotalAfterDiscount + totalTax).toFixed(2);
+};
 
   // Calculate pending amount for CURRENT ITEMS only
   const calculateCurrentItemsPendingAmount = () => {
@@ -1561,7 +1614,7 @@ const BillingPreview = () => {
       showSuggestions: false,
       filteredCharges: [],
       discountPercent: "",
-      taxPercent: "18",
+      taxPercent: "",
     };
 
     setBillingItems([...billingItems, newItem]);
@@ -1590,6 +1643,10 @@ const BillingPreview = () => {
 
   updatedItems[index].description = charge.charge;
   updatedItems[index].unitPrice = String(charge.unit_price || 0);
+  
+  // Get tax percent from charge, default to 0 if not set
+  const taxPercent = charge.tax_percent ? String(charge.tax_percent) : "0";
+  updatedItems[index].taxPercent = taxPercent;
 
   const quantity = parseFloat(updatedItems[index].quantity) || 1;
   const unitPrice = parseFloat(updatedItems[index].unitPrice) || 0;
@@ -1599,8 +1656,7 @@ const BillingPreview = () => {
   const discountAmount = (subtotal * discountPercent) / 100;
   const afterDiscount = subtotal - discountAmount;
   
-  const taxPercent = parseFloat(updatedItems[index].taxPercent) || 18;
-  const taxAmount = (afterDiscount * taxPercent) / 100;
+  const taxAmount = (afterDiscount * parseFloat(taxPercent)) / 100;
   
   updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
 
@@ -1609,6 +1665,7 @@ const BillingPreview = () => {
 
   setBillingItems(updatedItems);
 };
+
   const handleDeleteBillingItem = async (index) => {
     const item = billingItems[index];
 
@@ -1700,8 +1757,11 @@ const BillingPreview = () => {
     const discountAmount = (subtotal * discountPercent) / 100;
     const afterDiscount = subtotal - discountAmount;
     
-    const taxPercent = parseFloat(updatedItems[index].taxPercent) || 18;
-    const taxAmount = (afterDiscount * taxPercent) / 100;
+    // Use tax percent from item, default to 0 if not set or empty
+    const taxPercent = updatedItems[index].taxPercent && updatedItems[index].taxPercent !== "" 
+      ? parseFloat(updatedItems[index].taxPercent) 
+      : 0;
+    const taxAmount = (afterDiscount * taxPercent) / 100;   
     
     updatedItems[index].amount = (afterDiscount + taxAmount).toFixed(2);
   }
@@ -1716,7 +1776,10 @@ const BillingPreview = () => {
         unit_price: parseFloat(updatedItems[index].unitPrice) || 0,
         amount: parseFloat(updatedItems[index].amount) || 0,
         discount_percent: parseFloat(updatedItems[index].discountPercent) || 0,
-        tax_percent: parseFloat(updatedItems[index].taxPercent) || 18,
+        // Use tax percent from item, default to 0 if not set
+        tax_percent: updatedItems[index].taxPercent && updatedItems[index].taxPercent !== "" 
+          ? parseFloat(updatedItems[index].taxPercent) 
+          : 0,
       });
     }
   }
@@ -2051,11 +2114,6 @@ const BillingPreview = () => {
     };
 
     const admissionDate = formatDateForBackend(patientInfo.startDate);
-    if (!admissionDate) {
-      clearTimeout(toastId);
-      errorToast("Please provide a valid admission date in YYYY-MM-DD format");
-      return false;
-    }
 
     const patientInternalId = fullPatient?.id;
     if (!patientInternalId) {
@@ -2145,7 +2203,7 @@ const BillingPreview = () => {
         quantity: parseInt(item.quantity) || 1,
         unit_price: parseFloat(item.unitPrice) || 0,
         discount_percent: parseFloat(item.discountPercent) || 0,
-        tax_percent: parseFloat(item.taxPercent) || 18,
+        tax_percent: parseTaxPercent(item.taxPercent),
       })),
 
       treatment_charge_ids: treatmentChargeIds,
@@ -2885,18 +2943,18 @@ const BillingPreview = () => {
         </td>
         
         <td className="p-2">
-          <input
-            type="text"
-            value={item.taxPercent}
-            onChange={(e) => handleEditBillingItem(index, "taxPercent", e.target.value)}
-            className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-20 text-[#08994A] dark:text-white"
-            style={{
-              border: "2px solid #0EFF7B1A",
-              boxShadow: "0px 0px 2px 0px #0EFF7B",
-            }}
-            placeholder="Tax %"
-          />
-        </td>
+  <input
+    type="text"
+    value={item.taxPercent || ""}
+    onChange={(e) => handleEditBillingItem(index, "taxPercent", e.target.value)}
+    className="bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] p-1 rounded-md w-20 text-[#08994A] dark:text-white"
+    style={{
+      border: "2px solid #0EFF7B1A",
+      boxShadow: "0px 0px 2px 0px #0EFF7B",
+    }}
+    placeholder="Tax %"
+  />
+</td>
         
         <td className="p-2">
           <input

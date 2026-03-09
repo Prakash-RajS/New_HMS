@@ -200,7 +200,7 @@ class InvoiceCreateIn(BaseModel):
     status: str = "Paid"
     payment_type: str = "Full Payment"
 
-    admission_date: date
+    admission_date: Optional[date] = None
     discharge_date: Optional[date] = None
     doctor: str = "N/A"
 
@@ -473,10 +473,21 @@ async def get_invoice_data(invoice):
 def amount_to_words(amount: Decimal) -> str:
     if num2words:
         try:
-            return f"{num2words(float(amount), lang='en_IN').title()} Rupees Only"
+            dollars = int(amount)
+            cents = int((amount - dollars) * 100)
+
+            dollar_words = num2words(dollars, lang="en").title()
+            cent_words = num2words(cents, lang="en").title() if cents else ""
+
+            if cents:
+                return f"{dollar_words} Dollars and {cent_words} Cents Only"
+            else:
+                return f"{dollar_words} Dollars Only"
+
         except:
             pass
-    return f"{amount:.2f} Rupees Only"
+
+    return f"{amount:.2f} Dollars"
 
 
 # NEW: Get patient pending balance function
@@ -760,11 +771,32 @@ async def generate_invoice_pdf(payload: InvoiceCreateIn):
                 if invoice_items_to_create:
                     HospitalInvoiceItem.objects.bulk_create(invoice_items_to_create)
 
-                # 3) Bulk create NEW treatment charges (replaces N frontend API calls)
-                new_charges_to_create = []
+                # 3) Link existing charges OR create new manual charges
                 for item in items_data:
-                    new_charges_to_create.append(
-                        TreatmentCharge(
+                
+                    existing_charge = TreatmentCharge.objects.filter(
+                        patient=patient,
+                        description=item["description"],
+                        hospital_invoice__isnull=True
+                    ).first()
+
+                    if existing_charge:
+                    
+                        existing_charge.hospital_invoice = invoice
+                        existing_charge.status = "BILLED"
+                        existing_charge.billed_amount = existing_charge.amount
+                        existing_charge.remaining_amount = Decimal("0.00")
+
+                        existing_charge.save(update_fields=[
+                            "hospital_invoice",
+                            "status",
+                            "billed_amount",
+                            "remaining_amount"
+                        ])
+
+                    else:
+                    
+                        TreatmentCharge.objects.create(
                             patient=patient,
                             description=item["description"],
                             quantity=int(item["qty"]),
@@ -772,21 +804,53 @@ async def generate_invoice_pdf(payload: InvoiceCreateIn):
                             discount_percent=item["discount_pct"],
                             tax_percent=item["tax_pct"],
                             amount=item["line_total"],
-                            billed_amount=item["line_total"] if treatment_charge_status == "BILLED" else Decimal("0.00"),
-                            remaining_amount=Decimal("0.00") if treatment_charge_status == "BILLED" else item["line_total"],
-                            status=treatment_charge_status,
-                            hospital_invoice=invoice,
+                            billed_amount=item["line_total"],
+                            remaining_amount=Decimal("0.00"),
+                            status="BILLED",
+                            hospital_invoice=invoice
                         )
-                    )
 
-                if new_charges_to_create:
-                    TreatmentCharge.objects.bulk_create(new_charges_to_create)
-
-                # 4) Link existing treatment charge IDs
                 if payload.treatment_charge_ids:
-                    TreatmentCharge.objects.filter(
+
+                    charges = TreatmentCharge.objects.filter(
                         id__in=payload.treatment_charge_ids
-                    ).update(hospital_invoice=invoice)
+                    )
+                
+                    updated_charges = []
+                
+                    for charge in charges:
+                    
+                        charge.hospital_invoice = invoice
+                
+                        if treatment_charge_status == "BILLED":
+                            charge.status = "BILLED"
+                            charge.billed_amount = charge.amount
+                            charge.remaining_amount = Decimal("0.00")
+                
+                        elif treatment_charge_status == "PARTIALLY_BILLED":
+                            charge.status = "PARTIALLY_BILLED"
+                
+                            # proportion of payment
+                            if grand_total_new_items > 0:
+                                ratio = paid_amount_new / grand_total_new_items
+                                billed_part = (charge.amount * ratio).quantize(Decimal("0.01"))
+                            else:
+                                billed_part = Decimal("0.00")
+                
+                            charge.billed_amount = billed_part
+                            charge.remaining_amount = (charge.amount - billed_part).quantize(Decimal("0.01"))
+                
+                        updated_charges.append(charge)
+                
+                    TreatmentCharge.objects.bulk_update(
+                        updated_charges,
+                        [
+                            "hospital_invoice",
+                            "status",
+                            "billed_amount",
+                            "remaining_amount"
+                        ]
+                    )
 
                 # 5) Partial payment record
                 if payload.payment_type == "Partial Payment" and paid_amount_new > 0:
@@ -2448,13 +2512,13 @@ async def generate_consolidate_invoice(payload: ConsolidateInvoiceCreateIn):
                 )
 
                 # -----------------------------
-                # Move patient to Out-Patient + History
+                # Move patient to Out-Patient after billing
                 # -----------------------------
                 if patient:
                 
                     today = date.today()
 
-                    patient.patient_type = "out-patient"
+                    patient.patient_type = "Out-patient"
                     patient.discharge_date = today
 
                     patient.save(update_fields=[
@@ -2467,11 +2531,11 @@ async def generate_consolidate_invoice(payload: ConsolidateInvoiceCreateIn):
                         patient_name=patient.full_name,
                         doctor="Billing Department",
                         department="Billing",
-                        status="Out-patient",
+                        status="Billing Completed",
+                        current_status="Out-patient",
                         admission_date=patient.admission_date,
                         discharge_date=today
                     )
-
                 # -----------------------------
                 # 9) Build table rows (each item is a row) - ONLY from selected invoices
                 # -----------------------------
