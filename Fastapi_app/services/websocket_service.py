@@ -60,7 +60,7 @@
 #     }
 #     await manager.broadcast(payload)
 
-
+#Fastapi_app/services/websocket_service.py
 from datetime import datetime
 import json
 from typing import Dict, Any, Set, Optional
@@ -244,127 +244,7 @@ class WebSocketManager:
 # Global instance
 manager = WebSocketManager()
 
-# Map notification types to required permissions
-# NOTIFICATION_PERMISSION_MAP = {
-#     # Appointment notifications
-#     "appointment_created": "appointments",
-#     "appointment_updated": "appointments",
-#     "appointment_deleted": "appointments",
-#     "appointment_status_changed": "appointments",
-    
-#     # Patient notifications
-#     "patient_registered": "patients_view",
-#     "patient_updated": "patients_view",
-#     "patient_deleted": "patients_view",
-#     "patient_admitted": "patients_view",
-#     "patient_discharged": "patients_view",
-    
-#     # Lab report notifications
-#     "lab_report_created": "lab_reports",
-#     "lab_report_updated": "lab_reports",
-#     "lab_report_deleted": "lab_reports",
-#     "lab_report_completed": "lab_reports",
-    
-#     # Staff notifications
-#     "staff_registered": "staff_management",
-#     "staff_updated": "staff_management",
-#     "staff_deleted": "staff_management",
-    
-#     # Ambulance notifications
-#     "ambulance_unit_created": "ambulance",
-#     "ambulance_unit_updated": "ambulance",
-#     "ambulance_unit_deleted": "ambulance",
-#     "ambulance_dispatch_updated": "ambulance",
-#     "ambulance_dispatch_deleted": "ambulance",
-#     "ambulance_trip_deleted": "ambulance",
-    
-#     # Medicine/Pharmacy notifications
-#     "medicine_allocated": "medicine_allocation",
-#     "medicine_updated": "medicine_allocation",
-#     "medicine_deleted": "medicine_allocation",
-#     "stock_added": "pharmacy_inventory",
-#     "stock_updated": "pharmacy_inventory",
-#     "stock_deleted": "pharmacy_inventory",
-#     "stock_low": "pharmacy_inventory",
-#     "stock_out": "pharmacy_inventory",
-#     "stock_low_alert": "pharmacy_inventory",
-#     "stock_out_alert": "pharmacy_inventory",
-    
-#     # Billing notifications
-#     "invoice_generated": "billing",
-#     "payment_received": "billing",
-#     "payment_failed": "billing",
-#     "invoice_updated": "billing",
-#     "pharmacy_bill_generated": "pharmacy_billing",
-#     "pharmacy_payment_received": "pharmacy_billing",
-#     "hospital_bill_generated": "billing",
-#     "hospital_payment_received": "billing",
-    
-#     # Department notifications
-#     "department_created": "departments",
-#     "department_updated": "departments",
-#     "department_deleted": "departments",
-#     "department_status_changed": "departments",
-    
-#     # Room/Bed notifications
-#     "bed_group_created": "room_management",
-#     "bed_group_updated": "room_management",
-#     "bed_group_deleted": "room_management",
-#     "bed_created": "room_management",
-#     "bed_updated": "room_management",
-#     "bed_deleted": "room_management",
-#     "bed_allocated": "room_management",
-#     "bed_vacated": "room_management",
-#     "room_occupancy_changed": "room_management",
-#     "bed_capacity_changed": "room_management",
-#     "bed_group_capacity_changed": "room_management",
-#     "bed_group_full": "room_management",
-#     "bed_group_available": "room_management",
-    
-#     # Blood Bank notifications
-#     "blood_group_created": "blood_bank",
-#     "blood_group_updated": "blood_bank",
-#     "blood_group_deleted": "blood_bank",
-#     "blood_stock_updated": "blood_bank",
-#     "blood_stock_low": "blood_bank",
-#     "blood_stock_out": "blood_bank",
-#     "blood_donation_received": "blood_bank",
-#     "blood_issued": "blood_bank",
-#     "donor_registered": "blood_bank",
-#     "donor_updated": "blood_bank",
-#     "donor_deleted": "blood_bank",
-#     "donor_eligibility_changed": "blood_bank",
-#     "donation_received": "blood_bank",
-#     "donor_became_eligible": "blood_bank",
-#     "urgent_blood_request": "blood_bank",
-    
-#     # System notifications (admin only)
-#     "user_login": "admin_access",
-#     "user_logout": "admin_access",
-#     "unauthorized_access": "admin_access",
-#     "system_alert": "admin_access",
-#     "emergency_alert": "admin_access",
-    
-#     "invoice_created": "billing",
-#     "invoice_updated": "billing",
-#     "invoice_deleted": "billing",
-#     "payment_received": "billing",
-#     "payment_failed": "billing",
-#     "invoice_status_changed": "billing",
-#     "invoice_not_found": "billing",
-#     "billing_error": "billing",
-#     "billing_statistics_updated": "billing",
-    
-#     # PDF/download events
-#     "pdf_downloaded": "billing",  # or None if you want everyone to see downloads
-#     "pdf_bulk_downloaded": "billing",
-#     "export_completed": "billing",
-    
-#     # Pharmacy billing (if separate)
-#     "pharmacy_bill_generated": "pharmacy_billing",
-#     "pharmacy_payment_received": "pharmacy_billing",
 
-# }
 # Map notification types to required permissions
 NOTIFICATION_PERMISSION_MAP = {
     # Appointment notifications

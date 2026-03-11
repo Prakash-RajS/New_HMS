@@ -1039,22 +1039,29 @@ async def simulate_live_gps(trip_id: int, unit_number: str):
 
         # Send location update
         await notify_clients(
-            "location_update",
-            trip_id=trip_id,
-            unit_number=unit_number,
-            lat=round(lat, 6),
-            lng=round(lng, 6),
-            status="En Route"
+            event_type="location_update",
+            message=f"Ambulance {unit_number} location updated",
+            notification_type="info",
+            data={
+                "trip_id": trip_id,
+                "unit_number": unit_number,
+                "lat": round(lat, 6),
+                "lng": round(lng, 6),
+                "status": "En Route"
+            }
         )
         await asyncio.sleep(5)  # Update every 5 seconds
 
     # Trip completed
     await notify_clients(
-        "status_update",
-        title="Trip Completed",
+        event_type="status_update",
         message=f"Ambulance {unit_number} has arrived at destination",
-        trip_id=trip_id,
-        unit_number=unit_number
+        notification_type="success",
+        data={
+            "title": "Trip Completed",
+            "trip_id": trip_id,
+            "unit_number": unit_number
+        }
     )
 
 # ==============================================
@@ -1171,39 +1178,48 @@ async def notify_unit_created(unit_data: AmbulanceUnitResponse):
     """Notify when a new ambulance unit is created"""
     if notify_clients:
         await notify_clients(
-            "unit_created",
-            title="New Ambulance Unit Added",
+            event_type="unit_created",
             message=f"Ambulance {unit_data.unit_number} has been added to the fleet",
-            unit_id=unit_data.id,
-            unit_number=unit_data.unit_number,
-            vehicle_make=unit_data.vehicle_make,
-            vehicle_model=unit_data.vehicle_model,
-            phone=unit_data.phone,
-            in_service=unit_data.in_service
+            notification_type="success",
+            data={
+                "title": "New Ambulance Unit Added",
+                "unit_id": unit_data.id,
+                "unit_number": unit_data.unit_number,
+                "vehicle_make": unit_data.vehicle_make,
+                "vehicle_model": unit_data.vehicle_model,
+                "phone": unit_data.phone,
+                "in_service": unit_data.in_service
+            }
         )
 
 async def notify_unit_updated(unit_data: AmbulanceUnitResponse):
     """Notify when an ambulance unit is updated"""
     if notify_clients:
         await notify_clients(
-            "unit_updated",
-            title="Ambulance Unit Updated",
+            event_type="unit_updated",
             message=f"Ambulance {unit_data.unit_number} details have been updated",
-            unit_id=unit_data.id,
-            unit_number=unit_data.unit_number,
-            in_service=unit_data.in_service,
-            phone=unit_data.phone
+            notification_type="info",
+            data={
+                "title": "Ambulance Unit Updated",
+                "unit_id": unit_data.id,
+                "unit_number": unit_data.unit_number,
+                "in_service": unit_data.in_service,
+                "phone": unit_data.phone
+            }
         )
 
 async def notify_unit_deleted(unit_id: int, unit_number: str):
     """Notify when an ambulance unit is deleted"""
     if notify_clients:
         await notify_clients(
-            "unit_deleted",
-            title="Ambulance Unit Removed",
+            event_type="unit_deleted",
             message=f"Ambulance {unit_number} has been removed from the fleet",
-            unit_id=unit_id,
-            unit_number=unit_number
+            notification_type="warning",
+            data={
+                "title": "Ambulance Unit Removed",
+                "unit_id": unit_id,
+                "unit_number": unit_number
+            }
         )
 
 async def notify_dispatch_created(dispatch_data: DispatchResponse):
@@ -1211,37 +1227,61 @@ async def notify_dispatch_created(dispatch_data: DispatchResponse):
     if notify_clients:
         unit_info = f" - Unit {dispatch_data.unit.unit_number}" if dispatch_data.unit else ""
         await notify_clients(
-            "new_dispatch",
-            title="New Dispatch Created",
+            event_type="new_dispatch",  # or "dispatch_created" - be consistent
             message=f"Dispatch {dispatch_data.dispatch_id} created for {dispatch_data.location}{unit_info}",
-            dispatch_id=dispatch_data.dispatch_id,
-            location=dispatch_data.location,
-            unit_number=dispatch_data.unit.unit_number if dispatch_data.unit else None,
-            status=dispatch_data.status,
-            phone_number=dispatch_data.phone_number
+            notification_type="warning" if dispatch_data.call_type == "Emergency" else "info",
+            data={
+                "title": "New Dispatch Created",
+                "dispatch_id": dispatch_data.dispatch_id,
+                "location": dispatch_data.location,
+                "unit_number": dispatch_data.unit.unit_number if dispatch_data.unit else None,
+                "status": dispatch_data.status,
+                "phone_number": dispatch_data.phone_number
+            }
         )
 
 async def notify_dispatch_updated(dispatch_data: DispatchResponse):
     """Notify when a dispatch is updated"""
     if notify_clients:
         await notify_clients(
-            "dispatch_status_updated",
-            title="Dispatch Updated",
+            event_type="dispatch_updated",
             message=f"Dispatch {dispatch_data.dispatch_id} has been updated",
-            dispatch_id=dispatch_data.dispatch_id,
-            status=dispatch_data.status,
-            location=dispatch_data.location,
-            phone_number=dispatch_data.phone_number
+            notification_type="info",
+            data={
+                "title": "Dispatch Updated",
+                "dispatch_id": dispatch_data.dispatch_id,
+                "status": dispatch_data.status,
+                "location": dispatch_data.location,
+                "phone_number": dispatch_data.phone_number
+            }
         )
 
 async def notify_dispatch_deleted(dispatch_id: int, dispatch_id_str: str):
     """Notify when a dispatch is deleted"""
     if notify_clients:
         await notify_clients(
-            "dispatch_deleted",
-            title="Dispatch Cancelled",
+            event_type="dispatch_deleted",
             message=f"Dispatch {dispatch_id_str} has been cancelled",
-            dispatch_id=dispatch_id_str
+            notification_type="warning",
+            data={
+                "title": "Dispatch Cancelled",
+                "dispatch_id": dispatch_id_str,
+                "dispatch_id_int": dispatch_id
+            }
+        )
+
+async def notify_dispatch_deleted(dispatch_id: int, dispatch_id_str: str):
+    """Notify when a dispatch is deleted"""
+    if notify_clients:
+        await notify_clients(
+            event_type="dispatch_deleted",
+            message=f"Dispatch {dispatch_id_str} has been cancelled",
+            notification_type="info",
+            data={
+                "title": "Dispatch Cancelled",  # Move title inside data
+                "dispatch_id": dispatch_id_str,
+                "dispatch_id_int": dispatch_id
+            }
         )
 
 async def notify_trip_created(trip_data: TripResponse):
@@ -1249,14 +1289,17 @@ async def notify_trip_created(trip_data: TripResponse):
     if notify_clients:
         unit_number = trip_data.unit.unit_number if trip_data.unit else "Unknown Unit"
         await notify_clients(
-            "new_trip",
-            title="New Trip Started",
+            event_type="trip_created",
             message=f"Trip {trip_data.trip_id} started for {unit_number}",
-            trip_id=trip_data.trip_id,
-            unit_number=unit_number,
-            status=trip_data.status,
-            destination=trip_data.destination,
-            phone_number=trip_data.phone_number
+            notification_type="info",
+            data={
+                "title": "New Trip Started",
+                "trip_id": trip_data.trip_id,
+                "unit_number": unit_number,
+                "status": trip_data.status,
+                "destination": trip_data.destination,
+                "phone_number": trip_data.phone_number
+            }
         )
         
         # Start GPS simulation for new trips
@@ -1268,13 +1311,16 @@ async def notify_trip_updated(trip_data: TripResponse):
     if notify_clients:
         unit_number = trip_data.unit.unit_number if trip_data.unit else "Unknown Unit"
         await notify_clients(
-            "trip_status_changed",
-            title="Trip Status Updated",
+            event_type="trip_updated",
             message=f"Trip {trip_data.trip_id} status changed to {trip_data.status}",
-            trip_id=trip_data.trip_id,
-            unit_number=unit_number,
-            status=trip_data.status,
-            phone_number=trip_data.phone_number
+            notification_type="info",
+            data={
+                "title": "Trip Status Updated",
+                "trip_id": trip_data.trip_id,
+                "unit_number": unit_number,
+                "status": trip_data.status,
+                "phone_number": trip_data.phone_number
+            }
         )
         
         # Start GPS simulation if trip status changed to "En Route"
@@ -1285,11 +1331,15 @@ async def notify_trip_deleted(trip_id: int, trip_id_str: str, unit_number: str =
     """Notify when a trip is deleted"""
     if notify_clients:
         await notify_clients(
-            "trip_deleted",
-            title="Trip Cancelled",
+            event_type="trip_deleted",
             message=f"Trip {trip_id_str} has been cancelled{' by ' + unit_number if unit_number else ''}",
-            trip_id=trip_id_str,
-            unit_number=unit_number
+            notification_type="warning",
+            data={
+                "title": "Trip Cancelled",
+                "trip_id": trip_id_str,
+                "trip_id_int": trip_id,
+                "unit_number": unit_number
+            }
         )
 
 # ==============================================

@@ -1809,6 +1809,12 @@ const canManage = isAdmin; // Only admin can manage ambulance operations
     return;
   }
 
+  // ⭐ CRITICAL FIX: Skip ping messages completely
+  if (data.type === "ping") {
+    console.log("🏓 Ping received (ignoring for notifications)");
+    return;
+  }
+
   // Handle different message types - match exactly what backend sends
   switch (data.type) {
     case "unit_created":
@@ -1823,7 +1829,6 @@ const canManage = isAdmin; // Only admin can manage ambulance operations
     case "trip_status_changed":
       // Refresh data when CRUD operations happen
       fetchData();
-
       // ❌ Toast notification disabled
       // showNotificationToast(data);
       break;
@@ -1847,7 +1852,6 @@ const canManage = isAdmin; // Only admin can manage ambulance operations
     case "dispatch_status_updated":
     case "dispatch_unit_changed":
       fetchData(); // Refresh data
-
       // ❌ Toast notification disabled
       // showNotificationToast(data);
       break;
@@ -1857,8 +1861,11 @@ const canManage = isAdmin; // Only admin can manage ambulance operations
       break;
   }
 
-  // ✅ Notification panel still works
-  if (data.type !== "location_update" && data.type !== "connection_established") {
+  // ✅ Notification panel still works - but skip ping messages
+  // Also skip location updates from notification panel to avoid clutter
+  if (data.type !== "location_update" && 
+      data.type !== "connection_established" &&
+      data.type !== "ping") {  // ⭐ Added ping to the exclusion list
     addToNotificationPanel(data);
   }
 };
@@ -2031,34 +2038,38 @@ const canManage = isAdmin; // Only admin can manage ambulance operations
   };
 
   const addToNotificationPanel = (data) => {
-    const now = Date.now();
-    const notificationId = now + Math.random();
+  // Extra safety - definitely don't add ping messages
+  if (data.type === "ping") {
+    return;
+  }
+  
+  const now = Date.now();
+  const notificationId = now + Math.random();
 
-    setNotifications((prev) => {
-      // Prevent duplicates
-      const isDuplicate = prev.some(
-        (n) =>
-          n.type === data.type &&
-          n.message === data.message &&
-          n.title === data.title &&
-          now - n.id < 2000 // 2 second duplicate window
-      );
+  setNotifications((prev) => {
+    // Prevent duplicates
+    const isDuplicate = prev.some(
+      (n) =>
+        n.type === data.type &&
+        n.message === data.message &&
+        n.title === data.title &&
+        now - n.id < 2000 // 2 second duplicate window
+    );
 
-      if (isDuplicate) return prev;
+    if (isDuplicate) return prev;
 
-      return [
-        {
-          id: notificationId,
-          ...data,
-          time: new Date().toLocaleTimeString(),
-        },
-        ...prev.slice(0, 49), // Keep only last 50 notifications
-      ];
-    });
+    return [
+      {
+        id: notificationId,
+        ...data,
+        time: new Date().toLocaleTimeString(),
+      },
+      ...prev.slice(0, 49), // Keep only last 50 notifications
+    ];
+  });
 
-    setUnreadCount((c) => c + 1);
-  };
-
+  setUnreadCount((c) => c + 1);
+};
   // ── DATA FETCHING ─────────────────────────────
   const fetchData = useCallback(async () => {
     if (!isMountedRef.current) return;
