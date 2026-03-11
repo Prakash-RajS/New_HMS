@@ -41,7 +41,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
     patient_name: "",
     department_id: "",
     staff_id: "",
-    room_no: "", // This should be the bed selection (e.g., "WardA-101")
+    // room_no removed
     phone_no: "",
     appointment_type: "",
     status: "new", // Set default status
@@ -57,7 +57,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
         patient_name: appointmentData.patient_name || "",
         department_id: appointmentData.department_id?.toString() || "",
         staff_id: appointmentData.staff_id?.toString() || "",
-        room_no: appointmentData.room_no || "",
+        // room_no removed
         phone_no: appointmentData.phone_no || "",
         appointment_type: appointmentData.appointment_type || "",
         status: appointmentData.status || "new",
@@ -74,10 +74,8 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
   // ── Dropdown data ───────────────────────────────────────────────────
   const [departments, setDepartments] = useState([]); // [{id, name}]
   const [doctors, setDoctors] = useState([]); // [{id, full_name}]
-  const [availableBeds, setAvailableBeds] = useState([]);
   const [loadingDept, setLoadingDept] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(false);
-  const [loadingBeds, setLoadingBeds] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // ── Format validation functions (while typing) ───────────────────────
@@ -161,10 +159,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
       isValid = false;
     }
     
-    if (!formData.room_no) {
-      errors.room_no = "Room/Bed is required";
-      isValid = false;
-    }
+    // room_no validation removed
     
     if (!formData.phone_no) {
       errors.phone_no = "Phone number is required";
@@ -317,42 +312,6 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
     return () => (mounted = false);
   }, []);
 
-  // ── Load available beds ────────────────────────────────────────────
-  useEffect(() => {
-    let mounted = true;
-    setLoadingBeds(true);
-    
-    api.get("/bedgroups/all")
-      .then((response) => {
-        if (mounted) {
-          const data = response.data;
-          const beds = data.flatMap((group) =>
-            group.beds
-              .map((bed) => ({
-                id: `${group.bedGroup}-${bed.bed_number}`,
-                name: `${group.bedGroup}-${bed.bed_number}`,
-                is_occupied: bed.is_occupied
-              }))
-          );
-          // In edit mode, include all beds (even occupied ones)
-          // In add mode, only show available beds
-          const filteredBeds = isEditMode 
-            ? beds 
-            : beds.filter(bed => !bed.is_occupied);
-          setAvailableBeds(filteredBeds);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load beds:", error);
-        errorToast("Failed to load beds");
-      })
-      .finally(() => {
-        if (mounted) setLoadingBeds(false);
-      });
-    
-    return () => (mounted = false);
-  }, [isEditMode]);
-
   // ── Load doctors when department changes ───────────────────────────
   useEffect(() => {
     if (!formData.department_id) {
@@ -504,12 +463,12 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
       }
     }
 
-    // ✅ CORRECTED PAYLOAD
+    // ✅ CORRECTED PAYLOAD - room_no removed
     const payload = {
       patient_name: formData.patient_name.trim(),
       department_id: Number(formData.department_id),
       staff_id: Number(formData.staff_id),
-      room_no: formData.room_no,
+      // room_no removed
       phone_no: formData.phone_no,
       appointment_type: formData.appointment_type,
       appointment_date: formData.appointment_date,
@@ -616,7 +575,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
-          {/* Form Grid */}
+          {/* Form Grid - 3 columns for 8 fields */}
           <div className="grid grid-cols-3 gap-6">
             {/* Patient Name */}
             <div>
@@ -777,70 +736,6 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
               {fieldErrors.staff_id && (
                 <div className="mt-1">
                   <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.staff_id}</span>
-                </div>
-              )}
-            </div>
-            {/* Room / Bed No */}
-            <div>
-              <label className="text-sm text-black dark:text-white">
-                Room / Bed No <span className="text-red-700">*</span>
-              </label>
-              <Listbox value={formData.room_no} onChange={(v) => handleInputChange("room_no", v)}>
-                <div className="relative mt-1">
-                  <Listbox.Button
-                    onFocus={() => setFocusedField("room")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                               text-left text-[14px] leading-[16px] flex items-center justify-between group
-                               ${focusedField === "room" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    <span className={`block truncate ${formData.room_no ? "text-black dark:text-[#0EFF7B]" : "text-[#0EFF7B] dark:text-[#0EFF7B]"}`}>
-                      {loadingBeds ? (
-                        <span className="text-gray-500">Loading…</span>
-                      ) : formData.room_no ? (
-                        availableBeds.find((o) => String(o.id) === String(formData.room_no))?.name ||
-                        formData.room_no
-                      ) : (
-                        "Select"
-                      )}
-                    </span>
-                    <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                      <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                    </span>
-                  </Listbox.Button>
-                  <Listbox.Options
-                    className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
-                               shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-                  >
-                    {availableBeds.map((opt) => {
-                      const label = opt.name || String(opt.id);
-                      return (
-                        <Listbox.Option
-                          key={opt.id}
-                          value={opt.id}
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "bg-[#0EFF7B] !text-white dark:!text-black font-semibold" : ""}`
-                          }
-                          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                        >
-                          {label}
-                        </Listbox.Option>
-                      );
-                    })}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
-              {fieldErrors.room_no && (
-                <div className="mt-1">
-                  <span className="text-red-700 dark:text-red-500 text-xs">{fieldErrors.room_no}</span>
                 </div>
               )}
             </div>
@@ -1117,60 +1012,59 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
           )}
           
           {/* Buttons */}
-          {/* Buttons */}
-<div className="flex justify-center gap-2 mt-8">
-  <button
-    onClick={onClose}
-    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
-  >
-    Cancel
-  </button>
-  
-  {/* Save/Update Button with Tooltip */}
-  <div className="relative group">
-    <button
-      onClick={handleSave}
-      disabled={saving || Object.values(validationErrors).some(error => error !== "") || 
-               (isEditMode ? !canEditAppointment : !canAddAppointment)}
-      className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition ${
-        (isEditMode ? !canEditAppointment : !canAddAppointment) || 
-        saving || 
-        Object.values(validationErrors).some(error => error !== "")
-          ? 'opacity-50 cursor-not-allowed hover:scale-100'
-          : 'opacity-100 hover:scale-105'
-      }`}
-    >
-      {saving ? "Saving…" : (isEditMode ? "Update Appointment" : "Add Appointment")}
-    </button>
-    
-    {/* Tooltip for disabled state due to permissions */}
-    {((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && (
-      <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        {isEditMode ? "Access Denied - Cannot Edit" : "Access Denied - Admin/Receptionist Only"}
-      </span>
-    )}
-    
-    {/* Tooltip for validation errors */}
-    {!((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && 
-     Object.values(validationErrors).some(error => error !== "") && (
-      <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        Fix validation errors first
-      </span>
-    )}
-  </div>
-</div>
+          <div className="flex justify-center gap-2 mt-8">
+            <button
+              onClick={onClose}
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
+            >
+              Cancel
+            </button>
+            
+            {/* Save/Update Button with Tooltip */}
+            <div className="relative group">
+              <button
+                onClick={handleSave}
+                disabled={saving || Object.values(validationErrors).some(error => error !== "") || 
+                         (isEditMode ? !canEditAppointment : !canAddAppointment)}
+                className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition ${
+                  (isEditMode ? !canEditAppointment : !canAddAppointment) || 
+                  saving || 
+                  Object.values(validationErrors).some(error => error !== "")
+                    ? 'opacity-50 cursor-not-allowed hover:scale-100'
+                    : 'opacity-100 hover:scale-105'
+                }`}
+              >
+                {saving ? "Saving…" : (isEditMode ? "Update Appointment" : "Add Appointment")}
+              </button>
+              
+              {/* Tooltip for disabled state due to permissions */}
+              {((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && (
+                <span
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                             whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                             bg-gray-100 dark:bg-black text-black dark:text-white
+                             opacity-0 group-hover:opacity-100
+                             transition-all duration-150 z-50 pointer-events-none"
+                >
+                  {isEditMode ? "Access Denied - Cannot Edit" : "Access Denied - Admin/Receptionist Only"}
+                </span>
+              )}
+              
+              {/* Tooltip for validation errors */}
+              {!((isEditMode && !canEditAppointment) || (!isEditMode && !canAddAppointment)) && 
+               Object.values(validationErrors).some(error => error !== "") && (
+                <span
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                             whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                             bg-gray-100 dark:bg-black text-black dark:text-white
+                             opacity-0 group-hover:opacity-100
+                             transition-all duration-150 z-50 pointer-events-none"
+                >
+                  Fix validation errors first
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

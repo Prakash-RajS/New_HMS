@@ -16,9 +16,8 @@ import AddAppointmentPopup from "./AddAppointmentPopup";
 import EditAppointmentPopup from "./EditAppointmentPopup";
 import DeleteAppointmentPopup from "./DeleteAppointmentPopup";
 import { errorToast } from "../../components/Toast.jsx";
-import api from "../../utils/axiosConfig"; // Add this import at the top
+import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
-
 
 const AppointmentList = () => {
   // === State ===
@@ -39,10 +38,10 @@ const AppointmentList = () => {
   const itemsPerPage = 10;
   const { isAdmin, currentUser } = usePermissions();
   
-const userRole = currentUser?.role?.toLowerCase();
-const canAdd = isAdmin || userRole === "receptionist";
-const canEdit = isAdmin || userRole === "receptionist";
-const canDelete = isAdmin || userRole === "receptionist";
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "receptionist";
+  const canEdit = isAdmin || userRole === "receptionist";
+  const canDelete = isAdmin || userRole === "receptionist";
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",
@@ -100,110 +99,109 @@ const canDelete = isAdmin || userRole === "receptionist";
     return appointmentDate < today;
   };
 
- 
-
-// === Fetch data ===
-const fetchAppointments = async () => {
-  try {
-    const res = await api.get("/appointments/list_appointments");
-    const data = res.data;
-    
-    const mapped = data.map((item) => {
-      const appointmentDate = item.appointment_date || "";
-      let appointmentTime = "";
+  // === Fetch data ===
+  const fetchAppointments = async () => {
+    try {
+      const res = await api.get("/appointments/list_appointments");
+      const data = res.data;
       
-      if (item.appointment_time) {
-        try {
-          const timeStr = item.appointment_time;
-          const timeParts = timeStr.split(':');
-          if (timeParts.length >= 2) {
-            const hours = parseInt(timeParts[0]);
-            const minutes = parseInt(timeParts[1]);
-            const period = hours >= 12 ? 'PM' : 'AM';
-            const displayHours = hours % 12 || 12;
-            appointmentTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+      const mapped = data.map((item) => {
+        const appointmentDate = item.appointment_date || "";
+        let appointmentTime = "";
+        
+        if (item.appointment_time) {
+          try {
+            const timeStr = item.appointment_time;
+            const timeParts = timeStr.split(':');
+            if (timeParts.length >= 2) {
+              const hours = parseInt(timeParts[0]);
+              const minutes = parseInt(timeParts[1]);
+              const period = hours >= 12 ? 'PM' : 'AM';
+              const displayHours = hours % 12 || 12;
+              appointmentTime = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+            }
+          } catch (err) {
+            appointmentTime = "N/A";
           }
-        } catch (err) {
-          appointmentTime = "N/A";
         }
-      }
+        
+        return {
+          id: item.id,
+          patient: item.patient_name,
+          date: appointmentDate,
+          appointmentDate: appointmentDate,
+          appointmentTime: appointmentTime,
+          patientId: item.patient_id,
+          department: item.department,
+          doctor: item.doctor,
+          // room field removed
+          type: item.appointment_type,
+          status: item.status,
+          raw: item,
+        };
+      });
       
-      return {
-        id: item.id,
-        patient: item.patient_name,
-        date: appointmentDate,
-        appointmentDate: appointmentDate,
-        appointmentTime: appointmentTime,
-        patientId: item.patient_id,
-        department: item.department,
-        doctor: item.doctor,
-        room: item.room_no,
-        type: item.appointment_type,
-        status: item.status,
-        raw: item,
-      };
-    });
-    
-    setAppointments(mapped);
-  } catch (err) {
-    console.error("Error fetching appointments:", err);
-  }
-};
+      setAppointments(mapped);
+    } catch (err) {
+      console.error("Error fetching appointments:", err);
+    }
+  };
 
-const fetchDepartments = async () => {
-  try {
-    const res = await api.get("/appointments/departments");
-    setDepartments(res.data);
-  } catch (err) {
-    console.error("Error fetching departments:", err);
-  }
-};
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get("/appointments/departments");
+      setDepartments(res.data);
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+    }
+  };
 
-const fetchDoctors = async (deptId) => {
-  if (!deptId) {
-    setDoctors([]);
-    return;
-  }
-  try {
-    const res = await api.get(`/appointments/staff?department_id=${deptId}`);
-    setDoctors(res.data);
-  } catch (err) {
-    console.error("Error fetching doctors:", err);
-  }
-};
+  const fetchDoctors = async (deptId) => {
+    if (!deptId) {
+      setDoctors([]);
+      return;
+    }
+    try {
+      const res = await api.get(`/appointments/staff?department_id=${deptId}`);
+      setDoctors(res.data);
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+    }
+  };
 
-// === API handlers ===
-const handleAddAppointment = async (form) => {
-  try {
-    await api.post("/appointments/create_appointment", form);
-  } catch (err) {
-    console.error("Error adding appointment:", err);
-    throw err;
-  }
-};
+  // === API handlers ===
+  const handleAddAppointment = async (form) => {
+    try {
+      await api.post("/appointments/create_appointment", form);
+    } catch (err) {
+      console.error("Error adding appointment:", err);
+      throw err;
+    }
+  };
 
-const handleEditAppointment = async (id, form) => {
-  try {
-    await api.put(`/appointments/${id}`, form);
-  } catch (err) {
-    console.error("Error editing appointment:", err);
-    throw err;
-  }
-};
+  const handleEditAppointment = async (id, form) => {
+    try {
+      await api.put(`/appointments/${id}`, form);
+    } catch (err) {
+      console.error("Error editing appointment:", err);
+      throw err;
+    }
+  };
 
-const handleDelete = async (id) => {
-  if (!canDelete) {
-    errorToast("You don't have permission to delete appointments");
-    return;
-  }
-  try {
-    await api.delete(`/appointments/${id}`);
-    await fetchAppointments(); // Refresh the list after delete
-  } catch (err) {
-    console.error("Error deleting appointment:", err);
-    throw err;
-  }
-};
+  const handleDelete = async (id) => {
+    if (!canDelete) {
+      errorToast("You don't have permission to delete appointments");
+      return;
+    }
+    try {
+      await api.delete(`/appointments/${id}`);
+      await fetchAppointments(); // Refresh the list after delete
+    } catch (err) {
+      console.error("Error deleting appointment:", err);
+      throw err;
+    }
+  };
+  
   useEffect(() => {
     fetchAppointments();
     fetchDepartments();
@@ -225,8 +223,6 @@ const handleDelete = async (id) => {
       fetchAppointments();
     }
   }, [showAddPopup, showEditPopup, showDeletePopup]);
-
-
 
   // === Status colors ===
   const statusColors = {
@@ -457,38 +453,37 @@ const handleDelete = async (id) => {
       ></div>
 
       {/* Header */}
-      {/* Header */}
-<div className="flex justify-between items-center mt-4 mb-2 relative z-10">
-  <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
-    Appointment List
-  </h2>
-  
-  {/* Add Appointment Button with Tooltip */}
-  <div className="relative group">
-    <button
-      onClick={() => canAdd && setShowAddPopup(true)}
-      disabled={!canAdd}
-      className={`flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
-        !canAdd ? 'opacity-100 cursor-not-allowed' : ''
-      }`}
-    >
-      <Plus size={18} className="text-white font-[Helvetica]" /> Add Appointments
-    </button>
-    
-    {/* Tooltip for Add button */}
-    {!canAdd && (
-      <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-10 pointer-events-none"
-      >
-        Access Denied - Admin/Receptionist Only
-      </span>
-    )}
-  </div>
-</div>
+      <div className="flex justify-between items-center mt-4 mb-2 relative z-10">
+        <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
+          Appointment List
+        </h2>
+        
+        {/* Add Appointment Button with Tooltip */}
+        <div className="relative group">
+          <button
+            onClick={() => canAdd && setShowAddPopup(true)}
+            disabled={!canAdd}
+            className={`flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out ${
+              !canAdd ? 'opacity-100 cursor-not-allowed' : ''
+            }`}
+          >
+            <Plus size={18} className="text-white font-[Helvetica]" /> Add Appointments
+          </button>
+          
+          {/* Tooltip for Add button */}
+          {!canAdd && (
+            <span
+              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                         whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                         bg-gray-100 dark:bg-black text-black dark:text-white
+                         opacity-0 group-hover:opacity-100
+                         transition-all duration-150 z-10 pointer-events-none"
+            >
+              Access Denied - Admin/Receptionist Only
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Today's Total */}
       <div className="mb-3 min-w-[800px] relative z-10">
@@ -584,7 +579,7 @@ const handleDelete = async (id) => {
             <Filter size={18} className="text-green-600 dark:text-green-400" />
             <span className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
                     px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0   group-hover:opacity-100
+                    bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
                     transition-all duration-150">
               Filter
             </span>
@@ -636,7 +631,6 @@ const handleDelete = async (id) => {
               <th>Patient ID</th>
               <th>Department</th>
               <th>Doctor</th>
-              <th>Room no</th>
               <th>Appointment type</th>
               <th>Status</th>
               <th className="text-center">Edit</th>
@@ -679,22 +673,21 @@ const handleDelete = async (id) => {
                     {appt.department}
                   </td>
                   <td className="text-black dark:text-white">{appt.doctor}</td>
-                  <td className="text-black dark:text-white">{appt.room}</td>
                   <td>
-  <span
-    className={`px-2 py-1 rounded-full text-xs ${
-      appt.type === "Checkup" || appt.type === "checkup"
-        ? "bg-purple-800 text-purple-200 dark:bg-purple-900 dark:text-purple-200"
-        : appt.type === "Follow-up" || appt.type === "followup"
-        ? "bg-green-800 text-green-200 dark:bg-green-900 dark:text-green-200"
-        : appt.type === "Emergency" || appt.type === "emergency"
-        ? "bg-red-800 text-red-200 dark:bg-red-900 dark:text-red-200"
-        : "bg-gray-800 text-gray-200 dark:bg-gray-800 dark:text-gray-300"
-    }`}
-  >
-    {appt.type}
-  </span>
-</td>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        appt.type === "Checkup" || appt.type === "checkup"
+                          ? "bg-purple-800 text-purple-200 dark:bg-purple-900 dark:text-purple-200"
+                          : appt.type === "Follow-up" || appt.type === "followup"
+                          ? "bg-green-800 text-green-200 dark:bg-green-900 dark:text-green-200"
+                          : appt.type === "Emergency" || appt.type === "emergency"
+                          ? "bg-red-800 text-red-200 dark:bg-red-900 dark:text-red-200"
+                          : "bg-gray-800 text-gray-200 dark:bg-gray-800 dark:text-gray-300"
+                      }`}
+                    >
+                      {appt.type}
+                    </span>
+                  </td>
 
                   <td>
                     <span
@@ -706,87 +699,87 @@ const handleDelete = async (id) => {
                   </td>
 
                   <td className="text-center">
-  <div className="flex justify-center gap-4 relative overflow-visible">
-    
-    {/* EDIT ICON */}
-    <div className="relative group">
-      <Edit2
-        size={16}
-        onClick={() => {
-          if (!canEdit) return;
-          const backend = appt.raw;
-          const backendReady = {
-            id: backend.id,
-            patient_name: backend.patient_name,
-            patient_id: backend.patient_id,
-            department_id: backend.department_id || "",
-            staff_id: backend.staff_id || "",
-            room_no: backend.room_no,
-            phone_no: backend.phone_no,
-            appointment_type: backend.appointment_type,
-            status: backend.status,
-            appointment_date: backend.appointment_date || "",
-            appointment_time: backend.appointment_time || "",
-            department_name: backend.department || "",
-            staff_name: backend.doctor || "",
-          };
-          setSelectedAppointment(backendReady);
-          setShowEditPopup(true);
-        }}
-        className={`cursor-pointer transition ${
-          canEdit
-            ? "text-[#08994A] dark:text-blue-400 hover:scale-110"
-            : "text-blue-600 opacity-100 cursor-not-allowed"
-        }`}
-      />
-      
-      {/* Edit Tooltip */}
-      <span
-        className="absolute bottom-5 -left-1/2 -translate-x-1/2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        {canEdit ? "Edit" : "Access Denied"}
-      </span>
-    </div>
+                    <div className="flex justify-center gap-4 relative overflow-visible">
+                      
+                      {/* EDIT ICON */}
+                      <div className="relative group">
+                        <Edit2
+                          size={16}
+                          onClick={() => {
+                            if (!canEdit) return;
+                            const backend = appt.raw;
+                            const backendReady = {
+                              id: backend.id,
+                              patient_name: backend.patient_name,
+                              patient_id: backend.patient_id,
+                              department_id: backend.department_id || "",
+                              staff_id: backend.staff_id || "",
+                              // room_no removed
+                              phone_no: backend.phone_no,
+                              appointment_type: backend.appointment_type,
+                              status: backend.status,
+                              appointment_date: backend.appointment_date || "",
+                              appointment_time: backend.appointment_time || "",
+                              department_name: backend.department || "",
+                              staff_name: backend.doctor || "",
+                            };
+                            setSelectedAppointment(backendReady);
+                            setShowEditPopup(true);
+                          }}
+                          className={`cursor-pointer transition ${
+                            canEdit
+                              ? "text-[#08994A] dark:text-blue-400 hover:scale-110"
+                              : "text-blue-600 opacity-100 cursor-not-allowed"
+                          }`}
+                        />
+                        
+                        {/* Edit Tooltip */}
+                        <span
+                          className="absolute bottom-5 -left-1/2 -translate-x-1/2 
+                                     whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                                     bg-gray-100 dark:bg-black text-black dark:text-white
+                                     opacity-0 group-hover:opacity-100
+                                     transition-all duration-150 z-50 pointer-events-none"
+                        >
+                          {canEdit ? "Edit" : "Access Denied"}
+                        </span>
+                      </div>
 
-    {/* DELETE ICON */}
-    <div className="relative group">
-      <Trash2
-        size={16}
-        onClick={() => {
-          if (!canDelete) return;
-          setSelectedAppointment({ id: appt.id });
-          setShowDeletePopup(true);
-        }}
-        className={`cursor-pointer transition ${
-          canDelete
-            ? "text-red-500 hover:scale-110"
-            : "text-red-500 opacity-100 cursor-not-allowed"
-        }`}
-      />
-      
-      {/* Delete Tooltip */}
-      <span
-        className="absolute bottom-5 -left-5 -translate-x-1/2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        {canDelete ? "Delete" : "Access Denied"}
-      </span>
-    </div>
-  </div>
-</td>
+                      {/* DELETE ICON */}
+                      <div className="relative group">
+                        <Trash2
+                          size={16}
+                          onClick={() => {
+                            if (!canDelete) return;
+                            setSelectedAppointment({ id: appt.id });
+                            setShowDeletePopup(true);
+                          }}
+                          className={`cursor-pointer transition ${
+                            canDelete
+                              ? "text-red-500 hover:scale-110"
+                              : "text-red-500 opacity-100 cursor-not-allowed"
+                          }`}
+                        />
+                        
+                        {/* Delete Tooltip */}
+                        <span
+                          className="absolute bottom-5 -left-5 -translate-x-1/2 
+                                     whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                                     bg-gray-100 dark:bg-black text-black dark:text-white
+                                     opacity-0 group-hover:opacity-100
+                                     transition-all duration-150 z-50 pointer-events-none"
+                        >
+                          {canDelete ? "Delete" : "Access Denied"}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td
-                  colSpan="9"
+                  colSpan="8" // Changed from 9 to 8 since Room column removed
                   className="text-center py-6 text-gray-600 dark:text-gray-400 italic"
                 >
                   No appointments found
@@ -924,17 +917,16 @@ const handleDelete = async (id) => {
                     }
                   >
                     <input
-  type="date"
-  id="filterDateInput"
-  name="date"
-  value={filtersData.date}
-  onChange={handleFilterChange}
-  className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer
-             [appearance:textfield]
-             [&::-webkit-calendar-picker-indicator]:opacity-0
-             [&::-webkit-calendar-picker-indicator]:hidden"
-/>
- 
+                      type="date"
+                      id="filterDateInput"
+                      name="date"
+                      value={filtersData.date}
+                      onChange={handleFilterChange}
+                      className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer
+                                 [appearance:textfield]
+                                 [&::-webkit-calendar-picker-indicator]:opacity-0
+                                 [&::-webkit-calendar-picker-indicator]:hidden"
+                    />
                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
                   </div>
                 </div>

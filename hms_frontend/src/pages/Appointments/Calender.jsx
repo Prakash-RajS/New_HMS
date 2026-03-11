@@ -521,11 +521,7 @@ const DoctorCalendar = () => {
                                             <span className="text-sm text-black dark:text-white">Department:</span>
                                             <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.department}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <DoorClosed size={14} className="text-gray-500" />
-                                            <span className="text-sm text-black dark:text-white">Room:</span>
-                                            <span className="text-sm text-gray-600 dark:text-gray-400">{appointment.room_no}</span>
-                                        </div>
+                                        {/* Room field removed for appointments */}
                                         <div className="flex items-center gap-2">
                                             <Phone size={14} className="text-gray-500" />
                                             <span className="text-sm text-black dark:text-white">Phone:</span>

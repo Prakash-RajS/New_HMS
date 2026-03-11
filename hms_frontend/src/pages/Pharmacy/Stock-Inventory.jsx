@@ -2994,9 +2994,9 @@ const StockInventory = () => {
   const { isAdmin, currentUser } = usePermissions();
   
 const userRole = currentUser?.role?.toLowerCase();
-const canAdd = isAdmin; // Only admin can add
-const canEdit = isAdmin; // Only admin can edit
-const canDelete = isAdmin; // Only admin can delete
+const canAdd = isAdmin || userRole === "billing staff" || userRole === "billing"; // Only admin can add
+const canEdit = isAdmin || userRole === "billing staff" || userRole === "billing"; // Only admin can edit
+const canDelete = isAdmin || userRole === "billing staff" || userRole === "billing"; // Only admin can delete
   const [newStock, setNewStock] = useState({
     product_name: "",
     dosage: "",

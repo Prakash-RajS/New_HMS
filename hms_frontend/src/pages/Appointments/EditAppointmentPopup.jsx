@@ -40,7 +40,7 @@ export default function EditAppointmentPopup({
     patient_id: appointment.patient_id || "",
     department_id: appointment.department_id || "",
     staff_id: appointment.staff_id || "",
-    room_no: appointment.room_no || "",
+    // room_no removed
     phone_no: appointment.phone_no || "",
     appointment_type: appointment.appointment_type || "checkup",
     status: appointment.status || "new",
@@ -53,16 +53,16 @@ export default function EditAppointmentPopup({
   const [formData, setFormData] = useState(initialData);
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [availableBeds, setAvailableBeds] = useState([]);
+  // availableBeds state removed
   const [loadingDept, setLoadingDept] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(false);
-  const [loadingBeds, setLoadingBeds] = useState(false);
+  // loadingBeds state removed
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const { isAdmin, currentUser } = usePermissions();
   
-const userRole = currentUser?.role?.toLowerCase();
-const canEditAppointment = isAdmin || userRole === "receptionist";
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEditAppointment = isAdmin || userRole === "receptionist";
 
   // Validation functions
   const validatePatientNameFormat = (value) => {
@@ -230,35 +230,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
     return () => (mounted = false);
   }, []);
 
-  // Load available beds
-  useEffect(() => {
-    let mounted = true;
-    setLoadingBeds(true);
-    
-    api.get("/bedgroups/all")
-      .then((response) => {
-        if (mounted) {
-          const data = response.data;
-          const beds = data.flatMap((group) =>
-            group.beds
-              .filter((bed) => !bed.is_occupied)
-              .map((bed) => ({
-                id: `${group.bedGroup}-${bed.bed_number}`,
-                name: `${group.bedGroup}-${bed.bed_number}`,
-              }))
-          );
-          setAvailableBeds(beds);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load beds:", error);
-      })
-      .finally(() => {
-        if (mounted) setLoadingBeds(false);
-      });
-    
-    return () => (mounted = false);
-  }, []);
+  // availableBeds useEffect removed
 
   // Preload department_id from name after departments load
   useEffect(() => {
@@ -384,7 +356,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
                 if (opt.full_name) {
                   label = `${opt.full_name} - Doctor`;
                 } 
-                // For departments and beds (has name field)
+                // For departments (has name field)
                 else if (opt.name) {
                   label = opt.name;
                 }
@@ -424,10 +396,11 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
 
   // Handle Update
   const handleUpdate = async () => {
-     if (!canEditAppointment) {
-    errorToast("You don't have permission to edit appointments");
-    return;
-  }
+    if (!canEditAppointment) {
+      errorToast("You don't have permission to edit appointments");
+      return;
+    }
+    
     // Clear all previous errors
     setValidationErrors({});
     
@@ -436,7 +409,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
     if (!formData.patient_name.trim()) requiredErrors.patient_name = "Patient name is required";
     if (!formData.department_id) requiredErrors.department_id = "Department is required";
     if (!formData.staff_id) requiredErrors.staff_id = "Doctor is required";
-    if (!formData.room_no) requiredErrors.room_no = "Room/Bed is required";
+    // room_no validation removed
     if (!formData.phone_no) requiredErrors.phone_no = "Phone number is required";
     if (!formData.appointment_type) requiredErrors.appointment_type = "Appointment type is required";
     if (!formData.status) requiredErrors.status = "Status is required";
@@ -488,7 +461,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
         patient_name: formData.patient_name,
         department_id: Number(formData.department_id),
         staff_id: Number(formData.staff_id),
-        room_no: formData.room_no || "",
+        // room_no removed
         phone_no: formData.phone_no || "",
         appointment_type: formData.appointment_type,
         status: formData.status,
@@ -535,10 +508,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
     }
   };
 
-  const bedOptions = availableBeds.map((b) => ({
-    id: b.id,
-    name: b.name,
-  }));
+  // bedOptions removed
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
@@ -705,26 +675,7 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
               )}
             </div>
             
-            <Dropdown
-              label="Room / Bed No"
-              value={formData.room_no}
-              onChange={(v) => {
-                setFormData({ ...formData, room_no: v });
-                if (validationErrors.room_no) {
-                  setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.room_no;
-                    return newErrors;
-                  });
-                }
-              }}
-              options={bedOptions}
-              placeholder={loadingBeds ? "Loading…" : "Select Available Bed"}
-              loading={loadingBeds}
-              isObject={true}
-              required={true}
-              error={validationErrors.room_no}
-            />
+            {/* Room / Bed No dropdown removed */}
             
             <Dropdown
               label="Doctor"
@@ -815,42 +766,42 @@ const canEditAppointment = isAdmin || userRole === "receptionist";
           )}
           
           <div className="flex justify-center gap-2 mt-8">
-  <button
-    onClick={onClose}
-    className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
-                text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
-  >
-    Cancel
-  </button>
-  
-  {/* Update Button with Tooltip */}
-  <div className="relative group">
-    <button
-      onClick={handleUpdate}
-      disabled={saving || !canEditAppointment}
-      className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
-                  bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
-                  shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition
-                  ${!canEditAppointment ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-    >
-      {saving ? "Updating…" : "Update"}
-    </button>
-    
-    {/* Tooltip for disabled state due to permissions */}
-    {!canEditAppointment && (
-      <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        Access Denied - Admin/Receptionist Only
-      </span>
-    )}
-  </div>
-</div>
+            <button
+              onClick={onClose}
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
+                          text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
+                          shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
+            >
+              Cancel
+            </button>
+            
+            {/* Update Button with Tooltip */}
+            <div className="relative group">
+              <button
+                onClick={handleUpdate}
+                disabled={saving || !canEditAppointment}
+                className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
+                            bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
+                            shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition
+                            ${!canEditAppointment ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+              >
+                {saving ? "Updating…" : "Update"}
+              </button>
+              
+              {/* Tooltip for disabled state due to permissions */}
+              {!canEditAppointment && (
+                <span
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
+                             whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                             bg-gray-100 dark:bg-black text-black dark:text-white
+                             opacity-0 group-hover:opacity-100
+                             transition-all duration-150 z-50 pointer-events-none"
+                >
+                  Access Denied - Admin/Receptionist Only
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
