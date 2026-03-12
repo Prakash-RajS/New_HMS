@@ -910,6 +910,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 import {
   ClipboardList,
   FileText,
@@ -929,6 +930,7 @@ import {
   Eye,
   Download,
   Scissors,
+  Lock,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 
@@ -937,12 +939,17 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL;
 export default function ViewPatientProfile() {
   const { patient_id } = useParams();
   const navigate = useNavigate();
+  const { user, isAdmin } = usePermissions();
   const [activeTab, setActiveTab] = useState("Prescription");
   const [patient, setPatient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
- 
+  
+  // Get user role for permission checks
+  const userRole = user?.role?.toLowerCase();
+  const canAccess = isAdmin || userRole === "doctor" || userRole === "nurse";
+  
   // Tab Data
   const [diagnoses, setDiagnoses] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
@@ -950,33 +957,35 @@ export default function ViewPatientProfile() {
   const [invoices, setInvoices] = useState([]);
   const [history, setHistory] = useState([]);
   const [selectedInvoiceIndex, setSelectedInvoiceIndex] = useState(0);
- 
+  
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [currentPrescriptionPage, setCurrentPrescriptionPage] = useState(1);
   const [currentTestPage, setCurrentTestPage] = useState(1);
   const [currentHistoryPage, setCurrentHistoryPage] = useState(1);
   const itemsPerPage = 5;
- 
+  
   // Filters
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedDepartment, setSelectedDepartment] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
- 
+  
   // Dynamic Departments
   const [departments, setDepartments] = useState(["All"]);
- 
+  
   // Responsive state
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth < 768;
   const [surgeries, setSurgeries] = useState([]);
   const [currentSurgeryPage, setCurrentSurgeryPage] = useState(1);
+  
   // Update window width on resize
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  
   // Fetch Departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -1005,6 +1014,7 @@ export default function ViewPatientProfile() {
     };
     fetchDepartments();
   }, []);
+  
   // Fetch Patient
   useEffect(() => {
     const fetchPatient = async () => {
@@ -1032,119 +1042,118 @@ export default function ViewPatientProfile() {
     };
     fetchPatient();
   }, [patient_id]);
+  
   // Fetch All Data including Invoices and History
   useEffect(() => {
-  if (!patient) return;
- 
-  const fetchTabData = async () => {
-    setDataLoading(true);
-    try {
-      // Fetch all data in parallel but handle errors individually
-      const promises = [
-        api.get(`/medicine_allocation/${patient_id}/diagnoses/`)
-          .catch(err => {
-            console.error("Failed to load diagnoses:", err);
-            return { data: [] };
-          }),
-        api.get(`/medicine_allocation/${patient_id}/prescriptions/`)
-          .catch(err => {
-            console.error("Failed to load prescriptions:", err);
-            return { data: [] };
-          }),
-        api.get(`/medicine_allocation/${patient_id}/test-reports/`)
-          .catch(err => {
-            console.error("Failed to load test reports:", err);
-            return { data: [] };
-          }),
-        api.get(`/medicine_allocation/${patient_id}/all-invoices/`)
-          .catch(err => {
-            console.error("Failed to load invoices:", err);
-            return { data: [] };
-          }),
-        api.get(`/patients/${patient_id}/history?page=1&limit=20`)
-          .catch(err => {
-            console.error("Failed to load history:", err);
-            return { data: { history: [] } };
-          }),
-        api.get(`/patients/${patient_id}/surgeries`)
-          .catch(err => {
-            console.warn("Surgeries API not available or error:", err.message);
-            return { data: [] }; // Return empty array if API fails
-          })
-      ];
-     
-      const [diagRes, presRes, testRes, invRes, histRes, surgRes] = await Promise.all(promises);
-     
-      setDiagnoses(diagRes.data || []);
-      setPrescriptions(presRes.data || []);
-      setTestReports(testRes.data || []);
-      setInvoices(invRes.data || []);
-      setHistory(histRes.data?.history || []);
-      setSurgeries(surgRes.data || []); // This should work now
-     
-      // Auto-select latest invoice
-      if (invRes.data.length > 0) {
-        setSelectedInvoiceIndex(0);
-      }
-     
-      // Reset pagination to first page on data load
-      setCurrentPage(1);
-      setCurrentPrescriptionPage(1);
-      setCurrentTestPage(1);
-      setCurrentHistoryPage(1);
-      setCurrentSurgeryPage(1);
-    } catch (err) {
-      console.error("Failed to load tab data", err);
-      if (err.response) {
-        if (err.response.status === 401) {
-          console.error("Authentication failed.");
-        } else if (err.response.status === 404) {
-          console.error("Resource not found.");
-        } else {
-          console.error(`Server error: ${err.response.status}`);
+    if (!patient) return;
+    
+    const fetchTabData = async () => {
+      setDataLoading(true);
+      try {
+        // Fetch all data in parallel but handle errors individually
+        const promises = [
+          api.get(`/medicine_allocation/${patient_id}/diagnoses/`)
+            .catch(err => {
+              console.error("Failed to load diagnoses:", err);
+              return { data: [] };
+            }),
+          api.get(`/medicine_allocation/${patient_id}/prescriptions/`)
+            .catch(err => {
+              console.error("Failed to load prescriptions:", err);
+              return { data: [] };
+            }),
+          api.get(`/medicine_allocation/${patient_id}/test-reports/`)
+            .catch(err => {
+              console.error("Failed to load test reports:", err);
+              return { data: [] };
+            }),
+          api.get(`/medicine_allocation/${patient_id}/all-invoices/`)
+            .catch(err => {
+              console.error("Failed to load invoices:", err);
+              return { data: [] };
+            }),
+          api.get(`/patients/${patient_id}/history?page=1&limit=20`)
+            .catch(err => {
+              console.error("Failed to load history:", err);
+              return { data: { history: [] } };
+            }),
+          api.get(`/patients/${patient_id}/surgeries`)
+            .catch(err => {
+              console.warn("Surgeries API not available or error:", err.message);
+              return { data: [] };
+            })
+        ];
+        
+        const [diagRes, presRes, testRes, invRes, histRes, surgRes] = await Promise.all(promises);
+        
+        setDiagnoses(diagRes.data || []);
+        setPrescriptions(presRes.data || []);
+        setTestReports(testRes.data || []);
+        setInvoices(invRes.data || []);
+        setHistory(histRes.data?.history || []);
+        setSurgeries(surgRes.data || []);
+        
+        // Auto-select latest invoice
+        if (invRes.data.length > 0) {
+          setSelectedInvoiceIndex(0);
         }
-      } else if (err.request) {
-        console.error("No response from server.");
-      } else {
-        console.error("Failed to load tab data");
+        
+        // Reset pagination to first page on data load
+        setCurrentPage(1);
+        setCurrentPrescriptionPage(1);
+        setCurrentTestPage(1);
+        setCurrentHistoryPage(1);
+        setCurrentSurgeryPage(1);
+      } catch (err) {
+        console.error("Failed to load tab data", err);
+        if (err.response) {
+          if (err.response.status === 401) {
+            console.error("Authentication failed.");
+          } else if (err.response.status === 404) {
+            console.error("Resource not found.");
+          } else {
+            console.error(`Server error: ${err.response.status}`);
+          }
+        } else if (err.request) {
+          console.error("No response from server.");
+        } else {
+          console.error("Failed to load tab data");
+        }
+        // Set empty arrays for all data to prevent further errors
+        setDiagnoses([]);
+        setPrescriptions([]);
+        setTestReports([]);
+        setInvoices([]);
+        setHistory([]);
+        setSurgeries([]);
+      } finally {
+        setDataLoading(false);
       }
-      // Set empty arrays for all data to prevent further errors
-      setDiagnoses([]);
-      setPrescriptions([]);
-      setTestReports([]);
-      setInvoices([]);
-      setHistory([]);
-      setSurgeries([]);
-    } finally {
-      setDataLoading(false);
-    }
-  };
- 
-  fetchTabData();
-}, [patient, patient_id]);
+    };
+    
+    fetchTabData();
+  }, [patient, patient_id]);
+  
   // Reset test page on filter change
   useEffect(() => {
     setCurrentTestPage(1);
   }, [selectedMonth, selectedDepartment, selectedStatus]);
+  
   // Function to extract filename from path
   const extractFilenameFromPath = (filePath) => {
     if (!filePath) return null;
-    // Extract filename from path like "/uploads/lab_reports/e3afa669669-c08c-4d2e-ae44-8fbc88caa15c.jpg"
     const parts = filePath.split('/');
     return parts[parts.length - 1];
   };
+  
   // Function to construct file path from report ID
   const constructFilePath = (reportId) => {
-    // Construct the file path based on your database pattern
-    // Assuming file path pattern: /uploads/lab_reports/{uuid}.{extension}
-    // Since we don't have the actual filename in the response, we'll need to get it from the server
-    // For now, return null - we'll need to fetch the actual path
     return null;
   };
+  
   // Function to get file path for a report
   const getReportFilePath = async (reportId) => {
     try {
-      // First, try to get the actual file path from the server
       const response = await api.get(`/labreports/${reportId}/path`);
       return response.data.file_path;
     } catch (error) {
@@ -1165,19 +1174,18 @@ export default function ViewPatientProfile() {
       return null;
     }
   };
+  
   // Function to view lab report (opens in new tab)
   const handleViewReport = async (reportId, orderId) => {
     if (!reportId) return;
     try {
-      // First, get the file path for this report
       const filePath = await getReportFilePath(reportId);
       if (!filePath) {
         console.error("No file path found for report:", reportId);
         alert("Report file not found on server");
         return;
       }
-     
-      // Directly use the file path from backend
+      
       const url = `${API_BASE}${filePath.startsWith('/') ? filePath : '/' + filePath}`;
       window.open(url, '_blank');
     } catch (error) {
@@ -1185,36 +1193,34 @@ export default function ViewPatientProfile() {
       alert("Error loading report. Please try again.");
     }
   };
+  
   // Function to download lab report
   const handleDownloadReport = async (reportId, orderId, testType) => {
     if (!reportId) return;
     try {
-      // First, get the file path for this report
       const filePath = await getReportFilePath(reportId);
       if (!filePath) {
         console.error("No file path found for report:", reportId);
         alert("Report file not found on server");
         return;
       }
-     
+      
       const filename = extractFilenameFromPath(filePath);
       if (!filename) {
         console.error("Could not extract filename from path:", filePath);
         return;
       }
-     
+      
       const downloadUrl = `${API_BASE}${filePath.startsWith('/') ? filePath : '/' + filePath}`;
       const link = document.createElement('a');
       link.href = downloadUrl;
-     
-      // Extract file extension
+      
       const fileExtension = filename.split('.').pop();
       const cleanReportName = (testType || `Report_${reportId}`).replace(/[^a-zA-Z0-9]/g, '_');
-     
-      // Set appropriate filename for download
+      
       link.download = `${cleanReportName}.${fileExtension}`;
       link.target = '_blank';
-     
+      
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1223,12 +1229,13 @@ export default function ViewPatientProfile() {
       alert("Error downloading report. Please try again.");
     }
   };
+  
   // Alternative: Simple view/download if you want to skip the API call for file path
   const handleViewReportSimple = (reportId) => {
-    // This assumes you have an endpoint that serves the file by report ID
     const url = `${API_BASE}/labreports/${reportId}/view`;
     window.open(url, '_blank');
   };
+  
   const handleDownloadReportSimple = (reportId, testType) => {
     const url = `${API_BASE}/labreports/${reportId}/download`;
     const link = document.createElement('a');
@@ -1239,19 +1246,37 @@ export default function ViewPatientProfile() {
     link.click();
     document.body.removeChild(link);
   };
+  
   const formatSurgeryDate = (dateString) => {
-  if (!dateString) return "—";
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch (error) {
-    return dateString; // Return as-is if parsing fails
-  }
-};
+    if (!dateString) return "—";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString;
+    }
+  };
+  
+  // Access Denied Component
+  const AccessDenied = () => (
+    <div className="flex flex-col items-center justify-center py-12 px-4">
+      <div className="bg-red-50 dark:bg-red-900/20 rounded-full p-6 mb-4">
+        <Lock size={48} className="text-red-500 dark:text-red-400" />
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        Access Denied
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400 text-center max-w-md">
+        You don't have permission to view this section. 
+        {userRole && ` Your role (${userRole}) requires admin, doctor, or nurse privileges to access this content.`}
+      </p>
+    </div>
+  );
+  
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -1265,26 +1290,28 @@ export default function ViewPatientProfile() {
         Patient not found
       </div>
     );
+  
   // Pagination Helpers
   const paginate = (items, page) =>
     items.slice((page - 1) * itemsPerPage, page * itemsPerPage);
- 
+  
   const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
- 
+  
   const currentDiagnoses = paginate(diagnoses, currentPage);
   const currentPrescriptions = paginate(prescriptions, currentPrescriptionPage);
   const currentHistory = paginate(history, currentHistoryPage);
   const currentSurgeries = paginate(surgeries, currentSurgeryPage);
- 
+  
   const filteredTests = testReports.filter(
     (t) =>
       (selectedMonth === "All" || t.month === selectedMonth) &&
       (selectedDepartment === "All" || t.department === selectedDepartment) &&
       (selectedStatus === "All" || t.status === selectedStatus)
   );
- 
+  
   const currentTests = paginate(filteredTests, currentTestPage);
   const currentInvoice = invoices.length > 0 ? invoices[selectedInvoiceIndex] : null;
+  
   // Dynamic Vitals Data
   const vitalsData = [
     {
@@ -1312,6 +1339,7 @@ export default function ViewPatientProfile() {
       unit: "°C",
     },
   ];
+  
   // Reusable Listbox Component
   const FilterListbox = ({ value, onChange, options, label }) => (
     <Listbox value={value} onChange={onChange}>
@@ -1340,6 +1368,7 @@ export default function ViewPatientProfile() {
       </div>
     </Listbox>
   );
+  
   // Responsive Table Component
   const ResponsiveTable = ({ children, headers, mobileData }) => {
     if (isMobile) {
@@ -1358,7 +1387,7 @@ export default function ViewPatientProfile() {
         </div>
       );
     }
-  
+    
     return (
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="min-w-full inline-block align-middle">
@@ -1369,48 +1398,59 @@ export default function ViewPatientProfile() {
       </div>
     );
   };
+  
   // Mobile Navigation
   const MobileTabs = () => (
-  <div className="md:hidden">
-    <button
-      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-      className="w-full flex items-center justify-between bg-[#025126] text-white p-4 rounded-lg mb-4"
-    >
-      <span>{activeTab}</span>
-      {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-    </button>
+    <div className="md:hidden">
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="w-full flex items-center justify-between bg-[#025126] text-white p-4 rounded-lg mb-4"
+      >
+        <span>{activeTab}</span>
+        {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+      
+      {mobileMenuOpen && (
+        <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
+          {[
+            { name: "Prescription", icon: FileText, requiresAuth: true },
+            { name: "Invoice", icon: Receipt, requiresAuth: true },
+            { name: "Test Reports", icon: TestTube2, requiresAuth: true },
+            { name: "Surgeries", icon: Scissors, requiresAuth: true },
+            { name: "History", icon: History, requiresAuth: true },
+          ].map(({ name, icon: Icon, requiresAuth }) => {
+            const hasAccess = !requiresAuth || canAccess;
+            return (
+              <button
+                key={name}
+                onClick={() => {
+                  if (hasAccess) {
+                    setActiveTab(name);
+                    setMobileMenuOpen(false);
+                  }
+                }}
+                disabled={!hasAccess}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
+                  !hasAccess
+                    ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
+                    : activeTab === name
+                    ? "bg-[#0EFF7B14] text-[#0EFF7B]"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                }`}
+              >
+                <Icon size={20} className={!hasAccess ? "text-gray-400" : ""} />
+                <span>{name}</span>
+                {!hasAccess && <Lock size={14} className="ml-auto text-gray-400" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
   
-    {mobileMenuOpen && (
-      <div className="bg-white dark:bg-[#0F0F0F] rounded-lg shadow-lg p-2 mb-4 border border-[#0EFF7B]/20">
-        {[
-          { name: "Prescription", icon: FileText },
-          { name: "Invoice", icon: Receipt },
-          { name: "Test Reports", icon: TestTube2 },
-          { name: "Surgeries", icon: Scissors }, // Add this
-          { name: "History", icon: History },
-        ].map(({ name, icon: Icon }) => (
-          <button
-            key={name}
-            onClick={() => {
-              setActiveTab(name);
-              setMobileMenuOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg mb-1 last:mb-0 ${
-              activeTab === name
-                ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-            }`}
-          >
-            <Icon size={20} />
-            <span>{name}</span>
-          </button>
-        ))}
-      </div>
-    )}
-  </div>
-);
   return (
-    <div className=" mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className="mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -1420,8 +1460,8 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       />
-    
-      {/* Gradient Border - FIXED for responsiveness */}
+      
+      {/* Gradient Border */}
       <div
         className="absolute inset-0 rounded-[10px] pointer-events-none"
         style={{
@@ -1435,7 +1475,7 @@ export default function ViewPatientProfile() {
           zIndex: 0,
         }}
       />
-     
+      
       {/* Back Button */}
       <button
         onClick={() => {
@@ -1453,8 +1493,8 @@ export default function ViewPatientProfile() {
         <ArrowLeft size={18} />
         Back
       </button>
-     
-      {/* Profile Card - FIXED WIDTH ISSUE */}
+      
+      {/* Profile Card */}
       <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
         {/* Avatar Section */}
         <div className="w-full lg:w-auto flex flex-col items-center mb-2 lg:mb-0 lg:mr-8">
@@ -1475,12 +1515,12 @@ export default function ViewPatientProfile() {
             {patient.email_address || "—"}
           </span>
         </div>
-       
+        
         {/* Vertical Separator - Only on large screens */}
         {windowWidth >= 1320 && (
           <div className="hidden lg:block w-[1px] h-[240px] bg-gray-300 dark:bg-[#A0A0A0] mr-8" />
         )}
-       
+        
         {/* Info Grid - Responsive */}
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mt-4 lg:mt-0">
           {[
@@ -1506,7 +1546,7 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
-     
+      
       {/* Vitals Section */}
       <div className="mb-6 sm:mb-8 relative z-10">
         <h1 className="text-black dark:text-white text-xl font-semibold mb-4">
@@ -1541,830 +1581,851 @@ export default function ViewPatientProfile() {
           ))}
         </div>
       </div>
-     
-      {/* Main Tabs Container - FIXED WIDTH ISSUE */}
+      
+      {/* Main Tabs Container */}
       <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
         {/* Mobile Navigation */}
         <MobileTabs />
-       
+        
         {/* Desktop Tabs */}
         <div className="hidden md:block w-full overflow-x-auto mb-6 sm:mb-8">
-  <div className="flex justify-start sm:justify-center min-w-max">
-    {[
-      { name: "Prescription", icon: FileText },
-      { name: "Invoice", icon: Receipt },
-      { name: "Test Reports", icon: TestTube2 },
-      { name: "Surgeries", icon: Scissors }, // Add this
-      { name: "History", icon: History },
-    ].map(({ name, icon: Icon }) => (
-      <button
-        key={name}
-        onClick={() => setActiveTab(name)}
-        className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
-          activeTab === name
-            ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-            : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
-        }`}
-        style={{
-          borderBottom: "1px solid",
-          borderImageSlice: 1,
-          borderImageSource:
-            "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
-        }}
-      >
-        <Icon size={18} className="text-[#0EFF7B]" />
-        <span className="hidden sm:inline">{name}</span>
-        <span className="sm:hidden">{name.substring(0, 3)}</span>
-      </button>
-    ))}
-  </div>
-</div>
-       
+          <div className="flex justify-start sm:justify-center min-w-max">
+            {[
+              { name: "Prescription", icon: FileText, requiresAuth: true },
+              { name: "Invoice", icon: Receipt, requiresAuth: true },
+              { name: "Test Reports", icon: TestTube2, requiresAuth: true },
+              { name: "Surgeries", icon: Scissors, requiresAuth: true },
+              { name: "History", icon: History, requiresAuth: true },
+            ].map(({ name, icon: Icon, requiresAuth }) => {
+              const hasAccess = !requiresAuth || canAccess;
+              return (
+                <button
+                  key={name}
+                  onClick={() => hasAccess && setActiveTab(name)}
+                  disabled={!hasAccess}
+                  className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
+                    !hasAccess
+                      ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
+                      : activeTab === name
+                      ? "bg-[#0EFF7B14] text-[#0EFF7B]"
+                      : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
+                  }`}
+                  style={{
+                    borderBottom: "1px solid",
+                    borderImageSlice: 1,
+                    borderImageSource:
+                      "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
+                  }}
+                >
+                  <Icon size={18} className={!hasAccess ? "text-gray-400" : "text-[#0EFF7B]"} />
+                  <span className="hidden sm:inline">{name}</span>
+                  <span className="sm:hidden">{name.substring(0, 3)}</span>
+                  {!hasAccess && <Lock size={14} className="ml-1 text-gray-400" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        
         {dataLoading && (
           <div className="text-center py-8 text-gray-600 dark:text-gray-400">
             Loading records...
           </div>
         )}
-       
-       
+        
         {/* === PRESCRIPTION TAB === */}
         {activeTab === "Prescription" && !dataLoading && (
-          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-            <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
-              Patient's prescription details.
-            </p>
-            {prescriptions.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No prescriptions found
-              </p>
+          <>
+            {!canAccess ? (
+              <AccessDenied />
             ) : (
-              <>
-                <ResponsiveTable
-                  headers={["Date", "Medicine", "Dosage", "Quantity", "Timing", "Frequency", "Status"]}
-                  mobileData={currentPrescriptions.map(p => [
-                    p.date,
-                    p.prescription,
-                    p.dosage,
-                    p.quantity,
-                    p.timing,
-                    p.frequency,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        p.status === "Completed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : p.status === "Pending"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {p.status}
-                    </span>
-                  ])}
-                >
-                  <thead>
-                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3 px-2 sm:px-4">Date</th>
-                      <th className="py-3 px-2 sm:px-4">Medicine</th>
-                      <th className="py-3 px-2 sm:px-4">Dosage</th>
-                      <th className="py-3 px-2 sm:px-4">Quantity</th>
-                      <th className="py-3 px-2 sm:px-4">Timing</th>
-                      <th className="py-3 px-2 sm:px-4">Frequency</th>
-                      <th className="py-3 px-2 sm:px-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-                    {currentPrescriptions.map((p, i) => (
-                      <tr
-                        key={i}
-                        className="border-b border-gray-200 dark:border-gray-700"
-                      >
-                        <td className="py-3 px-2 sm:px-4">{p.date}</td>
-                        <td className="py-3 px-2 sm:px-4">{p.prescription}</td>
-                        <td className="py-3 px-2 sm:px-4">{p.dosage}</td>
-                        <td className="py-3 px-2 sm:px-4">{p.quantity}</td>
-                        <td className="py-3 px-2 sm:px-4">{p.timing}</td>
-                        <td className="py-3 px-2 sm:px-4">{p.frequency}</td>
-                        <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              p.status === "Completed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : p.status === "Pending"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
-                            {p.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </ResponsiveTable>
-                <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentPrescriptionPage} of {totalPages(prescriptions)}
-                  </div>
-                  <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentPrescriptionPage(Math.max(1, currentPrescriptionPage - 1))}
-                      disabled={currentPrescriptionPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentPrescriptionPage(
-                          Math.min(totalPages(prescriptions), currentPrescriptionPage + 1)
-                        )
-                      }
-                      disabled={currentPrescriptionPage === totalPages(prescriptions)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-       
-        {/* === INVOICE TAB === */}
-        {activeTab === "Invoice" && !dataLoading && (
-          <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
-            {invoices.length === 0 ? (
-              <p className="text-center py-12 lg:py-20 text-gray-600 dark:text-gray-400 italic text-base lg:text-lg font-medium">
-                No invoices found
-              </p>
-            ) : (
-              <>
-                {/* Invoice Selector */}
-                <div className="flex justify-center lg:justify-end mb-4 lg:mb-8">
-                  <div className="relative w-full lg:min-w-[300px] lg:w-[380px] xl:w-[420px]">
-                    <Listbox
-                      value={selectedInvoiceIndex}
-                      onChange={(value) => setSelectedInvoiceIndex(value)}
-                    >
-                      <Listbox.Button className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between">
-                        <span className="truncate text-xs lg:text-sm">
-                          {invoices.length > 0
-                            ? `${invoices[
-                                selectedInvoiceIndex
-                              ]?.type.toUpperCase()} • ${
-                                invoices[selectedInvoiceIndex]?.invoice_number
-                              } • ${
-                                invoices[selectedInvoiceIndex]?.display_date
-                              }`
-                            : "Select Invoice"}
-                        </span>
-                        <ChevronDown className="absolute right-4 w-5 h-5 text-[#0EFF7B]" />
-                      </Listbox.Button>
-                      <Listbox.Options className="absolute z-50 mt-2 w-full bg-white dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
-                        {invoices.map((inv, idx) => (
-                          <Listbox.Option
-                            key={idx}
-                            value={idx}
-                            className={({ active }) =>
-                              `cursor-pointer select-none px-4 lg:px-6 py-3 transition-all duration-200 flex items-center justify-between ${
-                                active
-                                  ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
-                                  : "text-gray-800 dark:text-gray-200"
-                              }`
-                            }
-                          >
-                            {({ selected }) => (
-                              <>
-                                <span className={`truncate ${selected ? "font-bold" : "font-medium"} text-xs lg:text-sm`}>
-                                  {inv.type.toUpperCase()} • {inv.invoice_number} • {inv.display_date}
-                                </span>
-                                {selected && (
-                                  <div className="w-5 h-5 bg-[#0EFF7B] rounded-full flex items-center justify-center flex-shrink-0">
-                                    <div className="w-2 h-2 bg-black rounded-full" />
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </Listbox.Option>
-                        ))}
-                      </Listbox.Options>
-                    </Listbox>
-                  </div>
-                </div>
-                {currentInvoice && (
+              <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+                <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px] mb-4">
+                  Patient's prescription details.
+                </p>
+                {prescriptions.length === 0 ? (
+                  <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                    No prescriptions found
+                  </p>
+                ) : (
                   <>
-                    {/* Invoice Header */}
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-10 gap-4 lg:gap-6">
-                      <div className="w-full lg:w-auto">
-                        <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold text-[#0EFF7B] tracking-tight">
-                          Invoice #{currentInvoice.invoice_number}
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
-                          Issued: {currentInvoice.display_date} • {currentInvoice.type.toUpperCase()} Invoice
-                        </p>
-                      </div>
-                      <div className="bg-[#0EFF7B] text-black px-4 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-bold text-lg lg:text-xl xl:text-2xl shadow-xl w-full lg:w-auto text-center">
-                        Total: ${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}
-                      </div>
-                    </div>
-                    {/* Patient Info Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
-                      <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
-                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">PATIENT</h3>
-                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
-                          {currentInvoice.patient_name || patient.full_name}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          ID: {currentInvoice.patient_id}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-1">
-                          {currentInvoice.patient?.address || patient.address || "—"}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">
-                          {currentInvoice.patient?.phone || patient.phone_number || "—"}
-                        </p>
-                      </div>
-                      <div className="text-center space-y-3 lg:space-y-6">
-                        <div>
-                          <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                            Age / Gender
-                          </p>
-                          <p className="text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B] mt-1 lg:mt-2">
-                            {patient.age} yrs / {patient.gender}
-                          </p>
-                        </div>
-                        {currentInvoice.admission_date && (
-                          <div>
-                            <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                              Admission
-                            </p>
-                            <p className="text-sm lg:text-base xl:text-xl font-semibold text-gray-900 dark:text-white mt-1 lg:mt-2">
-                              {currentInvoice.admission_date}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
-                        <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">DOCTOR</h3>
-                        <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
-                          {currentInvoice.doctor || currentInvoice.doctor_name || "—"}
-                        </p>
-                        <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
-                          {patient.department?.name || "General Medicine"}
-                        </p>
-                        <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
-                          Stacklycare Hospital
-                        </p>
-                      </div>
-                    </div>
-                    {/* Items Table */}
-                    <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-white dark:bg-[#0F0F0F] mb-4 lg:mb-6">
-                      <table className="min-w-full">
-                        <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
-                          <tr>
-                            <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">S/N</th>
-                            <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">Item</th>
-                            <th className="py-3 px-2 lg:px-4 text-center font-semibold text-xs lg:text-sm">Qty</th>
-                            <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Price</th>
-                            <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Total</th>
+                    <ResponsiveTable
+                      headers={["Date", "Medicine", "Dosage", "Quantity", "Timing", "Frequency", "Status"]}
+                      mobileData={currentPrescriptions.map(p => [
+                        p.date,
+                        p.prescription,
+                        p.dosage,
+                        p.quantity,
+                        p.timing,
+                        p.frequency,
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                            p.status === "Completed"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              : p.status === "Pending"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                      ])}
+                    >
+                      <thead>
+                        <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                          <th className="py-3 px-2 sm:px-4">Date</th>
+                          <th className="py-3 px-2 sm:px-4">Medicine</th>
+                          <th className="py-3 px-2 sm:px-4">Dosage</th>
+                          <th className="py-3 px-2 sm:px-4">Quantity</th>
+                          <th className="py-3 px-2 sm:px-4">Timing</th>
+                          <th className="py-3 px-2 sm:px-4">Frequency</th>
+                          <th className="py-3 px-2 sm:px-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+                        {currentPrescriptions.map((p, i) => (
+                          <tr
+                            key={i}
+                            className="border-b border-gray-200 dark:border-gray-700"
+                          >
+                            <td className="py-3 px-2 sm:px-4">{p.date}</td>
+                            <td className="py-3 px-2 sm:px-4">{p.prescription}</td>
+                            <td className="py-3 px-2 sm:px-4">{p.dosage}</td>
+                            <td className="py-3 px-2 sm:px-4">{p.quantity}</td>
+                            <td className="py-3 px-2 sm:px-4">{p.timing}</td>
+                            <td className="py-3 px-2 sm:px-4">{p.frequency}</td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                                  p.status === "Completed"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                    : p.status === "Pending"
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                }`}
+                              >
+                                {p.status}
+                              </span>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                          {currentInvoice.items && currentInvoice.items.length > 0 ? (
-                            currentInvoice.items.map((item, index) => (
-                              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A]">
-                                <td className="py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-700 dark:text-gray-300">
-                                  {index + 1}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 font-medium text-xs lg:text-sm text-gray-900 dark:text-white">
-                                  {item.item || item.drug_name || item.description || "Service Charge"}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-center text-xs lg:text-sm text-gray-800 dark:text-gray-200">
-                                  {item.qty || item.quantity || 1}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm text-gray-800 dark:text-gray-200">
-                                  ${item.price || item.unit_price || "0.00"}
-                                </td>
-                                <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm font-bold text-[#0EFF7B]">
-                                  ${item.total || item.line_total || "0.00"}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="5" className="text-center py-8 text-gray-500">
-                                No item details available
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                    {/* Totals Summary */}
-                    <div className="flex justify-center lg:justify-end">
-                      <div className="w-full lg:max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-xl lg:rounded-2xl p-4 lg:p-8 border-2 border-[#0EFF7B]/30 shadow">
-                        <div className="space-y-2 lg:space-y-4">
-                          <div className="flex justify-between text-sm lg:text-base">
-                            <span className="font-medium">Subtotal</span>
-                            <span>${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
-                          </div>
-                        
-                          {currentInvoice.tax_amount > 0 && (
-                            <div className="flex justify-between text-xs lg:text-sm">
-                              <span>Tax ({currentInvoice.tax_percent || 18}%)</span>
-                              <span>${currentInvoice.tax_amount || "0.00"}</span>
-                            </div>
-                          )}
-                        
-                          {currentInvoice.discount_amount > 0 && (
-                            <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium">
-                              <span>Discount</span>
-                              <span>-${currentInvoice.discount_amount || "0.00"}</span>
-                            </div>
-                          )}
-                          <div className="border-t-2 border-[#0EFF7B]/50 pt-3 lg:pt-6 mt-3 lg:mt-6">
-                            <div className="flex justify-between text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B]">
-                              <span>Grand Total</span>
-                              <span>${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}</span>
-                            </div>
-                          </div>
-                        </div>
+                        ))}
+                      </tbody>
+                    </ResponsiveTable>
+                    <div className="flex items-center mt-4 gap-x-4">
+                      <div className="text-sm text-black dark:text-white">
+                        Page {currentPrescriptionPage} of {totalPages(prescriptions)}
                       </div>
-                    </div>
-                    {/* Payment Status */}
-                    <div className="mt-4 lg:mt-10 text-center text-xs lg:text-sm text-gray-600 dark:text-gray-400 space-y-1 lg:space-y-2">
-                      <p>
-                        Payment Method: <strong className="text-gray-900 dark:text-white">
-                          {currentInvoice.payment_method || currentInvoice.payment_mode || "Cash"}
-                        </strong>
-                      </p>
-                      <p>
-                        Status: <strong className="text-green-600 text-sm lg:text-base xl:text-lg font-bold">
-                          {currentInvoice.status || currentInvoice.payment_status || "Paid"}
-                        </strong>
-                      </p>
+                      <div className="flex items-center gap-x-2">
+                        <button
+                          onClick={() => setCurrentPrescriptionPage(Math.max(1, currentPrescriptionPage - 1))}
+                          disabled={currentPrescriptionPage === 1}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronLeft size={12} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setCurrentPrescriptionPage(
+                              Math.min(totalPages(prescriptions), currentPrescriptionPage + 1)
+                            )
+                          }
+                          disabled={currentPrescriptionPage === totalPages(prescriptions)}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
                     </div>
                   </>
                 )}
-              </>
-            )}
-          </div>
-        )}
-       
-        {/* === TEST REPORTS TAB === */}
-        {activeTab === "Test Reports" && !dataLoading && (
-          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
-              <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
-                Patients test report information.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
-                <FilterListbox
-                  value={selectedMonth}
-                  onChange={setSelectedMonth}
-                  options={[
-                    "All",
-                    "January", "February", "March", "April", "May", "June",
-                    "July", "August", "September", "October", "November", "December",
-                  ]}
-                  label="Month"
-                />
-                <FilterListbox
-                  value={selectedDepartment}
-                  onChange={setSelectedDepartment}
-                  options={departments}
-                  label="Department"
-                />
-                <FilterListbox
-                  value={selectedStatus}
-                  onChange={setSelectedStatus}
-                  options={["All", "Completed", "Pending", "Cancelled"]}
-                  label="Status"
-                />
               </div>
-            </div>
-            {filteredTests.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No test reports found
-              </p>
+            )}
+          </>
+        )}
+        
+        {/* === INVOICE TAB === */}
+        {activeTab === "Invoice" && !dataLoading && (
+          <>
+            {!canAccess ? (
+              <AccessDenied />
             ) : (
-              <>
-                <ResponsiveTable
-                  headers={["Source", "Date & Time", "Month", "Test Type", "Department", "Status", "Report"]}
-                  mobileData={currentTests.map(t => [
-                    t.source || "Lab",
-                    t.dateTime,
-                    t.month,
-                    t.testType,
-                    t.department,
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                        t.status === "Completed"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : t.status === "Pending"
-                          ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {t.status}
-                    </span>,
-                    t.hasReport ? (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewReportSimple(t.reportId);
-                          }}
-                          className="p-1 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+              <div className="rounded-xl p-3 sm:p-4 lg:p-6 mb-4 lg:mb-8 bg-gradient-to-br from-transparent via-white/5 to-transparent">
+                {invoices.length === 0 ? (
+                  <p className="text-center py-12 lg:py-20 text-gray-600 dark:text-gray-400 italic text-base lg:text-lg font-medium">
+                    No invoices found
+                  </p>
+                ) : (
+                  <>
+                    {/* Invoice Selector */}
+                    <div className="flex justify-center lg:justify-end mb-4 lg:mb-8">
+                      <div className="relative w-full lg:min-w-[300px] lg:w-[380px] xl:w-[420px]">
+                        <Listbox
+                          value={selectedInvoiceIndex}
+                          onChange={(value) => setSelectedInvoiceIndex(value)}
                         >
-                          <Eye size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDownloadReportSimple(t.reportId, t.testType);
-                          }}
-                          className="p-1 rounded-full border border-[#08994A1A] bg-[#08994A1A] hover:bg-[#0cd96822]"
-                        >
-                          <Download size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                        </button>
+                          <Listbox.Button className="w-full h-[48px] rounded-xl border-2 border-[#0EFF7B] bg-[#025126] text-white shadow-[0_0_8px_#0EFF7B40] outline-none focus:border-[#0EFF7B] focus:shadow-[0_0_12px_#0EFF7B60] transition-all duration-300 px-4 lg:px-6 pr-12 font-medium text-sm text-left relative hover:shadow-[0_0_16px_#0EFF7B50] flex items-center justify-between">
+                            <span className="truncate text-xs lg:text-sm">
+                              {invoices.length > 0
+                                ? `${invoices[
+                                    selectedInvoiceIndex
+                                  ]?.type.toUpperCase()} • ${
+                                    invoices[selectedInvoiceIndex]?.invoice_number
+                                  } • ${
+                                    invoices[selectedInvoiceIndex]?.display_date
+                                  }`
+                                : "Select Invoice"}
+                            </span>
+                            <ChevronDown className="absolute right-4 w-5 h-5 text-[#0EFF7B]" />
+                          </Listbox.Button>
+                          <Listbox.Options className="absolute z-50 mt-2 w-full bg-white dark:bg-black border-2 border-[#0EFF7B] rounded-xl shadow-2xl shadow-[#0EFF7B]/30 max-h-60 overflow-auto text-sm font-medium py-2 top-[100%] left-0">
+                            {invoices.map((inv, idx) => (
+                              <Listbox.Option
+                                key={idx}
+                                value={idx}
+                                className={({ active }) =>
+                                  `cursor-pointer select-none px-4 lg:px-6 py-3 transition-all duration-200 flex items-center justify-between ${
+                                    active
+                                      ? "bg-[#0EFF7B]/10 text-[#0EFF7B]"
+                                      : "text-gray-800 dark:text-gray-200"
+                                  }`
+                                }
+                              >
+                                {({ selected }) => (
+                                  <>
+                                    <span className={`truncate ${selected ? "font-bold" : "font-medium"} text-xs lg:text-sm`}>
+                                      {inv.type.toUpperCase()} • {inv.invoice_number} • {inv.display_date}
+                                    </span>
+                                    {selected && (
+                                      <div className="w-5 h-5 bg-[#0EFF7B] rounded-full flex items-center justify-center flex-shrink-0">
+                                        <div className="w-2 h-2 bg-black rounded-full" />
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </Listbox>
                       </div>
-                    ) : "No report"
-                  ])}
-                >
-                  <thead>
-                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3 px-2 sm:px-4">Source</th>
-                      <th className="py-3 px-2 sm:px-4">Date & Time</th>
-                      <th className="py-3 px-2 sm:px-4">Month</th>
-                      <th className="py-3 px-2 sm:px-4">Test Type</th>
-                      <th className="py-3 px-2 sm:px-4">Department</th>
-                      <th className="py-3 px-2 sm:px-4">Status</th>
-                      <th className="py-3 px-2 sm:px-4">Report</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-                    {currentTests.map((t, i) => (
-                      <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
-                        <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                              t.source === "Medicine Allocation"
-                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-                                : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                            }`}
-                          >
-                            {t.source || "Lab"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 sm:px-4">{t.dateTime}</td>
-                        <td className="py-3 px-2 sm:px-4">{t.month}</td>
-                        <td className="py-3 px-2 sm:px-4">{t.testType}</td>
-                        <td className="py-3 px-2 sm:px-4">{t.department}</td>
-                        <td className="py-3 px-2 sm:px-4">
-                          <span
-                            className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                              t.status === "Completed"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                                : t.status === "Pending"
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                            }`}
-                          >
-                            {t.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2 sm:px-4">
-                          {t.hasReport ? (
-                            <div className="flex items-center gap-2">
-                              <div className="relative group">
-                                <button
-                                  onClick={() => handleViewReportSimple(t.reportId)}
-                                  className="flex items-center justify-center w-8 h-8 rounded-full
-                                    border border-[#0EFF7B1A] dark:border-[#0EFF7B1A]
-                                    bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer
-                                    hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
-                                >
-                                  <Eye
-                                    size={18}
-                                    className="text-[#08994A] dark:text-[#0EFF7B]
-                                      hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                  />
-                                </button>
-                                <span
-                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                                    px-3 py-1 text-xs rounded-md shadow-md
-                                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                                    transition-all duration-150"
-                                >
-                                  View Report
-                                </span>
+                    </div>
+                    {currentInvoice && (
+                      <>
+                        {/* Invoice Header */}
+                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-4 lg:mb-10 gap-4 lg:gap-6">
+                          <div className="w-full lg:w-auto">
+                            <h2 className="text-xl lg:text-2xl xl:text-3xl font-bold text-[#0EFF7B] tracking-tight">
+                              Invoice #{currentInvoice.invoice_number}
+                            </h2>
+                            <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
+                              Issued: {currentInvoice.display_date} • {currentInvoice.type.toUpperCase()} Invoice
+                            </p>
+                          </div>
+                          <div className="bg-[#0EFF7B] text-black px-4 lg:px-8 py-3 lg:py-4 rounded-xl lg:rounded-2xl font-bold text-lg lg:text-xl xl:text-2xl shadow-xl w-full lg:w-auto text-center">
+                            Total: ${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}
+                          </div>
+                        </div>
+                        {/* Patient Info Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 xl:gap-8 mb-4 lg:mb-10 bg-white dark:bg-[#0F0F0F]/50 backdrop-blur-sm rounded-xl lg:rounded-2xl p-4 lg:p-6 border border-[#0EFF7B]/20 shadow">
+                          <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
+                            <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">PATIENT</h3>
+                            <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
+                              {currentInvoice.patient_name || patient.full_name}
+                            </p>
+                            <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              ID: {currentInvoice.patient_id}
+                            </p>
+                            <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300 mt-1">
+                              {currentInvoice.patient?.address || patient.address || "—"}
+                            </p>
+                            <p className="text-xs lg:text-sm text-gray-700 dark:text-gray-300">
+                              {currentInvoice.patient?.phone || patient.phone_number || "—"}
+                            </p>
+                          </div>
+                          <div className="text-center space-y-3 lg:space-y-6">
+                            <div>
+                              <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                Age / Gender
+                              </p>
+                              <p className="text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B] mt-1 lg:mt-2">
+                                {patient.age} yrs / {patient.gender}
+                              </p>
+                            </div>
+                            {currentInvoice.admission_date && (
+                              <div>
+                                <p className="text-xs lg:text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                  Admission
+                                </p>
+                                <p className="text-sm lg:text-base xl:text-xl font-semibold text-gray-900 dark:text-white mt-1 lg:mt-2">
+                                  {currentInvoice.admission_date}
+                                </p>
                               </div>
-                              <div className="relative group">
-                                <button
-                                  onClick={() => handleDownloadReportSimple(t.reportId, t.testType)}
-                                  className="flex items-center justify-center w-8 h-8 rounded-full
-                                    border border-[#08994A1A] dark:border-[#0EFF7B1A]
-                                    bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer
-                                    hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
-                                >
-                                  <Download
-                                    size={18}
-                                    className="text-[#08994A] dark:text-[#0EFF7B]
-                                      hover:text-[#0cd968] dark:hover:text-[#0cd968]"
-                                  />
-                                </button>
-                                <span
-                                  className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-                                    px-3 py-1 text-xs rounded-md shadow-md
-                                    bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
-                                    transition-all duration-150"
-                                >
-                                  Download Report
-                                </span>
+                            )}
+                          </div>
+                          <div className="border-l-4 border-[#0EFF7B] pl-3 lg:pl-6">
+                            <h3 className="text-base lg:text-lg xl:text-xl font-bold text-[#0EFF7B] mb-2 lg:mb-4 tracking-wide">DOCTOR</h3>
+                            <p className="text-sm lg:text-base xl:text-lg font-semibold text-gray-900 dark:text-white">
+                              {currentInvoice.doctor || currentInvoice.doctor_name || "—"}
+                            </p>
+                            <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 mt-1 lg:mt-2">
+                              {patient.department?.name || "General Medicine"}
+                            </p>
+                            <p className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 lg:mt-3">
+                              Stacklycare Hospital
+                            </p>
+                          </div>
+                        </div>
+                        {/* Items Table */}
+                        <div className="overflow-x-auto rounded-xl lg:rounded-2xl border border-[#0EFF7B]/20 shadow bg-white dark:bg-[#0F0F0F] mb-4 lg:mb-6">
+                          <table className="min-w-full">
+                            <thead className="bg-gradient-to-r from-[#025126] to-[#025126]/80 text-white">
+                              <tr>
+                                <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">S/N</th>
+                                <th className="py-3 px-2 lg:px-4 text-left font-semibold text-xs lg:text-sm">Item</th>
+                                <th className="py-3 px-2 lg:px-4 text-center font-semibold text-xs lg:text-sm">Qty</th>
+                                <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Price</th>
+                                <th className="py-3 px-2 lg:px-4 text-right font-semibold text-xs lg:text-sm">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                              {currentInvoice.items && currentInvoice.items.length > 0 ? (
+                                currentInvoice.items.map((item, index) => (
+                                  <tr key={index} className="hover:bg-gray-50 dark:hover:bg-[#1A1A1A]">
+                                    <td className="py-3 px-2 lg:px-4 text-xs lg:text-sm text-gray-700 dark:text-gray-300">
+                                      {index + 1}
+                                    </td>
+                                    <td className="py-3 px-2 lg:px-4 font-medium text-xs lg:text-sm text-gray-900 dark:text-white">
+                                      {item.item || item.drug_name || item.description || "Service Charge"}
+                                    </td>
+                                    <td className="py-3 px-2 lg:px-4 text-center text-xs lg:text-sm text-gray-800 dark:text-gray-200">
+                                      {item.qty || item.quantity || 1}
+                                    </td>
+                                    <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm text-gray-800 dark:text-gray-200">
+                                      ${item.price || item.unit_price || "0.00"}
+                                    </td>
+                                    <td className="py-3 px-2 lg:px-4 text-right text-xs lg:text-sm font-bold text-[#0EFF7B]">
+                                      ${item.total || item.line_total || "0.00"}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan="5" className="text-center py-8 text-gray-500">
+                                    No item details available
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {/* Totals Summary */}
+                        <div className="flex justify-center lg:justify-end">
+                          <div className="w-full lg:max-w-lg bg-gradient-to-br from-gray-50 to-gray-100 dark:from-[#0F0F0F] dark:to-[#1A1A1A] rounded-xl lg:rounded-2xl p-4 lg:p-8 border-2 border-[#0EFF7B]/30 shadow">
+                            <div className="space-y-2 lg:space-y-4">
+                              <div className="flex justify-between text-sm lg:text-base">
+                                <span className="font-medium">Subtotal</span>
+                                <span>${currentInvoice.subtotal || currentInvoice.amount || "0.00"}</span>
+                              </div>
+                            
+                              {currentInvoice.tax_amount > 0 && (
+                                <div className="flex justify-between text-xs lg:text-sm">
+                                  <span>Tax ({currentInvoice.tax_percent || 18}%)</span>
+                                  <span>${currentInvoice.tax_amount || "0.00"}</span>
+                                </div>
+                              )}
+                            
+                              {currentInvoice.discount_amount > 0 && (
+                                <div className="flex justify-between text-xs lg:text-sm text-red-600 font-medium">
+                                  <span>Discount</span>
+                                  <span>-${currentInvoice.discount_amount || "0.00"}</span>
+                                </div>
+                              )}
+                              <div className="border-t-2 border-[#0EFF7B]/50 pt-3 lg:pt-6 mt-3 lg:mt-6">
+                                <div className="flex justify-between text-lg lg:text-xl xl:text-2xl font-bold text-[#0EFF7B]">
+                                  <span>Grand Total</span>
+                                  <span>${currentInvoice.grand_total || currentInvoice.net_amount || "0.00"}</span>
+                                </div>
                               </div>
                             </div>
-                          ) : (
-                            <span className="text-gray-500 dark:text-gray-400 text-sm">No report</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </ResponsiveTable>
-                <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentTestPage} of {totalPages(filteredTests)}
-                  </div>
-                  <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentTestPage(Math.max(1, currentTestPage - 1))}
-                      disabled={currentTestPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentTestPage(
-                          Math.min(totalPages(filteredTests), currentTestPage + 1)
-                        )
-                      }
-                      disabled={currentTestPage === totalPages(filteredTests)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
-                  </div>
-                </div>
-              </>
+                          </div>
+                        </div>
+                        {/* Payment Status */}
+                        <div className="mt-4 lg:mt-10 text-center text-xs lg:text-sm text-gray-600 dark:text-gray-400 space-y-1 lg:space-y-2">
+                          <p>
+                            Payment Method: <strong className="text-gray-900 dark:text-white">
+                              {currentInvoice.payment_method || currentInvoice.payment_mode || "Cash"}
+                            </strong>
+                          </p>
+                          <p>
+                            Status: <strong className="text-green-600 text-sm lg:text-base xl:text-lg font-bold">
+                              {currentInvoice.status || currentInvoice.payment_status || "Paid"}
+                            </strong>
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
-       
-        {activeTab === "Surgeries" && !dataLoading && (
-  <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
-      <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
-        Patient's surgical history and procedures.
-      </p>
-    </div>
-    {surgeries.length === 0 ? (
-      <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-        No surgery records found
-      </p>
-    ) : (
-      <>
-        <ResponsiveTable
-          headers={["Date", "Surgery Name", "Doctor", "Status"]}
-          mobileData={currentSurgeries.map(s => [
-            s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—",
-            s.surgery_type,
-            s.doctor || "—",
-            <span
-              className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                s.status === "success"
-                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : s.status === "pending"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                  : s.status === "cancelled"
-                  ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-              }`}
-            >
-              {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
-            </span>
-          ])}
-        >
-          <thead>
-            <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-              <th className="py-3 px-2 sm:px-4">Date</th>
-              <th className="py-3 px-2 sm:px-4">Surgery Name</th>
-              <th className="py-3 px-2 sm:px-4">Doctor</th>
-              <th className="py-3 px-2 sm:px-4">Status</th>
-            </tr>
-          </thead>
-          <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-            {currentSurgeries.map((s, i) => (
-              <tr
-                key={i}
-                className="border-b border-gray-200 dark:border-gray-700"
-              >
-                <td className="py-3 px-2 sm:px-4">
-                  {s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—"}
-                </td>
-                <td className="py-3 px-2 sm:px-4 font-medium">{s.surgery_type || "—"}</td>
-                <td className="py-3 px-2 sm:px-4">{s.doctor || "—"}</td>
-                <td className="py-3 px-2 sm:px-4">
-                  <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-                      s.status === "success"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                        : s.status === "pending"
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-                        : s.status === "cancelled"
-                        ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                        : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                    }`}
-                  >
-                    {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </ResponsiveTable>
-        <div className="flex items-center mt-4 gap-x-4">
-          <div className="text-sm text-black dark:text-white">
-            Page {currentSurgeryPage} of {totalPages(surgeries)}
-          </div>
-          <div className="flex items-center gap-x-2">
-            <button
-              onClick={() => setCurrentSurgeryPage(Math.max(1, currentSurgeryPage - 1))}
-              disabled={currentSurgeryPage === 1}
-              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-            >
-              <ChevronLeft size={12} />
-            </button>
-            <button
-              onClick={() =>
-                setCurrentSurgeryPage(
-                  Math.min(totalPages(surgeries), currentSurgeryPage + 1)
-                )
-              }
-              disabled={currentSurgeryPage === totalPages(surgeries)}
-              className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-            >
-              <ChevronRight size={12} />
-            </button>
-          </div>
-        </div>
-      </>
-    )}
-  </div>
-)}
-       {/* === HISTORY TAB === */}
-        {activeTab === "History" && !dataLoading && (
-          <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
-              <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
-                Patient's history records showing registration and status changes.
-              </p>
-            </div>
-            {history.length === 0 ? (
-              <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
-                No history records found
-              </p>
+        
+        {/* === TEST REPORTS TAB === */}
+        {activeTab === "Test Reports" && !dataLoading && (
+          <>
+            {!canAccess ? (
+              <AccessDenied />
             ) : (
-              <>
-                <ResponsiveTable
-                  headers={[
-  "Doctor",
-  "Department",
-  "Event",
-  "Current Status",
-  "Admission Date",
-  "Discharge Date",
-  "Date & Time"
-]}
-                 mobileData={currentHistory.map((h) => [
-  h.doctor || "—",
-  h.department || "—",
-
-  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-    {h.status || "—"}
-  </span>,
-
-  <span
-    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-      h.current_status === "In-patient"
-        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-        : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-    }`}
-  >
-    {h.current_status || "—"}
-  </span>,
-
-  h.admission_date || "—",
-  h.discharge_date || "—",
-  h.created_at
-])}
-                >
-                  <thead>
-                    <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
-                      <th className="py-3 px-2 sm:px-4">Doctor</th>
-                      <th className="py-3 px-2 sm:px-4">Department</th>
-                      <th className="py-3 px-2 sm:px-4">Event</th>
-<th className="py-3 px-2 sm:px-4">Current Status</th>
-                      <th className="py-3 px-2 sm:px-4">Admission</th>
-                      <th className="py-3 px-2 sm:px-4">Discharge</th>
-                      <th className="py-3 px-2 sm:px-4">Date & Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
-  {currentHistory.map((h, i) => (
-    <tr
-      key={i}
-      className="border-b border-gray-200 dark:border-gray-700"
-    >
-      {/* Doctor */}
-      <td className="py-3 px-2 sm:px-4">
-        {h.doctor || "—"}
-      </td>
-
-      {/* Department */}
-      <td className="py-3 px-2 sm:px-4">
-        {h.department || "—"}
-      </td>
-
-      {/* Status */}
-      {/* Event Status */}
-<td className="py-3 px-2 sm:px-4">
-  <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-    {h.status || "—"}
-  </span>
-</td>
-
-{/* Current Patient Status */}
-<td className="py-3 px-2 sm:px-4">
-  <span
-    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
-      h.current_status === "In-patient"
-        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-        : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-    }`}
-  >
-    {h.current_status || "—"}
-  </span>
-</td>
-
-      {/* Admission Date */}
-      <td className="py-3 px-2 sm:px-4">
-        {h.admission_date || "—"}
-      </td>
-
-      {/* Discharge Date */}
-      <td className="py-3 px-2 sm:px-4">
-        {h.discharge_date || "—"}
-      </td>
-
-      {/* Record Created Time */}
-      <td className="py-3 px-2 sm:px-4">
-        {h.created_at || "—"}
-      </td>
-    </tr>
-  ))}
-</tbody>
-                </ResponsiveTable>
-                <div className="flex items-center mt-4 gap-x-4">
-                  <div className="text-sm text-black dark:text-white">
-                    Page {currentHistoryPage} of {totalPages(history)}
-                  </div>
-                  <div className="flex items-center gap-x-2">
-                    <button
-                      onClick={() => setCurrentHistoryPage(Math.max(1, currentHistoryPage - 1))}
-                      disabled={currentHistoryPage === 1}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronLeft size={12} />
-                    </button>
-                    <button
-                      onClick={() =>
-                        setCurrentHistoryPage(
-                          Math.min(totalPages(history), currentHistoryPage + 1)
-                        )
-                      }
-                      disabled={currentHistoryPage === totalPages(history)}
-                      className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
-                    >
-                      <ChevronRight size={12} />
-                    </button>
+              <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+                  <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
+                    Patients test report information.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto">
+                    <FilterListbox
+                      value={selectedMonth}
+                      onChange={setSelectedMonth}
+                      options={[
+                        "All",
+                        "January", "February", "March", "April", "May", "June",
+                        "July", "August", "September", "October", "November", "December",
+                      ]}
+                      label="Month"
+                    />
+                    <FilterListbox
+                      value={selectedDepartment}
+                      onChange={setSelectedDepartment}
+                      options={departments}
+                      label="Department"
+                    />
+                    <FilterListbox
+                      value={selectedStatus}
+                      onChange={setSelectedStatus}
+                      options={["All", "Completed", "Pending", "Cancelled"]}
+                      label="Status"
+                    />
                   </div>
                 </div>
-              </>
+                {filteredTests.length === 0 ? (
+                  <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                    No test reports found
+                  </p>
+                ) : (
+                  <>
+                    <ResponsiveTable
+                      headers={["Source", "Date & Time", "Month", "Test Type", "Department", "Status", "Report"]}
+                      mobileData={currentTests.map(t => [
+                        t.source || "Lab",
+                        t.dateTime,
+                        t.month,
+                        t.testType,
+                        t.department,
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                            t.status === "Completed"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              : t.status === "Pending"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                          }`}
+                        >
+                          {t.status}
+                        </span>,
+                        t.hasReport ? (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewReportSimple(t.reportId);
+                              }}
+                              className="p-1 rounded-full border border-[#0EFF7B1A] bg-[#0EFF7B1A] hover:bg-[#0EFF7B33]"
+                            >
+                              <Eye size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadReportSimple(t.reportId, t.testType);
+                              }}
+                              className="p-1 rounded-full border border-[#08994A1A] bg-[#08994A1A] hover:bg-[#0cd96822]"
+                            >
+                              <Download size={14} className="text-[#08994A] dark:text-[#0EFF7B]" />
+                            </button>
+                          </div>
+                        ) : "No report"
+                      ])}
+                    >
+                      <thead>
+                        <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                          <th className="py-3 px-2 sm:px-4">Source</th>
+                          <th className="py-3 px-2 sm:px-4">Date & Time</th>
+                          <th className="py-3 px-2 sm:px-4">Month</th>
+                          <th className="py-3 px-2 sm:px-4">Test Type</th>
+                          <th className="py-3 px-2 sm:px-4">Department</th>
+                          <th className="py-3 px-2 sm:px-4">Status</th>
+                          <th className="py-3 px-2 sm:px-4">Report</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+                        {currentTests.map((t, i) => (
+                          <tr key={i} className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-3 px-2 sm:px-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+                                  t.source === "Medicine Allocation"
+                                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                                    : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                                }`}
+                              >
+                                {t.source || "Lab"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">{t.dateTime}</td>
+                            <td className="py-3 px-2 sm:px-4">{t.month}</td>
+                            <td className="py-3 px-2 sm:px-4">{t.testType}</td>
+                            <td className="py-3 px-2 sm:px-4">{t.department}</td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                                  t.status === "Completed"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                    : t.status === "Pending"
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                }`}
+                              >
+                                {t.status}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              {t.hasReport ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="relative group">
+                                    <button
+                                      onClick={() => handleViewReportSimple(t.reportId)}
+                                      className="flex items-center justify-center w-8 h-8 rounded-full
+                                        border border-[#0EFF7B1A] dark:border-[#0EFF7B1A]
+                                        bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] cursor-pointer
+                                        hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33]"
+                                    >
+                                      <Eye
+                                        size={18}
+                                        className="text-[#08994A] dark:text-[#0EFF7B]
+                                          hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                                      />
+                                    </button>
+                                    <span
+                                      className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                                        px-3 py-1 text-xs rounded-md shadow-md
+                                        bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                                        transition-all duration-150"
+                                    >
+                                      View Report
+                                    </span>
+                                  </div>
+                                  <div className="relative group">
+                                    <button
+                                      onClick={() => handleDownloadReportSimple(t.reportId, t.testType)}
+                                      className="flex items-center justify-center w-8 h-8 rounded-full
+                                        border border-[#08994A1A] dark:border-[#0EFF7B1A]
+                                        bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer
+                                        hover:bg-[#0cd96822] dark:hover:bg-[#0cd96822]"
+                                    >
+                                      <Download
+                                        size={18}
+                                        className="text-[#08994A] dark:text-[#0EFF7B]
+                                          hover:text-[#0cd968] dark:hover:text-[#0cd968]"
+                                      />
+                                    </button>
+                                    <span
+                                      className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                                        px-3 py-1 text-xs rounded-md shadow-md
+                                        bg-white dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100
+                                        transition-all duration-150"
+                                    >
+                                      Download Report
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 dark:text-gray-400 text-sm">No report</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </ResponsiveTable>
+                    <div className="flex items-center mt-4 gap-x-4">
+                      <div className="text-sm text-black dark:text-white">
+                        Page {currentTestPage} of {totalPages(filteredTests)}
+                      </div>
+                      <div className="flex items-center gap-x-2">
+                        <button
+                          onClick={() => setCurrentTestPage(Math.max(1, currentTestPage - 1))}
+                          disabled={currentTestPage === 1}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronLeft size={12} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setCurrentTestPage(
+                              Math.min(totalPages(filteredTests), currentTestPage + 1)
+                            )
+                          }
+                          disabled={currentTestPage === totalPages(filteredTests)}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
-          </div>
+          </>
+        )}
+        
+        {/* === SURGERIES TAB === */}
+        {activeTab === "Surgeries" && !dataLoading && (
+          <>
+            {!canAccess ? (
+              <AccessDenied />
+            ) : (
+              <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+                  <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
+                    Patient's surgical history and procedures.
+                  </p>
+                </div>
+                {surgeries.length === 0 ? (
+                  <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                    No surgery records found
+                  </p>
+                ) : (
+                  <>
+                    <ResponsiveTable
+                      headers={["Date", "Surgery Name", "Doctor", "Status"]}
+                      mobileData={currentSurgeries.map(s => [
+                        s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—",
+                        s.surgery_type,
+                        s.doctor || "—",
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                            s.status === "success"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              : s.status === "pending"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                              : s.status === "cancelled"
+                              ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                          }`}
+                        >
+                          {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
+                        </span>
+                      ])}
+                    >
+                      <thead>
+                        <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                          <th className="py-3 px-2 sm:px-4">Date</th>
+                          <th className="py-3 px-2 sm:px-4">Surgery Name</th>
+                          <th className="py-3 px-2 sm:px-4">Doctor</th>
+                          <th className="py-3 px-2 sm:px-4">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+                        {currentSurgeries.map((s, i) => (
+                          <tr
+                            key={i}
+                            className="border-b border-gray-200 dark:border-gray-700"
+                          >
+                            <td className="py-3 px-2 sm:px-4">
+                              {s.scheduled_date ? formatSurgeryDate(s.scheduled_date) : "—"}
+                            </td>
+                            <td className="py-3 px-2 sm:px-4 font-medium">{s.surgery_type || "—"}</td>
+                            <td className="py-3 px-2 sm:px-4">{s.doctor || "—"}</td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                                  s.status === "success"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                    : s.status === "pending"
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                    : s.status === "cancelled"
+                                    ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                                    : "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                                }`}
+                              >
+                                {s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : "—"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </ResponsiveTable>
+                    <div className="flex items-center mt-4 gap-x-4">
+                      <div className="text-sm text-black dark:text-white">
+                        Page {currentSurgeryPage} of {totalPages(surgeries)}
+                      </div>
+                      <div className="flex items-center gap-x-2">
+                        <button
+                          onClick={() => setCurrentSurgeryPage(Math.max(1, currentSurgeryPage - 1))}
+                          disabled={currentSurgeryPage === 1}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronLeft size={12} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setCurrentSurgeryPage(
+                              Math.min(totalPages(surgeries), currentSurgeryPage + 1)
+                            )
+                          }
+                          disabled={currentSurgeryPage === totalPages(surgeries)}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
+        )}
+        
+        {/* === HISTORY TAB === */}
+        {activeTab === "History" && !dataLoading && (
+          <>
+            {!canAccess ? (
+              <AccessDenied />
+            ) : (
+              <div className="rounded-xl p-3 sm:p-4 mb-4 bg-transparent">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 lg:mb-6 gap-4">
+                  <p className="text-gray-600 dark:text-[#A0A0A0] text-[14px] sm:text-[16px]">
+                    Patient's history records showing registration and status changes.
+                  </p>
+                </div>
+                {history.length === 0 ? (
+                  <p className="text-center py-6 text-gray-600 dark:text-gray-400 italic">
+                    No history records found
+                  </p>
+                ) : (
+                  <>
+                    <ResponsiveTable
+                      headers={[
+                        "Doctor",
+                        "Department",
+                        "Event",
+                        "Current Status",
+                        "Admission Date",
+                        "Discharge Date",
+                        "Date & Time"
+                      ]}
+                      mobileData={currentHistory.map((h) => [
+                        h.doctor || "—",
+                        h.department || "—",
+                        <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                          {h.status || "—"}
+                        </span>,
+                        <span
+                          className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                            h.current_status === "In-patient"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                              : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                          }`}
+                        >
+                          {h.current_status || "—"}
+                        </span>,
+                        h.admission_date || "—",
+                        h.discharge_date || "—",
+                        h.created_at
+                      ])}
+                    >
+                      <thead>
+                        <tr className="text-left text-[14px] sm:text-[16px] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700">
+                          <th className="py-3 px-2 sm:px-4">Doctor</th>
+                          <th className="py-3 px-2 sm:px-4">Department</th>
+                          <th className="py-3 px-2 sm:px-4">Event</th>
+                          <th className="py-3 px-2 sm:px-4">Current Status</th>
+                          <th className="py-3 px-2 sm:px-4">Admission</th>
+                          <th className="py-3 px-2 sm:px-4">Discharge</th>
+                          <th className="py-3 px-2 sm:px-4">Date & Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[14px] sm:text-[16px] text-black dark:text-white">
+                        {currentHistory.map((h, i) => (
+                          <tr
+                            key={i}
+                            className="border-b border-gray-200 dark:border-gray-700"
+                          >
+                            <td className="py-3 px-2 sm:px-4">
+                              {h.doctor || "—"}
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              {h.department || "—"}
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span className="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+                                {h.status || "—"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              <span
+                                className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                                  h.current_status === "In-patient"
+                                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                                    : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+                                }`}
+                              >
+                                {h.current_status || "—"}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              {h.admission_date || "—"}
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              {h.discharge_date || "—"}
+                            </td>
+                            <td className="py-3 px-2 sm:px-4">
+                              {h.created_at || "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </ResponsiveTable>
+                    <div className="flex items-center mt-4 gap-x-4">
+                      <div className="text-sm text-black dark:text-white">
+                        Page {currentHistoryPage} of {totalPages(history)}
+                      </div>
+                      <div className="flex items-center gap-x-2">
+                        <button
+                          onClick={() => setCurrentHistoryPage(Math.max(1, currentHistoryPage - 1))}
+                          disabled={currentHistoryPage === 1}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronLeft size={12} />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setCurrentHistoryPage(
+                              Math.min(totalPages(history), currentHistoryPage + 1)
+                            )
+                          }
+                          disabled={currentHistoryPage === totalPages(history)}
+                          className="p-1 rounded-full border border-[#0EFF7B] disabled:opacity-50"
+                        >
+                          <ChevronRight size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

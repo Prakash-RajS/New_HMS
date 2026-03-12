@@ -36,7 +36,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   const { isAdmin, currentUser } = usePermissions();
     
   const userRole = currentUser?.role?.toLowerCase();
-  const canAdd = isAdmin || userRole === "doctor" || userRole === "staff";
+  const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
   
   // Use ref to prevent multiple toast calls
   const toastShownRef = useRef(false);

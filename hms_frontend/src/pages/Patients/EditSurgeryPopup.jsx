@@ -3,6 +3,7 @@ import { X, Calendar, Clock, ChevronDown, AlertCircle, User, Stethoscope } from 
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast, warningToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
+import { usePermissions } from "../../components/PermissionContext";
 
 export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
   // Add useRef to prevent multiple toast calls
@@ -49,6 +50,10 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
   const [focusedField, setFocusedField] = useState(null);
   const [apiErrors, setApiErrors] = useState({});
   const [showDuplicateError, setShowDuplicateError] = useState(false);
+  const { isAdmin, currentUser } = usePermissions();
+      
+    const userRole = currentUser?.role?.toLowerCase();
+    const canEdit = isAdmin || userRole === "doctor" || userRole === "nurse";
 
   // Add ref for time input
   const timeInputRef = useRef(null);
@@ -454,6 +459,11 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
   // Handle update
   const handleUpdate = async () => {
     toastShownRef.current = false;
+
+    if (!canEdit) {
+      errorToast("You do not have permission to edit this surgery.");
+      return;
+    }
 
     if (!validateForm()) {
       if (!toastShownRef.current) {

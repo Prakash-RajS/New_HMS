@@ -20,6 +20,7 @@ import {
 import { Dialog, Listbox } from "@headlessui/react";
 import api from "../../utils/axiosConfig.js";
 import { successToast, errorToast } from "../../components/Toast.jsx";
+import { usePermissions } from "../../components/PermissionContext";
 
 const ChargesManagement = () => {
   // State for charges
@@ -29,6 +30,9 @@ const ChargesManagement = () => {
   const [scopeFilter, setScopeFilter] = useState("ALL"); // "ALL", "GENERAL", "SPECIFIC"
   const [loading, setLoading] = useState(true);
   const [totalCharges, setTotalCharges] = useState(0);
+  const { isAdmin, currentUser } = usePermissions();
+  const userRole = currentUser?.role?.toLowerCase();
+  const canManageCharges = isAdmin; // Only admin can manage charges
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -242,6 +246,12 @@ const ChargesManagement = () => {
   const handleAddCharge = async () => {
     const errors = validateForm(formData);
 
+    if (!canManageCharges) {
+      errorToast("You are not authorized to manage charges.");
+      return;
+    }
+
+
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
@@ -284,6 +294,11 @@ const ChargesManagement = () => {
   // Handle edit charge
   const handleEditCharge = async () => {
     if (!selectedCharge) return;
+     if (!canManageCharges) {
+      errorToast("You are not authorized to manage charges.");
+      return;
+    }
+
 
     const errors = validateForm(editFormData);
 
@@ -332,6 +347,11 @@ const ChargesManagement = () => {
   // Handle delete charge
   const handleDeleteCharge = async () => {
     if (!selectedCharge) return;
+     if (!canManageCharges) {
+      errorToast("You are not authorized to manage charges.");
+      return;
+    }
+
 
     try {
       await api.delete(`/charges/${selectedCharge.id}/`);
@@ -462,15 +482,29 @@ const ChargesManagement = () => {
           <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
             Charges Management
           </h2>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowAddModal(true);
-            }}
-            className="flex items-center gap-2 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] hover:opacity-90 text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out"
-          >
-            <Plus size={18} className="text-white font-[Helvetica]" /> Add New Charge
-          </button>
+          <div className="relative group">
+  <button
+    onClick={() => {
+      if (canManageCharges) {
+        resetForm();
+        setShowAddModal(true);
+      }
+    }}
+    disabled={!canManageCharges}
+    className={`flex items-center gap-2 ${
+      canManageCharges
+        ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
+        : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
+    } border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out`}
+  >
+    <Plus size={18} className="text-white" /> Add New Charge
+  </button>
+  {!canManageCharges && (
+    <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+      Access Denied
+    </span>
+  )}
+</div>
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
@@ -677,30 +711,32 @@ const ChargesManagement = () => {
                       </td>
 
                       <td className="text-center">
-                        <div className="flex justify-center gap-4 relative overflow-visible">
-                          <div className="relative group">
-                            <Pencil
-                              size={16}
-                              onClick={() => openEditModal(charge)}
-                              className="text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110 transition"
-                            />
-                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                              Edit
-                            </span>
-                          </div>
+  <div className="flex justify-center gap-4 relative overflow-visible">
+    {/* Edit Button - Guarded */}
+    <div className="relative group">
+      <Pencil
+        size={16}
+        onClick={() => canManageCharges && openEditModal(charge)}
+        className={`${canManageCharges ? "text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110" : "text-[#08994A] dark:text-blue-400 cursor-not-allowed"} transition`}
+      />
+      <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+        {canManageCharges ? "Edit" : "Access Denied"}
+      </span>
+    </div>
 
-                          <div className="relative group">
-                            <Trash
-                              size={16}
-                              onClick={() => openDeleteModal(charge)}
-                              className="cursor-pointer text-red-500 hover:scale-110"
-                            />
-                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-                              Delete
-                            </span>
-                          </div>
-                        </div>
-                      </td>
+    {/* Delete Button - Guarded */}
+    <div className="relative group">
+      <Trash
+        size={16}
+        onClick={() => canManageCharges && openDeleteModal(charge)}
+        className={`${canManageCharges ? "cursor-pointer text-red-500 hover:scale-110" : "text-red-400 dark:text-red-600 cursor-not-allowed"}`}
+      />
+      <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+        {canManageCharges ? "Delete" : "Access Denied"}
+      </span>
+    </div>
+  </div>
+</td>
                     </tr>
                   );
                 })

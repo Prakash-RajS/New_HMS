@@ -36,9 +36,9 @@ const SurgeryList = () => {
   const { isAdmin, currentUser } = usePermissions();
   
 const userRole = currentUser?.role?.toLowerCase();
-const canEdit = isAdmin || userRole === "doctor" || userRole === "staff";
+const canEdit = isAdmin || userRole === "doctor" || userRole === "nurse";
 const canDelete = isAdmin;
-const canAdd = isAdmin || userRole === "doctor" || userRole === "staff";
+const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
 
   const [filtersData, setFiltersData] = useState({
     patientName: "",

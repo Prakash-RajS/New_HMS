@@ -1841,6 +1841,20 @@ const GuardedActionBtn = ({ onClick, icon: Icon, iconClass, label, bg, hoverBg, 
   </div>
 );
 
+const GuardedEyeIcon = ({ onClick, allowed, invoiceId }) => (
+  <div
+    className={`relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] 
+      ${allowed ? "bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]" : "bg-[#08994A1A] dark:bg-[#0EFF7B1A]  hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] opacity-100 cursor-not-allowed"} 
+      transition`}
+    onClick={allowed ? onClick : undefined}
+  >
+    <Eye size={16} className={`${allowed ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-[#08994A] dark:text-[#0EFF7B]"}`} />
+    <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+      {allowed ? "View Invoice" : "Access Denied"}
+    </span>
+  </div>
+);
+
 // ==================== MAIN COMPONENT ====================
 
 const BillingManagement = () => {
@@ -2707,11 +2721,12 @@ const handleHospitalViewInvoice = (invoiceId) =>
                             </td>
                             <td className={`px-3 py-3 font-medium ${getStatusColor(row.status)}`}>{row.status}</td>
                             <td className="px-3 py-3">
-                              <div className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] transition" onClick={() => handleViewInvoice(row.id)}>
-                                <Eye size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">View</span>
-                              </div>
-                            </td>
+  <GuardedEyeIcon 
+    onClick={() => handleViewInvoice(row.id)} 
+    allowed={canBill}
+    invoiceId={row.id}
+  />
+</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2884,11 +2899,12 @@ const handleHospitalViewInvoice = (invoiceId) =>
                             </td>
                             <td className={`px-3 py-3 font-medium ${getStatusColor(row.status)}`}>{row.status}</td>
                             <td className="px-3 py-3">
-                              <div className="relative group w-8 h-8 flex items-center justify-center rounded-full border border-[#08994A1A] dark:border-[#0EFF7B1A] bg-[#08994A1A] dark:bg-[#0EFF7B1A] cursor-pointer hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33] transition" onClick={() => handleHospitalViewInvoice(row.id)}>
-                                <Eye size={16} className="text-[#08994A] dark:text-[#0EFF7B]" />
-                                <span className="absolute bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150">View</span>
-                              </div>
-                            </td>
+  <GuardedEyeIcon 
+    onClick={() => handleHospitalViewInvoice(row.id)} 
+    allowed={canBill}
+    invoiceId={row.id}
+  />
+</td>
                           </tr>
                         ))}
                       </tbody>
