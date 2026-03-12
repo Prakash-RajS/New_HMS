@@ -1277,18 +1277,19 @@ const EditTripModal = ({
           return "";
 
         case "destination": {
-          if (value && value.trim()) {
-            const destinationError = validateLocation(value, "Destination");
-            if (destinationError) return destinationError;
-            
-            if (
-              ctx.pickup_location &&
-              value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
-            )
-              return "Destination cannot be the same as Pickup Location";
-          }
-          return "";
-        }
+  if (!value || !value.trim()) return "Destination is required";
+
+  const destinationError = validateLocation(value, "Destination");
+  if (destinationError) return destinationError;
+
+  if (
+    ctx.pickup_location &&
+    value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
+  )
+    return "Destination cannot be the same as Pickup Location";
+
+  return "";
+}
 
         case "end_time":
           if (value && ctx.start_time) {
@@ -1666,7 +1667,8 @@ const EditTripModal = ({
             <TextInput
               label="Destination"
               name="destination"
-              placeholder="Hospital / Drop-off (Optional)"
+              required
+              placeholder="Hospital / Drop-off"
               value={form.destination}
               onChange={handleChange}
               onFocus={() => handleFocus("destination")}

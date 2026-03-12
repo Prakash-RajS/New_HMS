@@ -819,43 +819,44 @@ const Laboratory = () => {
         </div>
       </div>
 
-      {/* Search and Filter Buttons */}
-      <div className="flex justify-between items-center mb-4 relative z-10">
-        <div className="flex gap-4">
-          {/* Filter Buttons */}
-          <div className="flex gap-3">
-            {filters.map((filter) => (
-              <button
-                key={filter.value}
-                className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
-                 ${activeFilter === filter.value
-                    ? "bg-[#08994A] text-white dark:bg-green-900"
-                    : "text-gray-800 hover:text-green-600 dark:text-white"
-                  }`}
-                onClick={() => {
-                  setActiveFilter(filter.value);
-                  setCurrentPage(1);
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* Search and Filter Buttons - Updated with subtle background */}
+<div className="flex justify-between items-center mb-4 relative z-10">
+  <div className="flex gap-4">
+    {/* Filter Buttons */}
+    <div className="flex gap-3">
+      {filters.map((filter) => (
+        <button
+          key={filter.value}
+          className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+           ${activeFilter === filter.value
+              ? "bg-[#08994A] text-white dark:bg-green-900"
+              : "text-gray-800 hover:text-green-600 dark:text-white"
+            }`}
+          onClick={() => {
+            setActiveFilter(filter.value);
+            setCurrentPage(1);
+          }}
+        >
+          {filter.label}
+        </button>
+      ))}
+    </div>
+  </div>
 
-        <div className="flex gap-4">
-          <div className="flex items-center w-[315px] h-[32px] gap-2 rounded-[8px] px-4 py-1 border border-gray-300 bg-gray-200 shadow dark:bg-[#1E1E1E] dark:border-[#3A3A3A]">
-            <Search size={18} className="text-green-600 dark:text-green-400" />
-            <input
-              type="text"
-              placeholder="Search test type"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-transparent px-2 text-xs outline-none font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-48"
-            />
-          </div>
-        </div>
-      </div>
+  <div className="flex gap-4">
+    <div className="relative w-[315px] h-[36px]">
+      {/* Search input with subtle background */}
+      <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#08994A] dark:text-[#0EFF7B]" />
+      <input
+        type="text"
+        placeholder="Search test type"
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full h-full bg-white dark:bg-[#0EFF7B1A] pl-10 pr-4 py-2 rounded-[40px] border-2 border-[#08994A] dark:border-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm focus:outline-none focus:border-[#08994A] dark:focus:border-[#0EFF7B] placeholder-gray-400 dark:placeholder-[#00A048]"
+      />
+    </div>
+  </div>
+</div>
 
       {/* Error Message */}
       {error && (
@@ -873,9 +874,9 @@ const Laboratory = () => {
       ) : (
         <>
           {/* Table */}
-          <div className="overflow-x-auto relative z-10">
+          <div className="overflow-x-auto relative z-10 rounded-[12px] border border-gray-300 dark:border-gray-700 overflow-hidden">
             <table className="w-full text-left text-sm">
-              <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+              <thead className="h-12 font-[Helvetica] text-white border-b border-[#0EFF7B] bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 <tr>
                   <th className="py-3 pl-4 pr-2">Test Type</th>
                   <th className="py-3 px-2">Description</th>

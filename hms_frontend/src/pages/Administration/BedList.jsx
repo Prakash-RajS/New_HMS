@@ -1424,7 +1424,8 @@ const BedList = () => {
         {/* Table */}
         <div className="flex-1 overflow-hidden">
           <table className="w-full text-left text-sm mt-5 mb-3 border-collapse">
-            <thead className="bg-gray-200 dark:bg-[#091810] border border-[#0EFF7B] dark:border-[#3C3C3C] text-[#08994A] dark:text-white text-[15px] sticky top-0 z-10">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr>
                 <th className="px-4 py-3 w-[50px] h-[52px]">
                   <input

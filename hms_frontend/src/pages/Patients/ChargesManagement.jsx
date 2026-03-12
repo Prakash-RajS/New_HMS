@@ -633,7 +633,8 @@ const ChargesManagement = () => {
         {/* Charges Table - Matching AppointmentList style */}
         <div className="overflow-x-auto relative z-10">
           <table className="w-full text-left text-sm">
-            <thead className="text-[#0EFF7B] bg-gray-200 dark:text-[#0EFF7B] h-12 font-[Helvetica] dark:bg-[#091810] border-b border-gray-300 dark:border-gray-700">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr>
                 <th className="py-3 px-2">S No</th>
                 <th>Charge Name</th>

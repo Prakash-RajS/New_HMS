@@ -611,7 +611,8 @@ const canDelete = isAdmin; // Only admin can delete
           </div>
           {/* Table */}
           <table className="w-full border-collapse">
-            <thead className="min-h-[52px] bg-gray-200 dark:bg-[#091810] h-[52px]">
+           <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr className="text-center border-b border-gray-300 dark:border-[#000000] text-[#0EFF7B]">
                 <th className="p-3">
                   <input
@@ -957,7 +958,8 @@ const canDelete = isAdmin; // Only admin can delete
         {/* Donor Table */}
         <div className="relative z-10 border border-[#0EFF7B] dark:border-[#3C3C3C] rounded-[12px] p-4">
           <table className="w-full border-collapse">
-            <thead className="min-h-[52px] bg-gray-200 dark:bg-[#091810] h-[52px]">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr className="text-center border-b border-gray-300 dark:border-[#3C3C3C] text-[#0EFF7B]">
                 <th className="p-3">
                   <input

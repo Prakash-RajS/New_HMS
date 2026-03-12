@@ -207,7 +207,7 @@ async def login(
         httponly=True,
         secure=False,  # False for localhost
         samesite="lax",
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        #max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
     
@@ -218,7 +218,7 @@ async def login(
         httponly=True,
         secure=False,  # False for localhost
         samesite="lax",
-        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        #max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
         path="/",
     )
 

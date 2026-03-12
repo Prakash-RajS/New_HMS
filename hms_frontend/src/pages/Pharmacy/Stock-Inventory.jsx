@@ -4643,87 +4643,88 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
 
         <div className="overflow-x-hidden">
           <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
-            <thead className="border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] h-[52px] text-left text-sm text-[#08994A] dark:text-white">
-              <tr className="h-[52px] bg-gray-200 dark:bg-[#091810] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px] ">
-                <th className="px-3 py-3">
-                  <input
-                    type="checkbox"
-                    className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
-                    checked={
-                      displayedData.length > 0 &&
-                      selectedRows.length === displayedData.length
-                    }
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                {[
-                  { label: "Name", key: "name" },
-                  { label: "Item Code", key: "itemCode" },
-                  { label: "Dosage", key: "dosage" },
-                  { label: "Categories", key: "category" },
-                  { label: "Batch number", key: "batch" },
-                  { label: "Vendor", key: "vendor" },
-                  { label: "Available stocks", key: "stock" },
-                  { label: "Status", key: "status" },
-                  { label: "Action", key: "action" },
-                ].map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-3 py-3 font-medium ${
-                      col.key !== "action" ? "cursor-pointer select-none" : ""
+                          <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
+      <tr className="h-[52px] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px]">
+        <th className="px-3 py-3">
+          <input
+            type="checkbox"
+            className="appearance-none w-5 h-5 border border-[#0EFF7B] dark:border-white rounded-sm bg-gray-100 dark:bg-black checked:bg-[#08994A] dark:checked:bg-green-500 checked:border-[#0EFF7B] dark:checked:border-green-500 flex items-center justify-center checked:before:content-['✔'] checked:before:text-white dark:checked:before:text-black checked:before:text-sm"
+            checked={
+              displayedData.length > 0 &&
+              selectedRows.length === displayedData.length
+            }
+            onChange={handleSelectAll}
+          />
+        </th>
+        {[
+          { label: "Name", key: "name" },
+          { label: "Item Code", key: "itemCode" },
+          { label: "Dosage", key: "dosage" },
+          { label: "Categories", key: "category" },
+          { label: "Batch number", key: "batch" },
+          { label: "Vendor", key: "vendor" },
+          { label: "Available stocks", key: "stock" },
+          { label: "Status", key: "status" },
+          { label: "Action", key: "action" },
+        ].map((col) => (
+          <th
+            key={col.key}
+            className={`px-3 py-3 font-medium ${
+              col.key !== "action" ? "cursor-pointer select-none" : ""
+            }`}
+            onClick={
+              col.key !== "action"
+                ? () => handleSort(col.key)
+                : undefined
+            }
+            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          >
+            {col.key !== "action" ? (
+              <div className="flex items-center gap-1">
+                {col.label}
+                <div className="flex flex-col ml-1">
+                  <svg
+                    className={`w-3 h-3 ${
+                      sortColumn === col.key && sortOrder === "asc"
+                        ? "stroke-[#08994A] dark:stroke-[#0EFF7B]"
+                        : "stroke-gray-500"
                     }`}
-                    onClick={
-                      col.key !== "action"
-                        ? () => handleSort(col.key)
-                        : undefined
-                    }
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    strokeWidth="2"
                   >
-                    {col.key !== "action" ? (
-                      <div className="flex items-center gap-1">
-                        {col.label}
-                        <div className="flex flex-col ml-1">
-                          <svg
-                            className={`w-3 h-3 ${
-                              sortColumn === col.key && sortOrder === "asc"
-                                ? "stroke-[#08994A] dark:stroke-[#0EFF7B]"
-                                : "stroke-gray-500"
-                            }`}
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            strokeWidth="2"
-                          >
-                            <path
-                              d="M10 4 L16 10 L4 10 Z"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <svg
-                            className={`w-3 h-3 ${
-                              sortColumn === col.key && sortOrder === "desc"
-                                ? "stroke-[#0EFF7B] dark:stroke-[#0EFF7B]"
-                                : "stroke-gray-500"
-                            }`}
-                            viewBox="0 0 20 20"
-                            fill="none"
-                            strokeWidth="2"
-                          >
-                            <path
-                              d="M10 16 L16 10 L4 10 Z"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                    ) : (
-                      col.label
-                    )}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+                    <path
+                      d="M10 4 L16 10 L4 10 Z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <svg
+                    className={`w-3 h-3 ${
+                      sortColumn === col.key && sortOrder === "desc"
+                        ? "stroke-[#0EFF7B] dark:stroke-[#0EFF7B]"
+                        : "stroke-gray-500"
+                    }`}
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    strokeWidth="2"
+                  >
+                    <path
+                      d="M10 16 L16 10 L4 10 Z"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+            ) : (
+              col.label
+            )}
+          </th>
+        ))}
+      </tr>
+    </thead>
             <tbody className="text-sm bg-gray-100 dark:bg-transparent">
               {sortedData.length > 0 ? (
                 sortedData.map((row, index) => (

@@ -13,6 +13,7 @@ import Header from "./components/Header.jsx";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import { startInactivityTimer } from './utils/axiosConfig';
 
 import Login from "./pages/Login.jsx";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -190,6 +191,13 @@ function AppContent({ contentRef }) {
   const location = useLocation();
   const isNotFound = location.pathname === "/404";
   const isLoginPage = location.pathname === "/";
+  useEffect(() => {
+    // Start timer on any page except login
+    if (!isLoginPage) {
+      const cleanup = startInactivityTimer(10); // 1 minute for testing
+      return cleanup; // Cleanup when component unmounts
+    }
+  }, [isLoginPage]);
 
   // Different layout for login page vs authenticated pages
   if (isLoginPage) {

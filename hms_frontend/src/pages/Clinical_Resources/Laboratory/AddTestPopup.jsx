@@ -561,29 +561,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     return "";
   };
 
-  // Fix for test case: Validate test type doesn't contain special characters or numbers
-  const validateTestTypeFormat = (value) => {
-    if (!value.trim()) return "";
-    
-    // Check if starts with capital letter
-    if (!/^[A-Z]/.test(value.charAt(0))) {
-      return "Test type must start with a capital letter";
-    }
-    
-    // Check for numbers and special characters
-    const invalidChars = /[0-9!@#$%^&*()_+\-=\[\]{};:"\\|<>?~`]/;
-    if (invalidChars.test(value)) {
-      return "Test type cannot contain numbers or special characters";
-    }
-    
-    // Allow only letters, spaces, and hyphens for test type
-    const validFormat = /^[A-Z][A-Za-z\s-]*$/;
-    if (!validFormat.test(value)) {
-      return "Test type can only contain letters, spaces, and hyphens";
-    }
-    
-    return "";
-  };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
@@ -619,15 +596,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       }
     }
     
-    // Fix for test case: Validate test type format while typing
-    if (name === "test_type") {
-      const formatError = validateTestTypeFormat(value);
-      if (formatError) {
-        errors.test_type = formatError;
-      } else {
-        delete errors.test_type;
-      }
-    }
     
     // Auto-capitalize first letter of description
     if (name === "description" && value.length === 1) {
@@ -696,13 +664,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       }
     }
     
-    // Format validation for test type (if provided)
-    if (formData.test_type.trim()) {
-      const testTypeError = validateTestTypeFormat(formData.test_type);
-      if (testTypeError) {
-        errors.test_type = testTypeError;
-      }
-    }
     
     return errors;
   };
@@ -848,9 +809,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                     {validationErrors.test_type}
                   </p>
                 )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Must start with capital letter. No numbers or special characters allowed.
-                </p>
               </div>
 
               {/* Price */}

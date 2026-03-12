@@ -2872,7 +2872,8 @@ const saveUnit = async (payload) => {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
-            <thead className="bg-gray-200 dark:bg-[#091810] h-[52px] text-sm text-center border-b border-gray-300 dark:border-[#3C3C3C] text-[#0EFF7B]">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr>
                 <th className="px-3 py-3 w-12">
                   <input

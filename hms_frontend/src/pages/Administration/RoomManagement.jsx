@@ -1163,7 +1163,8 @@ const RoomManagement = () => {
   const RoomManagementContent = () => (
     <div className="overflow-x-auto">
       <table className="w-full text-center text-sm min-w-[1000px]">
-        <thead className="px-[20px] rounded-[60px] border border-[#0EFF7B] dark:border-[#3C3C3C] bg-gray-200 dark:bg-[#091810] opacity-100 font-inter font-normal text-[16px] leading-[100%] tracking-[0%] text-[#08994A] dark:text-[#0EFF7B]">
+        <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
           <tr>
             <th className="py-3 px-2">
               <input

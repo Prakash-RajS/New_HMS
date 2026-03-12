@@ -865,7 +865,7 @@
 
 
 //src/pages/Administration/DepartmentList.jsx
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   Filter,
@@ -925,6 +925,21 @@ const DepartmentList = () => {
   // ✅ Permission check — only admin can do CRUD
   const { isAdmin } = usePermissions();
   const canCRUD = isAdmin;
+
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpenFor(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // API Functions
   const fetchDepartments = useCallback(async () => {
@@ -1407,7 +1422,8 @@ const DepartmentList = () => {
         {/* Table */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden pb-8">
           <table className="w-full text-left text-sm min-w-[600px]">
-            <thead className="bg-[#F5F6F5] bg-gray-200 dark:bg-[#091810] text-[#08994A] dark:text-[#0EFF7B] border-b border-gray-300 dark:border-gray-700 sticky top-0 z-[10]">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
+bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr>
                 <th className="py-3 px-4">
                   <div className="flex items-center relative w-5 h-5">
@@ -1499,92 +1515,93 @@ const DepartmentList = () => {
                         </div>
 
                         {menuOpenFor === dept.id && (
-                          <div
-                            className={`absolute right-0 mr-3 z-[50] w-44 rounded-md bg-gray-100 dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${
-                              dropdownPosition === "top"
-                                ? "bottom-full mb-0"
-                                : "top-full mt-0"
-                            }`}
-                          >
-                            <ul className="py-1">
-                              {/* ✅ Edit option with tooltip */}
-                              <li>
-                                <div className="relative group">
-                                  <button
-                                    className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
-                                      !canCRUD
-                                        ? "opacity-100 cursor-not-allowed"
-                                        : ""
-                                    }`}
-                                    onClick={() => {
-                                      if (!canCRUD) return;
-                                      setSelectedDepartment(dept);
-                                      setShowEditPopup(true);
-                                      setMenuOpenFor(null);
-                                    }}
-                                  >
-                                    <Edit
-                                      size={16}
-                                      className={`mr-2 ${
-                                        canCRUD
-                                          ? "text-blue-500 dark:text-blue-400"
-                                          : "text-green-500 dark:text-green-400"
-                                      }`}
-                                    />
-                                    Edit
-                                  </button>
-                                  <span
-                                    className="absolute right-full top-1/2 -translate-y-1/2 mr-2 whitespace-nowrap
-                                    px-3 py-1 text-xs rounded-md shadow-md
-                                    bg-gray-100 dark:bg-black text-black dark:text-white
-                                    opacity-0 group-hover:opacity-100
-                                    transition-all duration-150 z-50"
-                                  >
-                                    {canCRUD ? "Edit" : "Admin Only"}
-                                  </span>
-                                </div>
-                              </li>
+  <div
+    ref={menuRef}
+    className={`absolute right-0 mr-3 z-[50] w-44 rounded-md bg-gray-100 dark:bg-black shadow-lg ring-1 ring-[#0EFF7B] dark:ring-gray-700 ${
+      dropdownPosition === "top"
+        ? "bottom-full mb-0"
+        : "top-full mt-0"
+    }`}
+  >
+    <ul className="py-1">
+      {/* ✅ Edit option with tooltip */}
+      <li>
+        <div className="relative group">
+          <button
+            className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
+              !canCRUD
+                ? "opacity-100 cursor-not-allowed"
+                : ""
+            }`}
+            onClick={() => {
+              if (!canCRUD) return;
+              setSelectedDepartment(dept);
+              setShowEditPopup(true);
+              setMenuOpenFor(null);
+            }}
+          >
+            <Edit
+              size={16}
+              className={`mr-2 ${
+                canCRUD
+                  ? "text-blue-500 dark:text-blue-400"
+                  : "text-green-500 dark:text-green-400"
+              }`}
+            />
+            Edit
+          </button>
+          <span
+            className="absolute right-full top-1/2 -translate-y-1/2 mr-2 whitespace-nowrap
+            px-3 py-1 text-xs rounded-md shadow-md
+            bg-gray-100 dark:bg-black text-black dark:text-white
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 z-50"
+          >
+            {canCRUD ? "Edit" : "Admin Only"}
+          </span>
+        </div>
+      </li>
 
-                              {/* ✅ Delete option with tooltip */}
-                              <li>
-                                <div className="relative group">
-                                  <button
-                                    className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
-                                      !canCRUD
-                                        ? "opacity-100 cursor-not-allowed"
-                                        : ""
-                                    }`}
-                                    onClick={() => {
-                                      if (!canCRUD) return;
-                                      setSelectedDepartment(dept);
-                                      setShowDeletePopup(true);
-                                      setMenuOpenFor(null);
-                                    }}
-                                  >
-                                    <Trash2
-                                      size={16}
-                                      className={`mr-2 ${
-                                        canCRUD
-                                          ? "text-red-500 dark:text-red-400"
-                                          : "text-red-400 dark:text-red-300"
-                                      }`}
-                                    />
-                                    Delete
-                                  </button>
-                                  <span
-                                    className="absolute right-full top-1/2 -translate-y-1/2 mr-2 whitespace-nowrap
-                                    px-3 py-1 text-xs rounded-md shadow-md
-                                    bg-gray-100 dark:bg-black text-black dark:text-white
-                                    opacity-0 group-hover:opacity-100
-                                    transition-all duration-150 z-50"
-                                  >
-                                    {canCRUD ? "Delete" : "Admin Only"}
-                                  </span>
-                                </div>
-                              </li>
-                            </ul>
-                          </div>
-                        )}
+      {/* ✅ Delete option with tooltip */}
+      <li>
+        <div className="relative group">
+          <button
+            className={`flex w-full items-center px-4 py-2 text-sm text-black dark:text-white hover:bg-[#0EFF7B1A] dark:hover:bg-[#0EFF7B1A] ${
+              !canCRUD
+                ? "opacity-100 cursor-not-allowed"
+                : ""
+            }`}
+            onClick={() => {
+              if (!canCRUD) return;
+              setSelectedDepartment(dept);
+              setShowDeletePopup(true);
+              setMenuOpenFor(null);
+            }}
+          >
+            <Trash2
+              size={16}
+              className={`mr-2 ${
+                canCRUD
+                  ? "text-red-500 dark:text-red-400"
+                  : "text-red-400 dark:text-red-300"
+              }`}
+            />
+            Delete
+          </button>
+          <span
+            className="absolute right-full top-1/2 -translate-y-1/2 mr-2 whitespace-nowrap
+            px-3 py-1 text-xs rounded-md shadow-md
+            bg-gray-100 dark:bg-black text-black dark:text-white
+            opacity-0 group-hover:opacity-100
+            transition-all duration-150 z-50"
+          >
+            {canCRUD ? "Delete" : "Admin Only"}
+          </span>
+        </div>
+      </li>
+    </ul>
+  </div>
+)}
                       </td>
                     </tr>
                   );
