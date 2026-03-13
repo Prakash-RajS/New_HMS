@@ -753,9 +753,7 @@
 
 // export default AppointmentListOPD;
 
-// src/components/AppointmentListOPD.jsx
-// src/components/AppointmentListOPD.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -793,16 +791,13 @@ const AppointmentListOPD = () => {
   const [showDel, setShowDel] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-  
+
   const userRole = currentUser?.role?.toLowerCase();
-  const canEdit =
-    isAdmin ||
-    userRole === "receptionist";
-    const canAdd =
-    isAdmin || userRole === "receptionist";
-  
+  const canEdit = isAdmin || userRole === "receptionist";
+  const canAdd = isAdmin || userRole === "receptionist";
   const canDelete = isAdmin;
 
+  // Filter states (temp for popup and applied for actual fetch)
   const [filters, setFilters] = useState({
     patientName: "",
     patientId: "",
@@ -810,14 +805,27 @@ const AppointmentListOPD = () => {
     doctor: "",
     date: "",
   });
+  const [appliedFilters, setAppliedFilters] = useState({
+    patientName: "",
+    patientId: "",
+    department: "",
+    doctor: "",
+    date: "",
+  });
+
+  // Data for dropdowns
+  const [filterDepartments, setFilterDepartments] = useState([]);
+  const [filterDoctors, setFilterDoctors] = useState([]);
+  const [loadingFilterDepts, setLoadingFilterDepts] = useState(true);
+  const [loadingFilterDocs, setLoadingFilterDocs] = useState(false);
 
   const navigate = useNavigate();
   const perPage = 10;
 
   const statusFilters = ["All", "New", "Normal", "Severe", "Completed", "Cancelled"];
 
-  // ---------- FETCH OPD ----------
-  const fetchOPD = async (p = 1, s = search, filterParams = filters) => {
+  // ---------- FETCH OPD (with applied filters) ----------
+  const fetchOPD = useCallback(async (p = 1, s = search, filterParams = appliedFilters) => {
     setLoading(true);
     setErr("");
     try {
@@ -827,11 +835,11 @@ const AppointmentListOPD = () => {
         search: s || undefined,
       };
       
-      // Add filter parameters to API call
+      // Add filter parameters to API call - using correct parameter names expected by backend
       if (filterParams.patientName) params.patient_name = filterParams.patientName;
       if (filterParams.patientId) params.patient_id = filterParams.patientId;
-      if (filterParams.department) params.department = filterParams.department;
-      if (filterParams.doctor) params.doctor = filterParams.doctor;
+      if (filterParams.department) params.department_id = filterParams.department; // Send ID, not name
+      if (filterParams.doctor) params.staff_id = filterParams.doctor; // Send staff ID, not name
       if (filterParams.date) {
         const dateObj = new Date(filterParams.date);
         const formattedDate = dateObj.toISOString().split('T')[0];
@@ -867,18 +875,54 @@ const AppointmentListOPD = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [perPage, appliedFilters, activeFilter]);
+
+  // Initial load
+  useEffect(() => {
+    fetchOPD(1, search);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced search
   useEffect(() => {
-    const t = setTimeout(() => fetchOPD(1, search), 400);
-    return () => clearTimeout(t);
-  }, [search]);
+    const timer = setTimeout(() => {
+      setPage(1);
+      fetchOPD(1, search);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [search, fetchOPD]);
 
   // Page change
   useEffect(() => {
     fetchOPD(page, search);
-  }, [page]);
+  }, [page, fetchOPD]);
+
+  // ---------- LOAD DEPARTMENTS FOR FILTER ----------
+  useEffect(() => {
+    api.get("/patients/departments")
+      .then((response) => {
+        const data = response.data;
+        setFilterDepartments(data.departments || []);
+      })
+      .catch(() => setFilterDepartments([]))
+      .finally(() => setLoadingFilterDepts(false));
+  }, []);
+
+  // ---------- LOAD DOCTORS WHEN DEPARTMENT CHANGES (temp filters) ----------
+  useEffect(() => {
+    if (!filters.department) {
+      setFilterDoctors([]);
+      setFilters((prev) => ({ ...prev, doctor: "" }));
+      return;
+    }
+    setLoadingFilterDocs(true);
+    api.get("/patients/staff", { params: { department_id: filters.department } })
+      .then((response) => {
+        const data = response.data;
+        setFilterDoctors(data.staff || []);
+      })
+      .catch(() => setFilterDoctors([]))
+      .finally(() => setLoadingFilterDocs(false));
+  }, [filters.department]);
 
   // ---------- CHECKBOX ----------
   const toggle = (idx) => {
@@ -899,25 +943,32 @@ const AppointmentListOPD = () => {
   };
   
   const clearFilters = () => {
-    setFilters({
+    const empty = {
       patientName: "",
       patientId: "",
       department: "",
       doctor: "",
       date: "",
-    });
+    };
+    setFilters(empty);
+    setAppliedFilters(empty);
     setActiveFilter("All");
     setShowFilter(false);
     setPage(1);
-    // Fetch with cleared filters
-    fetchOPD(1, search, {
-      patientName: "",
-      patientId: "",
-      department: "",
-      doctor: "",
-      date: "",
-    });
   };
+
+  const applyFilterPopup = () => {
+    setAppliedFilters(filters);
+    setShowFilter(false);
+    setPage(1);
+  };
+
+  // When opening filter popup, sync temp filters from applied
+  useEffect(() => {
+    if (showFilter) {
+      setFilters(appliedFilters);
+    }
+  }, [showFilter, appliedFilters]);
 
   // ---------- REFRESH ----------
   const refreshData = () => fetchOPD(page, search);
@@ -935,43 +986,54 @@ const AppointmentListOPD = () => {
     }
   };
 
-  // ---------- DROPDOWN ----------
-  const Dropdown = ({ label, value, onChange, options }) => (
+  // ---------- DROPDOWN COMPONENT (enhanced) ----------
+  const Dropdown = ({ label, value, onChange, options = [], loading = false }) => (
     <div>
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
+      <label className="text-sm text-black dark:text-white block mb-1">
         {label}
       </label>
       <Listbox value={value} onChange={onChange}>
         <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            {value || "Select"}
-            <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-              <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+          <Listbox.Button className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] flex items-center justify-between">
+            <span>
+              {loading
+                ? "Loading..."
+                : Array.isArray(options) && options.length > 0
+                ? (typeof options[0] === "object"
+                    ? options.find((o) => o.id === value)?.name
+                    : options.find((o) => o === value)) ||
+                  value ||
+                  "Select"
+                : "Select"}
             </span>
+            <ChevronDown className="h-4 w-4 text-[#0EFF7B] absolute right-2 pointer-events-none" />
           </Listbox.Button>
-          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] left-[2px]">
-            {options.map((o) => (
-              <Listbox.Option
-                key={o}
-                value={o}
-                className={({ active, selected }) => `
-                  cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                  ${active
-                    ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                    : "text-black dark:text-white"
-                  }
-                  ${selected ? "font-medium text-[#0EFF7B]" : ""}`}
-                style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-              >
-                {o}
-              </Listbox.Option>
-            ))}
+          <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A] max-h-60 overflow-auto">
+            {loading ? (
+              <div className="py-2 px-3 text-sm text-gray-500">Loading...</div>
+            ) : options.length === 0 ? (
+              <div className="py-2 px-3 text-sm text-gray-500">No options</div>
+            ) : (
+              options.map((opt, i) => {
+                const optId = typeof opt === "object" ? opt.id : opt;
+                const optName = typeof opt === "object" ? opt.name : opt;
+                return (
+                  <Listbox.Option
+                    key={i}
+                    value={optId}
+                    className={({ active }) =>
+                      `cursor-pointer py-2 px-3 text-sm ${
+                        active
+                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                          : "text-black dark:text-white"
+                      }`
+                    }
+                  >
+                    {optName}
+                  </Listbox.Option>
+                );
+              })
+            )}
           </Listbox.Options>
         </div>
       </Listbox>
@@ -994,13 +1056,13 @@ const AppointmentListOPD = () => {
   return (
     <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-4 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
       <div
-          className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
-            zIndex: 0,
-          }}
-        ></div>
+        className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
+          zIndex: 0,
+        }}
+      ></div>
       <div
         style={{
           position: "absolute",
@@ -1023,7 +1085,7 @@ const AppointmentListOPD = () => {
         <h2 className="text-black dark:text-white font-[Helvetica] text-xl font-semibold">
           OPD - Patient Lists
         </h2>
-      
+
         <div className="relative group">
           <button
             onClick={() => {
@@ -1045,7 +1107,7 @@ const AppointmentListOPD = () => {
             <Plus size={18} className="text-white font-[Helvetica]" />
             Add Patients
           </button>
-      
+
           {/* Tooltip */}
           <span
             className="absolute bottom-12 left-1/2 -translate-x-1/2 whitespace-nowrap
@@ -1097,7 +1159,7 @@ const AppointmentListOPD = () => {
           {["In-Patients", "Out-Patients"].map((t) => (
             <button
               key={t}
-              className={`min-w-[104px] h-[31px]  rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
+              className={`min-w-[104px] h-[31px] rounded-[4px] font-[Helvetica] text-[13px] font-normal transition duration-300 ease-in-out
                 ${activeTab === t
                   ? "bg-[#025126] shadow-[0px_0px_20px_0px_#0EFF7B40] text-white"
                   : "bg-gray-200 text-gray-800 dark:bg-[#1E1E1E] dark:text-gray-300"
@@ -1123,29 +1185,50 @@ const AppointmentListOPD = () => {
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent px-2 text-xs outline-none font-normal font-[Helvetica] text-black dark:text-white placeholder-gray-400 dark:placeholder-[#00A048] w-48 leading-none tracking-normal"
             />
+            {loading && search && (
+              <Loader2 size={14} className="animate-spin text-green-600 dark:text-green-400 ml-auto" />
+            )}
           </div>
           <button
-  onClick={() => setShowFilter(true)}
-  className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
->
-  <Filter size={18} className="text-green-600 dark:text-green-400" />
+            onClick={() => setShowFilter(true)}
+            className="relative group flex items-center justify-center w-[32px] h-[32px] rounded-[8px] border border-gray-300 bg-gray-200 hover:bg-green-200 dark:bg-[#1E1E1E] dark:border-[#3A3A3A] dark:hover:bg-green-900 transition-colors duration-200"
+          >
+            <Filter size={18} className="text-green-600 dark:text-green-400" />
 
-  <span
-    className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
-      px-3 py-1 text-xs rounded-md shadow-md
-      bg-gray-100 dark:bg-black text-black dark:text-white
-      opacity-0 group-hover:opacity-100
-      transition-all duration-150 z-50"
-  >
-    Filter
-  </span>
-</button>
-
+            <span
+              className="absolute top-10 left-1/2 -translate-x-1/2 whitespace-nowrap
+                px-3 py-1 text-xs rounded-md shadow-md
+                bg-gray-100 dark:bg-black text-black dark:text-white
+                opacity-0 group-hover:opacity-100
+                transition-all duration-150 z-50"
+            >
+              Filter
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* ADDED SPACE HERE */}
-      <div className="mb-6"></div>
+      {/* Status Filters */}
+      <div className="w-full overflow-x-auto h-[50px] flex items-center gap-3 mb-8 px-2 relative z-10">
+        <div className="w-full flex gap-3 justify-between">
+          {statusFilters.map((f) => (
+            <button
+              key={f}
+              className={`relative min-w-[142px] mx-auto h-[35px] flex items-center justify-center rounded-lg px-3 text-sm font-medium transition-all border-b-[1px]
+                ${activeFilter === f
+                  ? "bg-[#08994A] text-white dark:bg-green-900 dark:text-white"
+                  : "text-gray-800 hover:text-green-600 dark:text-white dark:hover:text-white"
+                }`}
+              onClick={() => {
+                setActiveFilter(f);
+                setPage(1);
+              }}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
@@ -1157,8 +1240,7 @@ const AppointmentListOPD = () => {
           <div className="text-center py-6 text-red-500">{err}</div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
-bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
+            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B] bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               <tr>
                 <th className="py-3 px-2">
                   <input
@@ -1227,66 +1309,65 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                         {a.status}
                       </span>
                     </td>
-<td className="text-center">
-  <div className="flex items-center justify-center gap-4 relative overflow-visible">
+                    <td className="text-center">
+                      <div className="flex items-center justify-center gap-4 relative overflow-visible">
 
-    {/* EDIT ICON */}
-    <div className="relative group">
-      <Edit2
-        size={16}
-        onClick={() => {
-          if (!canEdit) return;
-          setSelAppt(a);
-          setShowEdit(true);
-        }}
-        className={`cursor-pointer transition ${
-          canEdit
-            ? "text-[#08994A] dark:text-[#08994A]"
-            : "text-[#08994A] opacity-100 cursor-not-allowed"
-        }`}
-      />
+                        {/* EDIT ICON */}
+                        <div className="relative group">
+                          <Edit2
+                            size={16}
+                            onClick={() => {
+                              if (!canEdit) return;
+                              setSelAppt(a);
+                              setShowEdit(true);
+                            }}
+                            className={`cursor-pointer transition ${
+                              canEdit
+                                ? "text-[#08994A] dark:text-[#08994A]"
+                                : "text-[#08994A] opacity-100 cursor-not-allowed"
+                            }`}
+                          />
 
-      <span
-        className="absolute right-1 bottom-2 -translate-y-1/2
-          whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50 pointer-events-none"
-      >
-        {canEdit ? "Edit" : "Access Denied"}
-      </span>
-    </div>
+                          <span
+                            className="absolute right-1 bottom-2 -translate-y-1/2
+                              whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                              bg-gray-100 dark:bg-black text-black dark:text-white
+                              opacity-0 group-hover:opacity-100
+                              transition-all duration-150 z-50 pointer-events-none"
+                          >
+                            {canEdit ? "Edit" : "Access Denied"}
+                          </span>
+                        </div>
 
-    {/* DELETE ICON */}
-    <div className="relative group">
-      <Trash2
-        size={16}
-        onClick={() => {
-          if (!canDelete) return;
-          setSelAppt(a);
-          setShowDel(true);
-        }}
-        className={`cursor-pointer transition ${
-          canDelete
-            ? "text-red-500 dark:text-red-400"
-            : "text-red-400 opacity-100 cursor-not-allowed"
-        }`}
-      />
+                        {/* DELETE ICON */}
+                        <div className="relative group">
+                          <Trash2
+                            size={16}
+                            onClick={() => {
+                              if (!canDelete) return;
+                              setSelAppt(a);
+                              setShowDel(true);
+                            }}
+                            className={`cursor-pointer transition ${
+                              canDelete
+                                ? "text-red-500 dark:text-red-400"
+                                : "text-red-400 opacity-100 cursor-not-allowed"
+                            }`}
+                          />
 
-      <span
-        className="absolute right-1 bottom-2 -translate-y-1/2
-          whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-          bg-gray-100 dark:bg-black text-black dark:text-white
-          opacity-0 group-hover:opacity-100
-          transition-all duration-150 z-50 pointer-events-none"
-      >
-        {canDelete ? "Delete" : "Admin Only"}
-      </span>
-    </div>
+                          <span
+                            className="absolute right-1 bottom-2 -translate-y-1/2
+                              whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
+                              bg-gray-100 dark:bg-black text-black dark:text-white
+                              opacity-0 group-hover:opacity-100
+                              transition-all duration-150 z-50 pointer-events-none"
+                          >
+                            {canDelete ? "Delete" : "Admin Only"}
+                          </span>
+                        </div>
 
-  </div>
-</td>
-
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -1337,7 +1418,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         </div>
       </div>
 
-      {/* FILTER POPUP - REMOVED STATUS FILTER */}
+      {/* FILTER POPUP - Enhanced with dynamic dropdowns */}
       {showFilter && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
@@ -1402,19 +1483,32 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 <Dropdown
                   label="Department"
                   value={filters.department}
-                  onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
-                  options={["Orthopedics", "Cardiology", "Neurology"]}
+                  onChange={(v) => {
+                    setFilters((p) => ({ ...p, department: v, doctor: "" }));
+                  }}
+                  options={
+                    loadingFilterDepts
+                      ? []
+                      : filterDepartments.map((d) => ({
+                          id: d.id,
+                          name: d.name,
+                        }))
+                  }
+                  loading={loadingFilterDepts}
                 />
                 <Dropdown
                   label="Doctor"
                   value={filters.doctor}
                   onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
-                  options={[
-                    "Dr.Sravan",
-                    "Dr.Ramesh",
-                    "Dr.Naveen",
-                    "Dr.Prakash",
-                  ]}
+                  options={
+                    loadingFilterDocs
+                      ? []
+                      : filterDoctors.map((doc) => ({
+                          id: doc.id,
+                          name: `${doc.full_name}${doc.designation ? ` – ${doc.designation}` : ""}`,
+                        }))
+                  }
+                  loading={loadingFilterDocs}
                 />
                 <div>
                   <label className="text-sm text-black dark:text-white">
@@ -1428,10 +1522,9 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       onChange={onFilterChange}
                       className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
                     />
-                    <Calendar className="absolute right-8 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
+                    <Calendar className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
                   </div>
                 </div>
-                {/* Removed Status filter dropdown */}
               </div>
 
               <div className="flex justify-center gap-2 mt-8">
@@ -1442,11 +1535,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   Clear
                 </button>
                 <button
-                  onClick={() => {
-                    setShowFilter(false);
-                    setPage(1);
-                    fetchOPD(1, search, filters);
-                  }}
+                  onClick={applyFilterPopup}
                   className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
                 >
                   Filter
@@ -1457,7 +1546,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         </div>
       )}
 
-      {/* ---------- EDIT POPUP ---------- */}
+      {/* EDIT POPUP */}
       {showEdit && selAppt && (
         <EditPatientPopup
           patientId={selAppt.id}
@@ -1469,7 +1558,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         />
       )}
 
-      {/* ---------- DELETE POPUP ---------- */}
+      {/* DELETE POPUP */}
       {showDel && selAppt && (
         <DeletePatient
           appointment={selAppt}

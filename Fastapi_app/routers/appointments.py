@@ -12,7 +12,6 @@ from asgiref.sync import sync_to_async
 from starlette.concurrency import run_in_threadpool
 from Fastapi_app.routers.notifications import NotificationService
 from django.db import close_old_connections, connection
-
 # ------------------- Database Health Check -------------------
 def check_db_connection():
     """Ensure database connection is alive"""
@@ -23,7 +22,6 @@ def check_db_connection():
         return True
     except Exception:
         return False
-
 def ensure_db_connection():
     """Reconnect if database connection is lost"""
     if not check_db_connection():
@@ -32,24 +30,21 @@ def ensure_db_connection():
             connection.connect()
         except Exception:
             pass
-
 # Assuming you have auth setup - if not, we'll create a simple version
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()
-
 # ---------- Schemas ----------
 class AppointmentCreate(BaseModel):
     patient_name: str
     department_id: int
     staff_id: int
-    room_no: Optional[str] = None  # Already optional
+    room_no: str
     phone_no: str
     appointment_type: Literal["checkup", "followup", "emergency"]
     status: Literal["new", "normal", "severe","active","inactive","completed","cancelled","emergency"] = "new"
     appointment_date: date = Field(..., description="Appointment date")
     appointment_time: time = Field(..., description="Appointment time")
-    
     @validator("appointment_date")
     def validate_future_date(cls, v):
         from django.utils import timezone
@@ -71,25 +66,23 @@ class AppointmentCreate(BaseModel):
                 if appt_min < now_min:
                     raise ValueError("Appointment time cannot be in the past for today")
         return v
-
 class AppointmentUpdate(BaseModel):
     patient_name: Optional[str] = None
     department_id: Optional[int] = None
     staff_id: Optional[int] = None
-    room_no: Optional[str] = None  # Already optional
+    room_no: Optional[str] = None
     phone_no: Optional[str] = None
     appointment_type: Optional[Literal["checkup", "followup", "emergency"]] = None
     status: Optional[Literal["new", "normal", "severe", "completed", "cancelled","active","inactive","emergency"]] = None
     appointment_date: Optional[date] = None
     appointment_time: Optional[time] = None
-
 class CalendarItemOut(BaseModel):
     id: int
     patient_name: str
     patient_id: str
     department: str
     doctor: str
-    room_no: Optional[str] = None  # Already optional
+    room_no: str
     phone_no: str
     item_type: str # "appointment" or "surgery"
     appointment_type: str # For appointments: "checkup", "followup", "emergency"; For surgeries: "surgery"
@@ -101,19 +94,15 @@ class CalendarItemOut(BaseModel):
     updated_at: datetime
     description: Optional[str] = None # For surgeries
     surgery_type: Optional[str] = None # For surgeries
-    
     class Config:
         arbitrary_types_allowed = True
-
 # ---------- Dropdown Response Models ----------
 class DepartmentOut(BaseModel):
     id: int
     name: str
-
 class StaffOut(BaseModel):
     id: int
     full_name: str
-
 def calendar_item_to_out(item) -> CalendarItemOut:
     # ===== SURGERY =====
     if isinstance(item, Surgery):
@@ -123,7 +112,7 @@ def calendar_item_to_out(item) -> CalendarItemOut:
             patient_id=item.patient.patient_unique_id if item.patient else "",
             department=item.doctor.department.name if item.doctor and item.doctor.department else "",
             doctor=item.doctor.full_name if item.doctor else "",
-            room_no="Surgery Room",  # Keep as is for surgeries
+            room_no="Surgery Room",
             phone_no=item.patient.phone_number if item.patient else "",
             item_type="surgery",
             appointment_type="surgery",
@@ -143,7 +132,7 @@ def calendar_item_to_out(item) -> CalendarItemOut:
         patient_id=item.patient_id,
         department=item.department.name if item.department else "",
         doctor=item.staff.full_name if item.staff else "",
-        room_no=item.room_no,  # This will be None if not provided
+        room_no=item.room_no,
         phone_no=item.phone_no,
         item_type="appointment",
         appointment_type=item.appointment_type,
@@ -160,7 +149,6 @@ def calendar_item_to_out(item) -> CalendarItemOut:
         description=None,
         surgery_type=None,
     )
-
 # ---------- Routes ----------
 @router.post("/create_appointment", status_code=status.HTTP_201_CREATED)
 async def create_appointment(payload: AppointmentCreate):
@@ -171,7 +159,6 @@ async def create_appointment(payload: AppointmentCreate):
         raise HTTPException(status_code=404, detail="Department not found")
     except Staff.DoesNotExist:
         raise HTTPException(status_code=404, detail="Staff not found")
-
     @sync_to_async
     def create_appointment_with_transaction():
         ensure_db_connection()
@@ -180,7 +167,7 @@ async def create_appointment(payload: AppointmentCreate):
                 patient_name=payload.patient_name,
                 department=department,
                 staff=staff,
-                room_no=payload.room_no,  # Will be None if not provided
+                room_no=payload.room_no,
                 phone_no=payload.phone_no,
                 appointment_type=payload.appointment_type,
                 status=payload.status,
@@ -188,14 +175,12 @@ async def create_appointment(payload: AppointmentCreate):
                 appointment_time=payload.appointment_time,
             )
             return Appointment.objects.select_related('department', 'staff').get(id=appointment.id)
-
     try:
         appointment = await create_appointment_with_transaction()
         await NotificationService.send_appointment_created(appointment, staff, department)
         return calendar_item_to_out(appointment)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create appointment: {str(e)}")
-
 @router.get("/list_appointments")
 async def list_appointments():
     @sync_to_async
@@ -205,7 +190,6 @@ async def list_appointments():
    
     appointments = await get_appointments()
     return [calendar_item_to_out(appt) for appt in appointments]
-
 @router.put("/{appointment_id}")
 async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
     @sync_to_async
@@ -220,7 +204,6 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
    
     if appt is None:
         raise HTTPException(status_code=404, detail="Appointment not found")
-
     if payload.patient_name is not None:
         appt.patient_name = payload.patient_name
     if payload.department_id is not None:
@@ -235,7 +218,7 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
             appt.staff = staff
         except Staff.DoesNotExist:
             raise HTTPException(status_code=404, detail="Staff not found")
-    if payload.room_no is not None:  # Can be None, won't update if not provided
+    if payload.room_no is not None:
         appt.room_no = payload.room_no
     if payload.phone_no is not None:
         appt.phone_no = payload.phone_no
@@ -247,21 +230,18 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
         appt.appointment_date = payload.appointment_date
     if payload.appointment_time is not None:
         appt.appointment_time = payload.appointment_time
-
     @sync_to_async
     def save_appointment():
         ensure_db_connection()
         with transaction.atomic():
             appt.save()
             return Appointment.objects.select_related('department', 'staff').get(id=appt.id)
-
     try:
         updated_appt = await save_appointment()
         await NotificationService.send_appointment_updated(updated_appt, updated_appt.staff, updated_appt.department)
         return calendar_item_to_out(updated_appt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to update: {str(e)}")
-
 @router.delete("/{appointment_id}", status_code=204)
 async def delete_appointment(appointment_id: int):
     @sync_to_async
@@ -271,18 +251,15 @@ async def delete_appointment(appointment_id: int):
             return Appointment.objects.select_related('staff', 'department').get(id=appointment_id)
         except Appointment.DoesNotExist:
             return None
-
     appointment = await get_appointment_data()
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
-
     appointment_data = {
         'id': appointment.id,
         'patient_name': appointment.patient_name,
         'staff_name': appointment.staff.full_name if appointment.staff else "Unknown",
         'department_name': appointment.department.name if appointment.department else "Unknown"
     }
-
     @sync_to_async
     def delete_appt():
         ensure_db_connection()
@@ -291,11 +268,9 @@ async def delete_appointment(appointment_id: int):
             return True
         except Appointment.DoesNotExist:
             return False
-
     deleted = await delete_appt()
     if not deleted:
         raise HTTPException(status_code=404, detail="Appointment not found")
-    
     await NotificationService.send_appointment_deleted(appointment_data)
     
 @router.get("/departments", response_model=List[DepartmentOut])
@@ -308,7 +283,6 @@ async def get_departments():
         ))[1]
     )
     return depts
-
 @router.get("/staff", response_model=List[StaffOut])
 async def get_staff_by_department(department_id: int = Query(..., gt=0)):
     try:
@@ -317,7 +291,6 @@ async def get_staff_by_department(department_id: int = Query(..., gt=0)):
         )
     except Department.DoesNotExist:
         raise HTTPException(status_code=404, detail="Department not found or inactive")
-
     staff = await run_in_threadpool(
         lambda: (ensure_db_connection(), list(
             Staff.objects.filter(department_id=department_id, status__in=["active", "available"])
@@ -326,7 +299,6 @@ async def get_staff_by_department(department_id: int = Query(..., gt=0)):
         ))[1]
     )
     return staff
-
 # ---------- My Calendar Endpoint (For Logged-in Users) ----------
 @router.get("/my-calendar/", response_model=List[CalendarItemOut])
 async def get_my_calendar_appointments(
@@ -404,3 +376,47 @@ async def get_my_calendar_appointments(
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch calendar data: {str(e)}")
+
+@router.get("/by-staff/{staff_id}/")
+async def get_appointments_by_staff(staff_id: int):
+    """
+    Get all appointments for a specific staff member
+    """
+    try:
+        @sync_to_async
+        def get_staff_appointments():
+            ensure_db_connection()
+            try:
+                # First check if staff exists
+                staff_exists = Staff.objects.filter(id=staff_id).exists()
+                if not staff_exists:
+                    return None, "Staff not found"
+                
+                # Get appointments for this staff
+                appointments = Appointment.objects.select_related(
+                    'department', 'staff'
+                ).filter(
+                    staff_id=staff_id
+                ).order_by('-appointment_date', '-appointment_time')
+                
+                return list(appointments), None
+                
+            except Exception as e:
+                return None, str(e)
+        
+        appointments, error = await get_staff_appointments()
+        
+        if error:
+            if "Staff not found" in error:
+                raise HTTPException(status_code=404, detail=error)
+            else:
+                raise HTTPException(status_code=500, detail=f"Database error: {error}")
+        
+        # Convert to response format
+        return [calendar_item_to_out(appt) for appt in appointments]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in get_appointments_by_staff: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

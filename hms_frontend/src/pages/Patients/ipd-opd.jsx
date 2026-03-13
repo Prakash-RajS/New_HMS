@@ -804,6 +804,26 @@ const AppointmentListIPD = () => {
   const [showDel, setShowDel] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
 
+  // Temporary filter state for the popup
+  const [filters, setFilters] = useState({
+    patientName: "",
+    patientId: "",
+    department: "",
+    doctor: "",
+    status: "",
+    date: "",
+  });
+
+  // Applied filters – used for actual API calls
+  const [appliedFilters, setAppliedFilters] = useState({
+    patientName: "",
+    patientId: "",
+    department: "",
+    doctor: "",
+    status: "",
+    date: "",
+  });
+
   const [filterDepartments, setFilterDepartments] = useState([]);
   const [filterDoctors, setFilterDoctors] = useState([]);
   const [loadingFilterDepts, setLoadingFilterDepts] = useState(true);
@@ -815,32 +835,22 @@ const AppointmentListIPD = () => {
   const canAdd = isAdmin || userRole === "receptionist";
   const canDelete = isAdmin;
   
-  // Add state for patient counts from backend
+  // Patient counts from backend
   const [patientCounts, setPatientCounts] = useState({
     total: 0,
     inPatient: 0,
     outPatient: 0
   });
 
-  const [filters, setFilters] = useState({
-    patientName: "",
-    patientId: "",
-    department: "",
-    doctor: "",
-    status: "",
-    date: "",
-  });
-
   const navigate = useNavigate();
   const perPage = 10;
 
-  // Status filters - removed "Completed"
+  // Status filters
   const statusFilters = ["All", "New", "Normal", "Severe", "Cancelled"];
 
-  // ---------- FETCH PATIENT COUNTS FROM BACKEND (Parallel requests) ----------
+  // ---------- FETCH PATIENT COUNTS ----------
   const fetchPatientCounts = useCallback(async () => {
     try {
-      // Make parallel requests for better performance
       const [totalResponse, inPatientResponse, outPatientResponse] = await Promise.all([
         api.get("/patients/", { params: { limit: 1, page: 1 } }),
         api.get("/patients/", { params: { limit: 1, page: 1, type: "in-patient" } }),
@@ -858,7 +868,7 @@ const AppointmentListIPD = () => {
     }
   }, []);
 
-  // ---------- FETCH PATIENTS WITH PAGINATION (Server-side filtering) ----------
+  // ---------- FETCH PATIENTS WITH PAGINATION (using appliedFilters) ----------
   const fetchPatients = useCallback(async () => {
     setDataLoading(true);
     setErr("");
@@ -868,46 +878,43 @@ const AppointmentListIPD = () => {
     try {
       console.log("Fetching patients with pagination...");
 
-      // Build query parameters for server-side filtering
       const params = {
         page: page,
         limit: perPage,
         type: activeTab === "In-Patients" ? "in-patient" : "out-patient"
       };
       
-      // Add search filter if present
       if (search) {
         params.search = search;
       }
       
-      // Add status filter if not "All"
       if (activeFilter && activeFilter !== "All") {
         params.status = activeFilter;
       }
       
-      // Add other filters if present
-      if (filters.department) {
-        params.department_id = filters.department;
+      // Use appliedFilters instead of filters
+      if (appliedFilters.department) {
+        params.department_id = appliedFilters.department;
       }
       
-      if (filters.doctor) {
-        params.doctor = filters.doctor;
+      if (appliedFilters.doctor) {
+        params.doctor = appliedFilters.doctor;
       }
       
-      if (filters.patientName) {
-        params.patient_name = filters.patientName;
+      if (appliedFilters.patientName) {
+        params.patient_name = appliedFilters.patientName;
       }
       
-      if (filters.patientId) {
-        params.patient_id = filters.patientId;
+      if (appliedFilters.patientId) {
+        params.patient_id = appliedFilters.patientId;
       }
       
-      if (filters.status && filters.status !== "") {
-        params.status = filters.status;
+      if (appliedFilters.status && appliedFilters.status !== "") {
+        params.status = appliedFilters.status;
       }
       
-      if (filters.date) {
-        params.date = filters.date;
+      if (appliedFilters.date) {
+        params.date = appliedFilters.date;
       }
 
       const response = await api.get("/patients/", { params });
@@ -950,9 +957,9 @@ const AppointmentListIPD = () => {
       setDataLoading(false);
       setInitialLoading(false);
     }
-  }, [page, perPage, activeTab, activeFilter, search, filters]);
+  }, [page, perPage, activeTab, activeFilter, search, appliedFilters]); // appliedFilters now in dependencies
 
-  // Initial load - fetch counts and first page of patients in parallel
+  // Initial load
   useEffect(() => {
     const loadInitialData = async () => {
       setInitialLoading(true);
@@ -960,7 +967,6 @@ const AppointmentListIPD = () => {
       const startTime = performance.now();
       
       try {
-        // Fetch counts and first page in parallel
         await Promise.all([
           fetchPatientCounts(),
           fetchPatients()
@@ -975,23 +981,18 @@ const AppointmentListIPD = () => {
     loadInitialData();
   }, [fetchPatientCounts, fetchPatients]);
 
-  // When dependencies change - fetch with debounce
+  // When dependencies change (except appliedFilters is already in fetchPatients)
+  // Reset page to 1 when search, activeTab, or activeFilter changes
   useEffect(() => {
     if (initialLoading) return;
-    
-    const timer = setTimeout(() => {
-      setPage(1); // Reset to first page when filters change
-      fetchPatients();
-    }, 400); // Debounce for search
-    
-    return () => clearTimeout(timer);
-  }, [activeTab, activeFilter, search, filters]);
+    setPage(1);
+  }, [search, activeTab, activeFilter]);
 
-  // When page changes - fetch immediately
+  // Fetch when page changes or when dependencies that reset page trigger a fetch via the above effect
   useEffect(() => {
     if (initialLoading) return;
     fetchPatients();
-  }, [page]);
+  }, [page, search, activeTab, activeFilter, appliedFilters]); // added appliedFilters
 
   // Load departments for filter (only once)
   useEffect(() => {
@@ -1004,7 +1005,7 @@ const AppointmentListIPD = () => {
       .finally(() => setLoadingFilterDepts(false));
   }, []);
 
-  // Load doctors when department changes
+  // Load doctors when department changes in temp filters (for popup)
   useEffect(() => {
     if (!filters.department) {
       setFilterDoctors([]);
@@ -1040,24 +1041,33 @@ const AppointmentListIPD = () => {
   };
   
   const clearFilters = () => {
-    setFilters({
+    const empty = {
       patientName: "",
       patientId: "",
       department: "",
       doctor: "",
       status: "",
       date: "",
-    });
-    setActiveFilter("All");
+    };
+    setFilters(empty);
+    setAppliedFilters(empty);
+    setShowFilter(false);
     setPage(1);
   };
 
   // ---------- APPLY FILTER POPUP ----------
   const applyFilterPopup = () => {
+    setAppliedFilters(filters); // commit temp filters
     setShowFilter(false);
-    setActiveFilter("All");
     setPage(1);
   };
+
+  // When opening filter popup, initialize temp filters from applied filters
+  useEffect(() => {
+    if (showFilter) {
+      setFilters(appliedFilters);
+    }
+  }, [showFilter, appliedFilters]);
 
   // ---------- REFRESH AFTER UPDATE ----------
   const refreshData = useCallback(async () => {
@@ -1238,7 +1248,7 @@ const AppointmentListIPD = () => {
         </div>
       </div>
 
-      {/* Today's Total - Using backend counts */}
+      {/* Today's Total */}
       <div className="mb-3 min-w-[800px] relative z-10">
         <div className="flex items-center gap-4 rounded-xl">
           <div className="flex items-center gap-3">

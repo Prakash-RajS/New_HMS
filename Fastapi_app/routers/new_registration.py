@@ -785,6 +785,13 @@ async def register_patient(
 async def list_patients(
     search: Optional[str] = Query(None),
     type: Optional[str] = Query(None, description="Filter by patient type: In-patient or Out-patient"),
+    # New filter parameters
+    patient_name: Optional[str] = Query(None, description="Filter by patient name (partial match)"),
+    patient_id: Optional[str] = Query(None, description="Filter by patient unique ID (partial match)"),
+    department_id: Optional[int] = Query(None, description="Filter by department ID"),
+    staff_id: Optional[int] = Query(None, description="Filter by staff/doctor ID"),
+    status: Optional[str] = Query(None, description="Filter by casualty status (Active, New, Normal, Severe, Cancelled)"),
+    date: Optional[str] = Query(None, description="Filter by date of registration (YYYY-MM-DD)"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=200)
 ):
@@ -794,17 +801,39 @@ async def list_patients(
             ensure_db_connection()
             query = Patient.objects.all().order_by("-created_at")
            
-            # Add type filter if provided
+            # Type filter
             if type:
-                # Try to match the patient_type field
                 query = query.filter(patient_type__iexact=type)
            
+            # Global search
             if search:
                 query = query.filter(
                     Q(full_name__icontains=search) |
                     Q(phone_number__icontains=search) |
                     Q(patient_unique_id__icontains=search)
                 )
+           
+            # Apply new filters
+            if patient_name:
+                query = query.filter(full_name__icontains=patient_name)
+           
+            if patient_id:
+                query = query.filter(patient_unique_id__icontains=patient_id)
+           
+            if department_id:
+                query = query.filter(department_id=department_id)
+           
+            if staff_id:
+                query = query.filter(staff_id=staff_id)
+           
+            if status:
+                # status values are stored in title case (e.g., "Active", "New", "Normal", "Severe", "Cancelled")
+                query = query.filter(casualty_status__iexact=status)
+           
+            if date:
+                parsed_date = parse_date(date)
+                if parsed_date:
+                    query = query.filter(date_of_registration=parsed_date)
            
             return query
        
@@ -823,7 +852,7 @@ async def list_patients(
                     "room_number",
                     "appointment_type",
                     "casualty_status",
-                    "patient_type", # ← ADD THIS FIELD
+                    "patient_type",
                     "photo",
                     "created_at",
                 )
@@ -837,7 +866,6 @@ async def list_patients(
                 f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
-            # If patient_type is None, set a default based on appointment_type
             if not p.get("patient_type"):
                 if p.get("appointment_type") == "OPD":
                     p["patient_type"] = "Out-patient"
@@ -853,10 +881,18 @@ async def list_patients(
     except Exception as e:
         logging.exception("list_patients error")
         raise HTTPException(500, detail=str(e))
+    
+
 # ---------- 4.1 GET OPD ----------
 @router.get("/opd")
 async def list_opd(
     search: Optional[str] = Query(None),
+    # Additional filter parameters
+    patient_name: Optional[str] = Query(None, description="Filter by patient name (partial match)"),
+    patient_id: Optional[str] = Query(None, description="Filter by patient unique ID (partial match)"),
+    department_id: Optional[int] = Query(None, description="Filter by department ID"),
+    staff_id: Optional[int] = Query(None, description="Filter by staff/doctor ID"),
+    date: Optional[str] = Query(None, description="Filter by date of registration (YYYY-MM-DD)"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=200)
 ):
@@ -864,15 +900,37 @@ async def list_opd(
         @sync_to_async
         def build_opd_query():
             ensure_db_connection()
+            # Base: patients with completed/discharged status
             qs = Patient.objects.filter(
                 Q(casualty_status__iexact="Completed") |
                 Q(casualty_status__iexact="Discharged")
             ).order_by("-created_at")
+            
+            # Global search (if any)
             if search:
                 qs = qs.filter(
                     Q(full_name__icontains=search) |
                     Q(patient_unique_id__icontains=search)
                 )
+            
+            # Apply filters
+            if patient_name:
+                qs = qs.filter(full_name__icontains=patient_name)
+            
+            if patient_id:
+                qs = qs.filter(patient_unique_id__icontains=patient_id)
+            
+            if department_id:
+                qs = qs.filter(department_id=department_id)
+            
+            if staff_id:
+                qs = qs.filter(staff_id=staff_id)
+            
+            if date:
+                parsed_date = parse_date(date)
+                if parsed_date:
+                    qs = qs.filter(date_of_registration=parsed_date)
+            
             return qs
        
         qs = await build_opd_query()
@@ -890,7 +948,7 @@ async def list_opd(
                     "room_number",
                     "appointment_type",
                     "casualty_status",
-                    "patient_type", # ← ADD THIS FIELD
+                    "patient_type",
                     "photo"
                 )
             ))[1]
@@ -902,7 +960,6 @@ async def list_opd(
                 f"{BACKEND_BASE_URL}/static/patient_photos/{os.path.basename(photo)}"
                 if photo else None
             )
-            # If patient_type is None, set a default
             if not p.get("patient_type"):
                 if p.get("appointment_type") == "OPD":
                     p["patient_type"] = "Out-patient"
@@ -919,6 +976,7 @@ async def list_opd(
     except Exception as e:
         logging.exception("list_opd error: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to fetch OPD patients: {str(e)}")
+    
 # ---------- 5. GET One Patient (BY ID OR PATxxxx) ----------
 @router.get("/{patient_id}")
 async def get_patient(patient_id: str = Path(...)):

@@ -1831,7 +1831,7 @@ const GuardedActionBtn = ({ onClick, icon: Icon, iconClass, label, bg, hoverBg, 
   <div
     className={`relative group flex items-center justify-center px-3 py-2 rounded-full transition
       ${bg || "bg-[#08994A1A] dark:bg-[#0EFF7B1A]"}
-      ${allowed ? `cursor-pointer ${hoverBg || "hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"}` : "opacity-40 cursor-not-allowed"}`}
+      ${allowed ? `cursor-pointer ${hoverBg || "hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"}` : "opacity-100 cursor-not-allowed"}`}
     onClick={allowed ? onClick : undefined}
   >
     <Icon size={16} className={iconClass} />
@@ -2485,7 +2485,7 @@ const handleHospitalViewInvoice = (invoiceId) =>
             className={`w-[200px] h-[40px] flex items-center justify-center border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out
               ${canBill
                 ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
-                : "bg-gray-400 dark:bg-gray-700 opacity-50 cursor-not-allowed"
+                : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 opacity-100 cursor-not-allowed"
               }`}
           >
             + Generate Bill

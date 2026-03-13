@@ -4645,7 +4645,7 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
           <table className="w-full border-collapse rounded-[8px] min-w-[800px]">
                           <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
-      <tr className="h-[52px] text-left text-[16px] text-[#0EFF7B] dark:text-[#0EFF7B] rounded-[8px]">
+      <tr className="h-[52px] text-left text-[16px] font-bold text-white dark:text-white rounded-[8px]">
         <th className="px-3 py-3">
           <input
             type="checkbox"

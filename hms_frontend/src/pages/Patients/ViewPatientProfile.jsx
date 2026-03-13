@@ -1605,10 +1605,10 @@ export default function ViewPatientProfile() {
                   disabled={!hasAccess}
                   className={`relative min-w-[120px] sm:min-w-[140px] lg:min-w-[160px] h-[40px] flex items-center justify-center gap-2 rounded-lg px-3 mx-1 text-sm font-medium transition-all ${
                     !hasAccess
-                      ? "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
+                      ? "opacity-100 cursor-not-allowed bg-[#0EFF7B14] dark:bg-gray-800"
                       : activeTab === name
-                      ? "bg-[#0EFF7B14] text-[#0EFF7B]"
-                      : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B]"
+                      ? "bg-[#0EFF7B14] text-[#0EFF7B] font-bold"
+                      : "text-[#0EFF7B] hover:text-green-600 dark:text-[#0EFF7B] font-bold"
                   }`}
                   style={{
                     borderBottom: "1px solid",
@@ -1617,10 +1617,10 @@ export default function ViewPatientProfile() {
                       "linear-gradient(90.03deg, #000000 0%, #0EFF7B 49.98%, #000000 99.96%)",
                   }}
                 >
-                  <Icon size={18} className={!hasAccess ? "text-gray-400" : "text-[#0EFF7B]"} />
+                  <Icon size={18} className={!hasAccess ? "text-[#0EFF7B]" : "text-[#0EFF7B]"} />
                   <span className="hidden sm:inline">{name}</span>
                   <span className="sm:hidden">{name.substring(0, 3)}</span>
-                  {!hasAccess && <Lock size={14} className="ml-1 text-gray-400" />}
+                  {!hasAccess && <Lock size={14} className="ml-1 text-[#0EFF7B]" />}
                 </button>
               );
             })}

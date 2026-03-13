@@ -65,6 +65,14 @@ class StaffResponse(BaseModel):
     profile_picture: Optional[str] = None 
     shift_timing: Optional[str] = None 
     status: Optional[str] = "Active"
+    
+    # ✅ ADD THESE MISSING FIELDS
+    address: Optional[str] = None
+    national_id: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    marital_status: Optional[str] = None
 
     total_surgeries: Optional[int] = 0
     success_rate: Optional[float] = 0.0
@@ -402,6 +410,9 @@ async def add_staff(
 # -----------------------------
 # Fetch All Staff
 # -----------------------------
+# -----------------------------
+# Fetch All Staff
+# -----------------------------
 @router.get("/all/", response_model=List[StaffResponse])
 async def get_all_staff():
     try:
@@ -437,7 +448,15 @@ async def get_all_staff():
                         'professional_memberships': safe_getattr(s, 'professional_memberships'),
                         'languages_spoken': safe_getattr(s, 'languages_spoken'),
                         'awards_recognitions': safe_getattr(s, 'awards_recognitions'),
-                        'total_patients_treated': safe_getattr(s, 'total_patients_treated', 0)
+                        'total_patients_treated': safe_getattr(s, 'total_patients_treated', 0),
+                        
+                        # ✅ ADD THESE MISSING FIELDS
+                        'address': safe_getattr(s, 'address'),
+                        'national_id': safe_getattr(s, 'national_id'),
+                        'city': safe_getattr(s, 'city'),
+                        'country': safe_getattr(s, 'country'),
+                        'date_of_birth': s.date_of_birth.isoformat() if s.date_of_birth else None,
+                        'marital_status': safe_getattr(s, 'marital_status'),
                     }
                 )
             return result
@@ -656,6 +675,9 @@ async def update_staff(
 # -----------------------------
 # Get Staff by ID
 # -----------------------------
+# -----------------------------
+# Get Staff by ID
+# -----------------------------
 @router.get("/{staff_id}/", response_model=StaffResponse)
 async def get_staff_by_id(staff_id: int):
     try:
@@ -720,6 +742,14 @@ async def get_staff_by_id(staff_id: int):
             languages_spoken=staff.languages_spoken,
             awards_recognitions=staff.awards_recognitions,
             total_patients_treated=staff.total_patients_treated,
+            
+            # ✅ ADD THESE MISSING FIELDS
+            address=staff.address,
+            national_id=staff.national_id,
+            city=staff.city,
+            country=staff.country,
+            date_of_birth=staff.date_of_birth.isoformat() if staff.date_of_birth else None,
+            marital_status=staff.marital_status,
 
             # ✅ NEW DYNAMIC FIELDS
             total_surgeries=total_surgeries,
@@ -899,3 +929,62 @@ async def get_specializations_by_department(department_id: Optional[int] = None)
         print(f"Error in get_specializations_by_department: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error fetching specializations: {str(e)}")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD THIS ROUTE to your existing staff.py router file
+# Place it after the existing GET /{staff_id}/ route
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.delete("/{staff_id}/delete/", status_code=status.HTTP_200_OK)
+async def delete_staff(staff_id: int):
+    """
+    Delete a staff member by ID.
+    Also removes their profile picture and certificates from disk.
+    """
+    try:
+        @sync_to_async
+        def delete_staff_sync():
+            ensure_db_connection()
+            try:
+                staff = Staff.objects.get(id=staff_id)
+
+                # ── Clean up profile picture from disk ──────────────────────
+                if staff.profile_picture:
+                    try:
+                        if os.path.exists(staff.profile_picture):
+                            os.remove(staff.profile_picture)
+                    except Exception as e:
+                        print(f"Warning: could not delete profile picture: {e}")
+
+                # ── Clean up certificates from disk ─────────────────────────
+                if staff.certificates:
+                    for cert_path in staff.certificates.split(","):
+                        cert_path = cert_path.strip()
+                        try:
+                            if cert_path and os.path.exists(cert_path):
+                                os.remove(cert_path)
+                        except Exception as e:
+                            print(f"Warning: could not delete certificate {cert_path}: {e}")
+
+                staff_name = staff.full_name
+                staff.delete()
+                return {"success": True, "message": f"Staff '{staff_name}' deleted successfully"}
+
+            except Staff.DoesNotExist:
+                return {"success": False, "error": "Staff not found"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        result = await delete_staff_sync()
+
+        if result["success"]:
+            return result
+        elif "not found" in result.get("error", "").lower():
+            raise HTTPException(status_code=404, detail="Staff not found")
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

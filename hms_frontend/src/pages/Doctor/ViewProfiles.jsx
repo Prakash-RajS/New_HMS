@@ -494,6 +494,8 @@ import {
   Eye,
   Download,
   FileText,
+  Calendar,
+  Clock
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast";
@@ -510,6 +512,8 @@ const DoctorProfile = () => {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
   const [certificates, setCertificates] = useState([]);
   const [certificatesLoading, setCertificatesLoading] = useState(false);
+  const [appointments, setAppointments] = useState([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
   
 const userRole = currentUser?.role?.toLowerCase();
@@ -544,6 +548,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
     aboutPhysician: "",
     shiftTiming: "",
   });
+
   // ADDED: Levenshtein function from example
   const levenshtein = (a, b) => {
     const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
@@ -565,6 +570,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
     }
     return matrix[b.length][a.length];
   };
+
   // ADDED: Email validation from example
   const validateEmailFormat = (value) => {
     const email = value.trim();
@@ -624,6 +630,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
     }
     return "";
   };
+
   // ADDED: Field format validation
   const validateFieldFormat = (field, value) => {
     switch (field) {
@@ -665,6 +672,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
         return "";
     }
   };
+
   // ADDED: Get field error
   const getFieldError = (field) => {
     if (formatErrors[field]) {
@@ -672,6 +680,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
     }
     return errors[field] || "";
   };
+
   // ADDED: Validate form
   const validateForm = () => {
     const newErrors = {};
@@ -709,6 +718,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   // ADDED: Name change handler
   const handleFullNameChange = (e) => {
     let value = e.target.value;
@@ -734,6 +744,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
       });
     }
   };
+
   // ADDED: Phone change handler
   const handlePhoneChange = (e) => {
     const value = e.target.value;
@@ -756,6 +767,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
       }
     }
   };
+
   // ADDED: Email change handler
   const handleEmailChange = (e) => {
     const value = e.target.value;
@@ -776,6 +788,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
       });
     }
   };
+
   // ADDED: Age change handler
   const handleAgeChange = (e) => {
     const value = e.target.value;
@@ -798,6 +811,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
       }
     }
   };
+
   // ADDED: Blur handler
   const handleBlur = (field) => {
     const value = formData[field];
@@ -807,7 +821,7 @@ const canManage = isAdmin; // Only admin can edit/view/download
       setFormatErrors(prev => ({ ...prev, [field]: formatError }));
     }
   };
-  // Parse certificates from comma-separated string
+
   // Parse certificates from comma-separated string with proper file names
 const parseCertificates = (certificatesString) => {
   if (!certificatesString || certificatesString.trim() === '') {
@@ -861,8 +875,8 @@ const parseCertificates = (certificatesString) => {
     console.log("Viewing certificate URL:", fileUrl);
     window.open(fileUrl, "_blank");
   };
+
   // Handle download certificate
-// FIXED: Force download with multiple fallback methods
 const handleDownloadCertificate = async (certificate) => {
   if (!canManage) {
     errorToast("You don't have permission to download certificates");
@@ -1113,6 +1127,7 @@ const handleDownloadCertificate = async (certificate) => {
     if (!path) return '';
     return path.split('/').pop();
   };
+
   const fetchDepartments = async () => {
     setDepartmentsLoading(true);
     try {
@@ -1138,6 +1153,43 @@ const handleDownloadCertificate = async (certificate) => {
     }
   };
  
+  // ADDED: Fetch appointments for this staff
+// If you added the dedicated endpoint
+const fetchAppointments = async (staffId) => {
+  setAppointmentsLoading(true);
+  try {
+    const response = await api.get(`/appointments/by-staff/${staffId}/`);
+    const data = response.data;
+    
+    // Handle different response structures
+    let appointmentsList = [];
+    if (Array.isArray(data)) {
+      appointmentsList = data;
+    } else if (data.results && Array.isArray(data.results)) {
+      appointmentsList = data.results;
+    } else if (data.appointments && Array.isArray(data.appointments)) {
+      appointmentsList = data.appointments;
+    }
+    
+    // Sort appointments by date (most recent first)
+    appointmentsList.sort((a, b) => {
+      const dateA = new Date(a.appointment_date + 'T' + (a.appointment_time || '00:00'));
+      const dateB = new Date(b.appointment_date + 'T' + (b.appointment_time || '00:00'));
+      return dateB - dateA;
+    });
+    
+    setAppointments(appointmentsList);
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    if (error.response?.status === 404) {
+      console.log("Appointments endpoint not found. Please check backend.");
+    }
+    setAppointments([]);
+  } finally {
+    setAppointmentsLoading(false);
+  }
+};
+
 // Move the fetchProfileData function definition outside useEffect
 const fetchProfileData = async () => {
   try {
@@ -1188,6 +1240,10 @@ const fetchProfileData = async () => {
       aboutPhysician: data.about_physician || "",
       shiftTiming: data.shift_timing || "",
     });
+    
+    // Fetch appointments for this staff
+    fetchAppointments(profileId);
+    
   } catch (error) {
     console.error("Error fetching profile:", error);
     errorToast("Failed to load profile data");
@@ -1221,7 +1277,6 @@ useEffect(() => {
     return filename ? `${import.meta.env.VITE_API_BASE_URL}/static/staffs_pictures/${filename}` : null;
   };
  
-  // UPDATED: handleCloseModal
   // UPDATED: handleCloseModal
 const handleCloseModal = () => {
   setShowEditModal(false);
@@ -1302,7 +1357,6 @@ const handleCloseModal = () => {
     }
   };
  
-  // UPDATED: handleSubmit with validation
   // UPDATED: handleSubmit with validation and proper state update
 const handleSubmit = async (e) => {
   e.preventDefault();
@@ -1404,6 +1458,61 @@ const handleSubmit = async (e) => {
     }
   }
 };
+
+  // ADDED: Get status badge color
+  const getStatusColor = (status) => {
+    const normalizedStatus = status?.toLowerCase() || '';
+    switch (normalizedStatus) {
+      case 'completed':
+        return 'bg-green-500';
+      case 'cancelled':
+        return 'bg-red-500';
+      case 'new':
+        return 'bg-blue-500';
+      case 'active':
+        return 'bg-green-500';
+      case 'emergency':
+        return 'bg-red-600';
+      case 'severe':
+        return 'bg-orange-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  // ADDED: Format appointment time
+  const formatAppointmentTime = (time) => {
+    if (!time) return 'Time not set';
+    try {
+      // If time is in HH:MM:SS format
+      const timeParts = time.split(':');
+      if (timeParts.length >= 2) {
+        let hours = parseInt(timeParts[0]);
+        const minutes = timeParts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        return `${hours}:${minutes} ${ampm}`;
+      }
+      return time;
+    } catch (e) {
+      return time;
+    }
+  };
+
+  // ADDED: Group appointments by date
+  const groupAppointmentsByDate = () => {
+    const grouped = {};
+    appointments.forEach(app => {
+      const date = app.appointment_date || 'No date';
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(app);
+    });
+    return grouped;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen mt-[80px] flex items-center justify-center bg-gray-100 dark:bg-black">
@@ -1450,9 +1559,11 @@ const handleSubmit = async (e) => {
     { id: "Other", name: "Other" },
   ];
  
+  const groupedAppointments = groupAppointmentsByDate();
+  const today = new Date().toISOString().split('T')[0];
+ 
   return (
     <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white dark:border-[#1E1E1E] rounded-xl p-8 w-full max-w-[2500px] mx-auto flex flex-col bg-gray-100 dark:bg-transparent overflow-hidden relative font-[Helvetica]">
-      {/* YOUR ORIGINAL JSX STARTS HERE - I'M NOT MODIFYING IT */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
         style={{
@@ -1717,7 +1828,7 @@ const handleSubmit = async (e) => {
         {/* Right Section */}
         <div className="bg-gray-100 dark:bg-[#1E1E1E] p-4 rounded-xl space-y-6 border border-[#0EFF7B] dark:border-[#3C3C3C]">
           {/* Stats - Updated with dynamic total_patients_treated */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
               <p className="text-black dark:text-white text-[18px]">
                 Total Patients
@@ -1740,101 +1851,138 @@ const handleSubmit = async (e) => {
               </p>
             </div>
             {/* Surgeries */}
-<div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
-  <p className="text-black dark:text-white text-[18px]">
-    Surgeries
-  </p>
-  <div className="flex justify-center items-center gap-2">
-    <Activity
-      size={26}
-      className="text-[#08994A] dark:text-[#0EFF7B]"
-    />
-    <p className="text-2xl font-medium text-black dark:text-white">
-      {profileData.total_surgeries || 0}
-    </p>
-  </div>
-  <p className="text-green-500 text-xs">
-    {profileData.success_rate || 0}%{" "}
-    <span className="text-black dark:text-white text-[12px]">
-      success rate
-    </span>
-  </p>
-</div>
             <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-5 rounded-lg text-center">
-              <p className="text-black dark:text-white text-[18px]">Reviews</p>
+              <p className="text-black dark:text-white text-[18px]">
+                Surgeries
+              </p>
               <div className="flex justify-center items-center gap-2">
-                <Star size={26} className="text-[#FFD700]" fill="#FFD700" />
+                <Activity
+                  size={26}
+                  className="text-[#08994A] dark:text-[#0EFF7B]"
+                />
                 <p className="text-2xl font-medium text-black dark:text-white">
-                  4.5/5.0
+                  {profileData.total_surgeries || 0}
                 </p>
               </div>
-              <p className="text-black dark:text-white text-xs">
-                Based on patient review
+              <p className="text-green-500 text-xs">
+                {profileData.success_rate || 0}%{" "}
+                <span className="text-black dark:text-white text-[12px]">
+                  success rate
+                </span>
               </p>
             </div>
           </div>
-          {/* Patient Visits */}
-          <div>
-            <h3 className="font-semibold mb-3 text-black dark:text-white">
-              Patient Visits
-            </h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  Routine Check
-                </p>
-                <p className="text-blue-400 text-sm">9:00AM - 10:30AM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  Vital signs & basic assessments
-                </p>
-              </div>
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  Outpatient Appointments
-                </p>
-                <p className="text-blue-400 text-sm">10:00AM - 12:00PM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  Consultations & follow-ups with OPD cases
-                </p>
-              </div>
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  Minor Procedures
-                </p>
-                <p className="text-blue-400 text-sm">12:00PM - 1:00PM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  Small treatments, wound checks, post-surgery reviews.
-                </p>
-              </div>
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  Lunch & Documentation
-                </p>
-                <p className="text-blue-400 text-sm">1:00PM - 2:00PM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  Break time & updating patient records
-                </p>
-              </div>
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  New Patient Consultations
-                </p>
-                <p className="text-blue-400 text-sm">2:00PM - 4:00PM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  First-time visits and detailed assessments
-                </p>
-              </div>
-              <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px]">
-                <p className="font-semibold text-black dark:text-white">
-                  Outpatient & Emergency
-                </p>
-                <p className="text-blue-400 text-sm">4:00PM - 7:00PM</p>
-                <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-                  Emergency cases & urgent patient care
-                </p>
-              </div>
-            </div>
+          
+          {/* Patient Visits - Dynamic from Appointments */}
+ {/* Patient Visits - Dynamic from Appointments */}
+<div>
+  <h3 className="font-semibold mb-3 text-black dark:text-white flex items-center gap-2">
+    <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
+    Patient Visits
+    {appointmentsLoading && (
+      <Loader2 className="h-4 w-4 animate-spin text-[#08994A]" />
+    )}
+  </h3>
+  
+  {appointments.length === 0 ? (
+    <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-6 rounded-[12px] text-center">
+      <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+      <p className="text-black dark:text-white">No appointments found</p>
+      <p className="text-sm text-gray-500 mt-1">No upcoming or past appointments scheduled</p>
+    </div>
+  ) : (
+    <div className="grid sm:grid-cols-2 gap-4">
+      {appointments.slice(0, 10).map((app) => {
+        // Format time to display in readable format
+        const formattedTime = app.appointment_time 
+          ? new Date(`2000-01-01T${app.appointment_time}`).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            })
+          : 'Time TBD';
+        
+        // Format date to display
+        const formattedDate = app.appointment_date
+          ? new Date(app.appointment_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            })
+          : 'Date TBD';
+        
+        // DYNAMIC DESCRIPTION WITH ICONS
+        const getDynamicDescription = () => {
+          const type = app.appointment_type?.toLowerCase() || '';
+          const status = app.status?.toLowerCase() || '';
+          
+          // Emergency gets highest priority
+          if (type === 'emergency' || status === 'emergency') {
+            return '🚨 Emergency case - Immediate attention required';
+          }
+          
+          // Status-based
+          if (status === 'completed') {
+            return '✓ Appointment completed - Follow-up if needed';
+          }
+          if (status === 'cancelled') {
+            return '✗ Appointment cancelled - Reschedule required';
+          }
+          if (status === 'severe') {
+            return '⚠️ Severe condition - Close monitoring required';
+          }
+          if (status === 'normal') {
+            return '📊 Normal checkup - Routine monitoring';
+          }
+          
+          // Type-based
+          switch(type) {
+            case 'checkup':
+              return '🩺 Routine checkup - Vital signs & basic assessments';
+            case 'followup':
+              return '📋 Follow-up consultation - Review progress & treatment';
+            case 'emergency':
+              return '🚑 Emergency consultation - Urgent care required';
+            default:
+              return '💊 General consultation - Patient evaluation';
+          }
+        };
+        
+        // Determine background color based on status or type
+        const bgColor = app.status?.toLowerCase() === 'emergency' || app.appointment_type?.toLowerCase() === 'emergency'
+          ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'
+          : 'bg-[#0EFF7B1A] dark:bg-[#000000]';
+        
+        return (
+          <div 
+            key={app.id} 
+            className={`${bgColor} p-4 rounded-[12px]`}
+          >
+            <p className="font-semibold text-black dark:text-white">
+              {app.patient_name}
+            </p>
+            <p className="text-blue-400 text-sm">
+              {formattedTime} - {formattedDate}
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 text-xs italic">
+              {getDynamicDescription()}
+            </p>
           </div>
+        );
+      })}
+      
+      {/* Show count if more than 10 appointments */}
+      {appointments.length > 10 && (
+        <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px] flex items-center justify-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            +{appointments.length - 10} more appointments
+          </p>
+        </div>
+      )}
+    </div>
+  )}
+</div>
+          
           {/* Availability */}
           <div>
             <h3 className="font-semibold mb-2 text-black dark:text-white">
@@ -1846,49 +1994,50 @@ const handleSubmit = async (e) => {
               </span>
             </div>
           </div>
-           <div>
-                    <h3 className="font-semibold mb-3 text-black dark:text-white">
-                      Certificates & Documents
-                    </h3>
-                    <div className="bg-[#0EFF7B1A] dark:bg-[#000000] rounded-[12px] p-4">
-                      {certificates.length === 0 ? (
-                        <div className="text-center py-8">
-                          <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                          <p className="text-black dark:text-white">
-                            No certificates or documents found
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead>
-                              <tr className="border-b border-[#0EFF7B66] dark:border-[#0EFF7B66]">
-                                <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
-                                  Document Name
-                                </th>
-                                <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
-                                  Actions
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {certificates.map((cert) => (
-                                <tr
-                                  key={cert.id}
-                                  className="border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]"
-                                >
-                                  <td className="py-3 px-3">
-                                    <div className="flex items-center">
-                                      <FileText className="h-5 w-5 text-[#08994A] dark:text-[#0EFF7B] mr-2" />
-                                      <span className="text-sm text-black dark:text-white truncate max-w-[250px]">
-                                        {cert.name}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-3">
-                                    <div className="flex gap-2">
-                                      {/* VIEW */}
-  {/* VIEW */}
+          
+          {/* Certificates & Documents */}
+          <div>
+            <h3 className="font-semibold mb-3 text-black dark:text-white">
+              Certificates & Documents
+            </h3>
+            <div className="bg-[#0EFF7B1A] dark:bg-[#000000] rounded-[12px] p-4">
+              {certificates.length === 0 ? (
+                <div className="text-center py-8">
+                  <FileText className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                  <p className="text-black dark:text-white">
+                    No certificates or documents found
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#0EFF7B66] dark:border-[#0EFF7B66]">
+                        <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
+                          Document Name
+                        </th>
+                        <th className="text-left py-2 px-3 text-sm font-medium text-black dark:text-white">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {certificates.map((cert) => (
+                        <tr
+                          key={cert.id}
+                          className="border-b border-[#0EFF7B33] dark:border-[#0EFF7B33]"
+                        >
+                          <td className="py-3 px-3">
+                            <div className="flex items-center">
+                              <FileText className="h-5 w-5 text-[#08994A] dark:text-[#0EFF7B] mr-2" />
+                              <span className="text-sm text-black dark:text-white truncate max-w-[250px]">
+                                {cert.name}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex gap-2">
+                              {/* VIEW */}
 <div
   className={`relative group w-8 h-8 rounded-[6px]
              border border-[#0EFF7B] dark:border-[#0EFF7B]
@@ -1912,7 +2061,6 @@ const handleSubmit = async (e) => {
   </span>
 </div>
   {/* DOWNLOAD */}
-  {/* DOWNLOAD */}
 <div
   className={`relative group w-8 h-8 rounded-[6px]
              border border-[#08994A] dark:border-[#0EFF7B]
@@ -1935,16 +2083,16 @@ const handleSubmit = async (e) => {
     {canManage ? "Download" : "Access Denied"}
   </span>
 </div>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
      
@@ -2440,4 +2588,5 @@ const handleSubmit = async (e) => {
     </div>
   );
 };
+
 export default DoctorProfile;

@@ -613,7 +613,7 @@ const canDelete = isAdmin; // Only admin can delete
           <table className="w-full border-collapse">
            <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
-              <tr className="text-center border-b border-gray-300 dark:border-[#000000] text-[#0EFF7B]">
+              <tr className="text-center border-b border-gray-300 dark:border-[#000000] text-white">
                 <th className="p-3">
                   <input
                     type="checkbox"
@@ -960,7 +960,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
           <table className="w-full border-collapse">
             <thead className="h-12 font-[Helvetica] text-white border-2 border-[#0EFF7B]
 bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
-              <tr className="text-center border-b border-gray-300 dark:border-[#3C3C3C] text-[#0EFF7B]">
+              <tr className="text-center border-b border-gray-300 dark:border-[#3C3C3C] text-white">
                 <th className="p-3">
                   <input
                     type="checkbox"

@@ -5,28 +5,24 @@ import { useNavigate } from "react-router-dom";
 import { successToast, errorToast } from "../../components/Toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import api from "../../utils/axiosConfig"; // Import axios
+import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
 
 const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
         errorToast("File size exceeds 5MB limit. Please choose a smaller file.");
-        e.target.value = ''; // Clear input to allow re-selection
+        e.target.value = "";
         return;
       }
-      
-      // Check file type
       const validTypes = ["image/jpeg", "image/jpg", "image/png"];
       if (!validTypes.includes(file.type)) {
         errorToast("Invalid file type. Please upload JPG, JPEG, or PNG files only.");
-        e.target.value = ''; // Clear input to allow re-selection
+        e.target.value = "";
         return;
       }
-      
       setPhoto({ file, preview: URL.createObjectURL(file) });
     }
   };
@@ -45,20 +41,14 @@ const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
         className="border-2 border-dashed bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] border-[#0EFF7B] dark:border-[#0EFF7B] w-24 h-24 md:w-32 md:h-32 flex items-center justify-center text-gray-600 dark:text-gray-400 cursor-pointer rounded-lg overflow-hidden hover:border-[#0EFF7B] dark:hover:border-[#0EFF7B] hover:text-[#08994A] dark:hover:text-[#0EFF7B]"
       >
         {photo?.preview ? (
-          <img
-            src={photo.preview}
-            alt="Preview"
-            className="w-full h-full object-cover"
-          />
+          <img src={photo.preview} alt="Preview" className="w-full h-full object-cover" />
         ) : (
           <span className="text-xs md:text-sm flex items-center">
-            + Add Photo 
+            + Add Photo
             {required && <span className="text-red-500 ml-1">*</span>}
           </span>
         )}
       </label>
-      
-      {/* Help text displayed below */}
       <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center md:text-right w-32 mr-2">
         Supported formats: JPG, JPEG, PNG<br />(Max 5MB)
       </p>
@@ -104,10 +94,7 @@ const CertificateUploadBox = ({ certificates, setCertificates, required = false 
       {certificates.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {certificates.map((cert, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"
-            >
+            <div key={index} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
               <span>Certificate {index + 1}</span>
               <button
                 onClick={() => handleRemoveCertificate(index)}
@@ -139,10 +126,7 @@ const Dropdown = ({ label, value, onChange, options, required = false, error }) 
         </Listbox.Button>
         <Listbox.Options
           className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-40 overflow-y-auto"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {options.map((option, idx) => (
             <Listbox.Option
@@ -153,11 +137,7 @@ const Dropdown = ({ label, value, onChange, options, required = false, error }) 
                   active
                     ? "bg-[#0EFF7B1A] dark:bg-[#0EFF7B33] text-[#08994A] dark:text-[#0EFF7B]"
                     : "text-black dark:text-white"
-                } ${
-                  selected
-                    ? "font-medium text-[#08994A] dark:text-[#0EFF7B]"
-                    : ""
-                }`
+                } ${selected ? "font-medium text-[#08994A] dark:text-[#0EFF7B]" : ""}`
               }
             >
               {option}
@@ -178,7 +158,7 @@ const DatePickerField = ({
   placeholder,
   required = false,
   error,
-  maxDate = null
+  maxDate = null,
 }) => {
   const selectedDate = (() => {
     if (!value) return null;
@@ -255,17 +235,14 @@ const InputField = ({
   type = "text",
   required = false,
   error,
-  autoCapitalize = false
+  autoCapitalize = false,
+  disabled = false,
 }) => {
   const handleChange = (e) => {
     let newValue = e.target.value;
-    
-    // Auto-capitalize first letter for name fields
-    if (autoCapitalize && newValue && name.includes('name')) {
-      // Capitalize first letter of each word (basic ASCII support; unicode may not capitalize fully)
-      newValue = newValue.replace(/\b\w/g, char => char.toUpperCase());
+    if (autoCapitalize && newValue && name.includes("name")) {
+      newValue = newValue.replace(/\b\w/g, (char) => char.toUpperCase());
     }
-    
     onChange({ target: { name, value: newValue } });
   };
 
@@ -282,7 +259,10 @@ const InputField = ({
         onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
-        className="w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px]"
+        disabled={disabled}
+        className={`w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] ${
+          disabled ? "opacity-60 cursor-not-allowed" : ""
+        }`}
       />
       {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
@@ -298,7 +278,7 @@ const TextAreaField = ({
   placeholder,
   rows = 3,
   required = false,
-  error
+  error,
 }) => (
   <div className="space-y-1 w-full">
     <label className="text-sm text-black dark:text-white">
@@ -318,6 +298,34 @@ const TextAreaField = ({
   </div>
 );
 
+// ── Designation options & category mapping ───────────────────────────────────
+const designationOptions = [
+  "Senior Doctor",
+  "Junior Doctor",
+  "Consultant",
+  "Resident Doctor",
+  "Head Nurse",
+  "Staff Nurse",
+  "Junior Nurse",
+  "Paramedic",
+  "Lab Technician",
+  "Pharmacist",
+];
+
+// Maps each display label → backend category key expected by prefix_map
+const designationCategoryMap = {
+  "Senior Doctor":   "Doctor",
+  "Junior Doctor":   "Doctor",
+  "Consultant":      "Doctor",
+  "Resident Doctor": "Doctor",
+  "Head Nurse":      "Nurse",
+  "Staff Nurse":     "Nurse",
+  "Junior Nurse":    "Nurse",
+  "Paramedic":       "Staff",
+  "Lab Technician":  "Staff",
+  "Pharmacist":      "Staff",
+};
+
 export default function NewRegistration({ isSidebarOpen }) {
   const [formData, setFormData] = useState({
     // Basic Information
@@ -334,13 +342,14 @@ export default function NewRegistration({ isSidebarOpen }) {
     city: "",
     country: "",
     date_of_joining: "",
-    designation: "",
+    designation: "",          // display label e.g. "Senior Doctor"
+    designation_category: "", // resolved category e.g. "Doctor"
     department: "",
     specialization: "",
     status: "",
     shift_timing: "",
 
-    // New Dynamic Fields
+    // Professional Information
     education: "",
     about_physician: "",
     experience: "",
@@ -356,18 +365,18 @@ export default function NewRegistration({ isSidebarOpen }) {
   const [departments, setDepartments] = useState([]);
   const [departmentId, setDepartmentId] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   // Validation states
   const [formatErrors, setFormatErrors] = useState({});
   const [requiredErrors, setRequiredErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [showAllErrors, setShowAllErrors] = useState(false);
-  
+
   const navigate = useNavigate();
   const { isAdmin, currentUser } = usePermissions();
-  
-const userRole = currentUser?.role?.toLowerCase();
-const canAddStaff = isAdmin; // Only admin can add staff
+
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAddStaff = isAdmin;
 
   const maritalStatus = ["Single", "Married", "Divorced", "Widowed"];
   const statusOptions = ["Available", "Unavailable", "On Leave"];
@@ -378,16 +387,14 @@ const canAddStaff = isAdmin; // Only admin can add staff
   ];
   const bloodGroupOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-  // Fetch departments
+  // ── Fetch departments ────────────────────────────────────────────────────
   useEffect(() => {
-    api.get("/departments/")
+    api
+      .get("/departments/")
       .then((response) => {
-        if (response.status !== 200) {
-          throw new Error("Failed to load departments");
-        }
+        if (response.status !== 200) throw new Error("Failed to load departments");
         const data = response.data;
         setDepartments(data.map((d) => d.name));
-        // Store department mapping for ID lookup
         setDepartmentId(
           data.reduce((acc, dept) => {
             acc[dept.name] = dept.id;
@@ -398,15 +405,48 @@ const canAddStaff = isAdmin; // Only admin can add staff
       .catch(() => errorToast("Failed to load departments"));
   }, []);
 
-  
-// Levenshtein distance for typo detection
+  // ── TC_074: Auto-calculate Age from Date of Birth ────────────────────────
+  useEffect(() => {
+    if (!formData.date_of_birth) return;
+
+    const parts = formData.date_of_birth.split("/");
+    if (parts.length !== 3) return;
+
+    const [month, day, year] = parts.map(Number);
+    if (isNaN(month) || isNaN(day) || isNaN(year)) return;
+
+    const dob = new Date(year, month - 1, day);
+    const today = new Date();
+
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+
+    if (age >= 0 && age <= 150) {
+      setFormData((prev) => ({ ...prev, age: String(age) }));
+      // Clear stale age validation errors
+      setFormatErrors((prev) => {
+        const next = { ...prev };
+        delete next.age;
+        return next;
+      });
+      setRequiredErrors((prev) => {
+        const next = { ...prev };
+        delete next.age;
+        return next;
+      });
+    }
+  }, [formData.date_of_birth]);
+
+  // ── Levenshtein distance for typo detection ──────────────────────────────
   const levenshtein = (a, b) => {
     const matrix = Array.from({ length: b.length + 1 }, (_, i) =>
       Array.from({ length: a.length + 1 }, (_, j) =>
         i === 0 ? j : j === 0 ? i : 0
       )
     );
-  
     for (let i = 1; i <= b.length; i++) {
       for (let j = 1; j <= a.length; j++) {
         matrix[i][j] =
@@ -421,162 +461,121 @@ const canAddStaff = isAdmin; // Only admin can add staff
     }
     return matrix[b.length][a.length];
   };
-  // Real-time format validation functions (for typing)
-  const validateNameFormat = (value) => {
-    if (/[0-9]/.test(value)) return "Name should not contain numbers";
-    if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) return "Please enter a valid name";
+
+  // ── Format validation (while typing) ────────────────────────────────────
+  const validateEmailFormat = (value) => {
+    const email = value.trim();
+    if (!email) return "";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email))
+      return "Please enter a valid email address (e.g., user@domain.com)";
+
+    if (email.includes("..") || email.includes(".@") || email.includes("@."))
+      return "Invalid email format";
+
+    const [localPart, domain] = email.toLowerCase().split("@");
+
+    if (localPart.length < 2) return "Email username is too short";
+    if (/(.)\1{5,}/.test(localPart)) return "Email appears to be invalid";
+    if (/(\.\.|__|--|\+\+)/.test(localPart)) return "Email contains invalid characters";
+
+    const invalidDomains = [
+      "email.com","example.com","test.com","domain.com","mailinator.com",
+      "tempmail.com","guerrillamail.com","10minutemail.com","yopmail.com",
+      "fakeemail.com","temp-mail.org","throwawayemail.com","dispostable.com",
+      "maildrop.cc",
+    ];
+    if (invalidDomains.includes(domain))
+      return "Disposable or invalid email domains are not allowed";
+
+    const providers = ["gmail.com","yahoo.com","outlook.com","hotmail.com","icloud.com"];
+    for (const provider of providers) {
+      const distance = levenshtein(domain, provider);
+      if (distance > 0 && distance <= 2)
+        return `Did you mean ${localPart}@${provider}?`;
+    }
+
+    const tld = domain.split(".").pop();
+    if (tld.length < 2) return "Please use a valid domain extension";
+
     return "";
   };
 
-  const validateEmailFormat = (value) => {
-  const email = value.trim();
-  if (!email) return "";
-
-  // 1️⃣ Basic structure check
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return "Please enter a valid email address (e.g., user@domain.com)";
-  }
-
-  // 2️⃣ Suspicious formatting
-  if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
-    return "Invalid email format";
-  }
-
-  const [localPart, domain] = email.toLowerCase().split("@");
-
-  // 3️⃣ Local-part sanity
-  if (localPart.length < 2) {
-    return "Email username is too short";
-  }
-
-  if (/(.)\1{5,}/.test(localPart)) {
-    return "Email appears to be invalid";
-  }
-
-  if (/(\.\.|__|--|\+\+)/.test(localPart)) {
-    return "Email contains invalid characters";
-  }
-
-  // 4️⃣ Disposable / fake domains (hard block)
-  const invalidDomains = [
-    "email.com",
-    "example.com",
-    "test.com",
-    "domain.com",
-    "mailinator.com",
-    "tempmail.com",
-    "guerrillamail.com",
-    "10minutemail.com",
-    "yopmail.com",
-    "fakeemail.com",
-    "temp-mail.org",
-    "throwawayemail.com",
-    "dispostable.com",
-    "maildrop.cc"
-  ];
-
-  if (invalidDomains.includes(domain)) {
-    return "Disposable or invalid email domains are not allowed";
-  }
-
-  // 5️⃣ Dynamic typo detection for major providers
-  const providers = [
-    "gmail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com"
-  ];
-
-  for (const provider of providers) {
-    const distance = levenshtein(domain, provider);
-
-    // distance 1–2 = very likely a typo
-    if (distance > 0 && distance <= 2) {
-      return `Did you mean ${localPart}@${provider}?`;
-    }
-  }
-
-  // 6️⃣ TLD sanity (not restrictive)
-  const tld = domain.split(".").pop();
-  if (tld.length < 2) {
-    return "Please use a valid domain extension";
-  }
-
-  return "";
-};
-
-  // ── Format validation functions (while typing) ───────────────────────
   const validateFieldFormat = (field, value) => {
-    if (!value || value.trim() === "") return ""; // Empty values handled by required validation
-    
+    if (!value || value.trim() === "") return "";
+
     switch (field) {
       case "full_name":
-  if (value.length < 2) return "Full name must be at least 2 characters";
-  if (value.length > 100) return "Full name cannot exceed 100 characters";
-  // Basic check for obviously invalid characters
-  if (/[<>\[\]{}\|\\^~`]/.test(value)) return "Full name contains invalid characters";
-  return "";
-      
+        if (value.length < 2) return "Full name must be at least 2 characters";
+        if (value.length > 100) return "Full name cannot exceed 100 characters";
+        // TC_073: reject any digits in name
+        if (/[0-9]/.test(value)) return "Name should not contain numbers";
+        if (!/^[A-Za-zÀ-ÿ\s.'\-]+$/.test(value))
+          return "Full name contains invalid characters";
+        return "";
+
       case "email":
         return validateEmailFormat(value);
-      
+
       case "phone":
         if (!/^\d+$/.test(value)) return "Phone number must contain only digits";
         if (value.length !== 10) return "Phone number must be exactly 10 digits";
         return "";
-      
+
       case "national_id":
         if (value.length > 50) return "National ID cannot exceed 50 characters";
-        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "National ID can only contain letters, numbers, spaces, hyphens, and underscores";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(value))
+          return "National ID can only contain letters, numbers, spaces, hyphens, and underscores";
         return "";
-      
+
       case "city":
       case "country":
         if (value.length > 50) return "Cannot exceed 50 characters";
-        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value)) return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
+        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value))
+          return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
         return "";
-      
+
       case "address":
         if (value.length > 200) return "Address cannot exceed 200 characters";
-        if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(value)) return "Address can only contain letters (including accented), numbers, spaces, hyphens, dots, commas, #, ', &, and /";
+        if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(value))
+          return "Address can only contain letters, numbers, spaces, hyphens, dots, commas, #, ', &, and /";
         return "";
-      
-      case "designation":
+
       case "specialization":
         if (value.length > 100) return "Cannot exceed 100 characters";
-        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value)) return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
+        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value))
+          return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
         return "";
-      
+
       case "age":
         if (!/^\d+$/.test(value)) return "Age must contain only numbers";
         const ageNum = parseInt(value);
         if (ageNum < 18) return "Age must be at least 18";
         if (ageNum > 100) return "Age cannot exceed 100";
         return "";
-      
+
       case "license_number":
         if (value.length > 50) return "License number cannot exceed 50 characters";
-        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "License number can only contain letters, numbers, spaces, hyphens, and underscores";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(value))
+          return "License number can only contain letters, numbers, spaces, hyphens, and underscores";
         return "";
-      
+
       case "experience":
         if (value.length > 50) return "Experience cannot exceed 50 characters";
-        if (!/^[A-Za-zÀ-ÿ0-9\s+]+$/.test(value)) return "Experience can only contain letters (including accented), numbers, spaces, and +";
-        // Check for numeric prefix > 0 if it starts with a number
+        if (!/^[A-Za-zÀ-ÿ0-9\s+]+$/.test(value))
+          return "Experience can only contain letters, numbers, spaces, and +";
         const numMatch = value.match(/^\d+/);
-        if (numMatch) {
-          const num = parseInt(numMatch[0]);
-          if (num <= 0) return "Experience value must be above 0";
-        }
+        if (numMatch && parseInt(numMatch[0]) <= 0)
+          return "Experience value must be above 0";
         return "";
-      
+
       case "languages_spoken":
         if (value.length > 100) return "Languages cannot exceed 100 characters";
-        if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(value)) return "Languages can only contain letters (including accented), spaces, and commas";
+        if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(value))
+          return "Languages can only contain letters (including accented), spaces, and commas";
         return "";
-      
+
       case "education":
       case "about_physician":
       case "board_certifications":
@@ -584,54 +583,48 @@ const canAddStaff = isAdmin; // Only admin can add staff
       case "awards_recognitions":
         if (value.length > 500) return "Cannot exceed 500 characters";
         return "";
-      
+
       default:
         return "";
     }
   };
 
-  // ── Required field validation (only for submission) ──────────────────
+  // ── Required field validation (submission only) ──────────────────────────
   const validateRequiredFields = () => {
     const errors = {};
     let isValid = true;
 
-    // Basic Information - All required
     const requiredBasicFields = [
-      "full_name", "date_of_birth", "gender", "blood_group", "age", 
-      "marital_status", "address", "phone", "email",
-      "national_id", "city", "country", "date_of_joining",
-      "designation", "department", "specialization", "status",
-      "shift_timing"
+      "full_name","date_of_birth","gender","blood_group","age",
+      "marital_status","address","phone","email","national_id",
+      "city","country","date_of_joining","designation","department",
+      "specialization","status","shift_timing",
     ];
 
-    requiredBasicFields.forEach(field => {
+    requiredBasicFields.forEach((field) => {
       if (!formData[field] || formData[field].toString().trim() === "") {
         errors[field] = "This field is required";
         isValid = false;
       }
     });
 
-    // Professional Information - Required except awards_recognitions
     const requiredProfessionalFields = [
-      "education", "about_physician", "experience", 
-      "license_number", "board_certifications", 
-      "professional_memberships", "languages_spoken"
+      "education","about_physician","experience","license_number",
+      "board_certifications","professional_memberships","languages_spoken",
     ];
 
-    requiredProfessionalFields.forEach(field => {
+    requiredProfessionalFields.forEach((field) => {
       if (!formData[field] || formData[field].toString().trim() === "") {
         errors[field] = "This field is required";
         isValid = false;
       }
     });
 
-    // Photo is required
     if (!photo) {
       errors.photo = "Photo is required";
       isValid = false;
     }
 
-    // At least one certificate is required
     if (certificates.length === 0) {
       errors.certificates = "At least one certificate is required";
       isValid = false;
@@ -643,150 +636,127 @@ const canAddStaff = isAdmin; // Only admin can add staff
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-    
-    // Clear required field error when user starts typing
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (requiredErrors[name]) {
-      setRequiredErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+      setRequiredErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
       });
     }
-    
-    // Perform real-time format validation (only for non-empty values)
+
     if (value && value.trim() !== "") {
       const formatError = validateFieldFormat(name, value);
-      
       if (formatError) {
-        setFormatErrors(prev => ({
-          ...prev,
-          [name]: formatError
-        }));
+        setFormatErrors((prev) => ({ ...prev, [name]: formatError }));
       } else {
-        // Clear format error if validation passes
-        setFormatErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors[name];
-          return newErrors;
+        setFormatErrors((prev) => {
+          const next = { ...prev };
+          delete next[name];
+          return next;
         });
       }
     } else {
-      // Clear format error for empty fields
-      setFormatErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
+      setFormatErrors((prev) => {
+        const next = { ...prev };
+        delete next[name];
+        return next;
       });
     }
   };
 
   const handleBlur = (field) => {
-    setTouched(prev => ({ ...prev, [field]: true }));
+    setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
   const handleDropdownChange = (field, value) => {
     handleInputChange({ target: { name: field, value } });
     if (!touched[field]) {
-      setTouched(prev => ({ ...prev, [field]: true }));
+      setTouched((prev) => ({ ...prev, [field]: true }));
+    }
+  };
+
+  // ── TC_076: Designation dropdown handler ─────────────────────────────────
+  const handleDesignationChange = (val) => {
+    const category = designationCategoryMap[val] || "Staff";
+    setFormData((prev) => ({
+      ...prev,
+      designation: val,
+      designation_category: category,
+    }));
+    // Clear any existing errors for designation
+    setRequiredErrors((prev) => {
+      const next = { ...prev };
+      delete next.designation;
+      return next;
+    });
+    if (!touched.designation) {
+      setTouched((prev) => ({ ...prev, designation: true }));
     }
   };
 
   const handlePhotoChange = (newPhoto) => {
     setPhoto(newPhoto);
-    // Clear photo error when user uploads photo
     if (requiredErrors.photo) {
-      setRequiredErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.photo;
-        return newErrors;
+      setRequiredErrors((prev) => {
+        const next = { ...prev };
+        delete next.photo;
+        return next;
       });
     }
   };
 
   const handleCertificatesChange = (newCertificates) => {
     setCertificates(newCertificates);
-    // Clear certificates error when user uploads certificates
     if (requiredErrors.certificates) {
-      setRequiredErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.certificates;
-        return newErrors;
+      setRequiredErrors((prev) => {
+        const next = { ...prev };
+        delete next.certificates;
+        return next;
       });
     }
   };
 
-  // ── Validate all fields before submission ────────────────────────────
   const validateForm = () => {
-    // Mark all fields as touched
     const allTouched = {};
-    Object.keys(formData).forEach(field => {
+    Object.keys(formData).forEach((field) => {
       allTouched[field] = true;
     });
     setTouched(allTouched);
     setShowAllErrors(true);
-    
-    // First check required fields
+
     const requiredValid = validateRequiredFields();
-    
-    // Then check format validation for all non-empty fields
+
     const formatErrorsCheck = {};
-    Object.keys(formData).forEach(field => {
+    Object.keys(formData).forEach((field) => {
       const value = formData[field];
       if (value && value.toString().trim() !== "") {
         const error = validateFieldFormat(field, value);
         if (error) formatErrorsCheck[field] = error;
       }
     });
-    
-    // Update format errors for display
+
     setFormatErrors(formatErrorsCheck);
-    
-    const formatValid = Object.keys(formatErrorsCheck).length === 0;
-    
-    return requiredValid && formatValid;
+    return requiredValid && Object.keys(formatErrorsCheck).length === 0;
   };
 
-  // Helper to determine which error should be shown
   const getFieldError = (field) => {
-    // Format errors take priority
-    if (formatErrors[field]) {
-      return formatErrors[field];
-    }
-    
-    // Show required errors for empty fields when showing all errors
-    if (showAllErrors && requiredErrors[field]) {
-      return requiredErrors[field];
-    }
-    
-    // Show required errors for touched fields
-    if (touched[field] && requiredErrors[field]) {
-      return requiredErrors[field];
-    }
-    
+    if (formatErrors[field]) return formatErrors[field];
+    if (showAllErrors && requiredErrors[field]) return requiredErrors[field];
+    if (touched[field] && requiredErrors[field]) return requiredErrors[field];
     return "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-     if (!canAddStaff) {
-    errorToast("You don't have permission to add staff members");
-    return;
-  }
-    console.log("Form submission started", formData);
+    if (!canAddStaff) {
+      errorToast("You don't have permission to add staff members");
+      return;
+    }
 
-    // Validate form before submission
     const isValid = validateForm();
-    
     if (!isValid) {
-      console.log("Form validation failed", { 
-        requiredErrors, 
-        formatErrors,
-        formData 
-      });
       errorToast("Please fix all validation errors before saving");
       return;
     }
@@ -796,14 +766,25 @@ const canAddStaff = isAdmin; // Only admin can add staff
     try {
       const form = new FormData();
 
-      // Append all form fields with correct field names
+      // Append all form fields except internal-only keys
       Object.keys(formData).forEach((key) => {
+        // Skip designation_category — we handle it explicitly below
+        if (key === "designation_category") return;
+        // Skip the display label for designation — also handled below
+        if (key === "designation") return;
         if (formData[key]) {
           form.append(key, formData[key]);
         }
       });
 
-      // Append department_id instead of department name
+      // Send resolved category (e.g. "Doctor") as `designation` so the
+      // backend prefix_map produces DOC / NUR / STA correctly
+      form.append("designation", formData.designation_category || "Staff");
+
+      // Also send the human-readable label for display purposes
+      form.append("designation_label", formData.designation);
+
+      // Append department_id
       if (formData.department && departmentId[formData.department]) {
         form.append("department_id", departmentId[formData.department]);
       } else {
@@ -813,37 +794,18 @@ const canAddStaff = isAdmin; // Only admin can add staff
       }
 
       // Append files
-      if (photo) {
-        form.append("profile_picture", photo.file);
-      }
-
+      if (photo) form.append("profile_picture", photo.file);
       if (certificates.length > 0) {
-        certificates.forEach((cert) => {
-          form.append("certificates", cert.file);
-        });
+        certificates.forEach((cert) => form.append("certificates", cert.file));
       }
 
-      // Log form data for debugging
-      console.log("Submitting form data:");
-      for (let [key, value] of form.entries()) {
-        if (key !== "profile_picture" && key !== "certificates") {
-          console.log(`${key}: ${value}`);
-        } else {
-          console.log(`${key}: [File]`);
-        }
-      }
-
-      // Use axios for form submission with FormData
       const response = await api.post("/staff/add/", form, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       const responseData = response.data;
 
       if (response.status !== 200 && response.status !== 201) {
-        console.error("Server response error:", responseData);
         throw new Error(
           responseData.detail || `HTTP error! status: ${response.status}`
         );
@@ -855,7 +817,9 @@ const canAddStaff = isAdmin; // Only admin can add staff
       navigate(-1);
     } catch (err) {
       console.error("Submission error:", err);
-      errorToast(err.response?.data?.detail || err.message || "Network error. Please try again.");
+      errorToast(
+        err.response?.data?.detail || err.message || "Network error. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -863,9 +827,9 @@ const canAddStaff = isAdmin; // Only admin can add staff
 
   const handleReset = () => {
     if (!canAddStaff) {
-    errorToast("You don't have permission to modify this form");
-    return;
-  }
+      errorToast("You don't have permission to modify this form");
+      return;
+    }
     setFormData({
       full_name: "",
       date_of_birth: "",
@@ -881,6 +845,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
       country: "",
       date_of_joining: "",
       designation: "",
+      designation_category: "",
       department: "",
       specialization: "",
       status: "",
@@ -913,7 +878,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
               "linear-gradient(180deg, rgba(3,56,27,0.25) 16%, rgba(15,15,15,0.25) 48.97%)",
             zIndex: 0,
           }}
-        ></div>
+        />
 
         {/* Gradient Border */}
         <div
@@ -931,7 +896,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
             pointerEvents: "none",
             zIndex: 0,
           }}
-        ></div>
+        />
 
         {/* Back Button */}
         <div className="mb-6">
@@ -959,11 +924,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
               </p>
             </div>
             <div>
-              <PhotoUploadBox 
-                photo={photo} 
-                setPhoto={handlePhotoChange} 
-                required={true} 
-              />
+              <PhotoUploadBox photo={photo} setPhoto={handlePhotoChange} required={true} />
               {getFieldError("photo") && (
                 <p className="mt-1 text-xs text-red-500 dark:text-red-500 text-center md:text-right mr-12">
                   {requiredErrors.photo}
@@ -973,7 +934,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8 min-w-full w-full">
-            {/* Basic Information Section */}
+            {/* ── Basic Information ─────────────────────────────────────── */}
             <div>
               <h3 className="text-lg font-semibold mb-4 text-black dark:text-white border-b border-[#0EFF7B] pb-2">
                 Basic Information
@@ -1017,6 +978,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   required={true}
                   error={getFieldError("blood_group")}
                 />
+                {/* TC_074: Age is auto-calculated from DOB and rendered read-only */}
                 <InputField
                   label="Age"
                   name="age"
@@ -1024,9 +986,10 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   value={formData.age}
                   onChange={handleInputChange}
                   onBlur={() => handleBlur("age")}
-                  placeholder="Enter age"
+                  placeholder="Auto-calculated from Date of Birth"
                   required={true}
                   error={getFieldError("age")}
+                  disabled={!!formData.date_of_birth}
                 />
                 <Dropdown
                   label="Marital Status"
@@ -1109,17 +1072,17 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   error={getFieldError("date_of_joining")}
                   maxDate={new Date()}
                 />
-                <InputField
+
+                {/* TC_076: Designation is now a controlled Dropdown */}
+                <Dropdown
                   label="Designation"
-                  name="designation"
                   value={formData.designation}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("designation")}
-                  placeholder="Enter designation (e.g., Doctor, Nurse)"
+                  onChange={handleDesignationChange}
+                  options={designationOptions}
                   required={true}
                   error={getFieldError("designation")}
-                  autoCapitalize={true}
                 />
+
                 <Dropdown
                   label="Department"
                   value={formData.department}
@@ -1170,7 +1133,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
               </div>
             </div>
 
-            {/* Professional Information Section */}
+            {/* ── Professional Information ──────────────────────────────── */}
             <div>
               <h3 className="text-lg font-semibold mb-4 text-black dark:text-white border-b border-[#0EFF7B] pb-2">
                 Professional Information
@@ -1212,7 +1175,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   value={formData.education}
                   onChange={handleInputChange}
                   onBlur={() => handleBlur("education")}
-                  placeholder="e.g., Cardiologist"
+                  placeholder="e.g., MBBS, MD Cardiology"
                   required={true}
                   error={getFieldError("education")}
                 />
@@ -1226,7 +1189,6 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   required={true}
                   error={getFieldError("about_physician")}
                 />
-                
                 <TextAreaField
                   label="Board Certifications"
                   name="board_certifications"
@@ -1247,8 +1209,7 @@ const canAddStaff = isAdmin; // Only admin can add staff
                   required={true}
                   error={getFieldError("professional_memberships")}
                 />
-                
-                {/* Awards & Recognitions EXCLUDED from required */}
+                {/* Awards & Recognitions — optional */}
                 <TextAreaField
                   label="Awards & Recognitions"
                   name="awards_recognitions"
@@ -1261,56 +1222,49 @@ const canAddStaff = isAdmin; // Only admin can add staff
               </div>
             </div>
 
-           <div className="flex flex-col pt-7 sm:flex-row justify-end gap-3 md:gap-4">
-  <button
-    type="reset"
-    className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-gray-100 dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
-    onClick={handleReset}
-    disabled={loading}
-  >
-    ✕ Clear
-  </button>
-  
-  {/* Add Staff Button with Tooltip */}
-  <div className="relative group">
-    <button
-      type="submit"
-      disabled={loading || !canAddStaff}
-      className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base ${
-        !canAddStaff ? 'opacity-100 cursor-not-allowed' : ''
-      }`}
-      style={{
-        background:
-          "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
-      }}
-    >
-      {loading ? (
-        <>
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          Adding...
-        </>
-      ) : (
-        <>
-          <UserPlus size={18} className="text-white" />
-          Add Staff
-        </>
-      )}
-    </button>
-    
-    {/* Tooltip for disabled state due to permissions */}
-    {!canAddStaff && (
-      <span
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                   whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                   bg-gray-100 dark:bg-black text-black dark:text-white
-                   opacity-0 group-hover:opacity-100
-                   transition-all duration-150 z-50 pointer-events-none"
-      >
-        Access Denied - Admin Only
-      </span>
-    )}
-  </div>
-</div>
+            {/* ── Action Buttons ────────────────────────────────────────── */}
+            <div className="flex flex-col pt-7 sm:flex-row justify-end gap-3 md:gap-4">
+              <button
+                type="reset"
+                className="px-4 py-2 md:px-6 md:py-2 rounded-[8px] border border-[#0EFF7B] dark:border-gray-600 bg-gray-100 dark:bg-transparent text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white text-sm md:text-base"
+                onClick={handleReset}
+                disabled={loading}
+              >
+                ✕ Clear
+              </button>
+
+              <div className="relative group">
+                <button
+                  type="submit"
+                  disabled={loading || !canAddStaff}
+                  className={`flex items-center gap-2 px-4 py-2 md:px-6 md:py-2 border-b-[2px] border-[#0EFF7B66] dark:border-[#0EFF7B66] rounded-lg hover:bg-[#0EFF7B1A] dark:hover:bg-green-600 text-white dark:text-white text-sm md:text-base ${
+                    !canAddStaff ? "opacity-100 cursor-not-allowed" : ""
+                  }`}
+                  style={{
+                    background:
+                      "linear-gradient(92.18deg, #025126 3.26%, #0D7F41 50.54%, #025126 97.83%)",
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={18} className="text-white" />
+                      Add Staff
+                    </>
+                  )}
+                </button>
+
+                {!canAddStaff && (
+                  <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+                    Access Denied - Admin Only
+                  </span>
+                )}
+              </div>
+            </div>
           </form>
         </div>
       </div>
