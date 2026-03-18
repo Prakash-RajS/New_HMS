@@ -957,62 +957,52 @@ const createResponseInterceptor = (axiosInstance) => {
       }
       
       // If error is 401 and we haven't tried refreshing yet
-      if (error.response?.status === 401 && !originalRequest._retry) {
-        
-        if (isRefreshing) {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({ resolve, reject });
-          })
-            .then(() => {
-              return axiosInstance(originalRequest);
-            })
-            .catch((err) => {
-              return Promise.reject(err);
-            });
-        }
-        
-        originalRequest._retry = true;
-        isRefreshing = true;
-        
-        try {
-          if (isDevelopment) {
-            console.log('🔑 Access token expired, attempting refresh...');
-          }
-          
-          // Refresh the access token
-          await publicApi.post('/auth/refresh', {}, {
-            withCredentials: true
-          });
-          
-          if (isDevelopment) {
-            console.log('✅ Token refreshed successfully');
-          }
-          
-          // Process queued requests
-          processQueue(null);
-          
-          // Retry the original request
-          return axiosInstance(originalRequest);
-          
-        } catch (refreshError) {
-          if (isDevelopment) {
-            console.error('❌ Token refresh failed:', refreshError);
-          }
-          
-          // ONLY HERE WE LOGOUT - refresh failed
-          clearAuthData();
-          processQueue(refreshError);
-          
-          // Redirect to login if not already there
-          if (!isLoginPage()) {
-            redirectToLogin();
-          }
-          
-          return Promise.reject(refreshError);
-        } finally {
-          isRefreshing = false;
-        }
-      }
+      if (
+  error.response?.status === 401 &&
+  !originalRequest._retry &&
+  !originalRequest.url?.includes('/auth/refresh') &&
+  !originalRequest.url?.includes('/auth/login')
+) {
+
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      failedQueue.push({ resolve, reject });
+    })
+      .then(() => axiosInstance(originalRequest))
+      .catch((err) => Promise.reject(err));
+  }
+
+  originalRequest._retry = true;
+  isRefreshing = true;
+
+  try {
+    console.log('🔑 Access token expired, attempting refresh...');
+
+    await publicApi.post('/auth/refresh', {}, { withCredentials: true });
+
+    console.log('✅ Token refreshed successfully');
+
+    processQueue(null);
+
+    return axiosInstance(originalRequest);
+
+  } catch (refreshError) {
+
+    console.error('❌ Token refresh failed:', refreshError);
+
+    clearAuthData();
+    processQueue(refreshError);
+
+    if (!isLoginPage()) {
+      redirectToLogin();
+    }
+
+    return Promise.reject(refreshError);
+
+  } finally {
+    isRefreshing = false;
+  }
+}
       
       // REMOVED THE DANGEROUS 401 LOGOUT BLOCK - Issue #1 Fixed
       
@@ -1230,25 +1220,29 @@ export const initializeAuth = async () => {
 // ==========================================================
 
 export const login = async (username, password) => {
-  try {
-    const response = await publicApi.post('/auth/login', {
-      username,
-      password
-    }, {
-      withCredentials: true
-    });
-    
-    if (response.data.user) {
-      localStorage.setItem('userData', JSON.stringify(response.data.user));
+
+  const formData = new FormData();
+  formData.append("username", username);
+  formData.append("password", password);
+
+  const response = await publicApi.post(
+    "/auth/login",
+    formData,
+    {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     }
-    
-    setAuthenticated(true);
-    
-    return response.data;
-  } catch (error) {
-    setAuthenticated(false);
-    throw error;
+  );
+
+  if (response.data.user) {
+    localStorage.setItem("userData", JSON.stringify(response.data.user));
   }
+
+  setAuthenticated(true);
+
+  return response.data;
 };
 
 export const logout = async () => {

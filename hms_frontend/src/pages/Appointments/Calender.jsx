@@ -11,6 +11,7 @@ import {
   UserCircle,
 } from 'lucide-react';
 import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import { usePermissions } from "../../components/PermissionContext";
 
 const DoctorCalendar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -18,6 +19,38 @@ const DoctorCalendar = () => {
     const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const timeSlotsRef = useRef(null);
+    const { isAdmin, currentUser } = usePermissions();
+    const userRole = currentUser?.role?.toLowerCase();
+    
+    // Define allowed roles: Admin, Doctor, Receptionist
+    const allowedRoles = ['admin', 'doctor', 'receptionist'];
+    const hasAccess = isAdmin || allowedRoles.includes(userRole);
+    
+    // If user doesn't have access, show lock icon
+    if (!hasAccess) {
+        return (
+            <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[2500px] mx-auto relative font-[Helvetica]">
+                <div className="flex flex-col items-center justify-center min-h-[500px]">
+                    <div className="text-8xl mb-6 animate-pulse">🔒</div>
+                    <h1 className="text-3xl font-bold mb-3 text-gray-800 dark:text-white">
+                        Access Restricted
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400 text-center max-w-lg mb-4">
+                        You don't have permission to view the schedule calendar.
+                    </p>
+                    <div className="bg-gray-200 dark:bg-gray-800 p-4 rounded-lg">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold">Required Role:</span> Admin, Doctor, or Receptionist
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <span className="font-semibold">Your Role:</span> {userRole || "Unknown"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+    
 
     // Fetch calendar items for logged-in doctor/nurse
     useEffect(() => {
@@ -96,6 +129,34 @@ const DoctorCalendar = () => {
         newDate.setDate(newDate.getDate() + 7);
         setCurrentDate(newDate);
     };
+
+    // Get month days for right-side calendar
+const getMonthDays = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    const startDay = firstDay.getDay();
+    const totalDays = lastDay.getDate();
+
+    const days = [];
+
+    for (let i = 0; i < startDay; i++) {
+        days.push(null);
+    }
+
+    for (let i = 1; i <= totalDays; i++) {
+        days.push(i);
+    }
+
+    while (days.length % 7 !== 0) {
+        days.push(null);
+    }
+
+    return days;
+};
 
     // Get current week days
     const getWeekDays = () => {
@@ -206,6 +267,9 @@ const DoctorCalendar = () => {
 
     const weekDays = getWeekDays();
     const hours = getHours();
+    const monthDays = getMonthDays();
+
+    
 
     // Separate appointments and surgeries for the selected date
     const selectedDateItems = getCalendarItemsForSelectedDate();
@@ -398,64 +462,43 @@ const DoctorCalendar = () => {
                         </div>
                     </div>
 
-                    {/* Date grids */}
-                    <div className="space-y-2">
-                        {/* First row */}
-                        <div className="grid grid-cols-7 gap-1">
-                            {[14, 15, 16, 17, 18, 19, 20].map((day, index) => (
-                                <div 
-                                    key={index}
-                                    className={`h-10 flex items-center justify-center rounded text-sm ${
-                                        day === 17 
-                                            ? 'bg-[#025126] text-white font-semibold'
-                                            : 'text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-                                    }`}
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Second row */}
-                        <div className="grid grid-cols-7 gap-1">
-                            {[21, 22, 23, 24, 25, 26, 27].map((day, index) => (
-                                <div 
-                                    key={index}
-                                    className="h-10 flex items-center justify-center rounded text-sm text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Third row */}
-                        <div className="grid grid-cols-7 gap-1">
-                            {[28, 29, 30, 31, 1, 2, 3].map((day, index) => (
-                                <div 
-                                    key={index}
-                                    className={`h-10 flex items-center justify-center rounded text-sm ${
-                                        day <= 31 
-                                            ? 'text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-                                            : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                    }`}
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Fourth row */}
-                        <div className="grid grid-cols-7 gap-1">
-                            {[4, 5, 6, 7, 8, 9, 10].map((day, index) => (
-                                <div 
-                                    key={index}
-                                    className="h-10 flex items-center justify-center rounded text-sm text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                >
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+    {monthDays.map((day, index) => {
+        const isToday =
+            day &&
+            new Date().getDate() === day &&
+            new Date().getMonth() === currentDate.getMonth() &&
+            new Date().getFullYear() === currentDate.getFullYear();
+
+        return (
+            <div
+                key={index}
+                onClick={() => {
+                    if (!day) return;
+
+                    const newDate = new Date(
+                        currentDate.getFullYear(),
+                        currentDate.getMonth(),
+                        day
+                    );
+
+                    setSelectedDate(newDate);
+                    setCurrentDate(newDate);
+                }}
+                className={`h-10 flex items-center justify-center rounded text-sm cursor-pointer
+                ${
+                    isToday
+                        ? "bg-[#025126] text-white font-semibold"
+                        : "text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
+                }
+                ${!day && "text-gray-400 pointer-events-none"}
+                `}
+            >
+                {day || ""}
+            </div>
+        );
+    })}
+</div>
                 </div>
             </div>
 

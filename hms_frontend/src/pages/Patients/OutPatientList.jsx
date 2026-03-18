@@ -845,8 +845,7 @@ const AppointmentListOPD = () => {
         const formattedDate = dateObj.toISOString().split('T')[0];
         params.date = formattedDate;
       }
-      if (activeFilter !== "All") params.casualty_status = activeFilter;
-
+if (activeFilter !== "All") params.status = activeFilter;
       const response = await api.get("/patients/opd", { params });
       const data = response.data;
 

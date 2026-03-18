@@ -1,5 +1,5 @@
 // src/components/patients/NewRegistration.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Listbox } from "@headlessui/react";
 import { ChevronDown, Calendar, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,8 @@ import { useNavigate } from "react-router-dom";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
+import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from "react-datepicker";
 
 
 const formatToYMD = (dateStr) => {
@@ -220,89 +222,97 @@ const InputField = ({
   </div>
 );
 
-/* ---------- Date Field (Native Style) ---------- */
+
+/* ---------- Updated Date Field with Better Year/Month Selection ---------- */
+/* ---------- Updated Date Field with Better Year/Month Selection ---------- */
+/* ---------- Date Field - Same as Staff Registration ---------- */
 const DateField = ({
   label,
   value,
   onChange,
-  placeholder,
   required = false,
   error = null,
   onFocus = () => {},
   onBlur = () => {},
   restrictFuture = false,
   restrictPast = false,
+  maxDate = null,
 }) => {
-  const dateRef = React.useRef(null);
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const datePickerRef = useRef(null);
 
-  const handleDateChange = (e) => {
-    const selected = e.target.value;
-
-    // Block future dates if restrictFuture is true
-    if (restrictFuture && selected > today) {
-      return; // Ignore selection
-    }
-
-    // Block past dates if restrictPast is true
-    if (restrictPast && selected < today) {
-      return; // Ignore selection
-    }
-
-    onChange(selected);
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
   };
 
-  const minDate = restrictPast ? today : undefined;
-  const maxDate = restrictFuture ? today : undefined;
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  // Calculate max date based on restrictFuture
+  const calculatedMaxDate = restrictFuture ? new Date() : maxDate;
 
   return (
     <div className="space-y-1 w-full">
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </label>
-      <div
-        className="relative cursor-pointer"
-        onClick={() => dateRef.current?.showPicker()}
-      >
-        <input
-          type="date"
-          ref={dateRef}
-          value={value}
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
           onChange={handleDateChange}
           onFocus={onFocus}
           onBlur={onBlur}
-          min={minDate}
-          max={maxDate}
-          className={`w-full h-[33px] px-3 pr-10 rounded-[8px] border bg-gray-100 dark:bg-transparent
-                    text-black dark:text-[#0EFF7B] outline-none cursor-pointer text-[14px]
-                    ${
-                      onFocus
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          maxDate={calculatedMaxDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B]  bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
         />
-        <Calendar
-          size={18}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-        />
+        
+        <div className="absolute right-3 top-2.5 pointer-events-none">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-[#0EFF7B]"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </div>
       </div>
-      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      {restrictFuture && value > today && (
-        <p className="text-red-500 text-xs mt-1">
-          Future dates are not allowed
-        </p>
-      )}
-      {restrictPast && value && value < today && (
-        <p className="text-red-500 text-xs mt-1">Past dates are not allowed</p>
-      )}
+      
+      {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
   );
 };
-
 /* ---------- Main Component ---------- */
 export default function NewRegistration({ isSidebarOpen }) {
   const [formData, setFormData] = useState({
@@ -378,11 +388,93 @@ const canAddPatient = isAdmin || userRole === "receptionist";
     return "";
   };
 
-  const validatePhoneFormat = (value) => {
-    if (value.trim() && !/^\d{10}$/.test(value))
-      return "Phone number must be exactly 10 digits";
-    return "";
-  };
+  /* ---------- Helper Functions for Phone Validation ---------- */
+const isRepeatedNumber = (num) => {
+  return /^(\d)\1{9}$/.test(num);
+};
+
+const isSequentialNumber = (num) => {
+  const sequences = [
+    '0123456789', '1234567890', '2345678901', '3456789012', '4567890123',
+    '5678901234', '6789012345', '7890123456', '8901234567', '9012345678',
+    '9876543210', '8765432109', '7654321098', '6543210987', '5432109876',
+    '4321098765', '3210987654', '2109876543', '1098765432'
+  ];
+  return sequences.includes(num);
+};
+
+const isCommonPattern = (num) => {
+  // Only block extremely obvious fake patterns
+  const patterns = [
+    /^(\d)\1{2}(\d)\1{2}(\d)\1{2}$/, // 111222333 - triple repeats
+    /^(\d)\1{3}(\d)\1{3}$/, // 11112222 - double repeats
+    /^(\d)\1{4}(\d)\1{4}$/, // 1111122222
+    /^1234512345$/, // 1234512345 - repeating 5-digit pattern
+    /^1234567890$/, // 1234567890 - sequential (already caught)
+    /^9876543210$/, // 9876543210 - sequential (already caught)
+  ];
+  
+  // Don't block numbers like 9858652142 (this is a valid random number)
+  // Only block if it matches one of these very specific patterns
+  return patterns.some(pattern => pattern.test(num));
+};
+
+/* ---------- Updated Phone Validation for Indian Numbers ---------- */
+const validatePhoneFormat = (value) => {
+  const phone = value.trim();
+  if (!phone) return "Phone number is required";
+  
+  // Remove any non-digit characters for validation
+  const digitsOnly = phone.replace(/\D/g, '');
+  
+  // Check length
+  if (digitsOnly.length !== 10) {
+    return "Phone number must be exactly 10 digits";
+  }
+  
+  // Check if contains only digits
+  if (!/^\d+$/.test(digitsOnly)) {
+    return "Phone number can only contain digits";
+  }
+  
+  // Indian mobile number validation:
+  // Must start with 6, 7, 8, or 9 (Indian mobile numbers)
+  if (!/^[6-9]/.test(digitsOnly)) {
+    return "Indian mobile number must start with 6, 7, 8, or 9";
+  }
+  
+  // Check for repeated numbers (e.g., 1111111111, 2222222222)
+  if (isRepeatedNumber(digitsOnly)) {
+    return "Invalid phone number - cannot have all digits same";
+  }
+  
+  // Check for sequential numbers (e.g., 1234567890, 9876543210)
+  if (isSequentialNumber(digitsOnly)) {
+    return "Invalid phone number - cannot be sequential";
+  }
+  
+  // Check for extremely obvious fake patterns only
+  if (isCommonPattern(digitsOnly)) {
+    return "Invalid phone number - pattern not allowed";
+  }
+  
+  return "";
+};
+
+/* ---------- Format Phone Number for Display ---------- */
+const formatPhoneNumber = (value) => {
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+  
+  // Format as XXX-XXX-XXXX (Indian format)
+  if (digits.length <= 3) {
+    return digits;
+  } else if (digits.length <= 6) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  } else {
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  }
+};
 
   // Levenshtein distance for typo detection
   const levenshtein = (a, b) => {
@@ -607,10 +699,16 @@ const validateEmailFormat = (value) => {
   };
 
   const validateReasonFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s.,!?'-]+$/.test(value))
-      return "Reason should contain only letters and basic punctuation";
-    return "";
-  };
+  if (value.length > 200) {
+    return "Reason cannot exceed 200 characters";
+  }
+
+  if (value.trim() && !/^[A-Za-z\s.,!?'-]+$/.test(value)) {
+    return "Reason should contain only letters and basic punctuation";
+  }
+
+  return "";
+};
 
   const validateTestReportFormat = (value) => {
     if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value))
@@ -832,18 +930,18 @@ const validateEmailFormat = (value) => {
     }
   };
 
-  const handleDateChange = (field) => (date) => {
-    setFormData((prev) => ({ ...prev, [field]: date }));
+ const handleDateChange = (field) => (date) => {
+  setFormData((prev) => ({ ...prev, [field]: date }));
 
-    // Clear validation errors for this field
-    if (fieldErrors[field]) {
-      setFieldErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
+  // Clear validation errors for this field
+  if (fieldErrors[field]) {
+    setFieldErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  }
+};
 
   /* ---------- Validate Form Before Submission ---------- */
   const validateForm = () => {
@@ -1171,13 +1269,13 @@ const validateEmailFormat = (value) => {
                 error={validationErrors.fullname || fieldErrors.fullname}
               />
               <DateField
-                label="Date of Birth"
-                value={formData.dob}
-                onChange={handleDateChange("dob")}
-                required
-                restrictFuture={true}
-                error={fieldErrors.dob}
-              />
+  label="Date of Birth"
+  value={formData.dob}
+  onChange={handleDateChange("dob")}
+  required
+  restrictFuture={true}
+  error={fieldErrors.dob}
+/>
               <Dropdown
                 label="Gender"
                 value={formData.gender}
@@ -1223,16 +1321,20 @@ const validateEmailFormat = (value) => {
                 error={validationErrors.address || fieldErrors.address}
               />
               <InputField
-                label="Phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleInputChange("phone")}
-                onFocus={() => setFocusedField("phone")}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Enter 10 digit phone no"
-                required
-                error={validationErrors.phone || fieldErrors.phone}
-              />
+  label="Phone"
+  type="tel"
+  value={formData.phone}
+  onChange={(e) => {
+    const rawValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+    // You can either store the raw digits or formatted version
+    handleInputChange("phone")({ target: { value: rawValue } });
+  }}
+  onFocus={() => setFocusedField("phone")}
+  onBlur={() => setFocusedField(null)}
+  placeholder="Enter 10 digit mobile number"
+  required
+  error={validationErrors.phone || fieldErrors.phone}
+/>
               <InputField
                 label="Email ID"
                 type="email"
@@ -1275,15 +1377,13 @@ const validateEmailFormat = (value) => {
                 error={validationErrors.country || fieldErrors.country}
               />
               <DateField
-                label="Date of Registration"
-                value={formData.dor}
-                onChange={handleDateChange("dor")}
-                onFocus={() => setFocusedField("dor")}
-                onBlur={() => setFocusedField(null)}
-                required
-                restrictPast={true}
-                error={fieldErrors.dor}
-              />
+  label="Date of Registration"
+  value={formData.dor}
+  onChange={handleDateChange("dor")}
+  required
+  restrictPast={true}
+  error={fieldErrors.dor}
+/>
               <InputField
                 label="Occupation"
                 value={formData.occupation}
@@ -1449,11 +1549,11 @@ const validateEmailFormat = (value) => {
                 Reason for Visit <span className="text-red-500">*</span>
               </label>
               <textarea
-                value={formData.reason}
-                onChange={handleInputChange("reason")}
-                onFocus={() => setFocusedField("reason")}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Describe symptoms"
+  value={formData.reason}
+  onChange={handleInputChange("reason")}
+  onFocus={() => setFocusedField("reason")}
+  onBlur={() => setFocusedField(null)}
+  placeholder="Describe symptoms (max 200 characters)"
                 className={`w-full h-20 mt-1 px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                           text-black dark:text-[#0EFF7B] outline-none text-[14px]
                           ${

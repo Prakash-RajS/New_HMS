@@ -3076,12 +3076,12 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
   };
 
   // Format validation functions (show while typing)
-  const validateDosageFormat = (dosage) => {
+const validateDosageFormat = (dosage) => {
   if (!dosage || dosage.trim() === "") return "";
   
   const trimmedDosage = dosage.trim();
   
-  // ✅ Units are now REQUIRED (no ? after unit group)
+  // Units are REQUIRED
   const dosageRegex = /^(\d+(\.\d+)?)\s*(mg|g|ml|L|IU|µg|mcg|%)(\s*\/\s*\d+(\.\d+)?\s*(mg|g|ml|L)?)?$/i;
   
   if (!dosageRegex.test(trimmedDosage)) {
@@ -3095,133 +3095,218 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
 };
 
   const validateProductNameFormat = (value) => {
-    if (!value || value.trim() === "") return "";
-    if (value.trim().length < 2) {
-      return "Product name must be at least 2 characters";
-    }
-    return "";
-  };
+  if (!value || value.trim() === "") return "";
+  
+  // Allow letters, numbers, spaces, hyphens, and parentheses
+  // Special characters like @#$%^&* are NOT allowed
+  if (!/^[A-Za-z0-9\s\-()]+$/.test(value)) {
+    return "Product name can only contain letters, numbers, spaces, hyphens, and parentheses";
+  }
+  
+  if (value.trim().length < 2) {
+    return "Product name must be at least 2 characters";
+  }
+  return "";
+};
 
   const validateBatchNumberFormat = (value, currentId = null) => {
-    if (!value || value.trim() === "") return "";
-    // Check for duplicate batch number (TC_018)
-    const isDuplicate = inventoryData.some(item => 
-      item.batch === value.trim() && item.id !== currentId
+  if (!value || value.trim() === "") return "";
+  
+  // Check if contains only digits
+  if (!/^\d+$/.test(value)) {
+    return "Batch number can only contain numbers (0-9)";
+  }
+  
+  // Check for duplicate batch number
+  const isDuplicate = inventoryData.some(item => 
+    item.batch === value.trim() && item.id !== currentId
+  );
+  if (isDuplicate) {
+    return "Batch number already exists";
+  }
+  return "";
+};
+
+  const validateVendorFormat = (value) => {
+  if (!value || value.trim() === "") return "";
+  
+  const trimmedVendor = value.trim();
+  
+  // Check if contains only letters and spaces
+  if (!/^[A-Za-z\s]+$/.test(trimmedVendor)) {
+    return "Vendor can only contain letters and spaces";
+  }
+  
+  // Check if first letter is capital (after any spaces)
+  const words = trimmedVendor.split(/\s+/);
+  for (let word of words) {
+    if (word.length > 0 && word[0] !== word[0].toUpperCase()) {
+      return "Each word must start with a capital letter";
+    }
+  }
+  
+  return "";
+};
+
+// Vendor ID - Letters, numbers, and hyphens only
+const validateVendorIdFormat = (value, currentVendorName = "", currentId = null) => {
+  if (!value || value.trim() === "") return "";
+  
+  const trimmedId = value.trim();
+  
+  // Allow letters, numbers, and hyphens
+  if (!/^[A-Za-z0-9-]+$/.test(trimmedId)) {
+    return "Vendor ID can only contain letters, numbers, and hyphens";
+  }
+  
+  const trimmedVendorName = currentVendorName.trim().toLowerCase();
+
+  // Check for vendor name conflict with different ID
+  const vendorNameConflict = inventoryData.some(item => {
+    if (currentId && item.id === currentId) return false;
+    return (
+      item.vendor.trim().toLowerCase() === trimmedVendorName &&
+      item.vendorCode !== trimmedId
     );
-    if (isDuplicate) {
-      return "Batch number already exists";
-    }
-    return "";
-  };
+  });
 
-  // NEW: Duplicate Vendor ID validation (TC_130)
-  const validateVendorIdFormat = (value, currentVendorName = "", currentId = null) => {
-    if (!value || value.trim() === "") return "";
+  if (vendorNameConflict) {
+    const existingEntry = inventoryData.find(item =>
+      item.vendor.trim().toLowerCase() === trimmedVendorName &&
+      (currentId ? item.id !== currentId : true)
+    );
+    return `Vendor "${currentVendorName.trim()}" is already registered with ID "${existingEntry?.vendorCode}". Use the same ID.`;
+  }
 
-    const trimmedId = value.trim();
-    const trimmedVendorName = currentVendorName.trim().toLowerCase();
+  // Check for vendor ID conflict with different vendor name
+  const vendorIdConflict = inventoryData.some(item => {
+    if (currentId && item.id === currentId) return false;
+    return (
+      item.vendorCode === trimmedId &&
+      item.vendor.trim().toLowerCase() !== trimmedVendorName
+    );
+  });
 
-    // Check 1: Is this vendor NAME already registered with a DIFFERENT vendor ID?
-    // e.g. "Paracetmol" already has ID "1" — trying to use ID "3" should be blocked
-    const vendorNameConflict = inventoryData.some(item => {
-      if (currentId && item.id === currentId) return false; // skip current record
-      return (
-        item.vendor.trim().toLowerCase() === trimmedVendorName &&
-        item.vendorCode !== trimmedId
-      );
-    });
+  if (vendorIdConflict) {
+    const existingEntry = inventoryData.find(item =>
+      item.vendorCode === trimmedId &&
+      item.vendor.trim().toLowerCase() !== trimmedVendorName &&
+      (currentId ? item.id !== currentId : true)
+    );
+    return `Vendor ID "${trimmedId}" is already used by "${existingEntry?.vendor}".`;
+  }
 
-    if (vendorNameConflict) {
-      // Find what ID this vendor already uses
-      const existingEntry = inventoryData.find(item =>
-        item.vendor.trim().toLowerCase() === trimmedVendorName &&
-        (currentId ? item.id !== currentId : true)
-      );
-      return `Vendor "${currentVendorName.trim()}" is already registered with ID "${existingEntry?.vendorCode}". Use the same ID.`;
-    }
-
-    // Check 2: Is this vendor ID already taken by a DIFFERENT vendor NAME?
-    // e.g. ID "1" is used by "Paracetmol" — "Apollo" cannot also use ID "1"
-    const vendorIdConflict = inventoryData.some(item => {
-      if (currentId && item.id === currentId) return false; // skip current record
-      return (
-        item.vendorCode === trimmedId &&
-        item.vendor.trim().toLowerCase() !== trimmedVendorName
-      );
-    });
-
-    if (vendorIdConflict) {
-      const existingEntry = inventoryData.find(item =>
-        item.vendorCode === trimmedId &&
-        item.vendor.trim().toLowerCase() !== trimmedVendorName &&
-        (currentId ? item.id !== currentId : true)
-      );
-      return `Vendor ID "${trimmedId}" is already used by "${existingEntry?.vendor}".`;
-    }
-
-    return "";
-  };
+  return "";
+};
 
   const validateQuantityFormat = (value) => {
-    if (!value || value.trim() === "") return "";
-    const qty = parseInt(value);
-    if (isNaN(qty)) {
-      return "Quantity must be a valid number";
-    }
-    if (qty < 0) {
-      return "Quantity cannot be negative";
-    }
-    if (qty === 0) {
-      return "Quantity must be greater than 0";
-    }
-    return "";
-  };
-
+  if (!value || value.trim() === "") return "";
+  
+  // Check if contains only digits
+  if (!/^\d+$/.test(value)) {
+    return "Quantity can only contain numbers (0-9)";
+  }
+  
+  const qty = parseInt(value);
+  if (isNaN(qty)) {
+    return "Quantity must be a valid number";
+  }
+  if (qty < 0) {
+    return "Quantity cannot be negative";
+  }
+  if (qty === 0) {
+    return "Quantity must be greater than 0";
+  }
+  return "";
+};
   // UPDATED: Add Quantity validation - should not accept 0 (TC_134)
   const validateAddQuantityFormat = (value) => {
-    if (!value || value.trim() === "") return "";
-    const qty = parseInt(value);
-    if (isNaN(qty)) {
-      return "Quantity must be a valid number";
-    }
-    if (qty <= 0) {
-      return "Quantity must be greater than 0";
-    }
-    return "";
-  };
+  if (!value || value.trim() === "") return "";
+  
+  // Check if contains only digits
+  if (!/^\d+$/.test(value)) {
+    return "Quantity can only contain numbers (0-9)";
+  }
+  
+  const qty = parseInt(value);
+  if (isNaN(qty)) {
+    return "Quantity must be a valid number";
+  }
+  if (qty <= 0) {
+    return "Quantity must be greater than 0";
+  }
+  return "";
+};
+
+// Item Code - Letters, numbers, and hyphens only
+const validateItemCodeFormat = (value) => {
+  if (!value || value.trim() === "") return "";
+  
+  if (!/^[A-Za-z0-9-]+$/.test(value)) {
+    return "Item code can only contain letters, numbers, and hyphens";
+  }
+  
+  return "";
+};
+// Rack No - Letters, numbers, and hyphens only
+const validateRackNoFormat = (value) => {
+  if (!value || value.trim() === "") return "";
+  
+  if (!/^[A-Za-z0-9-]+$/.test(value)) {
+    return "Rack number can only contain letters, numbers, and hyphens";
+  }
+  
+  return "";
+};
+
+// Shelf No - Letters, numbers, and hyphens only
+const validateShelfNoFormat = (value) => {
+  if (!value || value.trim() === "") return "";
+  
+  if (!/^[A-Za-z0-9-]+$/.test(value)) {
+    return "Shelf number can only contain letters, numbers, and hyphens";
+  }
+  
+  return "";
+};
 
   const validateUnitPriceFormat = (value) => {
-    if (!value || value.trim() === "") return "";
-    const price = parseFloat(value);
-    if (isNaN(price)) {
-      return "Unit price must be a valid number";
-    }
-    if (price < 0) {
-      return "Unit price cannot be negative";
-    }
-    if (price === 0) {
-      return "Unit price must be greater than 0";
-    }
-    return "";
-  };
+  if (!value || value.trim() === "") return "";
+  
+  // Allow numbers with optional decimal
+  if (!/^\d+(\.\d{0,2})?$/.test(value)) {
+    return "Unit price can only contain numbers with up to 2 decimal places";
+  }
+  
+  const price = parseFloat(value);
+  if (isNaN(price)) {
+    return "Unit price must be a valid number";
+  }
+  if (price < 0) {
+    return "Unit price cannot be negative";
+  }
+  if (price === 0) {
+    return "Unit price must be greater than 0";
+  }
+  return "";
+};
 
   // UPDATED: Status-quantity validation to match new calculation logic
   const validateStatusFormat = (status, quantity, isEditForm = false, currentQty = 0, addQty = 0) => {
-    if (!status) return "";
-    let totalQty = parseInt(quantity) || 0;
-    if (isEditForm) {
-      totalQty = currentQty + addQty;
-    }
-    
-    const calculatedStatus = totalQty === 0 ? "OUT OF STOCK" : 
-                            totalQty < 10 ? "LOW STOCK" : "IN STOCK";
-    
-    if (status !== calculatedStatus) {
-      return `Status should be ${calculatedStatus} based on quantity ${totalQty}`;
-    }
-    return "";
-  };
-
+  if (!status) return "";
+  let totalQty = parseInt(quantity) || 0;
+  if (isEditForm) {
+    totalQty = currentQty + addQty;
+  }
+  
+  const calculatedStatus = totalQty === 0 ? "OUT OF STOCK" : 
+                          totalQty < 10 ? "LOW STOCK" : "IN STOCK";
+  
+  if (status !== calculatedStatus) {
+    return `Status should be ${calculatedStatus} based on quantity ${totalQty}`;
+  }
+  return "";
+};
   // Auto-update status when quantity changes in Add form
   useEffect(() => {
     if (showAddStockPopup) {
@@ -3425,32 +3510,37 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
   };
 
   // Format validation for all fields (called on submit)
-  const validateAllFormats = (formData, isEditForm = false) => {
-    const formatErrors = {
-      product_name: validateProductNameFormat(formData.product_name),
-      dosage: validateDosageFormat(formData.dosage),
-      batch_number: validateBatchNumberFormat(formData.batch_number, isEditForm ? editStockId : null),
-       vendor_id: validateVendorIdFormat(
-        formData.vendor_id,
-        formData.vendor || "",
-        isEditForm ? editStockId : null
-      ),
-      quantity: isEditForm ? "" : validateQuantityFormat(formData.quantity),
-      add_quantity: isEditForm ? validateAddQuantityFormat(formData.add_quantity) : "",
-      unit_price: validateUnitPriceFormat(formData.unit_price),
-    };
-
-    // Status validation based on quantity
-    if (isEditForm) {
-      const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
-      const addQty = parseInt(formData.add_quantity) || 0;
-      formatErrors.status = validateStatusFormat(formData.status, "", true, currentQty, addQty);
-    } else {
-      formatErrors.status = validateStatusFormat(formData.status, formData.quantity);
-    }
-
-    return formatErrors;
+  // Format validation for all fields (called on submit)
+const validateAllFormats = (formData, isEditForm = false) => {
+  const formatErrors = {
+    product_name: validateProductNameFormat(formData.product_name),
+    dosage: validateDosageFormat(formData.dosage),
+    batch_number: validateBatchNumberFormat(formData.batch_number, isEditForm ? editStockId : null),
+    vendor: validateVendorFormat(formData.vendor),
+    vendor_id: validateVendorIdFormat(
+      formData.vendor_id,
+      formData.vendor || "",
+      isEditForm ? editStockId : null
+    ),
+    quantity: isEditForm ? "" : validateQuantityFormat(formData.quantity),
+    add_quantity: isEditForm ? validateAddQuantityFormat(formData.add_quantity) : "",
+    item_code: validateItemCodeFormat(formData.item_code),
+    rack_no: validateRackNoFormat(formData.rack_no),
+    shelf_no: validateShelfNoFormat(formData.shelf_no),
+    unit_price: validateUnitPriceFormat(formData.unit_price),
   };
+
+  // Status validation based on quantity
+  if (isEditForm) {
+    const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
+    const addQty = parseInt(formData.add_quantity) || 0;
+    formatErrors.status = validateStatusFormat(formData.status, "", true, currentQty, addQty);
+  } else {
+    formatErrors.status = validateStatusFormat(formData.status, formData.quantity);
+  }
+
+  return formatErrors;
+};
 
   // Handle input change for Add form
   const handleAddInputChange = (field, value) => {
@@ -3477,44 +3567,53 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
     let formatError = "";
     switch (field) {
       case "product_name":
-        formatError = validateProductNameFormat(value);
-        break;
-      case "dosage":
-        formatError = validateDosageFormat(value);
-        break;
-      case "batch_number":
-        formatError = validateBatchNumberFormat(value);
-        break;
- 
-      case "vendor_id":
-        formatError = validateVendorIdFormat(value, newStock.vendor, null);
-        break;
-           case "vendor":
-        // Re-validate vendor_id when vendor name changes
-        if (newStock.vendor_id) {
-          const vendorIdError = validateVendorIdFormat(newStock.vendor_id, value, null);
-          if (vendorIdError) {
-            setValidationErrors(prev => ({ ...prev, vendor_id: vendorIdError }));
-          } else {
-            setValidationErrors(prev => {
-              const next = { ...prev };
-              delete next.vendor_id;
-              return next;
-            });
-          }
-        }
-        break;
-      case "quantity":
-        formatError = validateQuantityFormat(value);
-        break;
-      case "unit_price":
-        formatError = validateUnitPriceFormat(value);
-        break;
-      case "status":
-        const qty = parseInt(newStock.quantity) || 0;
-        formatError = validateStatusFormat(value, qty);
-        break;
-      default:
+  formatError = validateProductNameFormat(value);
+  break;
+case "dosage":
+  formatError = validateDosageFormat(value);
+  break;
+case "batch_number":
+  formatError = validateBatchNumberFormat(value);
+  break;
+case "vendor":
+  formatError = validateVendorFormat(value);
+  // Re-validate vendor_id when vendor name changes
+  if (newStock.vendor_id) {
+    const vendorIdError = validateVendorIdFormat(newStock.vendor_id, value, null);
+    if (vendorIdError) {
+      setValidationErrors(prev => ({ ...prev, vendor_id: vendorIdError }));
+    } else {
+      setValidationErrors(prev => {
+        const next = { ...prev };
+        delete next.vendor_id;
+        return next;
+      });
+    }
+  }
+  break;
+case "vendor_id":
+  formatError = validateVendorIdFormat(value, newStock.vendor, null);
+  break;
+case "quantity":
+  formatError = validateQuantityFormat(value);
+  break;
+case "item_code":
+  formatError = validateItemCodeFormat(value);
+  break;
+case "rack_no":
+  formatError = validateRackNoFormat(value);
+  break;
+case "shelf_no":
+  formatError = validateShelfNoFormat(value);
+  break;
+case "unit_price":
+  formatError = validateUnitPriceFormat(value);
+  break;
+case "status":
+  const qty = parseInt(newStock.quantity) || 0;
+  formatError = validateStatusFormat(value, qty);
+  break;
+  default:
         break;
     }
  
@@ -3563,28 +3662,53 @@ const canDelete = isAdmin || userRole === "billing staff" || userRole === "billi
     let formatError = "";
     switch (field) {
       case "product_name":
-        formatError = validateProductNameFormat(value);
-        break;
-      case "dosage":
-        formatError = validateDosageFormat(value);
-        break;
-      case "batch_number":
-        formatError = validateBatchNumberFormat(value, editStockId);
-        break;
-       case "vendor_id":
-        formatError = validateVendorIdFormat(value, editStock.vendor, editStockId);
-        break;
-      case "add_quantity":
-        formatError = validateAddQuantityFormat(value);
-        break;
-      case "unit_price":
-        formatError = validateUnitPriceFormat(value);
-        break;
-      case "status":
-        const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
-        const addQty = parseInt(editStock.add_quantity) || 0;
-        formatError = validateStatusFormat(value, "", true, currentQty, addQty);
-        break;
+  formatError = validateProductNameFormat(value);
+  break;
+case "dosage":
+  formatError = validateDosageFormat(value);
+  break;
+case "batch_number":
+  formatError = validateBatchNumberFormat(value, editStockId);
+  break;
+case "vendor":
+  formatError = validateVendorFormat(value);
+  // Re-validate vendor_id when vendor name changes
+  if (editStock.vendor_id) {
+    const vendorIdError = validateVendorIdFormat(editStock.vendor_id, value, editStockId);
+    if (vendorIdError) {
+      setValidationErrors(prev => ({ ...prev, vendor_id: vendorIdError }));
+    } else {
+      setValidationErrors(prev => {
+        const next = { ...prev };
+        delete next.vendor_id;
+        return next;
+      });
+    }
+  }
+  break;
+case "vendor_id":
+  formatError = validateVendorIdFormat(value, editStock.vendor, editStockId);
+  break;
+case "add_quantity":
+  formatError = validateAddQuantityFormat(value);
+  break;
+case "item_code":
+  formatError = validateItemCodeFormat(value);
+  break;
+case "rack_no":
+  formatError = validateRackNoFormat(value);
+  break;
+case "shelf_no":
+  formatError = validateShelfNoFormat(value);
+  break;
+case "unit_price":
+  formatError = validateUnitPriceFormat(value);
+  break;
+case "status":
+  const currentQty = inventoryData.find(item => item.id === editStockId)?.stock || 0;
+  const addQty = parseInt(editStock.add_quantity) || 0;
+  formatError = validateStatusFormat(value, "", true, currentQty, addQty);
+  break;
       default:
         break;
     }
@@ -4956,7 +5080,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[780px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[880px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
@@ -4972,7 +5096,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               </div>
 
               <form onSubmit={handleAddStock} noValidate>
-                <div className="grid grid-cols-3 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-4 gap-x-6 gap-y-5">
                   {/* Product Name */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
@@ -5139,11 +5263,17 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       maxLength={FIELD_LIMITS.vendor}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {isSubmitted && fieldErrors.vendor && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.vendor}
-                      </p>
-                    )}
+                    {validationErrors.vendor && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {validationErrors.vendor}
+  </p>
+)}
+{isSubmitted && fieldErrors.vendor && !validationErrors.vendor && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {fieldErrors.vendor}
+  </p>
+)}
+                   
                     {newStock.vendor.length === FIELD_LIMITS.vendor && (
                       <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
                         Maximum {FIELD_LIMITS.vendor} characters reached
@@ -5229,11 +5359,17 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       maxLength={FIELD_LIMITS.item_code}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {isSubmitted && fieldErrors.item_code && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.item_code}
-                      </p>
-                    )}
+                    {validationErrors.item_code && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {validationErrors.item_code}
+  </p>
+)}
+{isSubmitted && fieldErrors.item_code && !validationErrors.item_code && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {fieldErrors.item_code}
+  </p>
+)}
+                    
                     {newStock.item_code.length === FIELD_LIMITS.item_code && (
                       <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
                         Maximum {FIELD_LIMITS.item_code} characters reached
@@ -5258,11 +5394,17 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       maxLength={FIELD_LIMITS.rack_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {isSubmitted && fieldErrors.rack_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.rack_no}
-                      </p>
-                    )}
+                    {validationErrors.rack_no && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {validationErrors.rack_no}
+  </p>
+)}
+{isSubmitted && fieldErrors.rack_no && !validationErrors.rack_no && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {fieldErrors.rack_no}
+  </p>
+)}
+                    
                     {newStock.rack_no.length === FIELD_LIMITS.rack_no && (
                       <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
                         Maximum {FIELD_LIMITS.rack_no} characters reached
@@ -5287,11 +5429,17 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       maxLength={FIELD_LIMITS.shelf_no}
                       className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
                     />
-                    {isSubmitted && fieldErrors.shelf_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.shelf_no}
-                      </p>
-                    )}
+                    {validationErrors.shelf_no && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {validationErrors.shelf_no}
+  </p>
+)}
+{isSubmitted && fieldErrors.shelf_no && !validationErrors.shelf_no && (
+  <p className="mt-1 text-[12px] text-[#FF2424]">
+    {fieldErrors.shelf_no}
+  </p>
+)}
+                    
                     {newStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
                       <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
                         Maximum {FIELD_LIMITS.shelf_no} characters reached
@@ -5315,6 +5463,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       step="0.01"
                       min="0.01"
                     />
+                    
                     {validationErrors.unit_price && (
                       <p className="mt-1 text-[12px] text-[#FF2424]">
                         {validationErrors.unit_price}
@@ -5370,7 +5519,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[780px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
+              className="w-[880px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-200 dark:border-gray-700">
@@ -5386,7 +5535,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
               </div>
 
               <form onSubmit={handleEditStock} noValidate>
-                <div className="grid grid-cols-3 gap-x-6 gap-y-5">
+                <div className="grid grid-cols-4 gap-x-6 gap-y-5">
                   {/* Product Name - Read-only (TC_135) */}
                   <div>
                     <label className="block text-sm font-medium text-black dark:text-white mb-1">
@@ -5494,90 +5643,101 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   </div>
 
                   {/* Rack No - Editable (TC_135) */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Rack No<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter Rack No"
-                      value={editStock.rack_no}
-                      onChange={(e) => {
-                        if (e.target.value.length <= FIELD_LIMITS.rack_no) {
-                          handleEditInputChange('rack_no', e.target.value);
-                        }
-                      }}
-                      maxLength={FIELD_LIMITS.rack_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                    />
-                    {isSubmitted && fieldErrors.rack_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.rack_no}
-                      </p>
-                    )}
-                    {editStock.rack_no.length === FIELD_LIMITS.rack_no && (
-                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
-                        Maximum {FIELD_LIMITS.rack_no} characters reached
-                      </p>
-                    )}
-                  </div>
+                  {/* Rack No - Editable */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Rack No<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="text"
+    placeholder="Enter Rack No"
+    value={editStock.rack_no}
+    onChange={(e) => {
+      if (e.target.value.length <= FIELD_LIMITS.rack_no) {
+        handleEditInputChange('rack_no', e.target.value);
+      }
+    }}
+    maxLength={FIELD_LIMITS.rack_no}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+  />
+  {validationErrors.rack_no && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.rack_no}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.rack_no && !validationErrors.rack_no && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.rack_no}
+    </p>
+  )}
+  {editStock.rack_no.length === FIELD_LIMITS.rack_no && (
+    <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+      Maximum {FIELD_LIMITS.rack_no} characters reached
+    </p>
+  )}
+</div>
 
-                  {/* Shelf No - Editable (TC_135) */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Shelf No<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter Shelf Number"
-                      value={editStock.shelf_no}
-                      onChange={(e) => {
-                        if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
-                          handleEditInputChange('shelf_no', e.target.value);
-                        }
-                      }}
-                      maxLength={FIELD_LIMITS.shelf_no}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                    />
-                    {isSubmitted && fieldErrors.shelf_no && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.shelf_no}
-                      </p>
-                    )}
-                    {editStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
-                      <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
-                        Maximum {FIELD_LIMITS.shelf_no} characters reached
-                      </p>
-                    )}
-                  </div>
+{/* Shelf No - Editable */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Shelf No<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="text"
+    placeholder="Enter Shelf Number"
+    value={editStock.shelf_no}
+    onChange={(e) => {
+      if (e.target.value.length <= FIELD_LIMITS.shelf_no) {
+        handleEditInputChange('shelf_no', e.target.value);
+      }
+    }}
+    maxLength={FIELD_LIMITS.shelf_no}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+  />
+  {validationErrors.shelf_no && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.shelf_no}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.shelf_no && !validationErrors.shelf_no && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.shelf_no}
+    </p>
+  )}
+  {editStock.shelf_no.length === FIELD_LIMITS.shelf_no && (
+    <p className="mt-1 text-[12px] text-yellow-600 dark:text-yellow-400">
+      Maximum {FIELD_LIMITS.shelf_no} characters reached
+    </p>
+  )}
+</div>
 
-                  {/* Unit Price - Editable (TC_135) */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Unit Price<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Enter Unit Price"
-                      value={editStock.unit_price}
-                      onChange={(e) => {
-                        handleEditInputChange('unit_price', e.target.value);
-                      }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      step="0.01"
-                      min="0.01"
-                    />
-                    {validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {validationErrors.unit_price}
-                      </p>
-                    )}
-                    {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.unit_price}
-                      </p>
-                    )}
-                  </div>
+{/* Unit Price - Editable */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Unit Price<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="number"
+    placeholder="Enter Unit Price"
+    value={editStock.unit_price}
+    onChange={(e) => {
+      handleEditInputChange('unit_price', e.target.value);
+    }}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+    step="0.01"
+    min="0.01"
+  />
+  {validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.unit_price}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.unit_price}
+    </p>
+  )}
+</div>
 
                   {/* Status - Auto-calculated, read-only */}
                   <div>

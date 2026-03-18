@@ -56,27 +56,38 @@ const getCookie = (name) => {
 };
 
 const LoginPage = () => {
+  // 1. ALL useState hooks first
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLightMode, setIsLightMode] = useState(false);
+  const [isLightMode, setIsLightMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia("(prefers-color-scheme: light)").matches;
+    }
+    return false;
+  });
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [sessionMonitor, setSessionMonitor] = useState(null);
+  // ====== ADD THEME_LOADED STATE BACK ======
+  const [themeLoaded, setThemeLoaded] = useState(false);
 
-  // 🔹 Auto-detect system theme
+  // 2. ALL useEffect hooks next (in consistent order)
+  // Theme detection
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
-    setIsLightMode(mediaQuery.matches);
-
     const handleChange = (e) => setIsLightMode(e.matches);
     mediaQuery.addEventListener("change", handleChange);
+    
+    // ====== SET THEME_LOADED TO TRUE AFTER DETECTION ======
+    setThemeLoaded(true);
+    
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // 🔹 Load remembered username on mount
+  // Load remembered username
   useEffect(() => {
     const rememberedUsername = localStorage.getItem("rememberedUsername");
     if (rememberedUsername) {
@@ -85,7 +96,7 @@ const LoginPage = () => {
     }
   }, []);
 
-  // 🔹 Clean up session monitor on unmount
+  // Clean up session monitor
   useEffect(() => {
     return () => {
       if (sessionMonitor) {
@@ -94,27 +105,28 @@ const LoginPage = () => {
     };
   }, [sessionMonitor]);
 
-  // 🔹 Cookie test function
-  const testCookieAfterLogin = async () => {
-    console.log("🧪 Testing cookie access after login...");
-    
-    try {
-      // Try to call /auth/check-cookies to see if cookies are being sent
-      const checkResponse = await api.get("/auth/check-cookies");
-      console.log("🧪 Cookie check response:", checkResponse.data);
-      
-      // Also try to get user info
-      const meResponse = await api.get("/profile/me");
-      console.log("🧪 User info response:", meResponse.data);
-      
-      return true;
-    } catch (error) {
-      console.error("🧪 Cookie test failed:", error);
-      return false;
+  // Show logout toast
+  useEffect(() => {
+    const showLogoutToast = localStorage.getItem("showLogoutToast");
+    if (showLogoutToast === "true") {
+      successToast("Logged out successfully!");
+      localStorage.removeItem("showLogoutToast");
     }
-  };
+  }, []);
 
-
+  // ====== ADD LOADER HERE (AFTER ALL HOOKS) ======
+  if (!themeLoaded) {
+    return (
+      <div className={`fixed inset-0 flex items-center justify-center ${
+        isLightMode ? "bg-white" : "bg-black"
+      }`}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[#0EFF7B] border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-[#0EFF7B] text-xl">Loading...</div>
+        </div>
+      </div>
+    );
+  }
   
 const handleLogin = async (e) => {
   e.preventDefault();
@@ -219,14 +231,7 @@ setTimeout(() => {
   }
 };
 
-useEffect(() => {
-    const showLogoutToast = localStorage.getItem("showLogoutToast");
 
-    if (showLogoutToast === "true") {
-      successToast("Logged out successfully!");
-      localStorage.removeItem("showLogoutToast"); // clear the flag
-    }
-  }, []);
   // Rest of your component remains the same...
   return (
     <>

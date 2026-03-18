@@ -39,7 +39,6 @@ class AppointmentCreate(BaseModel):
     patient_name: str
     department_id: int
     staff_id: int
-    room_no: str
     phone_no: str
     appointment_type: Literal["checkup", "followup", "emergency"]
     status: Literal["new", "normal", "severe","active","inactive","completed","cancelled","emergency"] = "new"
@@ -70,7 +69,6 @@ class AppointmentUpdate(BaseModel):
     patient_name: Optional[str] = None
     department_id: Optional[int] = None
     staff_id: Optional[int] = None
-    room_no: Optional[str] = None
     phone_no: Optional[str] = None
     appointment_type: Optional[Literal["checkup", "followup", "emergency"]] = None
     status: Optional[Literal["new", "normal", "severe", "completed", "cancelled","active","inactive","emergency"]] = None
@@ -82,7 +80,6 @@ class CalendarItemOut(BaseModel):
     patient_id: str
     department: str
     doctor: str
-    room_no: str
     phone_no: str
     item_type: str # "appointment" or "surgery"
     appointment_type: str # For appointments: "checkup", "followup", "emergency"; For surgeries: "surgery"
@@ -112,7 +109,6 @@ def calendar_item_to_out(item) -> CalendarItemOut:
             patient_id=item.patient.patient_unique_id if item.patient else "",
             department=item.doctor.department.name if item.doctor and item.doctor.department else "",
             doctor=item.doctor.full_name if item.doctor else "",
-            room_no="Surgery Room",
             phone_no=item.patient.phone_number if item.patient else "",
             item_type="surgery",
             appointment_type="surgery",
@@ -132,7 +128,6 @@ def calendar_item_to_out(item) -> CalendarItemOut:
         patient_id=item.patient_id,
         department=item.department.name if item.department else "",
         doctor=item.staff.full_name if item.staff else "",
-        room_no=item.room_no,
         phone_no=item.phone_no,
         item_type="appointment",
         appointment_type=item.appointment_type,
@@ -167,7 +162,6 @@ async def create_appointment(payload: AppointmentCreate):
                 patient_name=payload.patient_name,
                 department=department,
                 staff=staff,
-                room_no=payload.room_no,
                 phone_no=payload.phone_no,
                 appointment_type=payload.appointment_type,
                 status=payload.status,
@@ -218,8 +212,6 @@ async def update_appointment(appointment_id: int, payload: AppointmentUpdate):
             appt.staff = staff
         except Staff.DoesNotExist:
             raise HTTPException(status_code=404, detail="Staff not found")
-    if payload.room_no is not None:
-        appt.room_no = payload.room_no
     if payload.phone_no is not None:
         appt.phone_no = payload.phone_no
     if payload.appointment_type is not None:

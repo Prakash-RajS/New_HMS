@@ -1,4 +1,4 @@
-# settings.py - Update with complete endpoints
+# settings.py
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from typing import Optional, Dict, Any
 from datetime import datetime
@@ -6,11 +6,11 @@ from pydantic import BaseModel
 from asgiref.sync import sync_to_async
 from pathlib import Path
 import json
+import traceback
 
 from django.db import close_old_connections, connection
 
 def check_db_connection():
-    """Ensure database connection is alive"""
     try:
         close_old_connections()
         with connection.cursor() as cursor:
@@ -20,7 +20,6 @@ def check_db_connection():
         return False
 
 def ensure_db_connection():
-    """Reconnect if database connection is lost"""
     if not check_db_connection():
         try:
             connection.close()
@@ -47,17 +46,24 @@ def check_admin_permission(current_user: User):
 class AllSettingsResponse(BaseModel):
     hospital: Dict[str, Any]
 
-import traceback
-
 @router.get("/all", response_model=AllSettingsResponse)
-async def get_all_settings(current_user: User = Depends(get_current_user)):
+async def get_all_settings(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+    # ← NO check_admin_permission here — all logged in users need hospital info
+):
     try:
-        check_admin_permission(current_user)
-        hospital_settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
+        hospital_settings = await sync_to_async(
+            lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+        )()
+
+        print(f"[settings/all] Hospital logo from DB: {hospital_settings.logo}")
 
         logo_url = None
         if hospital_settings.logo:
-            logo_url = f"/media/{hospital_settings.logo}"
+            logo_url = f"{request.base_url}media/{hospital_settings.logo}"
+
+        print(f"[settings/all] Logo URL being returned: {logo_url}")
 
         hospital_data = {
             "id": hospital_settings.id,
@@ -105,22 +111,24 @@ async def update_hospital_info(
     current_user: User = Depends(get_current_user),
 ):
     check_admin_permission(current_user)
-    settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
-    
+    settings = await sync_to_async(
+        lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+    )()
+
     update_data = data.dict(exclude_unset=True)
-    
+
     for field, value in update_data.items():
         setattr(settings, field, value)
-    
+
     await sync_to_async(lambda: (ensure_db_connection(), settings.save())[-1])()
-    
+
     return {"message": "Hospital information updated successfully"}
 
 @router.post("/hospital/upload-logo")
 async def upload_hospital_logo(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    request: Request = None  # Add request to construct full URL
+    request: Request = None
 ):
     check_admin_permission(current_user)
 
@@ -128,57 +136,57 @@ async def upload_hospital_logo(
         lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
     )()
 
-    # Create uploads directory if it doesn't exist
     upload_dir = Path("media/hospital_logo")
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    # Validate file type
     allowed_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp'}
     file_extension = Path(file.filename).suffix.lower()
     if file_extension not in allowed_extensions:
-        raise HTTPException(status_code=400, detail="Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG, WEBP"
+        )
 
-    # Validate file size (5MB max)
     content = await file.read()
     if len(content) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File size exceeds 5MB limit")
 
-    # Generate unique filename
     unique_filename = f"hospital_logo_{datetime.now().strftime('%Y%m%d_%H%M%S')}{file_extension}"
     file_path = upload_dir / unique_filename
 
-    # Save the file
     with open(file_path, "wb") as f:
         f.write(content)
 
-    # Update hospital settings with relative path
     relative_path = f"hospital_logo/{unique_filename}"
     settings.logo = relative_path
     await sync_to_async(lambda: (ensure_db_connection(), settings.save())[-1])()
 
-    # Construct full URL for frontend
     full_logo_url = f"{request.base_url}media/{relative_path}"
+
+    print(f"[upload-logo] Saved relative path: {relative_path}")
+    print(f"[upload-logo] Returning full URL: {full_logo_url}")
 
     return {
         "message": "Logo uploaded successfully",
-        "logo_url": full_logo_url,  # <-- Full URL returned
+        "logo_url": full_logo_url,
         "filename": unique_filename
     }
 
 @router.get("/hospital/logo")
 async def get_hospital_logo():
-    settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
-    
+    settings = await sync_to_async(
+        lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+    )()
+
     if not settings.logo:
         raise HTTPException(status_code=404, detail="Hospital logo not found")
-    
+
     logo_path = Path("media") / settings.logo
-    
+
     if not logo_path.exists():
         raise HTTPException(status_code=404, detail="Logo file not found")
-    
-    return FileResponse(logo_path)
 
+    return FileResponse(logo_path)
 
 # ==========================================================
 # INITIALIZE DEFAULT SETTINGS
@@ -186,11 +194,11 @@ async def get_hospital_logo():
 @router.post("/initialize")
 async def initialize_defaults(current_user: User = Depends(get_current_user)):
     check_admin_permission(current_user)
-    
-    # Initialize hospital settings with defaults
-    settings = await sync_to_async(lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1])()
-    
-    # Set default values if empty
+
+    settings = await sync_to_async(
+        lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+    )()
+
     if not settings.hospital_name:
         settings.hospital_name = "Sravan Multispeciality Hospital"
     if not settings.address:
@@ -199,25 +207,22 @@ async def initialize_defaults(current_user: User = Depends(get_current_user)):
         settings.phone = ""
     if not settings.email:
         settings.email = ""
-    
-    # Set default working hours if empty
+
     if not settings.working_hours:
         settings.working_hours = {
-            "monday": {"start": "09:00", "end": "18:00", "open": True},
-            "tuesday": {"start": "09:00", "end": "18:00", "open": True},
+            "monday":    {"start": "09:00", "end": "18:00", "open": True},
+            "tuesday":   {"start": "09:00", "end": "18:00", "open": True},
             "wednesday": {"start": "09:00", "end": "18:00", "open": True},
-            "thursday": {"start": "09:00", "end": "18:00", "open": True},
-            "friday": {"start": "09:00", "end": "18:00", "open": True},
-            "saturday": {"start": "09:00", "end": "14:00", "open": True},
-            "sunday": {"start": "09:00", "end": "14:00", "open": False},
+            "thursday":  {"start": "09:00", "end": "18:00", "open": True},
+            "friday":    {"start": "09:00", "end": "18:00", "open": True},
+            "saturday":  {"start": "09:00", "end": "14:00", "open": True},
+            "sunday":    {"start": "09:00", "end": "14:00", "open": False},
         }
-    
-    # Set default system preferences
 
-    
     await sync_to_async(lambda: (ensure_db_connection(), settings.save())[-1])()
-    
-    # Initialize security settings
-    await sync_to_async(lambda: (ensure_db_connection(), SecuritySettings.objects.get_or_create(user=current_user))[-1])()
-    
+
+    await sync_to_async(
+        lambda: (ensure_db_connection(), SecuritySettings.objects.get_or_create(user=current_user))[-1]
+    )()
+
     return {"message": "Default settings initialized successfully"}

@@ -21,7 +21,6 @@ class NotificationService:
                 "staff_name": staff.full_name,
                 "department": department.name,
                 "appointment_type": appointment.appointment_type,
-                "room_no": appointment.room_no,
                 "timestamp": datetime.now().isoformat(),
                 "redirect_to": "/appointments"
             }
@@ -130,15 +129,14 @@ class NotificationService:
         )
 
     @staticmethod
-    async def send_patient_admitted(patient, room_no):
+    async def send_patient_admitted(patient):
         await notify_clients(
             event_type="patient_admitted",
-            message=f"Patient admitted: {patient.full_name} to Room {room_no}",
+            message=f"Patient admitted: {patient.full_name}",
             notification_type="info",
             data={
                 "patient_id": patient.patient_unique_id,
                 "patient_name": patient.full_name,
-                "room_no": room_no,
                 "timestamp": datetime.now().isoformat(),
                 "redirect_to": "/patients/profile"
             }

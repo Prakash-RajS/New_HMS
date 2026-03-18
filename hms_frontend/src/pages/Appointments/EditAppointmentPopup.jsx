@@ -1,46 +1,48 @@
-// src/components/EditAppointmentPopup.jsx
+//// src/components/EditAppointmentPopup.jsx
 import React, { useState, useEffect } from "react";
-import { X, Calendar, ChevronDown } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { X, Calendar, ChevronDown, Clock, AlertCircle, User, Phone, Tag, Activity } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../components/Toast.jsx";
-import api from "../../utils/axiosConfig"; // Cookie-based axios instance
+import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
 
-export default function EditAppointmentPopup({
-  onClose,
-  appointment,
-  onUpdate,
-}) {
-  const parseTimeFromAppointment = (appt) => {    
+// ── Date helpers ───────────────────────────────────────────────
+const parseDateForPicker = (dateStr) => {
+  if (!dateStr) return null;
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+};
+
+const formatDateForState = (date) => {
+  if (!date) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+// ── Main Component ────────────────────────────────────────────────
+export default function EditAppointmentPopup({ onClose, appointment, onUpdate }) {
+  const parseTimeFromAppointment = (appt) => {
     let appointmentDate = appt.appointment_date || "";
     let appointmentTime = appt.appointment_time || "";
-    
     if (appt.appointment_time) {
       try {
-        const timeStr = appt.appointment_time;
-        const timeParts = timeStr.split(':');
-        if (timeParts.length >= 2) {
-          const hours = timeParts[0].padStart(2, '0');
-          const minutes = timeParts[1].padStart(2, '0');
-          appointmentTime = `${hours}:${minutes}`;
-        }
-      } catch (err) {
-        appointmentTime = "";
-      }
+        const parts = appt.appointment_time.split(":");
+        if (parts.length >= 2) appointmentTime = `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+      } catch { appointmentTime = ""; }
     }
-    
     return { appointmentDate, appointmentTime };
   };
 
   const { appointmentDate, appointmentTime } = parseTimeFromAppointment(appointment);
 
-  const initialData = {
+  const [formData, setFormData] = useState({
     id: appointment.id,
     patient_name: appointment.patient_name || "",
     patient_id: appointment.patient_id || "",
     department_id: appointment.department_id || "",
     staff_id: appointment.staff_id || "",
-    // room_no removed
     phone_no: appointment.phone_no || "",
     appointment_type: appointment.appointment_type || "checkup",
     status: appointment.status || "new",
@@ -48,343 +50,146 @@ export default function EditAppointmentPopup({
     appointment_time: appointmentTime,
     department_name: appointment.department_name || "",
     staff_name: appointment.staff_name || "",
-  };
+  });
 
-  const [formData, setFormData] = useState(initialData);
   const [departments, setDepartments] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  // availableBeds state removed
   const [loadingDept, setLoadingDept] = useState(false);
   const [loadingDoc, setLoadingDoc] = useState(false);
-  // loadingBeds state removed
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
   const { isAdmin, currentUser } = usePermissions();
-  
   const userRole = currentUser?.role?.toLowerCase();
   const canEditAppointment = isAdmin || userRole === "receptionist";
 
-  // Validation functions
-  const validatePatientNameFormat = (value) => {
-    if (!value.trim()) return "Patient name is required";
-    if (value.trim() && !/^[A-Za-z\s'-]+$/.test(value)) 
-      return "Name should only contain letters, spaces, hyphens, and apostrophes";
-    if (value.trim() && value.trim().length < 2) 
-      return "Name must be at least 2 characters";
+  const validatePatientNameFormat = (v) => {
+    if (!v.trim()) return "Patient name is required";
+    if (!/^[A-Za-z\s'-]+$/.test(v)) return "Name should only contain letters, spaces, hyphens, and apostrophes";
+    if (v.trim().length < 2) return "Name must be at least 2 characters";
+    return "";
+  };
+  
+  const validatePhoneFormat = (v) => {
+    if (!v.trim()) return "Phone number is required";
+    if (!/^\d{10}$/.test(v)) return "Phone number must be exactly 10 digits";
+    if ([/^0{10}$/, /^1{10}$/, /^\d{5}0{5}$/].some(p => p.test(v))) return "Please enter a valid mobile number";
+    if (/^(\d)\1{9}$/.test(v)) return "Please enter a valid mobile number";
+    return "";
+  };
+  
+  const validateAppointmentDate = (d) => (!d ? "Appointment date is required" : "");
+  
+  const validateAppointmentTime = (t) => {
+    if (!t) return "Appointment time is required";
+    if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(t)) return "Please enter a valid time format (HH:MM)";
     return "";
   };
 
-  const validatePhoneFormat = (value) => {
-    if (!value.trim()) return "Phone number is required";
-    if (value.trim() && !/^\d{10}$/.test(value)) 
-      return "Phone number must be exactly 10 digits";
-    
-    // Additional validation for invalid patterns
-    const invalidPatterns = [
-      /^0{10}$/, // All zeros
-      /^1{10}$/, // All ones
-      /^\d{5}0{5}$/, // Patterns like 1234500000
-    ];
-    
-    if (invalidPatterns.some((pattern) => pattern.test(value))) {
-      return "Please enter a valid mobile number";
-    }
-    
-    // Validate for sequential numbers
-    if (/^(\d)\1{9}$/.test(value)) {
-      return "Please enter a valid mobile number";
-    }
-    
-    return "";
-  };
-
-  const validateAppointmentDate = (date) => {
-    if (!date) return "Appointment date is required";
-    return "";
-  };
-
-  const validateAppointmentTime = (time) => {
-    if (!time) return "Appointment time is required";
-    
-    // Time format validation
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(time)) return "Please enter a valid time format (HH:MM)";
-    
-    return "";
-  };
-
-  // No past check for edit
-  const validateAppointmentDateTime = (date, time) => {
-    if (!date || !time) return "";
-    return "";
-  };
-
-  // Handle input change
   const handleInputChange = (field, value) => {
-    let processedValue = value;
-    
+    let v = value;
     if (field === "patient_name") {
-      processedValue = value
-        .toLowerCase()
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
+      v = value.toLowerCase().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     }
+    setFormData(prev => ({ ...prev, [field]: v }));
     
-    const newFormData = { ...formData, [field]: processedValue };
-    setFormData(newFormData);
+    // Clear errors
+    if (validationErrors[field]) setValidationErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
     
-    // Clear specific field error when user starts typing
-    if (validationErrors[field]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+    // Real-time validation
+    let fmt = "";
+    if (field === "patient_name") fmt = validatePatientNameFormat(v);
+    if (field === "phone_no") fmt = validatePhoneFormat(v);
+    if (field === "appointment_date") fmt = validateAppointmentDate(v);
+    if (field === "appointment_time") fmt = validateAppointmentTime(v);
+    if (fmt) setValidationErrors(prev => ({ ...prev, [field]: fmt }));
     
-    // Clear combined date-time error when either date or time is changed
+    // Clear date-time combined error when either field changes
     if (field === "appointment_date" || field === "appointment_time") {
-      if (validationErrors.appointment_date_time) {
-        setValidationErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.appointment_date_time;
-          return newErrors;
-        });
-      }
-    }
-    
-    // Run validation for the changed field
-    let formatError = "";
-    
-    switch (field) {
-      case "patient_name":
-        formatError = validatePatientNameFormat(processedValue);
-        break;
-      case "phone_no":
-        formatError = validatePhoneFormat(processedValue);
-        break;
-      case "appointment_date":
-        formatError = validateAppointmentDate(processedValue);
-        // Also validate combined date-time if both fields have values
-        if (!formatError && newFormData.appointment_time) {
-          const dateTimeError = validateAppointmentDateTime(
-            processedValue, 
-            newFormData.appointment_time
-          );
-          if (dateTimeError) {
-            setValidationErrors(prev => ({
-              ...prev,
-              appointment_date_time: dateTimeError
-            }));
-          }
-        }
-        break;
-      case "appointment_time":
-        formatError = validateAppointmentTime(processedValue);
-        // Also validate combined date-time if both fields have values
-        if (!formatError && newFormData.appointment_date) {
-          const dateTimeError = validateAppointmentDateTime(
-            newFormData.appointment_date,
-            processedValue
-          );
-          if (dateTimeError) {
-            setValidationErrors(prev => ({
-              ...prev,
-              appointment_date_time: dateTimeError
-            }));
-          }
-        }
-        break;
-      default:
-        break;
-    }
-    
-    if (formatError) {
-      setValidationErrors(prev => ({
-        ...prev,
-        [field]: formatError
-      }));
+      setValidationErrors(prev => { const n = { ...prev }; delete n.appointment_date_time; return n; });
     }
   };
 
-  // Load departments
   useEffect(() => {
     let mounted = true;
     setLoadingDept(true);
-    
     api.get("/appointments/departments")
-      .then((response) => {
-        if (mounted) {
-          const data = response.data;
-          setDepartments(Array.isArray(data) ? data : []);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load departments:", error);
-      })
-      .finally(() => {
-        if (mounted) setLoadingDept(false);
-      });
-    
+      .then(r => { if (mounted) setDepartments(Array.isArray(r.data) ? r.data : []); })
+      .catch(e => console.error(e))
+      .finally(() => { if (mounted) setLoadingDept(false); });
     return () => (mounted = false);
   }, []);
 
-  // availableBeds useEffect removed
-
-  // Preload department_id from name after departments load
   useEffect(() => {
     if (departments.length > 0 && formData.department_name && !formData.department_id) {
-      const matchingDept = departments.find((d) => d.name === formData.department_name);
-      if (matchingDept) {
-        setFormData((prev) => ({
-          ...prev,
-          department_id: matchingDept.id,
-          department_name: "",
-        }));
-      }
+      const match = departments.find(d => d.name === formData.department_name);
+      if (match) setFormData(prev => ({ ...prev, department_id: match.id, department_name: "" }));
     }
   }, [departments, formData.department_name, formData.department_id]);
 
-  // Load doctors when department changes
   useEffect(() => {
-    if (!formData.department_id) {
-      setDoctors([]);
-      return;
-    }
-    
+    if (!formData.department_id) { setDoctors([]); return; }
     let mounted = true;
     setLoadingDoc(true);
-    
     api.get(`/appointments/staff?department_id=${formData.department_id}`)
-      .then((response) => {
-        if (mounted) {
-          const data = response.data;
-          setDoctors(Array.isArray(data) ? data : []);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load doctors:", error);
-      })
-      .finally(() => {
-        if (mounted) setLoadingDoc(false);
-      });
-    
+      .then(r => { if (mounted) setDoctors(Array.isArray(r.data) ? r.data : []); })
+      .catch(e => console.error(e))
+      .finally(() => { if (mounted) setLoadingDoc(false); });
     return () => (mounted = false);
   }, [formData.department_id]);
 
-  // Preload staff_id from name after doctors load
   useEffect(() => {
     if (doctors.length > 0 && formData.staff_name && !formData.staff_id) {
-      const matchingStaff = doctors.find((s) => s.full_name === formData.staff_name);
-      if (matchingStaff) {
-        setFormData((prev) => ({
-          ...prev,
-          staff_id: matchingStaff.id,
-          staff_name: "",
-        }));
-      }
+      const match = doctors.find(s => s.full_name === formData.staff_name);
+      if (match) setFormData(prev => ({ ...prev, staff_id: match.id, staff_name: "" }));
     }
   }, [doctors, formData.staff_name, formData.staff_id]);
 
-  useEffect(() => {
-    if (
-      ["completed", "cancelled"].includes(formData.status) &&
-      !formData.appointment_date
-    ) {
-      const today = new Date().toISOString().split("T")[0];
-      setFormData((prev) => ({ ...prev, appointment_date: today }));
-    }
-  }, [formData.status]);
-
-  // Reusable Dropdown with error display
-  const Dropdown = ({
-    label,
-    value,
-    onChange,
-    options,
-    placeholder,
-    loading,
-    isObject = false,
-    required = false,
-    error,
-  }) => (
+  const Dropdown = ({ label, value, onChange, options, placeholder, loading, isObject = false, required = false, error }) => (
     <div>
-      <label
-        className="text-sm text-black dark:text-white"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
+      <label className="text-sm text-black dark:text-white block mb-1">
         {label} {required && <span className="text-red-700">*</span>}
       </label>
       <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
-          <Listbox.Button
-            className="w-full h-[33px] px-3 pr-8 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                        bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]"
-            style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-          >
-            {loading ? (
-              <span className="text-gray-500">Loading…</span>
-            ) : value ? (
-              isObject ? (
-                options.find((o) => String(o.id) === String(value))?.name ||
-                options.find((o) => String(o.id) === String(value))
-                  ?.full_name ||
-                value
-              ) : (
-                value
-              )
-            ) : (
-              placeholder
-            )}
+        <div className="relative w-[228px]">
+          <Listbox.Button 
+            onFocus={() => setFocusedField(label.toLowerCase())}
+            onBlur={() => setFocusedField(null)}
+            className={`w-full h-[33px] pl-10 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px] flex items-center justify-between
+                        ${focusedField === label.toLowerCase() ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                          error ? "border-red-500 ring-1 ring-red-500" :
+                          "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              {label === "Department" ? <Tag size={16} className="text-[#0EFF7B]" /> : 
+               label === "Doctor" ? <Activity size={16} className="text-[#0EFF7B]" /> : 
+               <Tag size={16} className="text-[#0EFF7B]" />}
+            </div>
+            <span className={`block truncate ml-2 ${value ? "text-black dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
+              {loading ? <span className="text-gray-500">Loading…</span>
+                : value ? (isObject ? options.find(o => String(o.id) === String(value))?.name || options.find(o => String(o.id) === String(value))?.full_name || value : value)
+                : placeholder}
+            </span>
             <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
               <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
             </span>
           </Listbox.Button>
           {error && (
-            <div className="text-red-500 text-xs mt-1">{error}</div>
+            <div className="mt-1 flex items-center gap-1">
+              <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+              <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+            </div>
           )}
-          <Listbox.Options
-            className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black
-                      shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {options.map((opt) => {
-              let label;
-              if (isObject) {
-                // For doctors (has full_name field) - add " - Doctor"
-                if (opt.full_name) {
-                  label = `${opt.full_name} - Doctor`;
-                } 
-                // For departments (has name field)
-                else if (opt.name) {
-                  label = opt.name;
-                }
-                // Fallback
-                else {
-                  label = String(opt.id);
-                }
-              } else {
-                label = opt;
-              }
-              
+          <Listbox.Options className="absolute mt-1 w-full max-h-40 overflow-y-auto rounded-[12px] bg-gray-100 dark:bg-black shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A]">
+            {options.map(opt => {
+              const lbl = isObject ? (opt.full_name ? `${opt.full_name} - Doctor` : opt.name || String(opt.id)) : opt;
               const val = isObject ? opt.id : opt;
               return (
-                <Listbox.Option
-                  key={val}
-                  value={val}
-                  className={({ active, selected }) =>
-                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md
-                      ${
-                        active
-                          ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                          : "text-black dark:text-white"
-                      }
-                      ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                  }
-                  style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                >
-                  {label}
+                <Listbox.Option key={val} value={val}
+                  className={({ active, selected }) => 
+                    `cursor-pointer select-none py-2 px-2 text-sm rounded-md 
+                     ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"} 
+                     ${selected ? "font-medium text-[#0EFF7B]" : ""}`}>
+                  {lbl}
                 </Listbox.Option>
               );
             })}
@@ -394,414 +199,369 @@ export default function EditAppointmentPopup({
     </div>
   );
 
-  // Handle Update
   const handleUpdate = async () => {
-    if (!canEditAppointment) {
-      errorToast("You don't have permission to edit appointments");
-      return;
+    if (!canEditAppointment) { 
+      errorToast("You don't have permission to edit appointments"); 
+      return; 
     }
     
-    // Clear all previous errors
     setValidationErrors({});
+    const errs = {};
     
-    // Check required fields
-    const requiredErrors = {};
-    if (!formData.patient_name.trim()) requiredErrors.patient_name = "Patient name is required";
-    if (!formData.department_id) requiredErrors.department_id = "Department is required";
-    if (!formData.staff_id) requiredErrors.staff_id = "Doctor is required";
-    // room_no validation removed
-    if (!formData.phone_no) requiredErrors.phone_no = "Phone number is required";
-    if (!formData.appointment_type) requiredErrors.appointment_type = "Appointment type is required";
-    if (!formData.status) requiredErrors.status = "Status is required";
+    // Required field validation
+    if (!formData.patient_name.trim()) errs.patient_name = "Patient name is required";
+    if (!formData.department_id) errs.department_id = "Department is required";
+    if (!formData.staff_id) errs.staff_id = "Doctor is required";
+    if (!formData.phone_no) errs.phone_no = "Phone number is required";
+    if (!formData.appointment_type) errs.appointment_type = "Appointment type is required";
+    if (!formData.status) errs.status = "Status is required";
     
-    // Date and time validations - separate validations
-    const dateError = validateAppointmentDate(formData.appointment_date);
-    if (dateError) requiredErrors.appointment_date = dateError;
+    // Format validation
+    const dateErr = validateAppointmentDate(formData.appointment_date);
+    if (dateErr) errs.appointment_date = dateErr;
     
-    const timeError = validateAppointmentTime(formData.appointment_time);
-    if (timeError) requiredErrors.appointment_time = timeError;
+    const timeErr = validateAppointmentTime(formData.appointment_time);  
+    if (timeErr) errs.appointment_time = timeErr;
     
-    // Combined date-time validation (only if both are present and individually valid)
-    if (!dateError && !timeError && formData.appointment_date && formData.appointment_time) {
-      const dateTimeError = validateAppointmentDateTime(
-        formData.appointment_date,
-        formData.appointment_time
-      );
-      if (dateTimeError) {
-        requiredErrors.appointment_date_time = dateTimeError;
-      }
+    const nameErr = validatePatientNameFormat(formData.patient_name);
+    if (nameErr) errs.patient_name = nameErr;
+    
+    const phoneErr = validatePhoneFormat(formData.phone_no);
+    if (phoneErr) errs.phone_no = phoneErr;
+    
+    if (Object.keys(errs).length > 0) { 
+      setValidationErrors(errs); 
+      errorToast("Please fix validation errors"); 
+      return; 
     }
-    
-    // Check format validation
-    const formatErrors = {
-      patient_name: validatePatientNameFormat(formData.patient_name),
-      phone_no: validatePhoneFormat(formData.phone_no),
-    };
-    
-    // Merge required errors and format errors
-    const allErrors = { ...requiredErrors };
-    if (formatErrors.patient_name) allErrors.patient_name = formatErrors.patient_name;
-    if (formatErrors.phone_no) allErrors.phone_no = formatErrors.phone_no;
-    
-    if (Object.keys(allErrors).length > 0) {
-      setValidationErrors(allErrors);
-      errorToast("Please fix validation errors");
-      return;
-    }
-    
+
     setSaving(true);
     try {
-      const formatTime = (timeStr) => {
-        if (!timeStr) return "";
-        const [hours, minutes] = timeStr.split(":");
-        return `${hours}:${minutes}:00`;
+      const formatTime = (t) => { 
+        if (!t) return ""; 
+        const [h, m] = t.split(":"); 
+        return `${h}:${m}:00`; 
       };
-
+      
       const payload = {
         patient_name: formData.patient_name,
         department_id: Number(formData.department_id),
         staff_id: Number(formData.staff_id),
-        // room_no removed
         phone_no: formData.phone_no || "",
         appointment_type: formData.appointment_type,
         status: formData.status,
         appointment_date: formData.appointment_date,
         appointment_time: formatTime(formData.appointment_time),
       };
-
-      console.log("Updating appointment with payload:", payload);
-
-      const response = await api.put(`/appointments/${formData.id}`, payload);
       
-      const updated = response.data;
+      const response = await api.put(`/appointments/${formData.id}`, payload);
       successToast("Appointment updated successfully!");
-      onUpdate?.(updated);
+      onUpdate?.(response.data);
       onClose?.();
     } catch (error) {
-      console.error("Update error:", error);
-      
       if (error.response?.status === 422) {
-        const errorData = error.response.data;
-        console.error("Validation errors:", errorData);
-        
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            // Handle Pydantic validation errors
-            const errors = {};
-            errorData.detail.forEach(err => {
-              const field = err.loc?.[1] || 'general';
-              errors[field] = err.msg;
-            });
-            setValidationErrors(errors);
+        const d = error.response.data;
+        if (d?.detail) {
+          if (Array.isArray(d.detail)) {
+            const e2 = {};
+            d.detail.forEach(e => { e2[e.loc?.[1] || "general"] = e.msg; });
+            setValidationErrors(e2); 
             errorToast("Please fix the validation errors");
-          } else {
-            errorToast(errorData.detail);
-          }
-        } else {
-          errorToast("Validation failed. Please check your inputs.");
-        }
+          } else errorToast(d.detail);
+        } else errorToast("Validation failed. Please check your inputs.");
       } else {
-        errorToast(error.response?.data?.detail || error.message || "Something went wrong. Please try again.");
+        errorToast(error.response?.data?.detail || error.message || "Something went wrong.");
       }
-    } finally {
-      setSaving(false);
+    } finally { 
+      setSaving(false); 
     }
   };
 
-  // bedOptions removed
-
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
-      <div
-        className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
-                    bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
-                    dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]"
-      >
-        <div
-          className="w-[804px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative"
-          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "20px",
-              padding: "2px",
-              background:
-                "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-              WebkitMask:
-                "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-              WebkitMaskComposite: "xor",
-              maskComposite: "exclude",
-              pointerEvents: "none",
-              zIndex: 0,
-            }}
-          />
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica] overflow-y-auto py-4">
+      <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F]
+                      bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70
+                      dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]
+                      overflow-visible my-4">
+        <div className="w-[805px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative overflow-visible"
+          style={{ fontFamily: "Helvetica, Arial, sans-serif" }}>
+
+          <div style={{
+            position: "absolute", inset: 0, borderRadius: "20px", padding: "2px",
+            background: "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none", zIndex: 0,
+          }} />
+
           <div className="flex justify-between items-center pb-3 mb-4">
-            <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-              Edit Appointment
-            </h3>
-            <button
-              onClick={onClose}
-              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A]
-                          bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
-            >
+            <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">Edit Appointment</h3>
+            <button onClick={onClose} 
+              className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center
+                         hover:scale-105 transition-transform">
               <X size={16} className="text-black dark:text-white" />
             </button>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
+
+            {/* Patient Name */}
             <div>
-              <label className="text-sm text-black dark:text-white">
+              <label className="text-sm text-black dark:text-white block mb-1">
                 Patient Name <span className="text-red-700">*</span>
               </label>
-              <input
-                value={formData.patient_name}
-                onChange={(e) => handleInputChange("patient_name", e.target.value)}
-                placeholder="Enter name"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-                            placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-              />
+              <div className="relative w-[228px]">
+                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0EFF7B]" />
+                <input 
+                  value={formData.patient_name} 
+                  onChange={e => handleInputChange("patient_name", e.target.value)} 
+                  onFocus={() => setFocusedField("patient_name")}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Enter name"
+                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border bg-gray-100 dark:bg-transparent
+                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-black dark:text-[#0EFF7B] text-sm
+                             ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                               validationErrors.patient_name ? "border-red-500 ring-1 ring-red-500" :
+                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
+              </div>
               {validationErrors.patient_name && (
-                <div className="text-red-500 text-xs mt-1">{validationErrors.patient_name}</div>
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">{validationErrors.patient_name}</span>
+                </div>
               )}
             </div>
-            
+
+            {/* Patient ID */}
             <div>
-              <label className="text-sm text-black dark:text-white">
-                Patient ID
-              </label>
-              <input
-                value={formData.patient_id}
-                readOnly
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-400 outline-none"
-              />
+              <label className="text-sm text-black dark:text-white block mb-1">Patient ID</label>
+              <div className="relative w-[228px]">
+                <input 
+                  value={formData.patient_id} 
+                  readOnly 
+                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-gray-500 dark:text-gray-400 outline-none text-sm cursor-not-allowed" 
+                />
+              </div>
             </div>
-            
-            <Dropdown
-              label="Department"
+
+            {/* Department Dropdown */}
+            <Dropdown 
+              label="Department" 
               value={formData.department_id}
-              onChange={(v) => {
-                setFormData({ ...formData, department_id: v, staff_id: "" });
-                if (validationErrors.department_id) {
-                  setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.department_id;
-                    return newErrors;
-                  });
-                }
+              onChange={v => { 
+                setFormData({ ...formData, department_id: v, staff_id: "" }); 
+                setValidationErrors(prev => { const n = { ...prev }; delete n.department_id; return n; });
               }}
-              options={departments}
-              placeholder={loadingDept ? "Loading…" : "Select Department"}
-              loading={loadingDept}
-              isObject={true}
-              required={true}
-              error={validationErrors.department_id}
+              options={departments} 
+              placeholder={loadingDept ? "Loading…" : "Select Department"} 
+              loading={loadingDept} 
+              isObject 
+              required 
+              error={validationErrors.department_id} 
             />
-            
+
+            {/* Appointment Date - React DatePicker */}
             <div>
-              <label className="text-sm text-black dark:text-white">
+              <label className="text-sm text-black dark:text-white block mb-1">
                 Appointment Date <span className="text-red-700">*</span>
               </label>
-              <div className="relative cursor-pointer">
-                <input
-                  type="date"
-                  value={formData.appointment_date}
-                  onChange={(e) => handleInputChange("appointment_date", e.target.value)}
-                  className="w-full h-[33px] mt-1 px-3 pr-10 rounded-[8px]
-                            border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-                            outline-none cursor-pointer
-                            [&::-webkit-calendar-picker-indicator]:absolute
-                            [&::-webkit-calendar-picker-indicator]:inset-0
-                            [&::-webkit-calendar-picker-indicator]:w-full
-                            [&::-webkit-calendar-picker-indicator]:h-full
-                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                            [&::-webkit-calendar-picker-indicator]:opacity-0"
+              <div className="relative w-[228px]">
+                <DatePicker
+                  selected={parseDateForPicker(formData.appointment_date)}
+                  onChange={(date) => handleInputChange("appointment_date", formatDateForState(date))}
+                  dateFormat="yyyy-MM-dd"
+                  placeholderText="Select date"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm cursor-pointer
+                             ${focusedField === "appointment_date" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                               validationErrors.appointment_date ? "border-red-500 ring-1 ring-red-500" :
+                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                  wrapperClassName="w-full"
+                  calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+                  popperClassName="z-50"
+                  onFocus={() => setFocusedField("appointment_date")}
+                  onBlur={() => setFocusedField(null)}
                 />
                 <Calendar
                   size={18}
-                  className="absolute right-3 top-3 text-[#0EFF7B] pointer-events-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
                 />
               </div>
               {validationErrors.appointment_date && (
-                <div className="text-red-500 text-xs mt-1">
-                  {validationErrors.appointment_date}
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">{validationErrors.appointment_date}</span>
                 </div>
               )}
             </div>
-            
+
+            {/* Appointment Time - React DatePicker Time Only */}
             <div>
-              <label className="text-sm text-black dark:text-white">
+              <label className="text-sm text-black dark:text-white block mb-1">
                 Appointment Time <span className="text-red-700">*</span>
               </label>
-              <input
-                type="time"
-                value={formData.appointment_time}
-                onChange={(e) => handleInputChange("appointment_time", e.target.value)}
-                className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                  outline-none text-black dark:text-[#0EFF7B]
-                  appearance-none ${validationErrors.appointment_time ? 'border-red-500' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}`}
-              />
-
-              <style>{`
-                /* Chrome, Edge, Safari */
-                input[type="time"]::-webkit-calendar-picker-indicator {
-                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
-                  cursor: pointer;
-                }
-
-                /* Firefox */
-                input[type="time"]::-moz-calendar-picker-indicator {
-                  filter: invert(72%) sepia(95%) saturate(600%) hue-rotate(85deg) brightness(110%) contrast(105%);
-                  cursor: pointer;
-                }
-
-                /* Force same icon color in both themes */
-                input[type="time"] {
-                  color-scheme: light;
-                }
-
-                .dark input[type="time"] {
-                  color-scheme: light;
-                }
-              `}</style>
+              <div className="relative w-[228px]">
+                <DatePicker
+                  selected={formData.appointment_date && formData.appointment_time 
+                    ? new Date(`${formData.appointment_date}T${formData.appointment_time}`) 
+                    : null}
+                  onChange={(time) => {
+                    if (time) {
+                      const hours = String(time.getHours()).padStart(2, '0');
+                      const minutes = String(time.getMinutes()).padStart(2, '0');
+                      handleInputChange("appointment_time", `${hours}:${minutes}`);
+                    } else {
+                      handleInputChange("appointment_time", "");
+                    }
+                  }}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="h:mm aa"
+                  placeholderText="Select time"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm cursor-pointer
+                             ${focusedField === "appointment_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                               validationErrors.appointment_time ? "border-red-500 ring-1 ring-red-500" :
+                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+                  wrapperClassName="w-full"
+                  calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+                  popperClassName="z-50"
+                  onFocus={() => setFocusedField("appointment_time")}
+                  onBlur={() => setFocusedField(null)}
+                />
+                <Clock
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+                />
+              </div>
               {validationErrors.appointment_time && (
-                <div className="text-red-500 text-xs mt-1">
-                  {validationErrors.appointment_time}
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">{validationErrors.appointment_time}</span>
                 </div>
               )}
             </div>
-            
-            {/* Room / Bed No dropdown removed */}
-            
-            <Dropdown
-              label="Doctor"
+
+            {/* Doctor Dropdown */}
+            <Dropdown 
+              label="Doctor" 
               value={formData.staff_id}
-              onChange={(v) => {
-                setFormData({ ...formData, staff_id: v });
-                if (validationErrors.staff_id) {
-                  setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.staff_id;
-                    return newErrors;
-                  });
-                }
+              onChange={v => { 
+                setFormData({ ...formData, staff_id: v }); 
+                setValidationErrors(prev => { const n = { ...prev }; delete n.staff_id; return n; });
               }}
-              options={doctors}
-              placeholder={loadingDoc ? "Loading…" : "Select Doctor"}
-              loading={loadingDoc}
-              isObject={true}
-              required={true}
-              error={validationErrors.staff_id}
+              options={doctors} 
+              placeholder={loadingDoc ? "Loading…" : "Select Doctor"} 
+              loading={loadingDoc} 
+              isObject 
+              required 
+              error={validationErrors.staff_id} 
             />
-            
-            <Dropdown
-              label="Status"
+
+            {/* Status Dropdown */}
+            <Dropdown 
+              label="Status" 
               value={formData.status}
-              onChange={(v) => {
-                setFormData({ ...formData, status: v });
-                if (validationErrors.status) {
-                  setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.status;
-                    return newErrors;
-                  });
-                }
+              onChange={v => { 
+                setFormData({ ...formData, status: v }); 
+                setValidationErrors(prev => { const n = { ...prev }; delete n.status; return n; });
               }}
-              options={["new", "normal", "severe", "completed", "cancelled", "active", "inactive", "emergency"]}
-              placeholder="Select Status"
-              required={true}
-              error={validationErrors.status}
+              options={["new", "normal", "severe", "completed", "cancelled"]}
+              placeholder="Select Status" 
+              required 
+              error={validationErrors.status} 
             />
-            
+
+            {/* Phone Number */}
             <div>
-              <label className="text-sm text-black dark:text-white">
+              <label className="text-sm text-black dark:text-white block mb-1">
                 Phone Number <span className="text-red-700">*</span>
               </label>
-              <input
-                type="tel"
-                value={formData.phone_no}
-                onChange={(e) => handleInputChange("phone_no", e.target.value)}
-                placeholder="Enter phone"
-                maxLength="10"
-                className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
-                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-                            placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-              />
+              <div className="relative w-[228px]">
+                <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0EFF7B]" />
+                <input 
+                  type="tel" 
+                  value={formData.phone_no} 
+                  onChange={e => handleInputChange("phone_no", e.target.value)} 
+                  onFocus={() => setFocusedField("phone")}
+                  onBlur={() => setFocusedField(null)}
+                  placeholder="Enter phone" 
+                  maxLength="10"
+                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border bg-gray-100 dark:bg-transparent
+                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-black dark:text-[#0EFF7B] text-sm
+                             ${focusedField === "phone" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                               validationErrors.phone_no ? "border-red-500 ring-1 ring-red-500" :
+                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
+              </div>
               {validationErrors.phone_no && (
-                <div className="text-red-500 text-xs mt-1">{validationErrors.phone_no}</div>
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+                  <span className="text-red-700 dark:text-red-400 text-xs">{validationErrors.phone_no}</span>
+                </div>
               )}
             </div>
-            
-            <Dropdown
-              label="Appointment Type"
+
+            {/* Appointment Type Dropdown */}
+            <Dropdown 
+              label="Appointment Type" 
               value={formData.appointment_type}
-              onChange={(v) => {
-                setFormData({ ...formData, appointment_type: v });
-                if (validationErrors.appointment_type) {
-                  setValidationErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.appointment_type;
-                    return newErrors;
-                  });
-                }
+              onChange={v => { 
+                setFormData({ ...formData, appointment_type: v }); 
+                setValidationErrors(prev => { const n = { ...prev }; delete n.appointment_type; return n; });
               }}
-              options={["checkup", "followup", "emergency"]}
-              placeholder="Select Type"
-              required={true}
-              error={validationErrors.appointment_type}
+              options={["checkup", "followup", "emergency"]} 
+              placeholder="Select Type" 
+              required 
+              error={validationErrors.appointment_type} 
             />
+
           </div>
-          
-          {/* Combined date-time error message */}
+
           {validationErrors.appointment_date_time && (
-            <div className="mt-4 p-2 rounded bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <div className="text-red-600 dark:text-red-400 text-sm">
-                {validationErrors.appointment_date_time}
-              </div>
+            <div className="mt-4 flex items-center gap-1">
+              <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+              <span className="text-red-700 dark:text-red-500 text-xs">{validationErrors.appointment_date_time}</span>
             </div>
           )}
-          
+
           <div className="flex justify-center gap-2 mt-8">
-            <button
-              onClick={onClose}
-              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600
-                          text-gray-600 dark:text-white font-medium text-[14px] leading-[16px]
-                          shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent"
-            >
+            <button onClick={onClose}
+              className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-gray-600 text-gray-600 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] bg-gray-100 dark:bg-transparent
+                         hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
               Cancel
             </button>
-            
-            {/* Update Button with Tooltip */}
             <div className="relative group">
-              <button
-                onClick={handleUpdate}
-                disabled={saving || !canEditAppointment}
-                className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66]
+              <button 
+                onClick={handleUpdate} 
+                disabled={saving || !canEditAppointment || Object.keys(validationErrors).length > 0}
+                className={`w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B66] 
                             bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126]
                             shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] transition
-                            ${!canEditAppointment ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
-              >
-                {saving ? "Updating…" : "Update"}
+                            ${!canEditAppointment || saving || Object.keys(validationErrors).length > 0 
+                              ? "opacity-50 cursor-not-allowed" 
+                              : "hover:scale-105"}`}>
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Updating…
+                  </span>
+                ) : "Update"}
               </button>
-              
-              {/* Tooltip for disabled state due to permissions */}
               {!canEditAppointment && (
-                <span
-                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 
-                             whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                             bg-gray-100 dark:bg-black text-black dark:text-white
-                             opacity-0 group-hover:opacity-100
-                             transition-all duration-150 z-50 pointer-events-none"
-                >
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all z-50 pointer-events-none">
                   Access Denied - Admin/Receptionist Only
+                </span>
+              )}
+              {canEditAppointment && Object.keys(validationErrors).length > 0 && (
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all z-50 pointer-events-none">
+                  Fix validation errors first
                 </span>
               )}
             </div>
           </div>
+
         </div>
       </div>
     </div>

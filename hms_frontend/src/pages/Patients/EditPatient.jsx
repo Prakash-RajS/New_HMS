@@ -20,6 +20,7 @@ const EditPatientPopup = ({
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [error, setError] = useState("");
   const [phoneError, setPhoneError] = useState("");
+  const [nameError, setNameError] = useState("");
 
   const { isAdmin, currentUser } = usePermissions();
   
@@ -151,6 +152,11 @@ const EditPatientPopup = ({
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`; // YYYY-MM-DD
   };
 
+  // Name validation (letters and spaces only)
+const isValidName = (name) => {
+  return /^[A-Za-z\s]+$/.test(name.trim());
+};
+
   // Phone validation (exactly 10 digits)
   const isValidPhoneNumber = (phone) => {
   // Must be exactly 10 digits
@@ -210,20 +216,27 @@ const handlePhoneChange = (value) => {
 
   // Submit update
   const handleUpdate = async () => {
-    // Final phone validation
-    if (!canEdit) {
-      errorToast("You do not have permission to edit patient details.");
-      return;
-    }
-    if (formData.phone_number.length !== 10) {
-    setPhoneError("Phone number must be exactly 10 digits");
-    errorToast("Please enter a valid 10-digit phone number");
+  if (!canEdit) {
+    errorToast("You do not have permission to edit patient details.");
     return;
   }
-  
-  if (!isValidPhoneNumber(formData.phone_number)) {
-    setPhoneError("Please enter a valid phone number");
-    errorToast("Please enter a valid phone number (e.g., 9876543210)");
+
+  // 🚨 Stop update if name validation error exists
+  if (nameError) {
+    errorToast("Please fix the name validation error before updating.");
+    return;
+  }
+
+  // Extra safety validation
+  if (!isValidName(formData.full_name)) {
+    setNameError("Name should contain only letters and spaces");
+    errorToast("Please enter a valid patient name");
+    return;
+  }
+
+  if (formData.phone_number.length !== 10) {
+    setPhoneError("Phone number must be exactly 10 digits");
+    errorToast("Please enter a valid 10-digit phone number");
     return;
   }
 
@@ -438,15 +451,26 @@ const handlePhoneChange = (value) => {
                 </label>
                 <input
                   value={formData.full_name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      full_name: e.target.value,
-                    }))
-                  }
+                 onChange={(e) => {
+  const value = e.target.value;
+
+  setFormData((prev) => ({
+    ...prev,
+    full_name: value,
+  }));
+
+  if (value.length > 0 && !isValidName(value)) {
+    setNameError("Name should contain only letters and spaces");
+  } else {
+    setNameError("");
+  }
+}}
                   placeholder="Enter name"
                   className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
                 />
+                {nameError && (
+  <p className="text-red-500 text-xs mt-1">{nameError}</p>
+)}
               </div>
 
               <Dropdown

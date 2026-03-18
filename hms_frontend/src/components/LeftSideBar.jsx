@@ -1255,7 +1255,7 @@
 // }
 
 // Sidebar.jsx - Fixed Hooks order + hidden scrollbar that appears on hover/scroll
-// Sidebar.jsx - Fixed logo rendering with proper fallback on load error
+// Sidebar.jsx
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import LOGO from "../assets/logo.png";
@@ -1325,13 +1325,6 @@ const menuItems = [
         icon: ClipboardList,
         permission: "patients_profile",
       },
-      //  {
-      //   name: "Treatment Charges",
-      //   path: "/patients/treatment-charges",
-      //   icon: DollarSign,
-      //   permission: "treatment_charges",
-      // },
-      
       {
         name: "Surgeries",
         path: "/patients/surgeries",
@@ -1466,8 +1459,7 @@ const menuItems = [
         icon: BadgeDollarSign,
         permission: "charges_management",
       },
-      ],
-    
+    ],
   },
   {
     name: "Settings",
@@ -1484,7 +1476,7 @@ const menuItems = [
   },
 ];
 
-// Recursive MenuItem component — unchanged from your working version
+// ── MenuItem ──────────────────────────────────────────────────────────────────
 const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -1625,34 +1617,18 @@ const MenuItem = ({ item, level = 0, isCollapsed, hasPermission }) => {
   );
 };
 
-// ── SidebarLogo ──────────────────────────────────────────────────────────────
-// Isolated component so logo error state doesn't re-render the whole sidebar.
-// When hospitalInfo.logo changes (e.g. after upload or refresh), we reset the
-// error flag so the new URL gets a fresh attempt.
-// Add this helper function at the top of Sidebar.jsx (outside the component)
-function normalizeLogo(logo) {
-  if (!logo) return null;
-  if (logo.startsWith("http://") || logo.startsWith("https://")) return logo;
-  const origin = window.location.origin;
-  if (logo.startsWith("/media/")) return `${origin}${logo}`;
-  if (logo.startsWith("/")) return `${origin}${logo}`;
-  return `${origin}/media/${logo}`;
-}
-
-// Update the SidebarLogo component
+// ── SidebarLogo ───────────────────────────────────────────────────────────────
+// No normalizeLogo here — HospitalContext already returns full URL
 function SidebarLogo({ hospitalInfo, hospitalLoading, hospitalError }) {
   const [imgError, setImgError] = useState(false);
-  const [normalizedLogo, setNormalizedLogo] = useState(null);
 
-  // Reset error flag and normalize URL whenever the logo changes
+  // Use logo directly from context — already a full absolute URL
+  const logoUrl = hospitalInfo?.logo || null;
+
+  // Reset imgError whenever logoUrl changes so new URL gets a fresh attempt
   useEffect(() => {
     setImgError(false);
-    if (hospitalInfo.logo) {
-      setNormalizedLogo(normalizeLogo(hospitalInfo.logo));
-    } else {
-      setNormalizedLogo(null);
-    }
-  }, [hospitalInfo.logo]);
+  }, [logoUrl]);
 
   if (hospitalLoading) {
     return (
@@ -1672,23 +1648,18 @@ function SidebarLogo({ hospitalInfo, hospitalLoading, hospitalError }) {
     );
   }
 
-  // Show hospital logo only when we have a URL AND it hasn't errored
-  if (normalizedLogo && !imgError) {
+  if (logoUrl && !imgError) {
     return (
       <img
-        src={normalizedLogo}
+        src={logoUrl}
         alt={hospitalInfo.hospital_name || "Hospital Logo"}
         className="w-[118px] h-[36px] object-contain"
         onError={() => {
-          console.warn(
-            "[Sidebar] Hospital logo failed to load:",
-            normalizedLogo,
-          );
+          console.warn("[Sidebar] Hospital logo failed to load:", logoUrl);
           setImgError(true);
         }}
         onLoad={() => {
-          // Successfully loaded - you could log this if needed
-          console.log("[Sidebar] Hospital logo loaded successfully:", normalizedLogo);
+          console.log("[Sidebar] Hospital logo loaded successfully:", logoUrl);
         }}
       />
     );
@@ -1704,21 +1675,22 @@ function SidebarLogo({ hospitalInfo, hospitalLoading, hospitalError }) {
   );
 }
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
   const {
     hasPermission,
     currentUser,
-     permissions,
+    permissions,
     loading: permissionsLoading,
   } = usePermissions();
- 
+
   const {
     hospitalInfo,
     loading: hospitalLoading,
     error: hospitalError,
   } = useHospital();
-    useEffect(() => {
+
+  useEffect(() => {
     if (!permissionsLoading && currentUser) {
       console.log("👤 Current User:", currentUser);
       console.log("🔑 Has 'treatment_charges' permission:", hasPermission("treatment_charges"));
@@ -1726,7 +1698,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       console.log("📋 All permissions object:", permissions);
     }
   }, [permissionsLoading, currentUser]);
-
 
   if (permissionsLoading) {
     return (

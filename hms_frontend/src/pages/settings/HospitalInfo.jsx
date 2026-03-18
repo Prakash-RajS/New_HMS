@@ -313,7 +313,7 @@ const isValidGSTIN = (gstin) => {
       setUploadingLogo(true);
 
       const response = await uploadFile(
-        "/hospital/upload-logo",
+        "/settings/hospital/upload-logo",
         file,
         (progress) => console.log(`Upload progress: ${progress}%`),
       );

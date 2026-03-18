@@ -253,14 +253,14 @@ async def login(
 async def refresh_token(request: Request, response: Response):
     try:
         print("🔄 Attempting token refresh...")
-        
-        # Get refresh token from cookie
+
+        ensure_db_connection()  # ⭐ ADD THIS LINE
+
         refresh_token_value = request.cookies.get("refresh_token")
         if not refresh_token_value:
             print("❌ No refresh token in cookies")
             raise HTTPException(status_code=401, detail="Refresh token required")
-        
-        # Decode refresh token
+
         payload = jwt.decode(refresh_token_value, SECRET_KEY, algorithms=[ALGORITHM])
         
         if payload.get("type") != "refresh":
@@ -316,9 +316,10 @@ async def refresh_token(request: Request, response: Response):
     except JWTError as e:
         print(f"❌ JWT error during refresh: {e}")
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
     except Exception as e:
         print(f"❌ Token refresh failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Token refresh failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Token refresh failed")
 
 @router.post("/logout")
 async def logout(request: Request, response: Response):

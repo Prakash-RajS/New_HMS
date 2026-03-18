@@ -4,6 +4,8 @@ import { Listbox } from "@headlessui/react";
 import { successToast, errorToast, warningToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function AddSurgeryPopup({ onClose, onSuccess }) {
   // State
@@ -40,21 +42,21 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   
   // Use ref to prevent multiple toast calls
   const toastShownRef = useRef(false);
-  const dateInputRef = useRef(null);
-  const timeInputRef = useRef(null);
+
+  
 
   // Format validation functions
   const validateSurgeryType = (value) => {
-    if (!value.trim()) return "";
-    
-    if (!/^[A-Za-z0-9\s\-.,()]+$/.test(value)) 
-      return "Surgery type can only contain letters, numbers, spaces, hyphens, commas, periods, and parentheses";
-    
-    if (value.trim().length < 2) 
-      return "Surgery type must be at least 2 characters";
-    
-    return "";
-  };
+  if (!value.trim()) return "";
+
+  if (!/^[A-Za-z\s\-.,()]+$/.test(value))
+    return "Surgery type can only contain letters, spaces, hyphens, commas, periods, and parentheses";
+
+  if (value.trim().length < 2)
+    return "Surgery type must be at least 2 characters";
+
+  return "";
+};
 
   const validateDateTime = () => {
     if (!formData.scheduled_date) return "Surgery date is required";
@@ -561,6 +563,8 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     onClose?.();
   };
 
+
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica] overflow-y-auto py-4">
       <div
@@ -826,107 +830,115 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
             </div>
             
             {/* Surgery Date - Row 2, Column 2 */}
-            <div className="col-span-1">
-              <label className="text-sm text-black dark:text-white">
-                Surgery Date <span className="text-red-700">*</span>
-              </label>
-              <div className="relative mt-1">
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  value={formData.scheduled_date}
-                  onChange={(e) => handleInputChange("scheduled_date", e.target.value)}
-                  onFocus={() => setFocusedField("scheduled_date")}
-                  onBlur={() => setFocusedField(null)}
-                  min={new Date().toISOString().split("T")[0]}
-                  className={`w-full h-[33px] px-3 rounded-[8px] border
-                            bg-gray-100 dark:bg-transparent outline-none
-                            text-black dark:text-[#0EFF7B] cursor-pointer
-                            [&::-webkit-calendar-picker-indicator]:opacity-0
-                            [&::-webkit-calendar-picker-indicator]:absolute
-                            [&::-webkit-calendar-picker-indicator]:right-2
-                            [&::-webkit-calendar-picker-indicator]:w-4
-                            [&::-webkit-calendar-picker-indicator]:h-4
-                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                            ${focusedField === "scheduled_date"
-                              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                              : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
-                                ? "border-red-500 ring-1 ring-red-500"
-                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                            }`}
-                  style={{
-                    colorScheme: 'normal'
-                  }}
-                />
-                <Calendar
-                  size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer
-                            hover:text-[#0EFF7B]"
-                  onClick={() => {
-                    dateInputRef.current?.showPicker();
-                  }}
-                />
-              </div>
-              {getFieldError("scheduled_date") && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {getFieldError("scheduled_date")}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Surgery Time - Row 2, Column 3 */}
-            <div className="col-span-1">
-              <label className="text-sm text-black dark:text-white">
-                Surgery Time <span className="text-red-700">*</span>
-              </label>
-              <div className="relative mt-1">
-                <input
-                  ref={timeInputRef}
-                  type="time"
-                  value={formData.scheduled_time}
-                  onChange={(e) => handleInputChange("scheduled_time", e.target.value)}
-                  onFocus={() => setFocusedField("scheduled_time")}
-                  onBlur={() => setFocusedField(null)}
-                  className={`w-full h-[33px] px-3 rounded-[8px] border
-                            bg-gray-100 dark:bg-transparent outline-none
-                            text-black dark:text-[#0EFF7B] cursor-pointer
-                            [&::-webkit-calendar-picker-indicator]:opacity-0
-                            [&::-webkit-calendar-picker-indicator]:absolute
-                            [&::-webkit-calendar-picker-indicator]:right-2
-                            [&::-webkit-calendar-picker-indicator]:w-4
-                            [&::-webkit-calendar-picker-indicator]:h-4
-                            [&::-webkit-calendar-picker-indicator]:cursor-pointer
-                            ${focusedField === "scheduled_time"
-                              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                              : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
-                                ? "border-red-500 ring-1 ring-red-500"
-                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                            }`}
-                  style={{
-                    colorScheme: 'normal'
-                  }}
-                />
-                <Clock
-                  size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] cursor-pointer
-                            hover:text-[#0EFF7B]"
-                  onClick={() => {
-                    timeInputRef.current?.showPicker();
-                  }}
-                />
-              </div>
-              {getFieldError("scheduled_time") && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {getFieldError("scheduled_time")}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Surgery Date & Time - Combined DatePicker */}
+{/* Surgery Date - Row 2, Column 2 */}
+<div className="col-span-1">
+  <label className="text-sm text-black dark:text-white">
+    Surgery Date <span className="text-red-700">*</span>
+  </label>
+  <div className="relative mt-1">
+    <DatePicker
+      selected={formData.scheduled_date ? new Date(formData.scheduled_date) : null}
+      onChange={(date) => {
+        if (date) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          handleInputChange("scheduled_date", `${year}-${month}-${day}`);
+        } else {
+          handleInputChange("scheduled_date", "");
+        }
+      }}
+      dateFormat="yyyy-MM-dd"
+      minDate={new Date()}
+      placeholderText="Select date"
+      className={`w-full h-[33px] px-3 rounded-[8px] border
+                bg-gray-100 dark:bg-transparent outline-none
+                text-black dark:text-[#0EFF7B] cursor-pointer
+                ${focusedField === "scheduled_date"
+                  ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                  : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                }`}
+      wrapperClassName="w-full"
+      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+      dayClassName={(date) => 
+        date.getDate() === new Date().getDate() ? "dark:text-[#0EFF7B]" : ""
+      }
+      popperClassName="z-50"
+      onFocus={() => setFocusedField("scheduled_date")}
+      onBlur={() => setFocusedField(null)}
+    />
+    <Calendar
+      size={18}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+    />
+  </div>
+  {getFieldError("scheduled_date") && (
+    <div className="mt-1 flex items-center gap-1">
+      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+      <span className="text-red-700 dark:text-red-400 text-xs">
+        {getFieldError("scheduled_date")}
+      </span>
+    </div>
+  )}
+</div>
+
+{/* Surgery Time - Row 2, Column 3 */}
+<div className="col-span-1">
+  <label className="text-sm text-black dark:text-white">
+    Surgery Time <span className="text-red-700">*</span>
+  </label>
+  <div className="relative mt-1">
+    <DatePicker
+      selected={formData.scheduled_date && formData.scheduled_time 
+        ? new Date(`${formData.scheduled_date}T${formData.scheduled_time}`) 
+        : null}
+      onChange={(time) => {
+        if (time) {
+          const hours = String(time.getHours()).padStart(2, '0');
+          const minutes = String(time.getMinutes()).padStart(2, '0');
+          handleInputChange("scheduled_time", `${hours}:${minutes}`);
+        } else {
+          handleInputChange("scheduled_time", "");
+        }
+      }}
+      showTimeSelect
+      showTimeSelectOnly
+      timeIntervals={15}
+      timeCaption="Time"
+      dateFormat="h:mm aa"
+      placeholderText="Select time"
+      className={`w-full h-[33px] px-3 rounded-[8px] border
+                bg-gray-100 dark:bg-transparent outline-none
+                text-black dark:text-[#0EFF7B] cursor-pointer
+                ${focusedField === "scheduled_time"
+                  ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                  : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
+                    ? "border-red-500 ring-1 ring-red-500"
+                    : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                }`}
+      wrapperClassName="w-full"
+      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+      popperClassName="z-50"
+      onFocus={() => setFocusedField("scheduled_time")}
+      onBlur={() => setFocusedField(null)}
+    />
+    <Clock
+      size={18}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+    />
+  </div>
+  {getFieldError("scheduled_time") && (
+    <div className="mt-1 flex items-center gap-1">
+      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+      <span className="text-red-700 dark:text-red-400 text-xs">
+        {getFieldError("scheduled_time")}
+      </span>
+    </div>
+  )}
+</div>
             
             {/* Description - Row 3, Column 1, 2 & 3 (spans all 3 columns) */}
             <div className="col-span-3">

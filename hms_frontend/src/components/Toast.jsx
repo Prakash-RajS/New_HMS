@@ -116,17 +116,17 @@ const Toast = ({ message, type = "success", isOpen, onClose, duration = 3000 }) 
   }, [isOpen, duration, onClose]);
 
   const bgColor =
-    theme === "dark"
-      ? type === "success"
-        ? "bg-[#0D0D0D] text-[#14DC6F] border-[#3C3C3C]"
-        : type === "error"
-        ? "bg-[#0D0D0D] text-[#FF4C4C] border-[#3C3C3C]"
-        : "bg-[#0D0D0D] text-[#FFA500] border-[#3C3C3C]" // Warning color for dark theme
-      : type === "success"
-      ? "bg-[#0EFF7B33] text-[#14DC6F] border-green-500"
+  theme === "dark"
+    ? type === "success"
+      ? "bg-[#0D0D0D] text-[#14DC6F] border-[#3C3C3C]"
       : type === "error"
-      ? "bg-[#FFE5E5] text-[#FF4C4C] border-red-500"
-      : "bg-[#FFF3CD] text-[#856404] border-yellow-500"; // Warning color for light theme
+      ? "bg-[#0D0D0D] text-[#FF4C4C] border-[#3C3C3C]"
+      : "bg-[#0D0D0D] text-[#FFA500] border-[#3C3C3C]"
+    : type === "success"
+    ? "bg-green-700 text-white border-green-500"
+    : type === "error"
+    ? "bg-red-700 text-white border-red-500"
+    : "bg-yellow-700 text-white border-yellow-500";
 
   return (
     <AnimatePresence>

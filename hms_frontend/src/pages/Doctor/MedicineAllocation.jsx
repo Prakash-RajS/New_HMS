@@ -1510,6 +1510,36 @@ export default function ViewPatientProfile() {
   
 const userRole = currentUser?.role?.toLowerCase();
 const canManage = isAdmin || userRole === "doctor"; // Doctor and Admin can manage (add/edit/delete)
+const canViewHistory = isAdmin || userRole === "doctor" || userRole === "nurse";
+const hasAccess = canManage || canViewHistory;
+
+// If user has no access, show lock icon/access denied message
+if (!hasAccess) {
+  return (
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-8 w-full max-w-[2500px] mx-auto relative font-[Helvetica]">
+      <div className="flex flex-col items-center justify-center min-h-[500px]">
+        <div className="text-8xl mb-6 animate-pulse">🔒</div>
+        <h1 className="text-3xl font-bold mb-3 text-gray-800 dark:text-white">
+          Access Restricted
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400 text-center max-w-lg mb-4">
+          You don't have permission to view or manage medicine allocations.
+        </p>
+        <div className="bg-gray-200 dark:bg-gray-800 p-4 rounded-lg">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
+            <span className="font-semibold">Required Role:</span> Doctor, Nurse, or Administrator
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <span className="font-semibold">Your Role:</span> {userRole || "Unknown"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Check if user has any access at all
+
   // ================ Validation States ================
   const [validationErrors, setValidationErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});

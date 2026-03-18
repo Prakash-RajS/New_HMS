@@ -1874,7 +1874,7 @@ const handleSubmit = async (e) => {
           </div>
           
           {/* Patient Visits - Dynamic from Appointments */}
- {/* Patient Visits - Dynamic from Appointments */}
+{/* Patient Visits - Dynamic from Appointments */}
 <div>
   <h3 className="font-semibold mb-3 text-black dark:text-white flex items-center gap-2">
     <Calendar size={18} className="text-[#08994A] dark:text-[#0EFF7B]" />
@@ -1884,103 +1884,195 @@ const handleSubmit = async (e) => {
     )}
   </h3>
   
-  {appointments.length === 0 ? (
-    <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-6 rounded-[12px] text-center">
-      <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-      <p className="text-black dark:text-white">No appointments found</p>
-      <p className="text-sm text-gray-500 mt-1">No upcoming or past appointments scheduled</p>
-    </div>
-  ) : (
-    <div className="grid sm:grid-cols-2 gap-4">
-      {appointments.slice(0, 10).map((app) => {
-        // Format time to display in readable format
-        const formattedTime = app.appointment_time 
-          ? new Date(`2000-01-01T${app.appointment_time}`).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            })
-          : 'Time TBD';
-        
-        // Format date to display
-        const formattedDate = app.appointment_date
-          ? new Date(app.appointment_date).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
-            })
-          : 'Date TBD';
-        
-        // DYNAMIC DESCRIPTION WITH ICONS
-        const getDynamicDescription = () => {
-          const type = app.appointment_type?.toLowerCase() || '';
-          const status = app.status?.toLowerCase() || '';
+  {/* Filter appointments - show only active/upcoming ones */}
+  {(() => {
+    // Define which statuses should be shown in patient visits
+    const activeStatuses = ['new', 'normal', 'severe', 'active', 'scheduled', 'pending', 'confirmed', 'emergency'];
+    
+    const activeAppointments = appointments.filter(app => 
+      activeStatuses.includes(app.status?.toLowerCase())
+    );
+    
+    const completedAppointments = appointments.filter(app => 
+      app.status?.toLowerCase() === 'completed' || app.status?.toLowerCase() === 'cancelled'
+    );
+    
+    if (appointments.length === 0) {
+      return (
+        <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-6 rounded-[12px] text-center">
+          <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+          <p className="text-black dark:text-white">No appointments found</p>
+          <p className="text-sm text-gray-500 mt-1">No upcoming or past appointments scheduled</p>
+        </div>
+      );
+    }
+    
+    return (
+    <div className="space-y-4">
+  {/* Active Appointments Section */}
+  {activeAppointments.length > 0 ? (
+    <div>
+      <h4 className="text-sm font-medium text-black dark:text-white mb-2 flex items-center gap-2">
+        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+        Upcoming/Active ({activeAppointments.length})
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {activeAppointments.slice(0, 5).map((app) => {
+          // Format time to display in readable format
+          const formattedTime = app.appointment_time 
+            ? new Date(`2000-01-01T${app.appointment_time}`).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            : 'Time TBD';
           
-          // Emergency gets highest priority
-          if (type === 'emergency' || status === 'emergency') {
-            return '🚨 Emergency case - Immediate attention required';
-          }
+          // Format date to display
+          const formattedDate = app.appointment_date
+            ? new Date(app.appointment_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })
+            : 'Date TBD';
           
-          // Status-based
-          if (status === 'completed') {
-            return '✓ Appointment completed - Follow-up if needed';
-          }
-          if (status === 'cancelled') {
-            return '✗ Appointment cancelled - Reschedule required';
-          }
-          if (status === 'severe') {
-            return '⚠️ Severe condition - Close monitoring required';
-          }
-          if (status === 'normal') {
-            return '📊 Normal checkup - Routine monitoring';
-          }
+          // DYNAMIC DESCRIPTION WITH ICONS
+          const getDynamicDescription = () => {
+            const type = app.appointment_type?.toLowerCase() || '';
+            const status = app.status?.toLowerCase() || '';
+            
+            // Emergency gets highest priority
+            if (type === 'emergency' || status === 'emergency') {
+              return '🚨 Emergency case - Immediate attention required';
+            }
+            
+            // Status-based
+            if (status === 'severe') {
+              return '⚠️ Severe condition - Close monitoring required';
+            }
+            if (status === 'new') {
+              return '🆕 New appointment - Patient waiting';
+            }
+            if (status === 'normal') {
+              return '📊 Normal checkup - Routine monitoring';
+            }
+            
+            // Type-based
+            switch(type) {
+              case 'checkup':
+                return '🩺 Routine checkup - Vital signs & basic assessments';
+              case 'followup':
+                return '📋 Follow-up consultation - Review progress & treatment';
+              default:
+                return '💊 General consultation - Patient evaluation';
+            }
+          };
           
-          // Type-based
-          switch(type) {
-            case 'checkup':
-              return '🩺 Routine checkup - Vital signs & basic assessments';
-            case 'followup':
-              return '📋 Follow-up consultation - Review progress & treatment';
-            case 'emergency':
-              return '🚑 Emergency consultation - Urgent care required';
-            default:
-              return '💊 General consultation - Patient evaluation';
-          }
-        };
+          // Determine background color based on status or type
+          const bgColor = app.status?.toLowerCase() === 'emergency' || app.appointment_type?.toLowerCase() === 'emergency'
+            ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'
+            : 'bg-[#0EFF7B1A] dark:bg-[#000000]';
+          
+          return (
+            <div 
+              key={app.id} 
+              className={`${bgColor} p-4 rounded-[12px]`}
+            >
+              <p className="font-semibold text-black dark:text-white">
+                {app.patient_name}
+              </p>
+              <p className="text-blue-400 text-sm">
+                {formattedTime} - {formattedDate}
+              </p>
+              <p className="text-gray-600 dark:text-gray-400 text-xs italic">
+                {getDynamicDescription()}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  app.status?.toLowerCase() === 'emergency' 
+                    ? 'bg-red-500 text-white'
+                    : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                }`}>
+                  {app.status || 'Scheduled'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
         
-        // Determine background color based on status or type
-        const bgColor = app.status?.toLowerCase() === 'emergency' || app.appointment_type?.toLowerCase() === 'emergency'
-          ? 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'
-          : 'bg-[#0EFF7B1A] dark:bg-[#000000]';
-        
-        return (
-          <div 
-            key={app.id} 
-            className={`${bgColor} p-4 rounded-[12px]`}
-          >
-            <p className="font-semibold text-black dark:text-white">
-              {app.patient_name}
-            </p>
-            <p className="text-blue-400 text-sm">
-              {formattedTime} - {formattedDate}
-            </p>
-            <p className="text-gray-600 dark:text-gray-400 text-xs italic">
-              {getDynamicDescription()}
+        {/* Show +X more for active appointments when >5 */}
+        {activeAppointments.length > 5 && (
+          <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px] flex items-center justify-center border-2 border-dashed border-[#0EFF7B66]">
+            <p className="text-sm font-medium text-[#08994A] dark:text-[#0EFF7B]">
+              +{activeAppointments.length - 5} more waiting
             </p>
           </div>
-        );
-      })}
-      
-      {/* Show count if more than 10 appointments */}
-      {appointments.length > 10 && (
-        <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-4 rounded-[12px] flex items-center justify-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            +{appointments.length - 10} more appointments
-          </p>
-        </div>
-      )}
+        )}
+      </div>
+    </div>
+  ) : (
+    <div className="bg-[#0EFF7B1A] dark:bg-[#000000] p-6 rounded-[12px] text-center">
+      <p className="text-black dark:text-white">No upcoming appointments</p>
     </div>
   )}
+  
+  {/* Show completed appointments in a separate section */}
+  {completedAppointments.length > 0 && (
+    <div className="mt-6">
+      <h4 className="text-sm font-medium text-black dark:text-white mb-2 flex items-center gap-2">
+        <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+        Past Appointments ({completedAppointments.length})
+      </h4>
+      <div className="grid sm:grid-cols-2 gap-4">
+        {completedAppointments.slice(0, 5).map((app) => {
+          // Format time to display in readable format
+          const formattedTime = app.appointment_time 
+            ? new Date(`2000-01-01T${app.appointment_time}`).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })
+            : 'Time TBD';
+          
+          // Format date to display
+          const formattedDate = app.appointment_date
+            ? new Date(app.appointment_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+              })
+            : 'Date TBD';
+          
+          return (
+            <div 
+              key={app.id} 
+              className="bg-gray-100 dark:bg-gray-800/30 p-4 rounded-[12px] opacity-75"
+            >
+              <p className="font-semibold text-black dark:text-white">
+                {app.patient_name}
+              </p>
+              <p className="text-gray-500 text-sm">
+                {formattedTime} - {formattedDate}
+              </p>
+              <div className="mt-2 flex items-center gap-2">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  app.status?.toLowerCase() === 'completed' 
+                    ? 'bg-green-500 text-white'
+                    : 'bg-red-500 text-white'
+                }`}>
+                  {app.status}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* NO +X MORE FOR COMPLETED APPOINTMENTS - just show the 5 max */}
+    </div>
+  )}
+</div>
+    );
+  })()}
 </div>
           
           {/* Availability */}

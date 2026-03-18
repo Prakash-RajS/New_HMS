@@ -659,7 +659,8 @@ app.include_router(dashboard.router)
 app.include_router(treatment_charges.router)
 app.include_router(laboratory.router)
 app.include_router(surgery.router)
-app.include_router(settings.router)
+app.include_router(settings.router,prefix="/settings",
+    tags=["Settings"])
 app.include_router(charges.router)
 
 # Make notify_clients available to routers

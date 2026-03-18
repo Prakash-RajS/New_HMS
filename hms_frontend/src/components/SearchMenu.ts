@@ -279,7 +279,7 @@ export const menuItems = [
         path: "/Administration/BedList",
         icon: Bed,
       },
-      { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
+      // { name: "Staff Management", path: "/Administration/StaffManagement", icon: UserCog },
     ],
   },
   {
@@ -315,6 +315,7 @@ export const menuItems = [
     icon: Microscope,
     dropdown: [
       { name: "Laboratory Reports", path: "/ClinicalResources/Laboratory/LaboratoryReports", icon: BarChart3 },
+      { name: "Laboratory Management", path: "/ClinicalResources/Laboratory/Laboratory", icon: Microscope },
       { name: "Blood Bank", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
       { name: "Donor", path: "/ClinicalResources/ClinicalReports/BloodBank", icon: HeartPulse },
       { name: "Ambulance Management", path: "/ClinicalResources/EmergencyServices/Ambulance", icon: Ambulance },

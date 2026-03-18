@@ -1196,6 +1196,7 @@ import {
   Trash2,
   FileText,
   Eye,
+  AlertCircle,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../../utils/axiosConfig";
@@ -1426,7 +1427,8 @@ const LabReport = () => {
 
       const result = response.data;
       await fetchLabReports();
-      successToast(`Lab report #${id} updated successfully!`);
+      const orderId = selectedOrderForEdit?.orderId || `#${id}`;
+    successToast(`Lab report ${orderId} updated successfully!`);
       return result;
     } catch (err) {
       errorToast(err.response?.data?.detail || err.message || "Failed to update lab report");
@@ -1629,15 +1631,22 @@ const LabReport = () => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
-    if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
-    if (!formData.department) newErrors.department = "Department is required";
-    if (!formData.testType.trim()) newErrors.testType = "Test type is required";
-    if (!formData.status) newErrors.status = "Status is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const newErrors = {};
+  if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
+  if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
+  if (!formData.department) newErrors.department = "Department is required";
+  if (!formData.testType.trim()) newErrors.testType = "Test type is required";
+  if (!formData.status) newErrors.status = "Status is required";
+  
+  // ✅ NEW: Validate file upload when status is "completed"
+  if (formData.status === "completed" && !formData.labReportFile) {
+    newErrors.labReportFile = "Lab report file is required when status is Completed";
+  }
+  
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
 
   const handleSaveEdit = async () => {
      if (!canEdit) {
@@ -2310,44 +2319,60 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 />
 
                 {/* Lab Report File Upload - Only show when status is "completed" */}
-                {formData.status === "completed" && (
-                  <div className="col-span-2">
-                    <label
-                      className="text-sm text-black dark:text-white"
-                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                    >
-                      Upload Lab Report
-                    </label>
-                    <div className="mt-2">
-                      <input
-                        type="file"
-                        id="labReportFile"
-                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            setFormData({
-                              ...formData,
-                              labReportFile: e.target.files[0],
-                            });
-                          }
-                        }}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="labReportFile"
-                        className="flex items-center justify-center w-full h-[32px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] transition-colors"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        {formData.labReportFile
-                          ? formData.labReportFile.name
-                          : "Choose file"}
-                      </label>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
-                      </p>
-                    </div>
-                  </div>
-                )}
+                {/* Lab Report File Upload - Only show when status is "completed" */}
+{formData.status === "completed" && (
+  <div className="col-span-2">
+    <label
+      className="text-sm text-black dark:text-white"
+      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+    >
+      Upload Lab Report <span className="text-red-700">*</span>
+    </label>
+    <div className="mt-2">
+      <input
+        type="file"
+        id="labReportFile"
+        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            setFormData({
+              ...formData,
+              labReportFile: e.target.files[0],
+            });
+            // Clear error when file is selected
+            if (errors.labReportFile) {
+              setErrors(prev => ({ ...prev, labReportFile: undefined }));
+            }
+          }
+        }}
+        className="hidden"
+      />
+      <label
+        htmlFor="labReportFile"
+        className={`flex items-center justify-center w-full h-[32px] px-3 rounded-[8px] border 
+          ${errors.labReportFile 
+            ? 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/20' 
+            : 'border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A]'
+          } 
+          text-[#08994A] dark:text-[#0EFF7B] text-sm cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] transition-colors`}
+      >
+        <FileText className="w-4 h-4 mr-2" />
+        {formData.labReportFile
+          ? formData.labReportFile.name
+          : "Choose file"}
+      </label>
+      {errors.labReportFile && (
+        <p className="text-red-500 dark:text-red-400 text-xs mt-1 flex items-center gap-1">
+          <AlertCircle size={12} />
+          {errors.labReportFile}
+        </p>
+      )}
+      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+        Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
+      </p>
+    </div>
+  </div>
+)}
               </div>
 
               {/* Buttons */}

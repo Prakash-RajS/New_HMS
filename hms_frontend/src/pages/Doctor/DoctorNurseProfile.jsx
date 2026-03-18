@@ -1125,67 +1125,101 @@ const ProfileSection = () => {
               style={{ zIndex: 20 }}
             >
               {/* Type badge — top left */}
-              <div className="absolute top-4 left-4 text-[#08994A] dark:text-[#0EFF7B] text-[14px]">
-                {profile.type}
-              </div>
+              {/* Type badge — top left */}
+<div className="absolute top-4 left-4">
+  <span className={`
+    px-2 py-1 rounded-full text-[12px] font-medium
+    ${profile.type === "Doctors" 
+      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-[#0EFF7B]" 
+      : profile.type === "Nurses"
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-[#6E92FF]"
+      : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-[#FF930E]"
+    }
+  `}>
+    {profile.type}
+  </span>
+</div>
 
               {/* Edit + Delete — top right */}
-              <div className="absolute top-4 right-4 flex items-center gap-2">
+     {/* Edit + Delete — top right */}
+<div className="absolute top-4 right-4 flex items-center gap-2">
 
-                {/* Edit button */}
-                <div className="relative group">
-                  <button
-                    onClick={() => handleEditProfile(profile)}
-                    disabled={!canEdit}
-                    className={`flex items-center gap-1 text-[12px] font-medium transition
-                      ${canEdit
-                        ? "text-[#08994A] dark:text-[#6E92FF] hover:text-[#025126]"
-                        : "text-gray-400 cursor-not-allowed"}`}
-                  >
-                    <Edit size={15} />
-                    <span>Edit</span>
-                  </button>
-                  <span className="absolute top-6 right-0 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                    bg-gray-100 dark:bg-black text-black dark:text-white
-                    opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
-                    {canEdit ? "Edit Profile" : "Admin Only"}
-                  </span>
-                </div>
+  {/* Edit button */}
+  <div className="relative group">
+    <button
+      onClick={() => handleEditProfile(profile)}
+      disabled={!canEdit}
+      className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[12px] font-medium transition-all duration-200
+        ${
+          canEdit
+            ? "text-blue-600 dark:text-[#6E92FF] border-transparent hover:text-blue-800 dark:hover:text-[#8FB2FF] hover:scale-105"
+            : "text-black-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-800 border-black-300 dark:border-gray-700 opacity-80 cursor-not-allowed"
+        }`}
+    >
+      <Edit
+        size={15}
+        className={`${
+          canEdit
+            ? "text-blue-600 dark:text-[#6E92FF]"
+            : "text-balck-500 dark:text-gray-400"
+        }`}
+      />
+      <span>Edit</span>
+    </button>
 
-                {/* Divider */}
-                <span className="text-gray-400 dark:text-gray-600 select-none text-xs">|</span>
+    <span className="absolute top-8 right-0 whitespace-nowrap px-3 py-1.5 text-xs rounded-md shadow-lg
+      bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700
+      opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+      {canEdit ? "Edit Profile" : "Admin Only"}
+    </span>
+  </div>
 
-                {/* Delete button */}
-                {(() => {
-                  const isPrimaryAdmin = profile.id === firstAdminId;
-                  const canDelete = isAdmin && !isPrimaryAdmin;
-                  const tooltip = !isAdmin
-                    ? "Admin Only"
-                    : isPrimaryAdmin
-                    ? "Primary admin cannot be deleted"
-                    : "Delete Profile";
-                  return (
-                    <div className="relative group">
-                      <button
-                        onClick={() => handleDeleteClick(profile)}
-                        disabled={!canDelete}
-                        className={`flex items-center gap-1 text-[12px] font-medium transition
-                          ${canDelete
-                            ? "text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                            : "text-gray-400 cursor-not-allowed opacity-50"}`}
-                      >
-                        <Trash2 size={15} />
-                        <span>Delete</span>
-                      </button>
-                      <span className="absolute top-6 right-0 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md
-                        bg-gray-100 dark:bg-black text-black dark:text-white
-                        opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
-                        {tooltip}
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
+  {/* Divider */}
+  <span className="text-gray-400 dark:text-gray-600 select-none text-xs">|</span>
+
+  {/* Delete button */}
+  {(() => {
+    const isPrimaryAdmin = profile.id === firstAdminId;
+    const canDelete = isAdmin && !isPrimaryAdmin;
+
+    const tooltip = !isAdmin
+      ? "Admin Only"
+      : isPrimaryAdmin
+      ? "Primary admin cannot be deleted"
+      : "Delete Profile";
+
+    return (
+      <div className="relative group">
+        <button
+          onClick={() => handleDeleteClick(profile)}
+          disabled={!canDelete}
+          className={`flex items-center gap-1 px-2 py-1 rounded-md border text-[12px] font-medium transition-all duration-200
+            ${
+              canDelete
+                ? "text-red-600 dark:text-red-400 border-transparent hover:text-red-800 dark:hover:text-red-300 hover:scale-105"
+                : "text-black-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-800 border-black-300 dark:border-gray-700 opacity-80 cursor-not-allowed"
+            }`}
+        >
+          <Trash2
+            size={15}
+            className={`${
+              canDelete
+                ? "text-red-600 dark:text-red-400"
+                : "text-black-500 dark:text-gray-400"
+            }`}
+          />
+          <span>Delete</span>
+        </button>
+
+        <span className="absolute top-8 right-0 whitespace-nowrap px-3 py-1.5 text-xs rounded-md shadow-lg
+          bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700
+          opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+          {tooltip}
+        </span>
+      </div>
+    );
+  })()}
+</div>
 
               {/* Profile picture */}
               <div className="w-16 h-16 mx-auto mb-4 mt-10 rounded-full overflow-hidden border-2 border-[#0EFF7B] bg-gray-200 dark:bg-neutral-800 flex items-center justify-center">

@@ -602,6 +602,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, ChevronDown, CalendarClock, MapPin, Phone } from "lucide-react";
 import { Listbox } from "@headlessui/react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 // ---------------------------------------------------------------------------
 // Valid Vizag locations
@@ -761,60 +763,127 @@ const TextInput = React.memo(({
 // ---------------------------------------------------------------------------
 // DateTimeField
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// DateTimeField - With AM/PM time display
+// ---------------------------------------------------------------------------
 const DateTimeField = React.memo(({
   label,
   name,
   required = false,
   value,
   onChange,
-  timeRef,
   error,
   submitted,
   isCreateMode,
 }) => {
-  const handleOpen = () => {
-    if (timeRef.current) {
-      try {
-        if (timeRef.current.showPicker) timeRef.current.showPicker();
-        else timeRef.current.focus();
-      } catch (_) { timeRef.current.focus(); }
+  const parseDateTime = (dateTimeStr) => {
+    if (!dateTimeStr) return null;
+    const date = new Date(dateTimeStr);
+    return isNaN(date) ? null : date;
+  };
+
+  const formatDateTime = (date) => {
+    if (!date) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const handleDateChange = (date) => {
+    if (date) {
+      // Create a synthetic event to match the expected onChange signature
+      const syntheticEvent = {
+        target: {
+          name: name,
+          value: formatDateTime(date)
+        }
+      };
+      onChange(syntheticEvent);
+    } else {
+      // Handle clearing the date
+      const syntheticEvent = {
+        target: {
+          name: name,
+          value: ""
+        }
+      };
+      onChange(syntheticEvent);
     }
   };
+
+  // Format display value for the input field (showing AM/PM)
+  const formatDisplayValue = (dateTimeStr) => {
+    if (!dateTimeStr) return "";
+    const date = new Date(dateTimeStr);
+    if (isNaN(date)) return "";
+    
+    // Format: "MMM DD, YYYY hh:mm A" (e.g., "Mar 17, 2026 02:30 PM")
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  // Custom input component to match your styling
+  const CustomInput = React.forwardRef(({ value, onClick, onBlur }, ref) => (
+    <div className="relative">
+      <input
+        ref={ref}
+        type="text"
+        value={formatDisplayValue(value) || ""}
+        onClick={onClick}
+        onBlur={onBlur}
+        readOnly
+        placeholder="Select date & time"
+        className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
+      />
+      <style>{`
+        /* Hide any browser-native calendar icons */
+        .react-datepicker-wrapper,
+        .react-datepicker__input-container {
+          display: block;
+          width: 100%;
+        }
+      `}</style>
+      <div
+        onClick={onClick}
+        className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer z-10"
+      >
+        <CalendarClock className="w-4 h-4 text-[#0EFF7B]" />
+      </div>
+    </div>
+  ));
 
   return (
     <div className="flex flex-col">
       <label className="text-black dark:text-white mb-1">
         {label} {(isCreateMode || required) && required && <span className="text-red-500">*</span>}
       </label>
-      <div className="relative">
-        <input
-          ref={timeRef}
-          type="datetime-local"
-          name={name}
-          value={value}
-          onChange={onChange}
-          onFocus={handleOpen}
-          required={false}
-          className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
-          style={{ colorScheme: "dark" }}
-        />
-        <style>{`
-          input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            opacity: 0 !important;
-            width: 0 !important;
-            height: 0 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            position: absolute !important;
-          }
-        `}</style>
-        <div
-          onMouseDown={(e) => { e.preventDefault(); handleOpen(); }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-        >
-          <CalendarClock className="w-4 h-4 text-[#0EFF7B]" />
-        </div>
-      </div>
+      <DatePicker
+        selected={parseDateTime(value)}
+        onChange={handleDateChange}
+        showTimeSelect
+        timeFormat="h:mm aa" // Changed to 12-hour format with AM/PM
+        timeIntervals={15}
+        dateFormat="MMM d, yyyy h:mm aa" // Changed to show AM/PM
+        timeCaption="Time"
+        customInput={<CustomInput />}
+        calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+        dayClassName={(date) => 
+          date.getDate() === new Date().getDate() ? "dark:text-[#0EFF7B]" : ""
+        }
+        popperClassName="z-50"
+        popperPlacement="bottom-start"
+        shouldCloseOnSelect
+        isClearable={false}
+        minDate={new Date(Date.now() - 60 * 60 * 1000)} // Allow up to 1 hour in the past
+        maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)} // 30 days in future
+        // Optional: Add locale for consistent formatting
+        locale="en-US"
+      />
       <ErrorMessage
         field={name}
         errors={{ [name]: error }}
@@ -824,7 +893,6 @@ const DateTimeField = React.memo(({
     </div>
   );
 });
-
 // ---------------------------------------------------------------------------
 // Dropdown
 // ---------------------------------------------------------------------------
@@ -1701,27 +1769,25 @@ const EditTripModal = ({
             />
 
             <DateTimeField
-              label="Start Time"
-              name="start_time"
-              required
-              value={form.start_time}
-              onChange={handleChange}
-              timeRef={startTimeRef}
-              error={errors.start_time}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-            />
+  label="Start Time"
+  name="start_time"
+  required
+  value={form.start_time}
+  onChange={handleChange}
+  error={errors.start_time}
+  submitted={submitted}
+  isCreateMode={isCreateMode}
+/>
 
-            <DateTimeField
-              label="End Time"
-              name="end_time"
-              value={form.end_time}
-              onChange={handleChange}
-              timeRef={endTimeRef}
-              error={errors.end_time}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-            />
+<DateTimeField
+  label="End Time"
+  name="end_time"
+  value={form.end_time}
+  onChange={handleChange}
+  error={errors.end_time}
+  submitted={submitted}
+  isCreateMode={isCreateMode}
+/>
 
             {/* Status */}
             <div className="flex flex-col">

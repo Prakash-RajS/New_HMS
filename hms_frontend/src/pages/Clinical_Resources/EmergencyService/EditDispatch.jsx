@@ -404,6 +404,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, ChevronDown, CalendarClock, MapPin } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
+import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from "react-datepicker";
 
 const EditDispatchModal = ({
   isOpen,
@@ -932,32 +934,48 @@ const EditDispatchModal = ({
               </p>
             </div>
             <div className="col-span-2">
-              <label
-                htmlFor="timestamp"
-                className="block mb-1 cursor-pointer text-sm text-black dark:text-white"
-              >
-                Timestamp 
-                {!isEdit && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              <div className="relative">
-                <input
-                  ref={timestampRef}
-                  type="datetime-local"
-                  name="timestamp"
-                  value={form.timestamp}
-                  onChange={handleChange}
-                  className="w-full h-[33px] pr-10 pl-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer"
-                  style={{ paddingRight: '2.5rem' }}
-                />
-                <CalendarClock
-                  onClick={openTimestampPicker}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] cursor-pointer"
-                />
-              </div>
-              {!isEdit && errors.timestamp && (
-                <p className="text-red-500 text-xs mt-1">{errors.timestamp}</p>
-              )}
-            </div>
+  <label
+    htmlFor="timestamp"
+    className="block mb-1 cursor-pointer text-sm text-black dark:text-white"
+  >
+    Timestamp 
+    {!isEdit && <span className="text-red-500 ml-1">*</span>}
+  </label>
+  <div className="relative">
+    <DatePicker
+      selected={form.timestamp ? new Date(form.timestamp) : null}
+      onChange={(date) => {
+        if (date) {
+          const pad = (n) => String(n).padStart(2, "0");
+          const formatted = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+          setForm(p => ({ ...p, timestamp: formatted }));
+        }
+      }}
+      showTimeSelect
+      timeFormat="HH:mm"
+      timeIntervals={15}
+      dateFormat="yyyy-MM-dd HH:mm"
+      className="w-full h-[33px] pr-10 pl-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] cursor-pointer"
+      wrapperClassName="w-full"
+      customInput={
+        <input 
+          style={{ 
+            width: '100%',
+            height: '33px',
+            paddingRight: '2.5rem',
+            paddingLeft: '0.75rem'
+          }} 
+        />
+      }
+    />
+    <CalendarClock
+      className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none"
+    />
+  </div>
+  {!isEdit && errors.timestamp && (
+    <p className="text-red-500 text-xs mt-1">{errors.timestamp}</p>
+  )}
+</div>
             <div className="col-span-2 flex justify-center gap-2 mt-6">
               <button
                 type="button"

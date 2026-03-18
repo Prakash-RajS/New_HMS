@@ -560,9 +560,27 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     
     return "";
   };
+    // Fix for test case: Validate test type format - only letters, spaces, and parentheses allowed
+  const validateTestTypeFormat = (value) => {
+    if (!value.trim()) return "";
+    
+    // Check if starts with capital letter
+    if (!/^[A-Z]/.test(value.charAt(0))) {
+      return "Test type must start with a capital letter";
+    }
+    
+    // Allow only letters, spaces, and parentheses ()
+    // No numbers, no special characters like @#$%^&* etc.
+    const validFormat = /^[A-Za-z\s()]+$/;
+    if (!validFormat.test(value)) {
+      return "Test type can only contain letters, spaces, and parentheses ()";
+    }
+    
+    return "";
+  };
 
 
-  const handleFormChange = (e) => {
+    const handleFormChange = (e) => {
     const { name, value } = e.target;
     
     // Validate negative values during typing
@@ -586,7 +604,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       }
     }
     
-    // Fix for test case: Validate description format while typing
+    // Validate description format while typing
     if (name === "description") {
       const formatError = validateDescriptionFormat(value);
       if (formatError) {
@@ -596,6 +614,17 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       }
     }
     
+    // ====== ADD THIS NEW VALIDATION FOR TEST TYPE ======
+    // Validate test type format while typing
+    if (name === "test_type") {
+      const formatError = validateTestTypeFormat(value);
+      if (formatError) {
+        errors.test_type = formatError;
+      } else {
+        delete errors.test_type;
+      }
+    }
+    // ====== END OF NEW VALIDATION ======
     
     // Auto-capitalize first letter of description
     if (name === "description" && value.length === 1) {

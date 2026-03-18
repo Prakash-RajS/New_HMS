@@ -2630,6 +2630,8 @@ const saveUnit = async (payload) => {
               {
                 label: "Total Vehicles",
                 value: stats.total,
+                color: "text-blue-700",
+                bg: "bg-blue-900/10",
                 icon: "Ambulance",
               },
               {
@@ -2661,7 +2663,7 @@ const saveUnit = async (payload) => {
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-400">{s.label}</span>
+                  <span className="text-xs text-black-700">{s.label}</span>
                   {s.icon === "CheckCircle" && (
                     <CheckCircle size={16} className="text-green-400" />
                   )}
@@ -2705,67 +2707,71 @@ const saveUnit = async (payload) => {
                 setNotifications([]);
                 setUnreadCount(0);
               }}
-              className="text-xs text-gray-400 hover:text-[#0EFF7B] transition"
+              className="text-xs text-black dark:text-gray-400 hover:text-[#0EFF7B] transition"
             >
               Clear all
             </button>
           </div>
 
-          <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
-            {notifications.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Bell size={48} className="mx-auto mb-3 opacity-20" />
-                <p>No active alerts</p>
-              </div>
-            ) : (
-              notifications.slice(0, 15).map((n) => (
-                <div
-                  key={n.id}
-                  className={`p-4 rounded-lg border transition-all ${
-                    n.type === "dispatch_created"
-                      ? "bg-red-900/30 border-red-500/50 shadow-lg shadow-red-500/20"
-                      : n.type === "trip_created"
-                      ? "bg-blue-900/20 border-blue-500/40"
-                      : n.type === "status_update"
-                      ? "bg-green-900/20 border-green-500/40"
-                      : "bg-purple-900/20 border-purple-500/40"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {n.type === "dispatch_created" && (
-                      <Siren
-                        size={20}
-                        className="text-red-400 mt-0.5 animate-pulse"
-                      />
-                    )}
-                    {n.type === "trip_created" && (
-                      <AmbulanceIcon
-                        size={20}
-                        className="text-blue-400 mt-0.5"
-                      />
-                    )}
-                    {n.type === "status_update" && (
-                      <CheckCircle
-                        size={20}
-                        className="text-green-400 mt-0.5"
-                      />
-                    )}
-                    {n.type === "location_update" && (
-                      <MapPin size={20} className="text-purple-400 mt-0.5" />
-                    )}
+         <div className="space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+  {notifications.length === 0 ? (
+    <div className="text-center py-12 text-gray-500">
+      <Bell size={48} className="mx-auto mb-3 opacity-20" />
+      <p>No active alerts</p>
+    </div>
+  ) : (
+    notifications.slice(0, 15).map((n) => (
+      <div
+        key={n.id}
+        className={`p-4 rounded-lg border transition-all ${
+          n.type === "dispatch_created"
+            ? // Dispatch created - Strong red theme
+              "bg-red-200 border-red-400 text-gray-800 dark:bg-red-900/30 dark:border-red-500/50 dark:shadow-lg dark:shadow-red-500/20 dark:text-white"
+            : n.type === "trip_created"
+            ? // Trip created - Strong blue theme
+              "bg-blue-200 border-blue-400 text-gray-800 dark:bg-blue-900/20 dark:border-blue-500/40 dark:text-white"
+            : n.type === "status_update"
+            ? // Status update - Strong green theme
+              "bg-green-200 border-green-400 text-gray-800 dark:bg-green-900/20 dark:border-green-500/40 dark:text-white"
+            : // Location update - Strong purple theme
+              "bg-purple-200 border-purple-400 text-gray-800 dark:bg-purple-900/20 dark:border-purple-500/40 dark:text-white"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          {n.type === "dispatch_created" && (
+            <Siren
+              size={20}
+              className="text-red-700 dark:text-red-400 mt-0.5 animate-pulse"
+            />
+          )}
+          {n.type === "trip_created" && (
+            <AmbulanceIcon
+              size={20}
+              className="text-blue-700 dark:text-blue-400 mt-0.5"
+            />
+          )}
+          {n.type === "status_update" && (
+            <CheckCircle
+              size={20}
+              className="text-green-700 dark:text-green-400 mt-0.5"
+            />
+          )}
+          {n.type === "location_update" && (
+            <MapPin size={20} className="text-purple-700 dark:text-purple-400 mt-0.5" />
+          )}
 
-                    <div className="flex-1">
-                      <p className="font-semibold text-white">
-                        {n.title || n.type}
-                      </p>
-                      <p className="text-sm text-gray-300 mt-1">{n.message}</p>
-                      <p className="text-xs text-gray-500 mt-2">{n.time}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="flex-1">
+            <p className="font-semibold text-gray-900 dark:text-white">
+              {n.title || n.type}
+            </p>
+            <p className="text-sm text-gray-800 dark:text-gray-300 mt-1">{n.message}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-500 mt-2">{n.time}</p>
           </div>
+        </div>
+      </div>
+    ))
+  )}
+</div>
         </div>
       </div>
 

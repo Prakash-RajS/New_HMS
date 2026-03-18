@@ -45,7 +45,7 @@ export default function SettingsPage() {
   const fetchAllSettings = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/all");
+      const response = await api.get("/settings/all");
       console.log("Settings data received:", response.data);
       
       const hospitalData = response.data.hospital || {};
@@ -112,7 +112,7 @@ export default function SettingsPage() {
         };
 
         console.log("Saving hospital data:", hospitalUpdate);
-        await api.put("/hospital", hospitalUpdate);
+        await api.put("/settings/hospital", hospitalUpdate);
         
         successToast("Settings saved successfully!");
         

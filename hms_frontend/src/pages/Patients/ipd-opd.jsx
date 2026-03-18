@@ -898,8 +898,8 @@ const AppointmentListIPD = () => {
       }
       
       if (appliedFilters.doctor) {
-        params.doctor = appliedFilters.doctor;
-      }
+  params.staff_id = appliedFilters.doctor;
+}
       
       if (appliedFilters.patientName) {
         params.patient_name = appliedFilters.patientName;
@@ -1628,19 +1628,19 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 />
                 
                 <Dropdown
-                  label="Doctor"
-                  value={filters.doctor}
-                  onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
-                  options={
-                    loadingFilterDocs
-                      ? []
-                      : filterDoctors.map((doc) => ({
-                          id: doc.full_name,
-                          name: `${doc.full_name} – ${doc.designation || "N/A"}`,
-                        }))
-                  }
-                  loading={loadingFilterDocs}
-                />
+  label="Doctor"
+  value={filters.doctor}
+  onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
+  options={
+    loadingFilterDocs
+      ? []
+      : filterDoctors.map((doc) => ({
+          id: doc.id,
+          name: `${doc.full_name} – ${doc.designation || "N/A"}`
+        }))
+  }
+  loading={loadingFilterDocs}
+/>
                 <Dropdown
                   label="Status"
                   value={filters.status}

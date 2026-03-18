@@ -156,8 +156,7 @@ const DropdownField = ({ label, value, onChange, options, required = false, erro
           </span>
         </Listbox.Button>
         <Listbox.Options className="absolute mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg
-          border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-48 overflow-y-auto z-[9999]"
-          style={{ scrollbarWidth: "none" }}>
+          border border-[#0EFF7B] dark:border-[#3A3A3A] max-h-48 overflow-y-auto no-scrollbar z-[9999]">
           {options.map((opt, i) => (
             <Listbox.Option key={i} value={opt}
               className={({ active, selected }) =>
@@ -589,8 +588,8 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           </button>
         </div>
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 pr-1 relative z-10" style={{ scrollbarWidth: "thin", scrollbarColor: "#0EFF7B #1E1E1E" }}>
+        {/* Scrollable body - WITHOUT scrollbar */}
+        <div className="overflow-y-auto flex-1 pr-1 relative z-10 no-scrollbar">
 
           {/* Profile photo */}
           <div className="flex justify-center mb-6">
@@ -784,6 +783,17 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           </button>
         </div>
       </div>
+
+      {/* Add the no-scrollbar styles */}
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

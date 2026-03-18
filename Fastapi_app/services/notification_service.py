@@ -186,7 +186,6 @@ class NotificationService:
                 "staff_name": staff.full_name,
                 "department": department.name,
                 "appointment_type": appointment.appointment_type,
-                "room_no": appointment.room_no,
                 "redirect_to": "/appointments"
             }
         )
