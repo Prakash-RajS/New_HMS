@@ -699,6 +699,7 @@ const validateSurgeryType = (value) => {
 
             {/* Surgery Date - Row 2, Column 2 */}
             {/* Surgery Date - Row 2, Column 2 */}
+{/* Surgery Date - Row 2, Column 2 */}
 <div className="col-span-1">
   <label className="text-sm text-black dark:text-white">
     Surgery Date <span className="text-red-700">*</span>
@@ -717,21 +718,32 @@ const validateSurgeryType = (value) => {
         }
       }}
       dateFormat="yyyy-MM-dd"
+      minDate={new Date()} // Only allow today and future dates
       placeholderText="Select date"
       className={`w-full h-[33px] px-3 rounded-[8px] border
                 bg-gray-100 dark:bg-transparent outline-none
                 text-black dark:text-[#0EFF7B] cursor-pointer
                 ${focusedField === "scheduled_date"
                   ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                  : getFieldError("scheduled_date")
+                  : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
                     ? "border-red-500 ring-1 ring-red-500"
                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                 }`}
       wrapperClassName="w-full"
-      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
-      dayClassName={(date) => 
-        date.getDate() === new Date().getDate() ? "dark:text-[#0EFF7B]" : ""
-      }
+      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
+      dayClassName={(date) => {
+        // Disable past dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const isPast = date < today;
+        
+        if (isPast) {
+          return "text-gray-400 cursor-not-allowed";
+        }
+        return date.getDate() === new Date().getDate() 
+          ? "text-[#0EFF7B] font-bold hover:bg-[#0EFF7B33]" 
+          : "text-black hover:bg-[#0EFF7B33]";
+      }}
       popperClassName="z-50"
       onFocus={() => setFocusedField("scheduled_date")}
       onBlur={() => setFocusedField(null)}
@@ -753,7 +765,25 @@ const validateSurgeryType = (value) => {
 
             {/* Surgery Time - Row 2, Column 3 */}
             {/* Surgery Time - Row 2, Column 3 */}
+{/* Surgery Time - Row 2, Column 3 */}
 <div className="col-span-1">
+  <style>{`
+      .react-datepicker__time-list::-webkit-scrollbar {
+        width: 8px;
+      }
+      .react-datepicker__time-list::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 4px;
+      }
+      .react-datepicker__time-list::-webkit-scrollbar-thumb {
+        background: #0EFF7B;
+        border-radius: 4px;
+      }
+      .react-datepicker__time-list {
+        scrollbar-width: thin;
+        scrollbar-color: #0EFF7B #f3f4f6;
+      }
+    `}</style>
   <label className="text-sm text-black dark:text-white">
     Surgery Time <span className="text-red-700">*</span>
   </label>
@@ -782,12 +812,12 @@ const validateSurgeryType = (value) => {
                 text-black dark:text-[#0EFF7B] cursor-pointer
                 ${focusedField === "scheduled_time"
                   ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                  : getFieldError("scheduled_time")
+                  : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
                     ? "border-red-500 ring-1 ring-red-500"
                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                 }`}
       wrapperClassName="w-full"
-      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
       popperClassName="z-50"
       onFocus={() => setFocusedField("scheduled_time")}
       onBlur={() => setFocusedField(null)}

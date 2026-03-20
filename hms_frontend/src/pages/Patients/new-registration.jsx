@@ -226,6 +226,7 @@ const InputField = ({
 /* ---------- Updated Date Field with Better Year/Month Selection ---------- */
 /* ---------- Updated Date Field with Better Year/Month Selection ---------- */
 /* ---------- Date Field - Same as Staff Registration ---------- */
+/* ---------- Updated Date Field with Better Year/Month Selection ---------- */
 const DateField = ({
   label,
   value,
@@ -263,8 +264,12 @@ const DateField = ({
     }
   };
 
-  // Calculate max date based on restrictFuture
-  const calculatedMaxDate = restrictFuture ? new Date() : maxDate;
+  // Calculate min and max dates based on props
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const calculatedMaxDate = restrictFuture ? today : maxDate;
+  const calculatedMinDate = restrictPast ? today : null;
 
   return (
     <div className="space-y-1 w-full">
@@ -286,12 +291,13 @@ const DateField = ({
           scrollableYearDropdown
           yearDropdownItemNumber={100}
           maxDate={calculatedMaxDate}
-          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B]  bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          minDate={calculatedMinDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
           wrapperClassName="w-full"
           popperClassName="z-50"
         />
         
-        <div className="absolute right-3 top-2.5 pointer-events-none">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
           <svg
             width="18"
             height="18"
@@ -1381,7 +1387,7 @@ const validateEmailFormat = (value) => {
   value={formData.dor}
   onChange={handleDateChange("dor")}
   required
-  restrictPast={true}
+  restrictPast={true} 
   error={fieldErrors.dor}
 />
               <InputField

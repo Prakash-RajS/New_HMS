@@ -832,6 +832,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
             {/* Surgery Date - Row 2, Column 2 */}
             {/* Surgery Date & Time - Combined DatePicker */}
 {/* Surgery Date - Row 2, Column 2 */}
+{/* Surgery Date - Row 2, Column 2 */}
 <div className="col-span-1">
   <label className="text-sm text-black dark:text-white">
     Surgery Date <span className="text-red-700">*</span>
@@ -850,7 +851,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
         }
       }}
       dateFormat="yyyy-MM-dd"
-      minDate={new Date()}
+      minDate={new Date()} // Only allow today and future dates
       placeholderText="Select date"
       className={`w-full h-[33px] px-3 rounded-[8px] border
                 bg-gray-100 dark:bg-transparent outline-none
@@ -862,10 +863,20 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                 }`}
       wrapperClassName="w-full"
-      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
-      dayClassName={(date) => 
-        date.getDate() === new Date().getDate() ? "dark:text-[#0EFF7B]" : ""
-      }
+      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
+      dayClassName={(date) => {
+        // Disable past dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const isPast = date < today;
+        
+        if (isPast) {
+          return "text-gray-400 cursor-not-allowed";
+        }
+        return date.getDate() === new Date().getDate() 
+          ? "text-[#0EFF7B]  font-bold hover:bg-[#0EFF7B33]" 
+          : "text-black hover:bg-[#0EFF7B33]";
+      }}
       popperClassName="z-50"
       onFocus={() => setFocusedField("scheduled_date")}
       onBlur={() => setFocusedField(null)}
@@ -877,8 +888,8 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   </div>
   {getFieldError("scheduled_date") && (
     <div className="mt-1 flex items-center gap-1">
-      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-      <span className="text-red-700 dark:text-red-400 text-xs">
+      <AlertCircle size={12} className="text-red-600" />
+      <span className="text-red-700 text-xs">
         {getFieldError("scheduled_date")}
       </span>
     </div>
@@ -886,11 +897,31 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
 </div>
 
 {/* Surgery Time - Row 2, Column 3 */}
+{/* Surgery Time - Row 2, Column 3 */}
 <div className="col-span-1">
   <label className="text-sm text-black dark:text-white">
     Surgery Time <span className="text-red-700">*</span>
   </label>
   <div className="relative mt-1">
+    {/* Add this style tag for the scrollbar */}
+    <style>{`
+      .react-datepicker__time-list::-webkit-scrollbar {
+        width: 8px;
+      }
+      .react-datepicker__time-list::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 4px;
+      }
+      .react-datepicker__time-list::-webkit-scrollbar-thumb {
+        background: #0EFF7B;
+        border-radius: 4px;
+      }
+      .react-datepicker__time-list {
+        scrollbar-width: thin;
+        scrollbar-color: #0EFF7B #f3f4f6;
+      }
+    `}</style>
+    
     <DatePicker
       selected={formData.scheduled_date && formData.scheduled_time 
         ? new Date(`${formData.scheduled_date}T${formData.scheduled_time}`) 
@@ -920,7 +951,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                 }`}
       wrapperClassName="w-full"
-      calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
+      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
       popperClassName="z-50"
       onFocus={() => setFocusedField("scheduled_time")}
       onBlur={() => setFocusedField(null)}
@@ -932,14 +963,13 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   </div>
   {getFieldError("scheduled_time") && (
     <div className="mt-1 flex items-center gap-1">
-      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-      <span className="text-red-700 dark:text-red-400 text-xs">
+      <AlertCircle size={12} className="text-red-600" />
+      <span className="text-red-700 text-xs">
         {getFieldError("scheduled_time")}
       </span>
     </div>
   )}
 </div>
-            
             {/* Description - Row 3, Column 1, 2 & 3 (spans all 3 columns) */}
             <div className="col-span-3">
               <label className="text-sm text-black dark:text-white">

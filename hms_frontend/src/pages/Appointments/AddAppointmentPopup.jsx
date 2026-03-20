@@ -1,5 +1,5 @@
-//// src/components/AddAppointmentPopup.jsx
-import React, { useState, useEffect } from "react";
+// src/components/AddAppointmentPopup.jsx
+import React, { useState, useEffect, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { X, Calendar, ChevronDown, Clock, AlertCircle, User, Phone, Tag, Activity } from "lucide-react";
@@ -31,6 +31,178 @@ const parseDateForPicker = (dateStr) => {
 const formatDateForState = (date) => {
   if (!date) return "";
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+// ---------- Date Field - Exactly same as NewRegistration ----------
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-2 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------- Time Field - With hidden scrollbar ----------
+const TimeField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  dateValue = null,
+}) => {
+  const timePickerRef = useRef(null);
+
+  // Convert time string to Date object for react-datepicker
+  const parseTimeForPicker = () => {
+    if (!dateValue || !value) return null;
+    return new Date(`${dateValue}T${value}`);
+  };
+
+  const selectedTime = parseTimeForPicker();
+
+  const handleTimeChange = (time) => {
+    if (time) {
+      const hours = String(time.getHours()).padStart(2, '0');
+      const minutes = String(time.getMinutes()).padStart(2, '0');
+      onChange(`${hours}:${minutes}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  // Custom styles to hide scrollbar
+  React.useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .react-datepicker__time-box {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      .react-datepicker__time-box::-webkit-scrollbar {
+        display: none !important;
+      }
+      .react-datepicker__time-list {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+      }
+      .react-datepicker__time-list::-webkit-scrollbar {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={timePickerRef}
+          selected={selectedTime}
+          onChange={handleTimeChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          showTimeSelect
+          showTimeSelectOnly
+          timeIntervals={15}
+          timeCaption="Time"
+          dateFormat="h:mm aa"
+          placeholderText="Select time"
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-2 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Clock size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // ── Main Component ────────────────────────────────────────────────
@@ -315,8 +487,8 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                   onFocus={() => setFocusedField("patient_name")} 
                   onBlur={() => setFocusedField(null)}
                   placeholder="Enter name"
-                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border bg-gray-100 dark:bg-transparent
-                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-black dark:text-[#0EFF7B] text-sm
+                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent
+                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[#08994A] dark:text-[#0EFF7B] text-sm
                              ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                validationErrors.patient_name || fieldErrors.patient_name ? "border-red-500 ring-1 ring-red-500" :
                                "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
@@ -341,14 +513,14 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                   <Listbox.Button 
                     onFocus={() => setFocusedField("department")} 
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] pl-10 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-[14px] leading-[16px] flex items-center justify-between
+                    className={`w-full h-[33px] pl-10 pr-8 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent text-left text-[14px] leading-[16px] flex items-center justify-between
                                 ${focusedField === "department" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                   fieldErrors.department_id ? "border-red-500 ring-1 ring-red-500" :
                                   "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}>
                     <div className="absolute left-3 top-1/2 -translate-y-1/2">
                       <Tag size={16} className="text-[#0EFF7B]" />
                     </div>
-                    <span className={`block truncate ml-2 ${formData.department_id ? "text-black dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
+                    <span className={`block truncate ml-2 ${formData.department_id ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
                       {loadingDept ? "Loading…" : formData.department_id ? departments.find(o => String(o.id) === String(formData.department_id))?.name || formData.department_id : "Select Department"}
                     </span>
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -386,14 +558,14 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                   <Listbox.Button 
                     onFocus={() => setFocusedField("doctor")} 
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] pl-10 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-[14px] leading-[16px] flex items-center justify-between
+                    className={`w-full h-[33px] pl-10 pr-8 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent text-left text-[14px] leading-[16px] flex items-center justify-between
                                 ${focusedField === "doctor" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                   fieldErrors.staff_id ? "border-red-500 ring-1 ring-red-500" :
                                   "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}>
                     <div className="absolute left-3 top-1/2 -translate-y-1/2">
                       <Activity size={16} className="text-[#0EFF7B]" />
                     </div>
-                    <span className={`block truncate ml-2 ${formData.staff_id ? "text-black dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
+                    <span className={`block truncate ml-2 ${formData.staff_id ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
                       {loadingDoc ? "Loading…" : formData.staff_id ? doctors.find(o => String(o.id) === String(formData.staff_id))?.full_name || formData.staff_id : "Select Doctor"}
                     </span>
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -430,13 +602,13 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                 <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0EFF7B]" />
                 <input 
                   value={formData.phone_no}
-                  onChange={e => handleInputChange("phone_no", e.target.value)}
+                  onChange={e => handleInputChange("phone_no", e.target.value.replace(/\D/g, '').slice(0, 10))}
                   onFocus={() => setFocusedField("phone")} 
                   onBlur={() => setFocusedField(null)}
                   placeholder="Enter phone no (10 digits)"
                   maxLength="10"
-                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border bg-gray-100 dark:bg-transparent
-                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-black dark:text-[#0EFF7B] text-sm
+                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent
+                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[#08994A] dark:text-[#0EFF7B] text-sm
                              ${focusedField === "phone" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                validationErrors.phone_no || fieldErrors.phone_no ? "border-red-500 ring-1 ring-red-500" :
                                "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
@@ -461,11 +633,11 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                   <Listbox.Button 
                     onFocus={() => setFocusedField("appointment")} 
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-[14px] flex items-center justify-between
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent text-left text-[14px] flex items-center justify-between
                                 ${focusedField === "appointment" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                   fieldErrors.appointment_type ? "border-red-500 ring-1 ring-red-500" :
                                   "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}>
-                    <span className={`block truncate ${formData.appointment_type ? "text-black dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
+                    <span className={`block truncate ${formData.appointment_type ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
                       {formData.appointment_type === "checkup" ? "Check-up" : 
                        formData.appointment_type === "followup" ? "Follow-up" : 
                        formData.appointment_type === "emergency" ? "Emergency" : "Select Type"}
@@ -505,14 +677,16 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
                   <Listbox.Button 
                     onFocus={() => setFocusedField("status")} 
                     onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-[14px] flex items-center justify-between
+                    className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent text-left text-[14px] flex items-center justify-between
                                 ${focusedField === "status" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
                                   fieldErrors.status ? "border-red-500 ring-1 ring-red-500" :
                                   "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}>
-                    <span className={`block truncate ${formData.status ? "text-black dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
+                    <span className={`block truncate ${formData.status ? "text-[#08994A] dark:text-[#0EFF7B]" : "text-gray-400 dark:text-gray-500"}`}>
                       {formData.status === "new" ? "New" : 
                        formData.status === "normal" ? "Normal" : 
                        formData.status === "severe" ? "Severe" : 
+                       formData.status === "completed" ? "Completed" :
+                       formData.status === "cancelled" ? "Cancelled" :
                        formData.status}
                     </span>
                     <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
@@ -540,93 +714,29 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
               )}
             </div>
 
-            {/* Appointment Date - React DatePicker */}
-            <div>
-              <label className="text-sm text-black dark:text-white block mb-1">
-                Appointment Date <span className="text-red-700">*</span>
-              </label>
-              <div className="relative">
-                <DatePicker
-                  selected={parseDateForPicker(formData.appointment_date)}
-                  onChange={(date) => {
-                    const str = formatDateForState(date);
-                    handleInputChange("appointment_date", str);
-                  }}
-                  minDate={isEditMode ? null : todayDate}
-                  dateFormat="yyyy-MM-dd"
-                  placeholderText="Select date"
-                  className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm cursor-pointer
-                             ${focusedField === "appointment_date" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
-                               fieldErrors.appointment_date ? "border-red-500 ring-1 ring-red-500" :
-                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-                  wrapperClassName="w-full"
-                  calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
-                  popperClassName="z-50"
-                  onFocus={() => setFocusedField("appointment_date")}
-                  onBlur={() => setFocusedField(null)}
-                />
-                <Calendar
-                  size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-                />
-              </div>
-              {fieldErrors.appointment_date && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">{fieldErrors.appointment_date}</span>
-                </div>
-              )}
-            </div>
+            {/* Appointment Date - EXACT same as NewRegistration */}
+            <DateField
+              label="Appointment Date"
+              value={formData.appointment_date}
+              onChange={(date) => handleInputChange("appointment_date", date)}
+              required
+              minDate={isEditMode ? null : todayDate}
+              onFocus={() => setFocusedField("appointment_date")}
+              onBlur={() => setFocusedField(null)}
+              error={fieldErrors.appointment_date}
+            />
 
-            {/* Appointment Time - React DatePicker Time Only */}
-            <div>
-              <label className="text-sm text-black dark:text-white block mb-1">
-                Appointment Time <span className="text-red-700">*</span>
-              </label>
-              <div className="relative">
-                <DatePicker
-                  selected={formData.appointment_date && formData.appointment_time 
-                    ? new Date(`${formData.appointment_date}T${formData.appointment_time}`) 
-                    : null}
-                  onChange={(time) => {
-                    if (time) {
-                      const hours = String(time.getHours()).padStart(2, '0');
-                      const minutes = String(time.getMinutes()).padStart(2, '0');
-                      handleInputChange("appointment_time", `${hours}:${minutes}`);
-                    } else {
-                      handleInputChange("appointment_time", "");
-                    }
-                  }}
-                  showTimeSelect
-                  showTimeSelectOnly
-                  timeIntervals={15}
-                  timeCaption="Time"
-                  dateFormat="h:mm aa"
-                  placeholderText="Select time"
-                  className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm cursor-pointer
-                             ${focusedField === "appointment_time" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
-                               validationErrors.appointment_time || fieldErrors.appointment_time ? "border-red-500 ring-1 ring-red-500" :
-                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-                  wrapperClassName="w-full"
-                  calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
-                  popperClassName="z-50"
-                  onFocus={() => setFocusedField("appointment_time")}
-                  onBlur={() => setFocusedField(null)}
-                />
-                <Clock
-                  size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-                />
-              </div>
-              {(validationErrors.appointment_time || fieldErrors.appointment_time) && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {validationErrors.appointment_time || fieldErrors.appointment_time}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Appointment Time - With hidden scrollbar */}
+            <TimeField
+              label="Appointment Time"
+              value={formData.appointment_time}
+              onChange={(time) => handleInputChange("appointment_time", time)}
+              required
+              dateValue={formData.appointment_date}
+              onFocus={() => setFocusedField("appointment_time")}
+              onBlur={() => setFocusedField(null)}
+              error={validationErrors.appointment_time || fieldErrors.appointment_time}
+            />
 
           </div>
 
