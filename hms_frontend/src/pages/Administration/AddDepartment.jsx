@@ -22,17 +22,17 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
 
   /* ---------- Format Validation Functions (while typing) ---------- */
   const validateDepartmentNameFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z\s&.,'-]+$/.test(value)) return "Department name should contain only letters, spaces, &, ., ,, ' and -";
-    if (value.trim().length < 2) return "Department name must be at least 2 characters";
-    if (value.trim().length > 100) return "Department name cannot exceed 100 characters";
-    return "";
-  };
+  if (value.trim() && !/^[A-Za-z\s&.,'-]+$/.test(value)) return "Department name should contain only letters, spaces, &, ., ,, ' and -";
+  if (value.trim().length < 2) return "Department name must be at least 2 characters";
+  if (value.trim().length > 50) return "Department name cannot exceed 50 characters";
+  return "";
+};
 
   const validateDescriptionFormat = (value) => {
-    if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value)) return "Description can contain letters, numbers, spaces and basic punctuation";
-    if (value.trim().length > 500) return "Description cannot exceed 500 characters";
-    return "";
-  };
+  if (value.trim() && !/^[A-Za-z0-9\s.,!?'-]+$/.test(value)) return "Description can contain letters, numbers, spaces and basic punctuation";
+  if (value.trim().length > 200) return "Description cannot exceed 200 characters";
+  return "";
+};
 
   /* ---------- Required Field Validation (only for submission) ---------- */
   const validateRequiredFields = () => {
@@ -301,35 +301,39 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           {/* Department Name */}
-          <div>
-            <label className="text-sm text-gray-600 dark:text-white">
-              Department Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              name="departmentName"
-              value={formData.departmentName}
-              onChange={handleInputChange("departmentName")}
-              onFocus={() => setFocusedField('departmentName')}
-              onBlur={() => setFocusedField(null)}
-              placeholder="Enter department"
-              className={`
-                w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border 
-                ${focusedField === 'departmentName' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
-                bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
-                placeholder-gray-500 dark:placeholder-gray-500 outline-none 
-                disabled:opacity-50
-              `}
-              disabled={loading}
-            />
-            {/* Format validation error - shows while typing */}
-            {validationErrors.departmentName && (
-              <p className="mt-1 text-xs text-red-500">{validationErrors.departmentName}</p>
-            )}
-            {/* Required field error - only shows after submit attempt */}
-            {fieldErrors.departmentName && !validationErrors.departmentName && (
-              <p className="mt-1 text-xs text-red-500">{fieldErrors.departmentName}</p>
-            )}
-          </div>
+          {/* Department Name */}
+<div>
+  <label className="text-sm text-gray-600 dark:text-white">
+    Department Name <span className="text-red-500">*</span>
+  </label>
+  <input
+    name="departmentName"
+    value={formData.departmentName}
+    onChange={(e) => handleInputChange("departmentName")({
+      target: { value: e.target.value.slice(0, 50) }
+    })}
+    onFocus={() => setFocusedField('departmentName')}
+    onBlur={() => setFocusedField(null)}
+    placeholder="Enter department (max 50 chars)"
+    maxLength="50"
+    className={`
+      w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border 
+      ${focusedField === 'departmentName' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
+      bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+      placeholder-gray-500 dark:placeholder-gray-500 outline-none 
+      disabled:opacity-50
+    `}
+    disabled={loading}
+  />
+  {/* Format validation error - shows while typing */}
+  {validationErrors.departmentName && (
+    <p className="mt-1 text-xs text-red-500">{validationErrors.departmentName}</p>
+  )}
+  {/* Required field error - only shows after submit attempt */}
+  {fieldErrors.departmentName && !validationErrors.departmentName && (
+    <p className="mt-1 text-xs text-red-500">{fieldErrors.departmentName}</p>
+  )}
+</div>
 
           {/* Status Dropdown */}
           <Dropdown
@@ -345,32 +349,36 @@ const AddDepartmentPopup = ({ onClose, onSave }) => {
         </div>
 
         {/* Description */}
-        <div className="mt-6">
-          <label className="text-sm text-gray-600 dark:text-white">
-            Description
-          </label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange("description")}
-            onFocus={() => setFocusedField('description')}
-            onBlur={() => setFocusedField(null)}
-            placeholder="Enter description"
-            rows={4}
-            className={`
-              w-full mt-1 px-3 py-2 rounded-[12px] border 
-              ${focusedField === 'description' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
-              bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
-              placeholder-gray-500 dark:placeholder-gray-500 outline-none 
-              disabled:opacity-50
-            `}
-            disabled={loading}
-          />
-          {/* Format validation error - shows while typing */}
-          {validationErrors.description && (
-            <p className="mt-1 text-xs text-red-500">{validationErrors.description}</p>
-          )}
-        </div>
+        {/* Description */}
+<div className="mt-6">
+  <label className="text-sm text-gray-600 dark:text-white">
+    Description <span className="text-gray-500 text-xs">(Optional, max 200 chars)</span>
+  </label>
+  <textarea
+    name="description"
+    value={formData.description}
+    onChange={(e) => handleInputChange("description")({
+      target: { value: e.target.value.slice(0, 200) }
+    })}
+    onFocus={() => setFocusedField('description')}
+    onBlur={() => setFocusedField(null)}
+    placeholder="Enter description (max 200 characters)"
+    rows={4}
+    maxLength="200"
+    className={`
+      w-full mt-1 px-3 py-2 rounded-[12px] border 
+      ${focusedField === 'description' ? 'border-[#0EFF7B] ring-1 ring-[#0EFF7B]' : 'border-[#0EFF7B] dark:border-[#3A3A3A]'}
+      bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] 
+      placeholder-gray-500 dark:placeholder-gray-500 outline-none 
+      disabled:opacity-50
+    `}
+    disabled={loading}
+  />
+  {/* Format validation error - shows while typing */}
+  {validationErrors.description && (
+    <p className="mt-1 text-xs text-red-500">{validationErrors.description}</p>
+  )}
+</div>
 
         {/* Buttons */}
         <div className="flex justify-center gap-[18px] mt-8">

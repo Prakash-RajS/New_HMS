@@ -251,10 +251,11 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
 
   // ── Validators ──────────────────────────────────────────────────
   const validatePatientNameFormat = (v) => {
-    if (v.trim() && !/^[A-Za-z\s'-]+$/.test(v)) return "Name should only contain letters, spaces, hyphens, and apostrophes";
-    if (v.trim() && v.trim().length < 2) return "Name must be at least 2 characters";
-    return "";
-  };
+  if (v.trim() && v.trim().length > 50) return "Name cannot exceed 50 characters";
+  if (v.trim() && !/^[A-Za-z\s'-]+$/.test(v)) return "Name should only contain letters, spaces, hyphens, and apostrophes";
+  if (v.trim() && v.trim().length < 2) return "Name must be at least 2 characters";
+  return "";
+};
   
   const validatePhoneFormat = (v) => {
     if (v.trim() && !/^\d{10}$/.test(v)) return "Phone number must be exactly 10 digits";
@@ -475,33 +476,35 @@ export default function AddAppointmentPopup({ onClose, onSuccess, isEditMode = f
           <div className="grid grid-cols-3 gap-6">
 
             {/* Patient Name */}
-            <div>
-              <label className="text-sm text-black dark:text-white block mb-1">
-                Patient Name <span className="text-red-700">*</span>
-              </label>
-              <div className="relative">
-                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0EFF7B]" />
-                <input 
-                  value={formData.patient_name}
-                  onChange={e => handleInputChange("patient_name", e.target.value)}
-                  onFocus={() => setFocusedField("patient_name")} 
-                  onBlur={() => setFocusedField(null)}
-                  placeholder="Enter name"
-                  className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent
-                             placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[#08994A] dark:text-[#0EFF7B] text-sm
-                             ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
-                               validationErrors.patient_name || fieldErrors.patient_name ? "border-red-500 ring-1 ring-red-500" :
-                               "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
-              </div>
-              {(validationErrors.patient_name || fieldErrors.patient_name) && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {validationErrors.patient_name || fieldErrors.patient_name}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Patient Name */}
+<div>
+  <label className="text-sm text-black dark:text-white block mb-1">
+    Patient Name <span className="text-red-700">*</span>
+  </label>
+  <div className="relative">
+    <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0EFF7B]" />
+    <input 
+      value={formData.patient_name}
+      onChange={e => handleInputChange("patient_name", e.target.value.slice(0, 50))}
+      onFocus={() => setFocusedField("patient_name")} 
+      onBlur={() => setFocusedField(null)}
+      placeholder="Enter name (max 50 characters)"
+      maxLength="50"
+      className={`w-full h-[33px] pl-10 pr-3 rounded-[8px] border-2 bg-gray-100 dark:bg-transparent
+                 placeholder-gray-400 dark:placeholder-gray-500 outline-none text-[#08994A] dark:text-[#0EFF7B] text-sm
+                 ${focusedField === "patient_name" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" : 
+                   validationErrors.patient_name || fieldErrors.patient_name ? "border-red-500 ring-1 ring-red-500" :
+                   "border-[#0EFF7B] dark:border-[#3A3A3A]"}`} />
+  </div>
+  {(validationErrors.patient_name || fieldErrors.patient_name) && (
+    <div className="mt-1 flex items-center gap-1">
+      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+      <span className="text-red-700 dark:text-red-400 text-xs">
+        {validationErrors.patient_name || fieldErrors.patient_name}
+      </span>
+    </div>
+  )}
+</div>
 
             {/* Department */}
             <div>

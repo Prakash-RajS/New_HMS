@@ -21,9 +21,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
   const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
   const [loading, setLoading] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-    const userRole = currentUser?.role?.toLowerCase();
-    const canAdd = isAdmin || userRole === "nurse";
-
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "nurse";
 
   // Format date → YYYY-MM-DD for API
   const formatDateForAPI = (date) => {
@@ -52,10 +51,15 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     "123.in"
   ];
 
-  // Real-time email validation (blocks invalid domains)
+  // Real-time email validation (blocks invalid domains and checks length)
   const validateEmailFormat = (value) => {
-    const email = value.trim().toLowerCase();
+    const email = value.trim();
     if (!email) return "";
+
+    // Check maximum length (50 characters)
+    if (email.length > 50) {
+      return "Email cannot exceed 50 characters";
+    }
 
     // 1. Basic RFC-like structure
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -93,25 +97,95 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     return "";
   };
 
+  // Updated: Phone validation for Indian numbers (start with 9,8,7,6 and not repetitive patterns)
+  const validatePhoneFormat = (value) => {
+    if (!value) return "";
+    
+    // Check if contains only digits
+    if (!/^\d*$/.test(value)) {
+      return "Phone must contain only digits";
+    }
+    
+    // Check length (must be exactly 10 digits when complete)
+    if (value.length > 0 && value.length !== 10) {
+      return "Phone must be exactly 10 digits";
+    }
+    
+    if (value.length === 10) {
+      // Check if phone starts with valid Indian mobile prefix (9,8,7,6)
+      const firstDigit = value.charAt(0);
+      if (!['9', '8', '7', '6'].includes(firstDigit)) {
+        return "Phone must start with 9, 8, 7, or 6";
+      }
+      
+      // Check for repetitive patterns (all same digits)
+      if (/^(\d)\1{9}$/.test(value)) {
+        return "Invalid phone number - repetitive pattern not allowed";
+      }
+      
+      // Check for common repetitive patterns like 9898989898, 7676767676
+      if (/^(\d{2})\1{4}$/.test(value) || /^(\d{2})\1{3}\d{2}$/.test(value)) {
+        return "Invalid phone number - repetitive pattern not allowed";
+      }
+      
+      // Check for sequential patterns (1234567890, 9876543210)
+      const isAscending = "1234567890".includes(value);
+      const isDescending = "9876543210".includes(value);
+      if (isAscending || isDescending) {
+        return "Invalid phone number - sequential pattern not allowed";
+      }
+      
+      // Check for patterns like 9876543210 (descending)
+      let isDescendingSeq = true;
+      for (let i = 1; i < value.length; i++) {
+        if (parseInt(value[i]) !== parseInt(value[i-1]) - 1) {
+          isDescendingSeq = false;
+          break;
+        }
+      }
+      if (isDescendingSeq && value[0] === '9') {
+        return "Invalid phone number - sequential pattern not allowed";
+      }
+    }
+    
+    return "";
+  };
+
+  // Updated: Donor name validation (max 50 characters)
+  const validateNameFormat = (value) => {
+    if (!value) return "";
+    
+    // Check for numbers
+    if (/[0-9]/.test(value)) {
+      return "Name should not contain numbers";
+    }
+    
+    // Check minimum length
+    if (value.trim().length < 2) {
+      return "Name must be at least 2 characters";
+    }
+    
+    // Check maximum length (50 characters)
+    if (value.length > 50) {
+      return "Name cannot exceed 50 characters";
+    }
+    
+    // Check for valid characters (letters, spaces, apostrophes, hyphens, periods)
+    if (!/^[A-Za-z\s.'-]+$/.test(value)) {
+      return "Name can only contain letters, spaces, apostrophes, hyphens, and periods";
+    }
+    
+    return "";
+  };
+
   // Real-time format validation for all fields
   const validateFieldFormat = (field, value) => {
     switch (field) {
       case "donor_name":
-        if (!value) return "";
-        if (/[0-9]/.test(value)) return "Name should not contain numbers";
-        if (value.trim() && !/^[A-Za-z\s.'-]{2,}$/.test(value)) {
-          return "Please enter a valid name";
-        }
-        return "";
+        return validateNameFormat(value);
 
       case "phone":
-        if (!value) return "";
-        if (!/^\d*$/.test(value)) return "Phone must contain only digits";
-        if (value.length > 10) return "Phone cannot exceed 10 digits";
-        if (value.length > 0 && value.length < 10) {
-          return "Phone must be exactly 10 digits";
-        }
-        return "";
+        return validatePhoneFormat(value);
 
       case "email":
         return validateEmailFormat(value);
@@ -128,20 +202,20 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
     // Donor Name
     if (!formData.donor_name.trim()) {
       newErrors.donor_name = "Donor name is required";
-    } else if (formData.donor_name.trim().length < 2) {
-      newErrors.donor_name = "Name must be at least 2 characters";
-    } else if (!/^[A-Za-z\s]+$/.test(formData.donor_name.trim())) {
-      newErrors.donor_name = "Name can only contain letters and spaces";
+    } else {
+      const nameError = validateNameFormat(formData.donor_name);
+      if (nameError) newErrors.donor_name = nameError;
     }
 
-    // Phone - exactly 10 digits
+    // Phone - validate with Indian rules
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
-      newErrors.phone = "Phone must be exactly 10 digits";
+    } else {
+      const phoneError = validatePhoneFormat(formData.phone);
+      if (phoneError) newErrors.phone = phoneError;
     }
 
-    // Email - required + valid domain
+    // Email - required + valid domain + max length
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
     } else {
@@ -249,7 +323,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
-        <div className="w-[505px] bg-gray-100 dark:bg-[#000000] p-6 rounded-[19px] relative">
+        <div className="w-[600px] bg-gray-100 dark:bg-[#000000] p-6 rounded-[19px] relative">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-black dark:text-white font-medium text-[16px]">
@@ -275,10 +349,14 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   type="text"
                   value={formData.donor_name}
                   onChange={(e) => handleChange("donor_name", e.target.value)}
-                  placeholder="Enter full name"
+                  placeholder="Enter full name (max 50 characters)"
+                  maxLength={50}
                   disabled={loading}
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+                  className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
+                <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formData.donor_name.length}/50
+                </div>
                 {formatErrors.donor_name && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
                     {formatErrors.donor_name}
@@ -303,7 +381,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   placeholder="e.g. 9876543210"
                   maxLength={10}
                   disabled={loading}
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+                  className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
                 {formatErrors.phone && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
@@ -315,9 +393,12 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                     {errors.phone}
                   </p>
                 )}
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                  Must be 10 digits, start with 9,8,7, or 6
+                </p>
               </div>
 
-              {/* Email */}
+              {/* Email - with max length 50 */}
               <div>
                 <label className="text-sm text-black dark:text-white">
                   Email Address <span className="text-red-500">*</span>
@@ -326,10 +407,14 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleChange("email", e.target.value)}
-                  placeholder="example@company.com"
+                  placeholder="example@company.com (max 50 chars)"
+                  maxLength={50}
                   disabled={loading}
-                  className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
+                  className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                 />
+                <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {formData.email.length}/50
+                </div>
                 {formatErrors.email && (
                   <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
                     {formatErrors.email}
@@ -342,7 +427,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 )}
               </div>
 
-              {/* Gender Dropdown - FIXED */}
+              {/* Gender Dropdown */}
               <div className="relative">
                 <label className="text-sm text-black dark:text-white">
                   Gender <span className="text-red-500">*</span>
@@ -353,7 +438,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   disabled={loading}
                 >
                   <div className="relative mt-1">
-                    <Listbox.Button className="relative w-[228px] h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                    <Listbox.Button className="relative w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
                       <span className="block truncate">
                         {formData.gender || "Select Gender"}
                       </span>
@@ -385,7 +470,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 )}
               </div>
 
-              {/* Blood Type Dropdown - FIXED */}
+              {/* Blood Type Dropdown */}
               <div className="relative">
                 <label className="text-sm text-black dark:text-white">
                   Blood Type <span className="text-red-500">*</span>
@@ -396,7 +481,7 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                   disabled={loading}
                 >
                   <div className="relative mt-1">
-                    <Listbox.Button className="relative w-[228px] h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
+                    <Listbox.Button className="relative w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm focus:outline-none focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50">
                       <span className="block truncate">
                         {formData.blood_type || "Select Blood Type"}
                       </span>
@@ -428,8 +513,8 @@ const AddDonorPopup = ({ onClose, onAdd }) => {
                 )}
               </div>
 
-              {/* Last Donation Date */}
-              <div className="relative col-span-2">
+              {/* Last Donation Date - Full Width */}
+              <div className="col-span-2">
                 <label className="text-sm text-black dark:text-white">
                   Last Donation Date <span className="text-gray-500">(Optional)</span>
                 </label>

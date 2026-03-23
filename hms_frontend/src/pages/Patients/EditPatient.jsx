@@ -153,8 +153,12 @@ const EditPatientPopup = ({
   };
 
   // Name validation (letters and spaces only)
+// Name validation (letters and spaces only, max 50 characters)
 const isValidName = (name) => {
-  return /^[A-Za-z\s]+$/.test(name.trim());
+  const trimmedName = name.trim();
+  if (trimmedName.length === 0) return true; // Empty is allowed for validation (required check handles empty)
+  if (trimmedName.length > 50) return false; // Max 50 characters
+  return /^[A-Za-z\s]+$/.test(trimmedName);
 };
 
   // Phone validation (exactly 10 digits)
@@ -446,32 +450,35 @@ const handlePhoneChange = (value) => {
             {/* Column 1 */}
             <div className="space-y-6">
               <div>
-                <label className="text-sm text-black dark:text-white block mb-1">
-                  Patient Name
-                </label>
-                <input
-                  value={formData.full_name}
-                 onChange={(e) => {
-  const value = e.target.value;
+  <label className="text-sm text-black dark:text-white block mb-1">
+    Patient Name
+  </label>
+  <input
+    value={formData.full_name}
+    onChange={(e) => {
+      const value = e.target.value;
+      // Limit to 50 characters
+      if (value.length <= 50) {
+        setFormData((prev) => ({
+          ...prev,
+          full_name: value,
+        }));
 
-  setFormData((prev) => ({
-    ...prev,
-    full_name: value,
-  }));
-
-  if (value.length > 0 && !isValidName(value)) {
-    setNameError("Name should contain only letters and spaces");
-  } else {
-    setNameError("");
-  }
-}}
-                  placeholder="Enter name"
-                  className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
-                />
-                {nameError && (
-  <p className="text-red-500 text-xs mt-1">{nameError}</p>
-)}
-              </div>
+        if (value.length > 0 && !isValidName(value)) {
+          setNameError("Name should contain only letters and spaces (max 50 characters)");
+        } else {
+          setNameError("");
+        }
+      }
+    }}
+    placeholder="Enter name (max 50 characters)"
+    maxLength="50"
+    className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"
+  />
+  {nameError && (
+    <p className="text-red-500 text-xs mt-1">{nameError}</p>
+  )}
+</div>
 
               <Dropdown
                 label="Department"
@@ -494,7 +501,7 @@ const handlePhoneChange = (value) => {
                         date_of_registration: formatDateForDisplay(date),
                       }))
                     }
-                    maxDate={new Date()} // Prevent future dates
+                    //maxDate={new Date()} // Prevent future dates
                     dateFormat="MM/dd/yyyy"
                     placeholderText="MM/DD/YYYY"
                     className="w-full h-[33px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none text-sm"

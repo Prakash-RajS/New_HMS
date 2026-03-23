@@ -438,6 +438,7 @@
 
 // export default EditTestPopup;
 
+// EditTestPopup.jsx
 import React, { useState, useEffect } from "react";
 import { X, ChevronDown, Loader2 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
@@ -555,10 +556,11 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
   const [validationErrors, setValidationErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-      const userRole = currentUser?.role?.toLowerCase();
-      const canedit = isAdmin || userRole === "doctor" || userRole === "nurse";
+  const userRole = currentUser?.role?.toLowerCase();
+  const canedit = isAdmin || userRole === "doctor" || userRole === "nurse";
 
-  // Fix for test case: Validate description doesn't contain special characters or numbers
+  // Validate description - allows letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, slashes
+  // Blocks special characters like !@#$%^&*
   const validateDescriptionFormat = (value) => {
     if (!value.trim()) return "";
     
@@ -567,37 +569,59 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
       return "Description must start with a capital letter";
     }
     
-    // Check for numbers and special characters (only allow letters, spaces, commas, periods, and apostrophes)
-    const invalidChars = /[0-9!@#$%^&*()_+\-=\[\]{};:"\\|<>?~`]/;
-    if (invalidChars.test(value)) {
-      return "Description cannot contain numbers or special characters";
+    // Check maximum length (150 characters)
+    if (value.length > 150) {
+      return "Description cannot exceed 150 characters";
     }
     
-    // Allow only letters, spaces, commas, periods, apostrophes, and hyphens
-    const validFormat = /^[A-Z][A-Za-z\s,.'-]*$/;
+    // Allow letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes
+    // Block any special characters like !@#$%^&* etc.
+    const validFormat = /^[A-Z][A-Za-z0-9\s,.'\-()/]*$/;
     if (!validFormat.test(value)) {
-      return "Description can only contain letters, spaces, commas, periods, and apostrophes";
+      return "Description can only contain letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes";
     }
     
     return "";
   };
-const validateTestTypeFormat = (value) => {
+  
+  // Validate test type format - allows letters, numbers, spaces, hyphens, and parentheses ()
+  // Blocks special characters like !@#$%^&*
+  const validateTestTypeFormat = (value) => {
     if (!value.trim()) return "";
     
-    // Check if starts with capital letter
-    if (!/^[A-Z]/.test(value.charAt(0))) {
-      return "Test type must start with a capital letter";
+    // Check if starts with capital letter or number
+    if (!/^[A-Z0-9]/.test(value.charAt(0))) {
+      return "Test type must start with a capital letter or number";
     }
     
-    // Allow only letters, spaces, and parentheses ()
-    // No numbers, no special characters like @#$%^&* etc.
-    const validFormat = /^[A-Za-z\s()]+$/;
+    // Check maximum length (50 characters)
+    if (value.length > 50) {
+      return "Test type cannot exceed 50 characters";
+    }
+    
+    // Allow letters, numbers, spaces, hyphens, and parentheses ()
+    // Block any special characters like !@#$%^&* etc.
+    const validFormat = /^[A-Za-z0-9\s\-()]+$/;
     if (!validFormat.test(value)) {
-      return "Test type can only contain letters, spaces, and parentheses ()";
+      return "Test type can only contain letters, numbers, spaces, hyphens, and parentheses ()";
     }
     
     return "";
   };
+  
+  // Validate price - maximum 20 characters
+  const validatePrice = (value) => {
+    if (value === "" || value === null) return "";
+    
+    // Check if price string length exceeds 20 characters
+    const stringValue = value.toString();
+    if (stringValue.length > 20) {
+      return "Price cannot exceed 20 characters";
+    }
+    
+    return "";
+  };
+  
   useEffect(() => {
     if (test) {
       setFormData({
@@ -610,24 +634,33 @@ const validateTestTypeFormat = (value) => {
     }
   }, [test]);
 
-    const handleFormChange = (e) => {
+  const handleFormChange = (e) => {
     const { name, value } = e.target;
     
     // Validate negative values during typing
     const errors = { ...validationErrors };
     
     if (name === "price" && value !== "") {
-      const numValue = parseFloat(value);
-      if (numValue < 0) {
-        errors.price = "Price cannot be negative";
+      // Check price length
+      const priceLengthError = validatePrice(value);
+      if (priceLengthError) {
+        errors.price = priceLengthError;
       } else {
-        delete errors.price;
+        const numValue = parseFloat(value);
+        if (numValue < 0) {
+          errors.price = "Price cannot be negative";
+        } else {
+          delete errors.price;
+        }
       }
     }
     
     if (name === "duration_minutes" && value !== "") {
       const numValue = parseInt(value);
-      if (numValue < 0) {
+      // Validate duration is only 3 digits or less
+      if (value.length > 3) {
+        errors.duration_minutes = "Duration cannot exceed 3 digits";
+      } else if (numValue < 0) {
         errors.duration_minutes = "Duration cannot be negative";
       } else {
         delete errors.duration_minutes;
@@ -644,7 +677,6 @@ const validateTestTypeFormat = (value) => {
       }
     }
     
-    // ====== ADD THIS NEW VALIDATION FOR TEST TYPE ======
     // Validate test type format while typing
     if (name === "test_type") {
       const formatError = validateTestTypeFormat(value);
@@ -654,7 +686,6 @@ const validateTestTypeFormat = (value) => {
         delete errors.test_type;
       }
     }
-    // ====== END OF NEW VALIDATION ======
     
     // Auto-capitalize first letter of description
     if (name === "description" && value.length === 1) {
@@ -663,51 +694,54 @@ const validateTestTypeFormat = (value) => {
       return;
     }
     
-    // ====== ADD AUTO-CAPITALIZE FOR TEST TYPE ======
     // Auto-capitalize first letter of test type
     if (name === "test_type" && value.length === 1) {
       setFormData({ ...formData, [name]: value.toUpperCase() });
       setValidationErrors(errors);
       return;
     }
-    // ====== END OF AUTO-CAPITALIZE ======
     
     setValidationErrors(errors);
     setFormData({ ...formData, [name]: value });
   };
 
-   const validateForm = () => {
+  const validateForm = () => {
     const errors = {};
     
-    // Required field validation (only triggers after submission)
-    if (submitted && !formData.test_type.trim()) {
+    // Test type validation
+    if (!formData.test_type.trim()) {
       errors.test_type = "Test type is required";
-    } else if (formData.test_type.trim()) {
-      // ====== ADD FORMAT VALIDATION FOR TEST TYPE ======
+    } else {
       const testTypeError = validateTestTypeFormat(formData.test_type);
       if (testTypeError) {
         errors.test_type = testTypeError;
       }
-      // ====== END OF ADDITION ======
     }
     
-    // Status required validation (only triggers after submission)
-    if (submitted && !formData.status.trim()) {
+    // Status required validation
+    if (!formData.status.trim()) {
       errors.status = "Status is required";
     }
     
-    // Price validation (negative check - shows during typing too)
+    // Price validation
     if (formData.price !== "") {
-      const priceNum = parseFloat(formData.price);
-      if (priceNum < 0) {
-        errors.price = "Price cannot be negative";
+      const priceLengthError = validatePrice(formData.price);
+      if (priceLengthError) {
+        errors.price = priceLengthError;
+      } else {
+        const priceNum = parseFloat(formData.price);
+        if (priceNum < 0) {
+          errors.price = "Price cannot be negative";
+        }
       }
     }
     
-    // Duration validation (negative check - shows during typing too)
+    // Duration validation
     if (formData.duration_minutes !== "") {
       const durationNum = parseInt(formData.duration_minutes);
-      if (durationNum < 0) {
+      if (formData.duration_minutes.length > 3) {
+        errors.duration_minutes = "Duration cannot exceed 3 digits";
+      } else if (durationNum < 0) {
         errors.duration_minutes = "Duration cannot be negative";
       }
     }
@@ -723,7 +757,7 @@ const validateTestTypeFormat = (value) => {
     return errors;
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canedit) {
       errorToast("You do not have permission to edit tests.");
@@ -733,44 +767,16 @@ const validateTestTypeFormat = (value) => {
     
     const errors = validateForm();
     
-    // Check for required fields
-    if (!formData.test_type.trim()) {
-      errors.test_type = "Test type is required";
-    }
-    
-    // Check for status required
-    if (!formData.status.trim()) {
-      errors.status = "Status is required";
-    }
-    
-    // Check test type format
-    if (formData.test_type.trim()) {
-      const testTypeError = validateTestTypeFormat(formData.test_type);
-      if (testTypeError) {
-        errors.test_type = testTypeError;
-      }
-    }
-    
-    // Check description format
-    if (formData.description.trim()) {
-      const descError = validateDescriptionFormat(formData.description);
-      if (descError) {
-        errors.description = descError;
-      }
-    }
-    
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       
-      // ====== UPDATED ERROR MESSAGE LOGIC ======
-      // Check if there are any format validation errors
+      // Show appropriate error messages
       const hasFormatErrors = 
         (errors.test_type && errors.test_type !== "Test type is required") ||
         (errors.description && errors.description !== "Description is required") ||
-        (errors.price && errors.price === "Price cannot be negative") ||
-        (errors.duration_minutes && errors.duration_minutes === "Duration cannot be negative");
+        (errors.price && (errors.price === "Price cannot be negative" || errors.price === "Price cannot exceed 20 characters")) ||
+        (errors.duration_minutes && (errors.duration_minutes === "Duration cannot be negative" || errors.duration_minutes === "Duration cannot exceed 3 digits"));
       
-      // Check if there are any missing required fields
       const hasMissingRequired = 
         errors.test_type === "Test type is required" ||
         errors.status === "Status is required";
@@ -780,10 +786,8 @@ const validateTestTypeFormat = (value) => {
       } else if (hasFormatErrors) {
         errorToast("Please clear all validation errors before submitting");
       } else {
-        // If there are other errors
         errorToast("Please fix the errors before submitting");
       }
-      // ====== END OF UPDATED LOGIC ======
       
       return;
     }
@@ -800,15 +804,11 @@ const validateTestTypeFormat = (value) => {
         status: formData.status
       };
 
-      // Use axios instead of fetch
       const response = await api.put(`/laboratory/tests/${test.id}`, payload);
       
-      // Check for successful response
       if (response.status === 200) {
-        // Show success toast
         successToast("Test updated successfully!");
         
-        // Wait a moment for the toast to show, then close and refresh
         setTimeout(async () => {
           await onSuccess();
           onClose();
@@ -817,7 +817,6 @@ const validateTestTypeFormat = (value) => {
         throw new Error("Failed to update test");
       }
     } catch (err) {
-      // Handle axios errors
       const errorMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
                           err.response?.data?.error || 
@@ -826,7 +825,6 @@ const validateTestTypeFormat = (value) => {
       
       setError(errorMessage);
       
-      // Show error toast with more specific message if available
       const toastMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
                           errorMessage;
@@ -900,6 +898,7 @@ const validateTestTypeFormat = (value) => {
                   value={formData.test_type}
                   onChange={handleFormChange}
                   disabled={loading}
+                  maxLength="50"
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.test_type 
                       ? "border-red-500" 
@@ -912,6 +911,9 @@ const validateTestTypeFormat = (value) => {
                     {validationErrors.test_type}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Must start with capital letter or number. Max 50 characters. Only letters, numbers, spaces, hyphens, and parentheses () allowed.
+                </p>
               </div>
 
               {/* Price */}
@@ -924,7 +926,7 @@ const validateTestTypeFormat = (value) => {
                   name="price"
                   value={formData.price}
                   onChange={handleFormChange}
-                  step="0.01"
+                  maxLength="20"
                   disabled={loading}
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.price 
@@ -938,6 +940,9 @@ const validateTestTypeFormat = (value) => {
                     {validationErrors.price}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Max 20 characters
+                </p>
               </div>
 
               {/* Description */}
@@ -950,13 +955,14 @@ const validateTestTypeFormat = (value) => {
                   value={formData.description}
                   onChange={handleFormChange}
                   rows="3"
+                  maxLength="150"
                   disabled={loading}
                   className={`w-full px-3 py-2 rounded-[8px] border ${
                     validationErrors.description 
                       ? "border-red-500" 
                       : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Enter test description (e.g., Complete Blood Count test)"
+                  placeholder="Enter test description (e.g., 2D Echocardiogram, Complete Blood Count test)"
                 />
                 {validationErrors.description && (
                   <p className="text-xs text-red-500 dark:text-red-500 mt-1">
@@ -964,7 +970,7 @@ const validateTestTypeFormat = (value) => {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Must start with capital letter. Only letters, spaces, commas, periods, and apostrophes allowed.
+                  Must start with capital letter. Max 150 characters. Only letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes allowed.
                 </p>
               </div>
 
@@ -979,18 +985,23 @@ const validateTestTypeFormat = (value) => {
                   value={formData.duration_minutes}
                   onChange={handleFormChange}
                   disabled={loading}
+                  min="0"
+                  max="999"
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.duration_minutes 
                       ? "border-red-500" 
                       : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Enter duration"
+                  placeholder="Enter duration (max 3 digits)"
                 />
                 {validationErrors.duration_minutes && (
                   <p className="text-xs text-red-500 dark:text-red-500 mt-1">
                     {validationErrors.duration_minutes}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Max 3 digits (0-999 minutes)
+                </p>
               </div>
 
               {/* Status Dropdown */}

@@ -663,7 +663,8 @@ const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
     errors[field].includes("sequential") ||
     errors[field].includes("Please provide more specific location") ||
     errors[field].includes("must contain letters") ||
-    errors[field].includes("Valid Vizag locations");
+    errors[field].includes("Valid Vizag locations") ||
+    errors[field].includes("cannot exceed");
 
   if (submitted || isFormatError) {
     return (
@@ -730,11 +731,8 @@ const TextInput = React.memo(({
             {suggestions.map((suggestion, index) => (
               <div
                 key={index}
-                // FIX: Use onMouseDown instead of onClick so it fires BEFORE the
-                // input's onBlur event. Previously, onBlur cleared suggestions
-                // before onClick could register, making items unclickable.
                 onMouseDown={(e) => {
-                  e.preventDefault(); // Prevent input from losing focus / blur firing
+                  e.preventDefault();
                   onSuggestionClick(suggestion);
                 }}
                 className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-800 dark:text-gray-200"
@@ -763,9 +761,6 @@ const TextInput = React.memo(({
 // ---------------------------------------------------------------------------
 // DateTimeField
 // ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// DateTimeField - With AM/PM time display
-// ---------------------------------------------------------------------------
 const DateTimeField = React.memo(({
   label,
   name,
@@ -790,7 +785,6 @@ const DateTimeField = React.memo(({
 
   const handleDateChange = (date) => {
     if (date) {
-      // Create a synthetic event to match the expected onChange signature
       const syntheticEvent = {
         target: {
           name: name,
@@ -799,7 +793,6 @@ const DateTimeField = React.memo(({
       };
       onChange(syntheticEvent);
     } else {
-      // Handle clearing the date
       const syntheticEvent = {
         target: {
           name: name,
@@ -810,13 +803,11 @@ const DateTimeField = React.memo(({
     }
   };
 
-  // Format display value for the input field (showing AM/PM)
   const formatDisplayValue = (dateTimeStr) => {
     if (!dateTimeStr) return "";
     const date = new Date(dateTimeStr);
     if (isNaN(date)) return "";
     
-    // Format: "MMM DD, YYYY hh:mm A" (e.g., "Mar 17, 2026 02:30 PM")
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -827,7 +818,6 @@ const DateTimeField = React.memo(({
     });
   };
 
-  // Custom input component to match your styling
   const CustomInput = React.forwardRef(({ value, onClick, onBlur }, ref) => (
     <div className="relative">
       <input
@@ -841,7 +831,6 @@ const DateTimeField = React.memo(({
         className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
       />
       <style>{`
-        /* Hide any browser-native calendar icons */
         .react-datepicker-wrapper,
         .react-datepicker__input-container {
           display: block;
@@ -866,9 +855,9 @@ const DateTimeField = React.memo(({
         selected={parseDateTime(value)}
         onChange={handleDateChange}
         showTimeSelect
-        timeFormat="h:mm aa" // Changed to 12-hour format with AM/PM
+        timeFormat="h:mm aa"
         timeIntervals={15}
-        dateFormat="MMM d, yyyy h:mm aa" // Changed to show AM/PM
+        dateFormat="MMM d, yyyy h:mm aa"
         timeCaption="Time"
         customInput={<CustomInput />}
         calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
@@ -879,9 +868,8 @@ const DateTimeField = React.memo(({
         popperPlacement="bottom-start"
         shouldCloseOnSelect
         isClearable={false}
-        minDate={new Date(Date.now() - 60 * 60 * 1000)} // Allow up to 1 hour in the past
-        maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)} // 30 days in future
-        // Optional: Add locale for consistent formatting
+        minDate={new Date(Date.now() - 60 * 60 * 1000)}
+        maxDate={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)}
         locale="en-US"
       />
       <ErrorMessage
@@ -893,6 +881,7 @@ const DateTimeField = React.memo(({
     </div>
   );
 });
+
 // ---------------------------------------------------------------------------
 // Dropdown
 // ---------------------------------------------------------------------------
@@ -1304,11 +1293,19 @@ const EditTripModal = ({
           return "";
 
         case "crew":
-          if (!value.trim()) return "Crew is required";
-          if (value.trim().length < 2) return "Crew must be at least 2 characters";
-          if (/[$*@#%^&!{}[\]<>\\|]/.test(value))
-            return "Special characters are not allowed";
-          return "";
+  if (!value.trim()) return "Crew is required";
+  if (value.trim().length < 2) return "Crew must be at least 2 characters";
+  if (value.trim().length > 50) return "Crew cannot exceed 50 characters";
+  
+  // CR_TC098: Check for numbers in crew name
+  if (/[0-9]/.test(value)) {
+    return "Crew name should not contain numbers";
+  }
+  
+  // Check for special characters
+  if (/[$*@#%^&!{}[\]<>\\|]/.test(value))
+    return "Special characters are not allowed";
+  return "";
 
         case "patient_id":
           if (!value) return "Patient is required";
@@ -1345,19 +1342,19 @@ const EditTripModal = ({
           return "";
 
         case "destination": {
-  if (!value || !value.trim()) return "Destination is required";
+          if (!value || !value.trim()) return "Destination is required";
 
-  const destinationError = validateLocation(value, "Destination");
-  if (destinationError) return destinationError;
+          const destinationError = validateLocation(value, "Destination");
+          if (destinationError) return destinationError;
 
-  if (
-    ctx.pickup_location &&
-    value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
-  )
-    return "Destination cannot be the same as Pickup Location";
+          if (
+            ctx.pickup_location &&
+            value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
+          )
+            return "Destination cannot be the same as Pickup Location";
 
-  return "";
-}
+          return "";
+        }
 
         case "end_time":
           if (value && ctx.start_time) {
@@ -1446,10 +1443,6 @@ const EditTripModal = ({
 
   const handleFocus = useCallback((fieldName) => setFocusedField(fieldName), []);
 
-  // FIX: On blur, only clear suggestions — do NOT clear them immediately if
-  // a suggestion item is being clicked (mousedown on suggestion calls
-  // e.preventDefault() which stops the blur from firing in the first place,
-  // so this blur handler only runs when focus genuinely leaves without a pick).
   const handleBlur = useCallback(
     (fieldName, value) => {
       setFocusedField(null);
@@ -1458,8 +1451,6 @@ const EditTripModal = ({
         [fieldName]: validateField(fieldName, value),
       }));
       
-      // Safe to clear here — if a suggestion was clicked, blur never fires
-      // because onMouseDown called e.preventDefault() on the suggestion item.
       if (fieldName === "pickup_location") {
         setPickupSuggestions([]);
       } else if (fieldName === "destination") {
@@ -1645,7 +1636,7 @@ const EditTripModal = ({
               label="Crew"
               name="crew"
               required
-              placeholder="Driver + EMT names"
+              placeholder="EMT name (max 50 characters)"
               value={form.crew}
               onChange={handleChange}
               onFocus={() => handleFocus("crew")}
@@ -1654,6 +1645,8 @@ const EditTripModal = ({
               submitted={submitted}
               isCreateMode={isCreateMode}
               inputRef={crewRef}
+              maxLength={50}
+              showCount={true}
             />
 
             <Dropdown
@@ -1766,28 +1759,30 @@ const EditTripModal = ({
               submitted={submitted}
               isCreateMode={isCreateMode}
               inputRef={notesRef}
+              maxLength={500}
+              showCount
             />
 
             <DateTimeField
-  label="Start Time"
-  name="start_time"
-  required
-  value={form.start_time}
-  onChange={handleChange}
-  error={errors.start_time}
-  submitted={submitted}
-  isCreateMode={isCreateMode}
-/>
+              label="Start Time"
+              name="start_time"
+              required
+              value={form.start_time}
+              onChange={handleChange}
+              error={errors.start_time}
+              submitted={submitted}
+              isCreateMode={isCreateMode}
+            />
 
-<DateTimeField
-  label="End Time"
-  name="end_time"
-  value={form.end_time}
-  onChange={handleChange}
-  error={errors.end_time}
-  submitted={submitted}
-  isCreateMode={isCreateMode}
-/>
+            <DateTimeField
+              label="End Time"
+              name="end_time"
+              value={form.end_time}
+              onChange={handleChange}
+              error={errors.end_time}
+              submitted={submitted}
+              isCreateMode={isCreateMode}
+            />
 
             {/* Status */}
             <div className="flex flex-col">

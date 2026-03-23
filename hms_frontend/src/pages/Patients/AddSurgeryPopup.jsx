@@ -43,20 +43,31 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
   // Use ref to prevent multiple toast calls
   const toastShownRef = useRef(false);
 
-  
-
   // Format validation functions
   const validateSurgeryType = (value) => {
-  if (!value.trim()) return "";
+    if (!value.trim()) return "";
 
-  if (!/^[A-Za-z\s\-.,()]+$/.test(value))
-    return "Surgery type can only contain letters, spaces, hyphens, commas, periods, and parentheses";
+    if (value.trim().length > 30) return "Surgery type cannot exceed 30 characters";
+    
+    if (!/^[A-Za-z\s\-.,()]+$/.test(value))
+      return "Surgery type can only contain letters, spaces, hyphens, commas, periods, and parentheses";
 
-  if (value.trim().length < 2)
-    return "Surgery type must be at least 2 characters";
+    if (value.trim().length < 2)
+      return "Surgery type must be at least 2 characters";
 
-  return "";
-};
+    return "";
+  };
+
+  const validateDescription = (value) => {
+    if (!value) return ""; // Description is optional
+    
+    if (value.trim().length > 200) return "Description cannot exceed 200 characters";
+    
+    if (!/^[A-Za-z0-9\s\-.,!?'()]+$/.test(value))
+      return "Description can contain letters, numbers, spaces, and basic punctuation";
+    
+    return "";
+  };
 
   const validateDateTime = () => {
     if (!formData.scheduled_date) return "Surgery date is required";
@@ -208,6 +219,9 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
       case "surgery_type":
         formatError = validateSurgeryType(processedValue);
         break;
+      case "description":
+        formatError = validateDescription(processedValue);
+        break;
       default:
         break;
     }
@@ -258,6 +272,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     
     const formatErrors = {
       surgery_type: validateSurgeryType(formData.surgery_type),
+      description: validateDescription(formData.description),
     };
     
     // Check date-time validation
@@ -272,6 +287,7 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     
     const newValidationErrors = {};
     if (formatErrors.surgery_type) newValidationErrors.surgery_type = formatErrors.surgery_type;
+    if (formatErrors.description) newValidationErrors.description = formatErrors.description;
     if (dateTimeError) newValidationErrors.scheduled_date_time = dateTimeError;
     
     setValidationErrors(prev => ({ ...prev, ...newValidationErrors }));
@@ -563,8 +579,6 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
     onClose?.();
   };
 
-
-
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica] overflow-y-auto py-4">
       <div
@@ -760,10 +774,11 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
               </label>
               <input
                 value={formData.surgery_type}
-                onChange={(e) => handleInputChange("surgery_type", e.target.value)}
+                onChange={(e) => handleInputChange("surgery_type", e.target.value.slice(0, 30))}
                 onFocus={() => setFocusedField("surgery_type")}
                 onBlur={() => setFocusedField(null)}
-                placeholder="Enter surgery type"
+                placeholder="Enter surgery type (max 30 chars)"
+                maxLength="30"
                 className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B]
@@ -830,158 +845,142 @@ export default function AddSurgeryPopup({ onClose, onSuccess }) {
             </div>
             
             {/* Surgery Date - Row 2, Column 2 */}
-            {/* Surgery Date & Time - Combined DatePicker */}
-{/* Surgery Date - Row 2, Column 2 */}
-{/* Surgery Date - Row 2, Column 2 */}
-<div className="col-span-1">
-  <label className="text-sm text-black dark:text-white">
-    Surgery Date <span className="text-red-700">*</span>
-  </label>
-  <div className="relative mt-1">
-    <DatePicker
-      selected={formData.scheduled_date ? new Date(formData.scheduled_date) : null}
-      onChange={(date) => {
-        if (date) {
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          handleInputChange("scheduled_date", `${year}-${month}-${day}`);
-        } else {
-          handleInputChange("scheduled_date", "");
-        }
-      }}
-      dateFormat="yyyy-MM-dd"
-      minDate={new Date()} // Only allow today and future dates
-      placeholderText="Select date"
-      className={`w-full h-[33px] px-3 rounded-[8px] border
-                bg-gray-100 dark:bg-transparent outline-none
-                text-black dark:text-[#0EFF7B] cursor-pointer
-                ${focusedField === "scheduled_date"
-                  ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                  : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
-                    ? "border-red-500 ring-1 ring-red-500"
-                    : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                }`}
-      wrapperClassName="w-full"
-      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
-      dayClassName={(date) => {
-        // Disable past dates
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const isPast = date < today;
-        
-        if (isPast) {
-          return "text-gray-400 cursor-not-allowed";
-        }
-        return date.getDate() === new Date().getDate() 
-          ? "text-[#0EFF7B]  font-bold hover:bg-[#0EFF7B33]" 
-          : "text-black hover:bg-[#0EFF7B33]";
-      }}
-      popperClassName="z-50"
-      onFocus={() => setFocusedField("scheduled_date")}
-      onBlur={() => setFocusedField(null)}
-    />
-    <Calendar
-      size={18}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-    />
-  </div>
-  {getFieldError("scheduled_date") && (
-    <div className="mt-1 flex items-center gap-1">
-      <AlertCircle size={12} className="text-red-600" />
-      <span className="text-red-700 text-xs">
-        {getFieldError("scheduled_date")}
-      </span>
-    </div>
-  )}
-</div>
+            <div className="col-span-1">
+              <label className="text-sm text-black dark:text-white">
+                Surgery Date <span className="text-red-700">*</span>
+              </label>
+              <div className="relative mt-1">
+                <DatePicker
+                  selected={formData.scheduled_date ? new Date(formData.scheduled_date) : null}
+                  onChange={(date) => {
+                    if (date) {
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      handleInputChange("scheduled_date", `${year}-${month}-${day}`);
+                    } else {
+                      handleInputChange("scheduled_date", "");
+                    }
+                  }}
+                  dateFormat="yyyy-MM-dd"
+                  minDate={new Date()}
+                  placeholderText="Select date"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border
+                            bg-gray-100 dark:bg-transparent outline-none
+                            text-black dark:text-[#0EFF7B] cursor-pointer
+                            ${focusedField === "scheduled_date"
+                              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                              : getFieldError("scheduled_date") || getFieldError("scheduled_date_time")
+                                ? "border-red-500 ring-1 ring-red-500"
+                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                            }`}
+                  wrapperClassName="w-full"
+                  calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
+                  popperClassName="z-50"
+                  onFocus={() => setFocusedField("scheduled_date")}
+                  onBlur={() => setFocusedField(null)}
+                />
+                <Calendar
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+                />
+              </div>
+              {getFieldError("scheduled_date") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600" />
+                  <span className="text-red-700 text-xs">
+                    {getFieldError("scheduled_date")}
+                  </span>
+                </div>
+              )}
+            </div>
 
-{/* Surgery Time - Row 2, Column 3 */}
-{/* Surgery Time - Row 2, Column 3 */}
-<div className="col-span-1">
-  <label className="text-sm text-black dark:text-white">
-    Surgery Time <span className="text-red-700">*</span>
-  </label>
-  <div className="relative mt-1">
-    {/* Add this style tag for the scrollbar */}
-    <style>{`
-      .react-datepicker__time-list::-webkit-scrollbar {
-        width: 8px;
-      }
-      .react-datepicker__time-list::-webkit-scrollbar-track {
-        background: #f3f4f6;
-        border-radius: 4px;
-      }
-      .react-datepicker__time-list::-webkit-scrollbar-thumb {
-        background: #0EFF7B;
-        border-radius: 4px;
-      }
-      .react-datepicker__time-list {
-        scrollbar-width: thin;
-        scrollbar-color: #0EFF7B #f3f4f6;
-      }
-    `}</style>
-    
-    <DatePicker
-      selected={formData.scheduled_date && formData.scheduled_time 
-        ? new Date(`${formData.scheduled_date}T${formData.scheduled_time}`) 
-        : null}
-      onChange={(time) => {
-        if (time) {
-          const hours = String(time.getHours()).padStart(2, '0');
-          const minutes = String(time.getMinutes()).padStart(2, '0');
-          handleInputChange("scheduled_time", `${hours}:${minutes}`);
-        } else {
-          handleInputChange("scheduled_time", "");
-        }
-      }}
-      showTimeSelect
-      showTimeSelectOnly
-      timeIntervals={15}
-      timeCaption="Time"
-      dateFormat="h:mm aa"
-      placeholderText="Select time"
-      className={`w-full h-[33px] px-3 rounded-[8px] border
-                bg-gray-100 dark:bg-transparent outline-none
-                text-black dark:text-[#0EFF7B] cursor-pointer
-                ${focusedField === "scheduled_time"
-                  ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                  : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
-                    ? "border-red-500 ring-1 ring-red-500"
-                    : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                }`}
-      wrapperClassName="w-full"
-      calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
-      popperClassName="z-50"
-      onFocus={() => setFocusedField("scheduled_time")}
-      onBlur={() => setFocusedField(null)}
-    />
-    <Clock
-      size={18}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
-    />
-  </div>
-  {getFieldError("scheduled_time") && (
-    <div className="mt-1 flex items-center gap-1">
-      <AlertCircle size={12} className="text-red-600" />
-      <span className="text-red-700 text-xs">
-        {getFieldError("scheduled_time")}
-      </span>
-    </div>
-  )}
-</div>
-            {/* Description - Row 3, Column 1, 2 & 3 (spans all 3 columns) */}
+            {/* Surgery Time - Row 2, Column 3 */}
+            <div className="col-span-1">
+              <label className="text-sm text-black dark:text-white">
+                Surgery Time <span className="text-red-700">*</span>
+              </label>
+              <div className="relative mt-1">
+                <style>{`
+                  .react-datepicker__time-list::-webkit-scrollbar {
+                    width: 8px;
+                  }
+                  .react-datepicker__time-list::-webkit-scrollbar-track {
+                    background: #f3f4f6;
+                    border-radius: 4px;
+                  }
+                  .react-datepicker__time-list::-webkit-scrollbar-thumb {
+                    background: #0EFF7B;
+                    border-radius: 4px;
+                  }
+                  .react-datepicker__time-list {
+                    scrollbar-width: thin;
+                    scrollbar-color: #0EFF7B #f3f4f6;
+                  }
+                `}</style>
+                
+                <DatePicker
+                  selected={formData.scheduled_date && formData.scheduled_time 
+                    ? new Date(`${formData.scheduled_date}T${formData.scheduled_time}`) 
+                    : null}
+                  onChange={(time) => {
+                    if (time) {
+                      const hours = String(time.getHours()).padStart(2, '0');
+                      const minutes = String(time.getMinutes()).padStart(2, '0');
+                      handleInputChange("scheduled_time", `${hours}:${minutes}`);
+                    } else {
+                      handleInputChange("scheduled_time", "");
+                    }
+                  }}
+                  showTimeSelect
+                  showTimeSelectOnly
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="h:mm aa"
+                  placeholderText="Select time"
+                  className={`w-full h-[33px] px-3 rounded-[8px] border
+                            bg-gray-100 dark:bg-transparent outline-none
+                            text-black dark:text-[#0EFF7B] cursor-pointer
+                            ${focusedField === "scheduled_time"
+                              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+                              : getFieldError("scheduled_time") || getFieldError("scheduled_date_time")
+                                ? "border-red-500 ring-1 ring-red-500"
+                                : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+                            }`}
+                  wrapperClassName="w-full"
+                  calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
+                  popperClassName="z-50"
+                  onFocus={() => setFocusedField("scheduled_time")}
+                  onBlur={() => setFocusedField(null)}
+                />
+                <Clock
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] pointer-events-none"
+                />
+              </div>
+              {getFieldError("scheduled_time") && (
+                <div className="mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} className="text-red-600" />
+                  <span className="text-red-700 text-xs">
+                    {getFieldError("scheduled_time")}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Description - Row 3, spans all 3 columns */}
             <div className="col-span-3">
               <label className="text-sm text-black dark:text-white">
-                Description (Optional)
+                Description <span className="text-gray-500 text-xs">(Optional, max 200 chars)</span>
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) => handleInputChange("description", e.target.value.slice(0, 200))}
                 onFocus={() => setFocusedField("description")}
                 onBlur={() => setFocusedField(null)}
-                placeholder="Enter surgery description"
+                placeholder="Enter surgery description (max 200 characters)"
                 rows="3"
+                maxLength="200"
                 className={`w-full mt-1 px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                            placeholder-gray-400 dark:placeholder-gray-500 outline-none 
                            text-black dark:text-[#0EFF7B] resize-none

@@ -1036,24 +1036,40 @@ const AppointmentListIPD = () => {
 
   // ---------- FILTER HANDLERS ----------
   const onFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters((p) => ({ ...p, [name]: value }));
+  const { name, value } = e.target;
+  setFilters((p) => ({ ...p, [name]: value }));
+};
+
+// NEW: Clear only the filter fields without closing the popup
+const clearFilterFields = () => {
+  const empty = {
+    patientName: "",
+    patientId: "",
+    department: "",
+    doctor: "",
+    status: "",
+    date: "",
   };
-  
-  const clearFilters = () => {
-    const empty = {
-      patientName: "",
-      patientId: "",
-      department: "",
-      doctor: "",
-      status: "",
-      date: "",
-    };
-    setFilters(empty);
-    setAppliedFilters(empty);
-    setShowFilter(false);
-    setPage(1);
+  setFilters(empty);
+};
+
+// Modified: Clear filters AND close popup (used for complete reset)
+const clearFiltersAndClose = () => {
+  const empty = {
+    patientName: "",
+    patientId: "",
+    department: "",
+    doctor: "",
+    status: "",
+    date: "",
   };
+  setFilters(empty);
+  setAppliedFilters(empty);
+  setShowFilter(false);
+  setPage(1);
+};
+
+
 
   // ---------- APPLY FILTER POPUP ----------
   const applyFilterPopup = () => {
@@ -1552,154 +1568,155 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
 
       {/* FILTER POPUP */}
       {showFilter && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-            <div
-              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
-              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "20px",
-                  padding: "2px",
-                  background:
-                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-                  WebkitMask:
-                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                  WebkitMaskComposite: "xor",
-                  maskComposite: "exclude",
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              ></div>
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+    <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
+      <div
+        className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "20px",
+            padding: "2px",
+            background:
+              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+            WebkitMask:
+              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        ></div>
 
-              <div className="flex justify-between items-center pb-3 mb-4">
-                <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-                  Filter Patients
-                </h3>
-                <button
-                  onClick={() => setShowFilter(false)}
-                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
-                >
-                  <X size={16} className="text-black dark:text-white" />
-                </button>
-              </div>
+        <div className="flex justify-between items-center pb-3 mb-4">
+          <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+            Filter Patients
+          </h3>
+          <button
+            onClick={() => setShowFilter(false)}
+            className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+          >
+            <X size={16} className="text-black dark:text-white" />
+          </button>
+        </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Patient Name
-                  </label>
-                  <input
-                    name="patientName"
-                    value={filters.patientName}
-                    onChange={onFilterChange}
-                    placeholder="enter patient name"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Patient ID
-                  </label>
-                  <input
-                    name="patientId"
-                    value={filters.patientId}
-                    onChange={onFilterChange}
-                    placeholder="enter patient ID"
-                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-                  />
-                </div>
-                <Dropdown
-                  label="Department"
-                  value={filters.department}
-                  onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
-                  options={
-                    loadingFilterDepts
-                      ? []
-                      : filterDepartments.map((d) => ({
-                          id: d.id || d.name || d.department_name,
-                          name: d.name || d.department_name,
-                        }))
-                  }
-                  loading={loadingFilterDepts}
-                />
-                
-                <Dropdown
-  label="Doctor"
-  value={filters.doctor}
-  onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
-  options={
-    loadingFilterDocs
-      ? []
-      : filterDoctors.map((doc) => ({
-          id: doc.id,
-          name: `${doc.full_name} – ${doc.designation || "N/A"}`
-        }))
-  }
-  loading={loadingFilterDocs}
-/>
-                <Dropdown
-                  label="Status"
-                  value={filters.status}
-                  onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-                  options={[
-                    "Active",
-                    "New",
-                    "Normal",
-                    "Severe",
-                    "Cancelled",
-                  ]}
-                />
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Date
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      id="dateInput"
-                      type="date"
-                      name="date"
-                      value={filters.date}
-                      onChange={onFilterChange}
-                      onClick={(e) => e.target.showPicker()}
-                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
-                               border border-[#0EFF7B] dark:border-[#3A3A3A]
-                               bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-                               outline-none cursor-pointer
-                               appearance-none
-                               [&::-webkit-calendar-picker-indicator]:opacity-0
-                               [&::-webkit-calendar-picker-indicator]:hidden"
-                    />
-                    <Calendar
-                      className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
-                      onClick={() =>
-                        document.getElementById("dateInput").showPicker()
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-center gap-2 mt-8">
-                <button
-                  onClick={clearFilters}
-                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={applyFilterPopup}
-                  className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
-                >
-                  Filter
-                </button>
-              </div>
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <label className="text-sm text-black dark:text-white">
+              Patient Name
+            </label>
+            <input
+              name="patientName"
+              value={filters.patientName}
+              onChange={onFilterChange}
+              placeholder="enter patient name"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-black dark:text-white">
+              Patient ID
+            </label>
+            <input
+              name="patientId"
+              value={filters.patientId}
+              onChange={onFilterChange}
+              placeholder="enter patient ID"
+              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+            />
+          </div>
+          <Dropdown
+            label="Department"
+            value={filters.department}
+            onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
+            options={
+              loadingFilterDepts
+                ? []
+                : filterDepartments.map((d) => ({
+                    id: d.id || d.name || d.department_name,
+                    name: d.name || d.department_name,
+                  }))
+            }
+            loading={loadingFilterDepts}
+          />
+          
+          <Dropdown
+            label="Doctor"
+            value={filters.doctor}
+            onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
+            options={
+              loadingFilterDocs
+                ? []
+                : filterDoctors.map((doc) => ({
+                    id: doc.id,
+                    name: `${doc.full_name} – ${doc.designation || "N/A"}`
+                  }))
+            }
+            loading={loadingFilterDocs}
+          />
+          <Dropdown
+            label="Status"
+            value={filters.status}
+            onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
+            options={[
+              "Active",
+              "New",
+              "Normal",
+              "Severe",
+              "Cancelled",
+            ]}
+          />
+          <div>
+            <label className="text-sm text-black dark:text-white">
+              Date
+            </label>
+            <div className="relative mt-1">
+              <input
+                id="dateInput"
+                type="date"
+                name="date"
+                value={filters.date}
+                onChange={onFilterChange}
+                onClick={(e) => e.target.showPicker()}
+                className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
+                         border border-[#0EFF7B] dark:border-[#3A3A3A]
+                         bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
+                         outline-none cursor-pointer
+                         appearance-none
+                         [&::-webkit-calendar-picker-indicator]:opacity-0
+                         [&::-webkit-calendar-picker-indicator]:hidden"
+              />
+              <Calendar
+                className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
+                onClick={() =>
+                  document.getElementById("dateInput").showPicker()
+                }
+              />
             </div>
           </div>
         </div>
-      )}
+        <div className="flex justify-center gap-2 mt-8">
+          <button
+            onClick={clearFilterFields}  
+            className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
+          >
+            Clear
+          </button>
+          <button
+            onClick={applyFilterPopup}
+            className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+          >
+            Filter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* EDIT POPUP */}
       {showEdit && selAppt && (

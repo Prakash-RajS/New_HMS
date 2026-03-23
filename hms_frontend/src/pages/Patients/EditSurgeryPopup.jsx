@@ -71,27 +71,45 @@ export default function EditSurgeryPopup({ onClose, surgery, onUpdate }) {
   // Format validation functions
   // Updated version (no numbers allowed)
 const validateSurgeryType = (value) => {
+  if (!value.trim()) return "";
+  
+  if (value.trim().length > 30) return "Surgery type cannot exceed 30 characters";
+  
   if (value.trim() && !/^[A-Za-z\s\-.,()]+$/.test(value))
     return "Surgery type can only contain letters, spaces, hyphens, commas, periods, and parentheses";
+  
   if (value.trim() && value.trim().length < 2)
     return "Surgery type must be at least 2 characters";
+  
+  return "";
+};
+
+const validateDescription = (value) => {
+  if (!value) return ""; // Description is optional
+  
+  if (value.trim().length > 200) return "Description cannot exceed 200 characters";
+  
+  if (!/^[A-Za-z0-9\s\-.,!?'()]+$/.test(value))
+    return "Description can contain letters, numbers, spaces, and basic punctuation";
+  
   return "";
 };
 
   // Validate date and time – now conditional on status
   const validateDateTime = (date, time, status) => {
-    if (!date) return "Surgery date is required";
-    if (!time) return "Surgery time is required";
+  if (!date) return "Surgery date is required";
+  if (!time) return "Surgery time is required";
 
-    // If status is success or failed, date must be in the past
-    if (status === "success" || status === "failed") {
-      if (!isPastDateTime(date, time)) {
-        return "For completed or failed surgeries, date and time must be in the past";
-      }
-    }
+  // For edit mode, we don't restrict past dates
+  // Only validate based on status logic
+  if (status === "success" || status === "failed") {
+    // You can add validation here if needed, but don't block past dates
+    // Just ensure date and time are valid
+    if (!date || !time) return "Date and time are required";
+  }
 
-    return "";
-  };
+  return "";
+};
 
   const validatePrice = (value) => {
     if (value && !/^\d+(\.\d{1,2})?$/.test(value))
@@ -187,35 +205,48 @@ const validateSurgeryType = (value) => {
     });
 
     // For date/time fields, validate the combination with current status
-    if (field === "scheduled_date" || field === "scheduled_time") {
-      const currentDate = field === "scheduled_date" ? processedValue : formData.scheduled_date;
-      const currentTime = field === "scheduled_time" ? processedValue : formData.scheduled_time;
-      const dateTimeError = validateDateTime(currentDate, currentTime, formData.status);
+    // For date/time fields, validate the combination with current status
+if (field === "scheduled_date" || field === "scheduled_time") {
+  const currentDate = field === "scheduled_date" ? processedValue : formData.scheduled_date;
+  const currentTime = field === "scheduled_time" ? processedValue : formData.scheduled_time;
+  
+  // Only validate that both date and time are present
+  let dateTimeError = "";
+  if (!currentDate) {
+    dateTimeError = "Surgery date is required";
+  } else if (!currentTime) {
+    dateTimeError = "Surgery time is required";
+  }
+  // Remove the past date check for edit mode
 
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        if (dateTimeError) {
-          newErrors.scheduled_date_time = dateTimeError;
-        } else {
-          delete newErrors.scheduled_date_time;
-        }
-        return newErrors;
-      });
-      return;
+  setValidationErrors(prev => {
+    const newErrors = { ...prev };
+    if (dateTimeError) {
+      newErrors.scheduled_date_time = dateTimeError;
+    } else {
+      delete newErrors.scheduled_date_time;
     }
+    return newErrors;
+  });
+  return;
+}
 
     // Real-time format validation for other fields (surgery_type, price)
     let formatError = "";
-    switch (field) {
-      case "surgery_type":
-        formatError = validateSurgeryType(processedValue);
-        break;
-      case "price":
-        formatError = validatePrice(processedValue);
-        break;
-      default:
-        break;
-    }
+    // In handleInputChange function, find the switch statement and add description case
+switch (field) {
+  case "surgery_type":
+    formatError = validateSurgeryType(processedValue);
+    break;
+  case "description":
+    formatError = validateDescription(processedValue);
+    break;
+  case "price":
+    formatError = validatePrice(processedValue);
+    break;
+  default:
+    break;
+}
     if (formatError) {
       setValidationErrors(prev => ({ ...prev, [field]: formatError }));
     }
@@ -248,25 +279,27 @@ const validateSurgeryType = (value) => {
 
   // Validate form before submission
   const validateForm = () => {
-    const requiredValid = validateRequiredFields();
+  const requiredValid = validateRequiredFields();
 
-    const formatErrors = {
-      surgery_type: validateSurgeryType(formData.surgery_type),
-      scheduled_date_time: validateDateTime(formData.scheduled_date, formData.scheduled_time, formData.status),
-      price: validatePrice(formData.price)
-    };
-
-    const newValidationErrors = {};
-    if (formatErrors.surgery_type) newValidationErrors.surgery_type = formatErrors.surgery_type;
-    if (formatErrors.scheduled_date_time) newValidationErrors.scheduled_date_time = formatErrors.scheduled_date_time;
-    if (formatErrors.price) newValidationErrors.price = formatErrors.price;
-
-    setValidationErrors(prev => ({ ...prev, ...newValidationErrors }));
-
-    const formatValid = !Object.values(formatErrors).some(error => error !== "");
-
-    return requiredValid && formatValid;
+  const formatErrors = {
+    surgery_type: validateSurgeryType(formData.surgery_type),
+    description: validateDescription(formData.description),
+    //scheduled_date_time: validateDateTime(formData.scheduled_date, formData.scheduled_time, formData.status),
+    price: validatePrice(formData.price)
   };
+
+  const newValidationErrors = {};
+  if (formatErrors.surgery_type) newValidationErrors.surgery_type = formatErrors.surgery_type;
+  if (formatErrors.description) newValidationErrors.description = formatErrors.description;
+  if (formatErrors.scheduled_date_time) newValidationErrors.scheduled_date_time = formatErrors.scheduled_date_time;
+  if (formatErrors.price) newValidationErrors.price = formatErrors.price;
+
+  setValidationErrors(prev => ({ ...prev, ...newValidationErrors }));
+
+  const formatValid = !Object.values(formatErrors).some(error => error !== "");
+
+  return requiredValid && formatValid;
+};
 
   // Extract error message from error data
   const extractErrorMessage = (errorData) => {
@@ -615,32 +648,34 @@ const validateSurgeryType = (value) => {
             </div>
 
             {/* Surgery Type - Row 1, Column 3 */}
-            <div className="col-span-1">
-              <label className="text-sm text-black dark:text-white">
-                Surgery Type <span className="text-red-700">*</span>
-              </label>
-              <input
-                value={formData.surgery_type}
-                onChange={(e) => handleInputChange("surgery_type", e.target.value)}
-                onFocus={() => setFocusedField("surgery_type")}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Enter surgery type"
-                className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                           placeholder-gray-400 dark:placeholder-gray-500 outline-none 
-                           text-black dark:text-[#0EFF7B]
-                           ${focusedField === "surgery_type" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" :
-                    getFieldError("surgery_type") ? "border-red-500 ring-1 ring-red-500" :
-                      "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-              />
-              {getFieldError("surgery_type") && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {getFieldError("surgery_type")}
-                  </span>
-                </div>
-              )}
-            </div>
+           {/* Surgery Type - Row 1, Column 3 */}
+<div className="col-span-1">
+  <label className="text-sm text-black dark:text-white">
+    Surgery Type <span className="text-red-700">*</span>
+  </label>
+  <input
+    value={formData.surgery_type}
+    onChange={(e) => handleInputChange("surgery_type", e.target.value.slice(0, 30))}
+    onFocus={() => setFocusedField("surgery_type")}
+    onBlur={() => setFocusedField(null)}
+    placeholder="Enter surgery type (max 30 chars)"
+    maxLength="30"
+    className={`w-full h-[32px] mt-1 px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+               placeholder-gray-400 dark:placeholder-gray-500 outline-none 
+               text-black dark:text-[#0EFF7B]
+               ${focusedField === "surgery_type" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" :
+                getFieldError("surgery_type") ? "border-red-500 ring-1 ring-red-500" :
+                "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+  />
+  {getFieldError("surgery_type") && (
+    <div className="mt-1 flex items-center gap-1">
+      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+      <span className="text-red-700 dark:text-red-400 text-xs">
+        {getFieldError("surgery_type")}
+      </span>
+    </div>
+  )}
+</div>
 
             {/* Status - Row 2, Column 1 */}
             <div className="col-span-1">
@@ -731,19 +766,19 @@ const validateSurgeryType = (value) => {
                 }`}
       wrapperClassName="w-full"
       calendarClassName="bg-white border border-[#0EFF7B] rounded-lg shadow-lg"
-      dayClassName={(date) => {
-        // Disable past dates
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const isPast = date < today;
+      // dayClassName={(date) => {
+      //   // Disable past dates
+      //   const today = new Date();
+      //   today.setHours(0, 0, 0, 0);
+      //   const isPast = date < today;
         
-        if (isPast) {
-          return "text-gray-400 cursor-not-allowed";
-        }
-        return date.getDate() === new Date().getDate() 
-          ? "text-[#0EFF7B] font-bold hover:bg-[#0EFF7B33]" 
-          : "text-black hover:bg-[#0EFF7B33]";
-      }}
+      //   if (isPast) {
+      //     return "text-gray-400 cursor-not-allowed";
+      //   }
+      //   return date.getDate() === new Date().getDate() 
+      //     ? "text-[#0EFF7B] font-bold hover:bg-[#0EFF7B33]" 
+      //     : "text-black hover:bg-[#0EFF7B33]";
+      // }}
       popperClassName="z-50"
       onFocus={() => setFocusedField("scheduled_date")}
       onBlur={() => setFocusedField(null)}
@@ -876,33 +911,36 @@ const validateSurgeryType = (value) => {
             )}
 
             {/* Description - Row 3, Column 2 & 3 (spans 2 columns) */}
-            <div className="col-span-2">
-              <label className="text-sm text-black dark:text-white">
-                Description (Optional)
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
-                onFocus={() => setFocusedField("description")}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Enter surgery description"
-                rows="3"
-                className={`w-full mt-1 px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent 
-                           placeholder-gray-400 dark:placeholder-gray-500 outline-none 
-                           text-black dark:text-[#0EFF7B] resize-none
-                           ${focusedField === "description" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" :
-                    getFieldError("description") ? "border-red-500 ring-1 ring-red-500" :
-                      "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
-              />
-              {getFieldError("description") && (
-                <div className="mt-1 flex items-center gap-1">
-                  <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
-                  <span className="text-red-700 dark:text-red-400 text-xs">
-                    {getFieldError("description")}
-                  </span>
-                </div>
-              )}
-            </div>
+            {/* Description - Row 3, Column 2 & 3 (spans 2 columns) */}
+{/* Description - Row 3, Column 2 & 3 (spans 2 columns) */}
+<div className="col-span-2">
+  <label className="text-sm text-black dark:text-white">
+    Description <span className="text-gray-500 text-xs">(Optional, max 200 chars)</span>
+  </label>
+  <textarea
+    value={formData.description}
+    onChange={(e) => handleInputChange("description", e.target.value.slice(0, 200))}
+    onFocus={() => setFocusedField("description")}
+    onBlur={() => setFocusedField(null)}
+    placeholder="Enter surgery description (max 200 characters)"
+    rows="3"
+    maxLength="200"
+    className={`w-full mt-1 px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent 
+               placeholder-gray-400 dark:placeholder-gray-500 outline-none 
+               text-black dark:text-[#0EFF7B] resize-none
+               ${focusedField === "description" ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]" :
+                getFieldError("description") ? "border-red-500 ring-1 ring-red-500" :
+                "border-[#0EFF7B] dark:border-[#3A3A3A]"}`}
+  />
+  {getFieldError("description") && (
+    <div className="mt-1 flex items-center gap-1">
+      <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+      <span className="text-red-700 dark:text-red-400 text-xs">
+        {getFieldError("description")}
+      </span>
+    </div>
+  )}
+</div>
           </div>
 
           {/* Combined date-time validation error */}

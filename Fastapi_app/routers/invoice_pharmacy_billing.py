@@ -431,10 +431,21 @@ def delayed_remove(file_path: str, delay: int = 3):
 def number_to_words(amount):
     try:
         from num2words import num2words
-        return num2words(int(amount), to="cardinal").title() + " Only"
+        
+        # Split into rupees and paise
+        rupees = int(amount)
+        paise = round((amount - rupees) * 100)
+        
+        rupees_words = num2words(rupees, to="cardinal", lang="en").title()
+        
+        if paise > 0:
+            paise_words = num2words(paise, to="cardinal", lang="en").title()
+            return f"{rupees_words} Rupees And {paise_words} Paise Only"
+        else:
+            return f"{rupees_words} Rupees Only"
+            
     except Exception:
         return str(amount)
-
 
 @sync_to_async
 def _get_last_invoice():
@@ -600,11 +611,23 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
     ensure_db_connection()
     with transaction.atomic():
         subtotal = Decimal("0.00")
+        total_discount = Decimal("0.00")
         items_with_totals = []
 
         for item in data.items:
-            line_total = Decimal(item.quantity) * Decimal(item.unit_price)
+            qty = Decimal(item.quantity)
+            price = Decimal(str(item.unit_price))
+            disc_pct = Decimal(str(item.discount_pct))
+            tax_pct = Decimal(str(item.tax_pct))
+
+            base = qty * price
+            discount_amt = base * disc_pct / 100
+            after_discount = base - discount_amt
+            line_total = after_discount + (after_discount * tax_pct / 100)  # ✅ tax on discounted amount
+
             subtotal += line_total
+            total_discount += discount_amt
+
             items_with_totals.append({
                 "sl_no": item.sl_no,
                 "item_code": item.item_code,
@@ -612,16 +635,35 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
                 "rack_no": item.rack_no,
                 "shelf_no": item.shelf_no,
                 "quantity": item.quantity,
-                "unit_price": float(item.unit_price),
-                "discount_pct": float(item.discount_pct),
-                "tax_pct": float(item.tax_pct),
-                "line_total": float(line_total)
+                "unit_price": float(price),
+                "discount_pct": float(disc_pct),
+                "tax_pct": float(tax_pct),
+                "line_total": float(line_total),  # ✅ correct per-item total
             })
 
-        cgst_amount = (subtotal * Decimal(data.cgst_percent) / 100)
-        sgst_amount = (subtotal * Decimal(data.sgst_percent) / 100)
-        tax_total = cgst_amount + sgst_amount
-        grand_total = subtotal + tax_total - Decimal(data.discount_amount)
+        # Tax is already baked into line_total; extract it back for display
+        # weighted average tax percent across all items
+        taxable_base = Decimal("0.00")
+        weighted_tax = Decimal("0.00")
+        for item in data.items:
+            qty = Decimal(item.quantity)
+            price = Decimal(str(item.unit_price))
+            disc_pct = Decimal(str(item.discount_pct))
+            tax_pct = Decimal(str(item.tax_pct))
+            base = qty * price
+            after_discount = base - (base * disc_pct / 100)
+            taxable_base += after_discount
+            weighted_tax += after_discount * tax_pct
+
+        avg_tax_pct = weighted_tax / taxable_base if taxable_base > 0 else Decimal("10")
+        half_tax = avg_tax_pct / 2  # split into CGST / SGST
+
+        # Back-calculate tax amounts from final subtotal
+        base_before_tax = subtotal / (1 + avg_tax_pct / 100)
+        cgst_amount = base_before_tax * half_tax / 100
+        sgst_amount = base_before_tax * half_tax / 100
+
+        grand_total = subtotal  # subtotal already includes tax, discount applied per-item
 
         invoice = PharmacyInvoiceHistory.objects.create(
             bill_no=auto_bill_no,
@@ -638,11 +680,11 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
             payment_mode=data.payment_mode,
             bill_date=data.bill_date,
             subtotal=float(subtotal),
-            cgst_percent=data.cgst_percent,
+            cgst_percent=float(half_tax),
             cgst_amount=float(cgst_amount),
-            sgst_percent=data.sgst_percent,
+            sgst_percent=float(half_tax),
             sgst_amount=float(sgst_amount),
-            discount_amount=data.discount_amount,
+            discount_amount=float(total_discount),  # ✅ actual calculated discount
             net_amount=float(grand_total),
         )
 
@@ -661,7 +703,7 @@ def _create_invoice_atomic(auto_bill_no: str, data: InvoiceSchema):
                 line_total=item["line_total"],
             )
 
-        return invoice.id, float(grand_total), float(tax_total), invoice
+        return invoice.id, float(grand_total), float(cgst_amount + sgst_amount), invoice
 
 # ------------------------------
 # API: CREATE PHARMACY INVOICE
@@ -681,13 +723,12 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
         db_invoice = await _get_invoice_by_id(invoice_id)
         db_items = await _get_invoice_items_for_invoice(db_invoice)
 
-        cgst_percent = float(data.cgst_percent)
-        sgst_percent = float(data.sgst_percent)
-
-        subtotal = float(db_invoice.subtotal)
-
-        cgst_amount = subtotal * (cgst_percent / 100)
-        sgst_amount = subtotal * (sgst_percent / 100)
+        # ✅ Use values already stored on the invoice — no recalculation
+        cgst_percent = float(db_invoice.cgst_percent)
+        sgst_percent = float(db_invoice.sgst_percent)
+        cgst_amount  = float(db_invoice.cgst_amount)
+        sgst_amount  = float(db_invoice.sgst_amount)
+        grand_total  = float(db_invoice.net_amount)
 
         amount_words = number_to_words(grand_total)
         template = env.get_template("invoice_pharmacy_template.html")
@@ -699,10 +740,7 @@ async def create_pharmacy_invoice(data: InvoiceSchema):
             sgst_percent=sgst_percent,
             cgst_amount=cgst_amount,
             sgst_amount=sgst_amount,
-            tax_total=tax_total,
-            tax_percent=float(data.cgst_percent + data.sgst_percent),
         )
-
         pdf_filename = f"{db_invoice.bill_no}.pdf"
         pdf_path = os.path.join(INVOICE_OUTPUT_DIR, pdf_filename)
         await sync_to_async(HTML(string=html_content, base_url=TEMPLATE_DIR).write_pdf)(pdf_path)

@@ -62,15 +62,37 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     fetchBloodTypes();
   }, []);
 
+  // Updated: Validate units - only numbers, max 5 digits, range 1-99999 (no zero)
   const validateUnitsFormat = (value) => {
     if (!value) return "";
-    const units = parseInt(value, 10);
-    if (isNaN(units)) {
-      return "Units must be a valid number";
+    
+    // Check if value is a valid number (only digits allowed)
+    if (!/^\d+$/.test(value)) {
+      return "Units must contain only numbers";
     }
+    
+    const units = parseInt(value, 10);
+    
+    // Check if value is zero (not allowed)
+    if (units === 0) {
+      return "Units cannot be zero";
+    }
+    
+    // Check for negative values
     if (units < 0) {
       return "Units cannot be negative";
     }
+    
+    // Check for max 5 digits (1-99999)
+    if (value.length > 5) {
+      return "Units cannot exceed 5 digits";
+    }
+    
+    // Check if value is within valid range (1-99999)
+    if (units < 1 || units > 99999) {
+      return "Units must be between 1 and 99999";
+    }
+    
     return "";
   };
 
@@ -162,15 +184,27 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
     }
   };
 
+  // Handle units change with filtering and validation
   const handleUnitsChange = (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, units: value });
+    let value = e.target.value;
     
+    // Allow only numbers (remove any non-digit characters)
+    let numericValue = value.replace(/[^\d]/g, '');
+    
+    // Limit to 5 digits max
+    if (numericValue.length > 5) {
+      numericValue = numericValue.slice(0, 5);
+    }
+    
+    setFormData({ ...formData, units: numericValue });
+    
+    // Clear any existing required field error
     if (errors.units) {
       setErrors(prev => ({ ...prev, units: "" }));
     }
     
-    const formatError = validateUnitsFormat(value);
+    // Perform real-time format validation
+    const formatError = validateUnitsFormat(numericValue);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, units: formatError }));
     } else if (formatErrors.units) {
@@ -311,11 +345,14 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
               </label>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="\d*"
                 name="units"
                 value={formData.units}
                 onChange={handleUnitsChange}
-                placeholder="Enter units"
+                placeholder="Enter units (1-99999)"
                 disabled={updating}
+                maxLength="5"
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none disabled:opacity-50"
               />
@@ -325,6 +362,9 @@ const EditBloodTypePopup = ({ onClose, bloodData, onUpdate }) => {
               {errors.units && !formatErrors.units && (
                 <p className="text-red-500 text-xs mt-1">{errors.units}</p>
               )}
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                Only numbers allowed. Range: 1-99999
+              </p>
             </div>
             
             {/* Status */}

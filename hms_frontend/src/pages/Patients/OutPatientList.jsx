@@ -753,6 +753,8 @@
 
 // export default AppointmentListOPD;
 
+// src/components/AppointmentListOPD.jsx
+// AppointmentListOPD.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -838,14 +840,15 @@ const AppointmentListOPD = () => {
       // Add filter parameters to API call - using correct parameter names expected by backend
       if (filterParams.patientName) params.patient_name = filterParams.patientName;
       if (filterParams.patientId) params.patient_id = filterParams.patientId;
-      if (filterParams.department) params.department_id = filterParams.department; // Send ID, not name
-      if (filterParams.doctor) params.staff_id = filterParams.doctor; // Send staff ID, not name
+      if (filterParams.department) params.department_id = filterParams.department;
+      if (filterParams.doctor) params.staff_id = filterParams.doctor;
       if (filterParams.date) {
         const dateObj = new Date(filterParams.date);
         const formattedDate = dateObj.toISOString().split('T')[0];
         params.date = formattedDate;
       }
-if (activeFilter !== "All") params.status = activeFilter;
+      if (activeFilter !== "All") params.status = activeFilter;
+      
       const response = await api.get("/patients/opd", { params });
       const data = response.data;
 
@@ -941,7 +944,20 @@ if (activeFilter !== "All") params.status = activeFilter;
     setFilters((p) => ({ ...p, [name]: value }));
   };
   
-  const clearFilters = () => {
+  // NEW: Clear only the filter fields without closing the popup
+  const clearFilterFields = () => {
+    const empty = {
+      patientName: "",
+      patientId: "",
+      department: "",
+      doctor: "",
+      date: "",
+    };
+    setFilters(empty);
+  };
+  
+  // Modified: Clear filters AND close popup (used for complete reset)
+  const clearFiltersAndClose = () => {
     const empty = {
       patientName: "",
       patientId: "",
@@ -1260,7 +1276,7 @@ if (activeFilter !== "All") params.status = activeFilter;
                 <th>Discharge Status</th>
                 <th>Status</th>
                 <th className="text-center">Edit</th>
-              </tr>
+               </tr>
             </thead>
             <tbody>
               {appointments.length > 0 ? (
@@ -1528,7 +1544,7 @@ if (activeFilter !== "All") params.status = activeFilter;
 
               <div className="flex justify-center gap-2 mt-8">
                 <button
-                  onClick={clearFilters}
+                  onClick={clearFilterFields} 
                   className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent dark:text-white"
                 >
                   Clear

@@ -17,26 +17,49 @@ const AddBloodTypePopup = ({ onClose, bloodData, onUpdate, onAdd }) => {
   const [formatErrors, setFormatErrors] = useState({}); // Format errors (show while typing)
   const [loading, setLoading] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-const userRole = currentUser?.role?.toLowerCase();
-const canAdd = isAdmin || userRole === "nurse";
-const canEdit = isAdmin || userRole === "nurse";
-
+  const userRole = currentUser?.role?.toLowerCase();
+  const canAdd = isAdmin || userRole === "nurse";
+  const canEdit = isAdmin || userRole === "nurse";
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const statuses = ["Available", "Low Stock", "Out of Stock"];
 
   // Format validation functions (show while typing)
-  const validateUnitsFormat = (value) => {
-    if (!value) return "";
-    const units = parseInt(value, 10);
-    if (isNaN(units)) {
-      return "Units must be a valid number";
-    }
-    if (units < 0) {
-      return "Units cannot be negative";
-    }
-    return "";
-  };
+  // Updated: Validate units - only numbers, max 5 digits, no negative
+  // Format validation functions (show while typing)
+// Updated: Validate units - only numbers, max 5 digits, range 1-99999 (no zero)
+const validateUnitsFormat = (value) => {
+  if (!value) return "";
+  
+  // Check if value is a valid number (only digits allowed)
+  if (!/^\d+$/.test(value)) {
+    return "Units must contain only numbers";
+  }
+  
+  const units = parseInt(value, 10);
+  
+  // Check if value is zero (not allowed)
+  if (units === 0) {
+    return "Units cannot be zero";
+  }
+  
+  // Check for negative values
+  if (units < 0) {
+    return "Units cannot be negative";
+  }
+  
+  // Check for max 5 digits (1-99999)
+  if (value.length > 5) {
+    return "Units cannot exceed 5 digits";
+  }
+  
+  // Check if value is within valid range (1-99999)
+  if (units < 1 || units > 99999) {
+    return "Units must be between 1 and 99999";
+  }
+  
+  return "";
+};
 
   // Required field validation (only for submission)
   const validateRequiredFields = () => {
@@ -64,11 +87,11 @@ const canEdit = isAdmin || userRole === "nurse";
   };
 
   const handleSubmit = async () => {
-
     if (!canAdd) {
-    errorToast("You don't have permission to add blood types");
-    return;
-  }
+      errorToast("You don't have permission to add blood types");
+      return;
+    }
+    
     // Check required fields
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);
@@ -122,11 +145,11 @@ const canEdit = isAdmin || userRole === "nurse";
   };
 
   const handleUpdate = async () => {
-
     if (!canEdit) {
-    errorToast("You don't have permission to edit blood types");
-    return;
-  }
+      errorToast("You don't have permission to edit blood types");
+      return;
+    }
+    
     // Check required fields
     const requiredErrors = validateRequiredFields();
     setErrors(requiredErrors);
@@ -187,7 +210,17 @@ const canEdit = isAdmin || userRole === "nurse";
   // Handle input change with format validation
   const handleUnitsChange = (e) => {
     const value = e.target.value;
-    setFormData({ ...formData, available_units: value });
+    
+    // Allow only numbers (no decimal points, no negative sign)
+    // Remove any non-digit characters
+    let numericValue = value.replace(/[^\d]/g, '');
+    
+    // Limit to 5 digits max
+    if (numericValue.length > 5) {
+      numericValue = numericValue.slice(0, 5);
+    }
+    
+    setFormData({ ...formData, available_units: numericValue });
     
     // Clear any existing required field error
     if (errors.available_units) {
@@ -195,7 +228,7 @@ const canEdit = isAdmin || userRole === "nurse";
     }
     
     // Perform real-time format validation
-    const formatError = validateUnitsFormat(value);
+    const formatError = validateUnitsFormat(numericValue);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, available_units: formatError }));
     } else if (formatErrors.available_units) {
@@ -309,12 +342,14 @@ const canEdit = isAdmin || userRole === "nurse";
                 Available Units <span className="text-red-500 ml-1">*</span>
               </label>
               <input
-                type="number"
-                min="0"
+                type="text"
+                inputMode="numeric"
+                pattern="\d*"
                 value={formData.available_units}
                 onChange={handleUnitsChange}
-                placeholder="e.g. 1 or 2 or 3"
+                placeholder="e.g. 1, 2, 3 (max 5 digits)"
                 disabled={loading}
+                maxLength="5"
                 className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 
                 outline-none disabled:opacity-50"
@@ -331,6 +366,9 @@ const canEdit = isAdmin || userRole === "nurse";
                   {errors.available_units}
                 </p>
               )}
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                Only numbers allowed. Max 5 digits (1-99999)
+              </p>
             </div>
 
             <Dropdown

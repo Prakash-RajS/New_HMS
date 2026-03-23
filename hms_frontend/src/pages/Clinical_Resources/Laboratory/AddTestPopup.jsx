@@ -537,7 +537,8 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
   const userRole = currentUser?.role?.toLowerCase();
   const canAdd = isAdmin || userRole === "doctor" || userRole === "nurse";
   
-  // Fix for test case: Validate description doesn't contain special characters or numbers
+  // Validate description - allows letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, slashes
+  // Blocks special characters like !@#$%^&*
   const validateDescriptionFormat = (value) => {
     if (!value.trim()) return "";
     
@@ -546,58 +547,86 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       return "Description must start with a capital letter";
     }
     
-    // Check for numbers and special characters (only allow letters, spaces, commas, periods, and apostrophes)
-    const invalidChars = /[0-9!@#$%^&*()_+\-=\[\]{};:"\\|<>?~`]/;
-    if (invalidChars.test(value)) {
-      return "Description cannot contain numbers or special characters";
+    // Check maximum length (150 characters)
+    if (value.length > 150) {
+      return "Description cannot exceed 150 characters";
     }
     
-    // Allow only letters, spaces, commas, periods, apostrophes, and hyphens
-    const validFormat = /^[A-Z][A-Za-z\s,.'-]*$/;
+    // Allow letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes
+    // Block any special characters like !@#$%^&* etc.
+    const validFormat = /^[A-Z][A-Za-z0-9\s,.'\-()/]*$/;
     if (!validFormat.test(value)) {
-      return "Description can only contain letters, spaces, commas, periods, and apostrophes";
+      return "Description can only contain letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes";
     }
     
     return "";
   };
-    // Fix for test case: Validate test type format - only letters, spaces, and parentheses allowed
+  
+  // Validate test type format - allows letters, numbers, spaces, hyphens, and parentheses ()
+  // Blocks special characters like !@#$%^&*
   const validateTestTypeFormat = (value) => {
     if (!value.trim()) return "";
     
-    // Check if starts with capital letter
-    if (!/^[A-Z]/.test(value.charAt(0))) {
-      return "Test type must start with a capital letter";
+    // Check if starts with capital letter or number
+    if (!/^[A-Z0-9]/.test(value.charAt(0))) {
+      return "Test type must start with a capital letter or number";
     }
     
-    // Allow only letters, spaces, and parentheses ()
-    // No numbers, no special characters like @#$%^&* etc.
-    const validFormat = /^[A-Za-z\s()]+$/;
+    // Check maximum length (50 characters)
+    if (value.length > 50) {
+      return "Test type cannot exceed 50 characters";
+    }
+    
+    // Allow letters, numbers, spaces, hyphens, and parentheses ()
+    // Block any special characters like !@#$%^&* etc.
+    const validFormat = /^[A-Za-z0-9\s\-()]+$/;
     if (!validFormat.test(value)) {
-      return "Test type can only contain letters, spaces, and parentheses ()";
+      return "Test type can only contain letters, numbers, spaces, hyphens, and parentheses ()";
+    }
+    
+    return "";
+  };
+  
+  // Validate price - maximum 20 characters
+  const validatePrice = (value) => {
+    if (value === "" || value === null) return "";
+    
+    // Check if price string length exceeds 20 characters
+    const stringValue = value.toString();
+    if (stringValue.length > 20) {
+      return "Price cannot exceed 20 characters";
     }
     
     return "";
   };
 
-
-    const handleFormChange = (e) => {
+  const handleFormChange = (e) => {
     const { name, value } = e.target;
     
     // Validate negative values during typing
     const errors = { ...validationErrors };
     
     if (name === "price" && value !== "") {
-      const numValue = parseFloat(value);
-      if (numValue < 0) {
-        errors.price = "Price cannot be negative";
+      // Check price length
+      const priceLengthError = validatePrice(value);
+      if (priceLengthError) {
+        errors.price = priceLengthError;
       } else {
-        delete errors.price;
+        const numValue = parseFloat(value);
+        if (numValue < 0) {
+          errors.price = "Price cannot be negative";
+        } else {
+          delete errors.price;
+        }
       }
     }
     
     if (name === "duration_minutes" && value !== "") {
       const numValue = parseInt(value);
-      if (numValue < 0) {
+      // Validate duration is only 3 digits or less
+      if (value.length > 3) {
+        errors.duration_minutes = "Duration cannot exceed 3 digits";
+      } else if (numValue < 0) {
         errors.duration_minutes = "Duration cannot be negative";
       } else {
         delete errors.duration_minutes;
@@ -614,7 +643,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       }
     }
     
-    // ====== ADD THIS NEW VALIDATION FOR TEST TYPE ======
     // Validate test type format while typing
     if (name === "test_type") {
       const formatError = validateTestTypeFormat(value);
@@ -624,7 +652,6 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
         delete errors.test_type;
       }
     }
-    // ====== END OF NEW VALIDATION ======
     
     // Auto-capitalize first letter of description
     if (name === "description" && value.length === 1) {
@@ -651,6 +678,12 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     // Test type is required
     if (!formData.test_type.trim()) {
       errors.test_type = "Test type is required";
+    } else {
+      // Validate test type format
+      const testTypeError = validateTestTypeFormat(formData.test_type);
+      if (testTypeError) {
+        errors.test_type = testTypeError;
+      }
     }
     
     // Status is required
@@ -661,16 +694,28 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     // Description is required
     if (!formData.description.trim()) {
       errors.description = "Description is required";
+    } else {
+      // Validate description format
+      const descError = validateDescriptionFormat(formData.description);
+      if (descError) {
+        errors.description = descError;
+      }
     }
     
     // Price is required
     if (formData.price === "" || formData.price === null) {
       errors.price = "Price is required";
     } else {
-      // Price negative validation
-      const priceNum = parseFloat(formData.price);
-      if (priceNum < 0) {
-        errors.price = "Price cannot be negative";
+      // Price length validation
+      const priceLengthError = validatePrice(formData.price);
+      if (priceLengthError) {
+        errors.price = priceLengthError;
+      } else {
+        // Price negative validation
+        const priceNum = parseFloat(formData.price);
+        if (priceNum < 0) {
+          errors.price = "Price cannot be negative";
+        }
       }
     }
     
@@ -678,21 +723,14 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
     if (formData.duration_minutes === "" || formData.duration_minutes === null) {
       errors.duration_minutes = "Duration is required";
     } else {
-      // Duration negative validation
+      // Duration validation
       const durationNum = parseInt(formData.duration_minutes);
-      if (durationNum < 0) {
+      if (formData.duration_minutes.length > 3) {
+        errors.duration_minutes = "Duration cannot exceed 3 digits";
+      } else if (durationNum < 0) {
         errors.duration_minutes = "Duration cannot be negative";
       }
     }
-    
-    // Format validation for description (if provided)
-    if (formData.description.trim()) {
-      const descError = validateDescriptionFormat(formData.description);
-      if (descError) {
-        errors.description = descError;
-      }
-    }
-    
     
     return errors;
   };
@@ -716,9 +754,13 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
       if (errors.test_type || errors.status || errors.description || errors.price || errors.duration_minutes) {
         errorToast("Please fill in all required fields");
       } else if (errors.description) {
-        errorToast("Invalid description format. Must start with capital letter and not contain numbers or special characters.");
+        errorToast("Invalid description format. Must start with capital letter and max 150 characters.");
       } else if (errors.test_type) {
-        errorToast("Invalid test type format. Must start with capital letter and not contain numbers or special characters.");
+        errorToast("Invalid test type format. Must start with capital letter/number and max 50 characters.");
+      } else if (errors.duration_minutes === "Duration cannot exceed 3 digits") {
+        errorToast("Duration cannot exceed 3 digits");
+      } else if (errors.price === "Price cannot exceed 20 characters") {
+        errorToast("Price cannot exceed 20 characters");
       }
       
       return;
@@ -826,18 +868,22 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   value={formData.test_type}
                   onChange={handleFormChange}
                   disabled={loading}
+                  maxLength="50"
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.test_type 
                       ? "border-red-500" 
                       : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Enter test type (e.g., X-Ray, Blood Test)"
+                  placeholder="Enter test type (e.g., X-Ray, 2D Echo, Blood Test)"
                 />
                 {validationErrors.test_type && (
                   <p className="text-xs text-red-500 dark:text-red-500 mt-1">
                     {validationErrors.test_type}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Must start with capital letter or number. Max 50 characters. Only letters, numbers, spaces, hyphens, and parentheses () allowed.
+                </p>
               </div>
 
               {/* Price */}
@@ -850,8 +896,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   name="price"
                   value={formData.price}
                   onChange={handleFormChange}
-                  step="0.01"
-                  min="0"
+                  maxLength="20"
                   disabled={loading}
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.price 
@@ -865,6 +910,9 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                     {validationErrors.price}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Max 20 characters
+                </p>
               </div>
 
               {/* Description */}
@@ -877,13 +925,14 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   value={formData.description}
                   onChange={handleFormChange}
                   rows="3"
+                  maxLength="150"
                   disabled={loading}
                   className={`w-full px-3 py-2 rounded-[8px] border ${
                     validationErrors.description 
                       ? "border-red-500" 
                       : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Enter test description (e.g., Complete Blood Count test)"
+                  placeholder="Enter test description (e.g., 2D Echocardiogram, Complete Blood Count test)"
                 />
                 {validationErrors.description && (
                   <p className="text-xs text-red-500 dark:text-red-500 mt-1">
@@ -891,7 +940,7 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Must start with capital letter. Only letters, spaces, commas, periods, and apostrophes allowed.
+                  Must start with capital letter. Max 150 characters. Only letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes allowed.
                 </p>
               </div>
 
@@ -906,19 +955,23 @@ const AddTestPopup = ({ onClose, onSuccess, testTypes, statusOptions }) => {
                   value={formData.duration_minutes}
                   onChange={handleFormChange}
                   min="0"
+                  max="999"
                   disabled={loading}
                   className={`w-full h-[33px] px-3 rounded-[8px] border ${
                     validationErrors.duration_minutes 
                       ? "border-red-500" 
                       : "border-[#0EFF7B] dark:border-[#3A3A3A]"
                   } bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none disabled:opacity-50 disabled:cursor-not-allowed`}
-                  placeholder="Enter duration"
+                  placeholder="Enter duration (max 3 digits)"
                 />
                 {validationErrors.duration_minutes && (
                   <p className="text-xs text-red-500 dark:text-red-500 mt-1">
                     {validationErrors.duration_minutes}
                   </p>
                 )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Max 3 digits (0-999 minutes)
+                </p>
               </div>
 
               {/* Status Dropdown */}

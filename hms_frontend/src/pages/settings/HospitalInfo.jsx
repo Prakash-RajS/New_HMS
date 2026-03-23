@@ -339,6 +339,25 @@ const isValidGSTIN = (gstin) => {
       setUploadingLogo(false);
     }
   };
+  // Add this handler after handleLogoUpload
+const handleLogoRemove = async () => {
+  if (!isAdmin) {
+    errorToast("Only admin can remove logo");
+    return;
+  }
+
+  try {
+    await api.delete("/settings/hospital/remove-logo");
+    const updatedData = { ...data, logo: null };
+    onUpdate(updatedData);
+    updateLogo(null);
+    if (onFormChange) onFormChange(true, checkFormValidity());
+    successToast("Logo removed successfully!");
+  } catch (error) {
+    console.error("Error removing logo:", error);
+    errorToast(error.response?.data?.detail || "Failed to remove logo");
+  }
+};
 
   // Validate all fields and update errors
   useEffect(() => {
@@ -423,70 +442,87 @@ const isValidGSTIN = (gstin) => {
         {/* Left Column - Logo & Emergency Contact */}
         <div className="lg:col-span-1 space-y-6">
           {/* Logo Upload */}
-          <div className="bg-gray-50 dark:bg-[#1A1A1A] rounded-xl p-6 border border-gray-200 dark:border-[#2A2A2A]">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-              Hospital Logo
-            </label>
-            <div className="flex flex-col items-center">
-              <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3A] flex items-center justify-center overflow-hidden bg-white dark:bg-[#0D0D0D] mb-4">
-                {data.logo ? (
-                  <img
-                    src={getMediaUrl(data.logo)}
-                    alt="Hospital Logo"
-                    className="w-full h-full object-contain p-4"
-                    onError={(e) => {
-                      console.error("Failed to load logo in settings:", data.logo);
-                      e.target.style.display = "none";
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-4">
-                    <Upload className="text-gray-400 mb-2" size={48} />
-                    <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                      No logo uploaded
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              {isAdmin && (
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    disabled={uploadingLogo}
-                  />
-                  <div
-                    className={`px-4 py-2 rounded-lg transition-opacity flex items-center justify-center gap-2 ${
-                      uploadingLogo
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] hover:opacity-90 cursor-pointer"
-                    } text-white`}
-                  >
-                    {uploadingLogo ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={16} />
-                        Upload Logo
-                      </>
-                    )}
-                  </div>
-                </label>
-              )}
-              
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
-                Recommended: 400x400px
-                <br />
-                PNG or JPG (max 5MB)
-              </p>
-            </div>
+<div className="bg-gray-50 dark:bg-[#1A1A1A] rounded-xl p-6 border border-gray-200 dark:border-[#2A2A2A]">
+  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+    Hospital Logo
+  </label>
+  <div className="flex flex-col items-center">
+    <div className="w-48 h-48 rounded-xl border-2 border-dashed border-gray-300 dark:border-[#3A3A3A] flex items-center justify-center overflow-hidden bg-white dark:bg-[#0D0D0D] mb-4">
+      {data.logo ? (
+        <img
+          src={getMediaUrl(data.logo)}
+          alt="Hospital Logo"
+          className="w-full h-full object-contain p-4"
+          onError={(e) => {
+            console.error("Failed to load logo in settings:", data.logo);
+            e.target.style.display = "none";
+          }}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center p-4">
+          <Upload className="text-gray-400 mb-2" size={48} />
+          <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            No logo uploaded
+          </span>
+        </div>
+      )}
+    </div>
+
+    {isAdmin && (
+      <div className="flex flex-col items-center gap-2 w-full">
+        {/* Upload button */}
+        <label className="cursor-pointer w-full">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            className="hidden"
+            disabled={uploadingLogo}
+          />
+          <div
+            className={`w-full px-4 py-2 rounded-lg transition-opacity flex items-center justify-center gap-2 ${
+              uploadingLogo
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-[#0EFF7B] to-[#08994A] hover:opacity-90 cursor-pointer"
+            } text-white`}
+          >
+            {uploadingLogo ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload size={16} />
+                {data.logo ? "Change Logo" : "Upload Logo"}
+              </>
+            )}
           </div>
+        </label>
+
+        {/* Remove button — only shown when logo exists */}
+        {data.logo && (
+          <button
+            type="button"
+            onClick={handleLogoRemove}
+            className="w-full px-4 py-2 rounded-lg border border-red-400 dark:border-red-600 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center gap-2 transition-all duration-200 text-sm font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+            </svg>
+            Remove Logo
+          </button>
+        )}
+      </div>
+    )}
+
+    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+      Recommended: 400x400px
+      <br />
+      PNG or JPG (max 5MB)
+    </p>
+  </div>
+</div>
 
           {/* Emergency Contact */}
           <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl p-6 border border-red-200 dark:border-red-800/30">

@@ -226,3 +226,41 @@ async def initialize_defaults(current_user: User = Depends(get_current_user)):
     )()
 
     return {"message": "Default settings initialized successfully"}
+
+# Add these imports at the top if not already present
+import os
+from django.conf import settings as django_settings
+
+@router.delete("/hospital/remove-logo")
+async def remove_hospital_logo(
+    current_user: User = Depends(get_current_user)
+):
+    check_admin_permission(current_user)
+    try:
+        hospital_settings = await sync_to_async(
+            lambda: (ensure_db_connection(), HospitalSettings.get_instance())[-1]
+        )()
+
+        if not hospital_settings.logo:
+            raise HTTPException(status_code=404, detail="No logo to remove")
+
+        # ✅ Convert ImageFieldFile to string before using with Path
+        logo_relative_path = str(hospital_settings.logo)
+        old_path = Path("media") / logo_relative_path
+        
+        if old_path.exists():
+            old_path.unlink()
+
+        # ✅ Clear using empty string then save (ImageFieldFile needs this)
+        hospital_settings.logo = None
+        await sync_to_async(
+            lambda: (ensure_db_connection(), hospital_settings.save())[-1]
+        )()
+
+        return {"detail": "Logo removed successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Remove logo error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to remove logo: {str(e)}")

@@ -28,73 +28,114 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
   }, [department]);
 
   // Handle department name change - prevent numbers and invalid characters
-  const handleNameChange = (e) => {
-    // Allow only letters, spaces, hyphens, and apostrophes
-    const value = e.target.value.replace(/[^a-zA-Z\s\-']/, '');
-    setFormData({ ...formData, name: value });
-  };
+  // Handle department name change - prevent numbers, invalid characters, and limit to 50 characters
+const handleNameChange = (e) => {
+  // Allow only letters, spaces, hyphens, and apostrophes, and limit to 50 characters
+  let value = e.target.value;
+  
+  // Limit to 50 characters
+  if (value.length > 50) {
+    value = value.slice(0, 50);
+  }
+  
+  // Remove invalid characters
+  value = value.replace(/[^a-zA-Z\s\-']/, '');
+  
+  setFormData({ ...formData, name: value });
+};
+
+// Add validation functions
+const validateDepartmentName = (name) => {
+  if (!name.trim()) return "Department name is required";
+  if (name.trim().length > 50) return "Department name cannot exceed 50 characters";
+  if (!/^[A-Za-z\s\-']+$/.test(name.trim())) return "Department name should contain only letters, spaces, hyphens, and apostrophes";
+  return "";
+};
+
+const validateDescription = (desc) => {
+  if (desc && desc.length > 200) return "Description cannot exceed 200 characters";
+  if (desc && !/^[A-Za-z0-9\s.,!?'-]+$/.test(desc)) return "Description can contain letters, numbers, spaces and basic punctuation";
+  return "";
+};
 
   const handleUpdate = async () => {
-    if (!canCRUD) {
-      errorToast("You do not have permission to perform this action.");
-      return;
-    }
-    if (!formData.name.trim()) {
-      setError("Department name is required.");
-      errorToast("Department name is required.");
-      return;
-    }
+  if (!canCRUD) {
+    errorToast("You do not have permission to perform this action.");
+    return;
+  }
+  
+  // Validate department name
+  const nameError = validateDepartmentName(formData.name);
+  if (nameError) {
+    setError(nameError);
+    errorToast(nameError);
+    return;
+  }
+  
+  // Validate description
+  const descError = validateDescription(formData.description);
+  if (descError) {
+    setError(descError);
+    errorToast(descError);
+    return;
+  }
+  
+  if (!formData.status) {
+    setError("Status is required.");
+    errorToast("Status is required.");
+    return;
+  }
 
-    setLoading(true);
-    setError("");
+  setLoading(true);
+  setError("");
 
-    const payload = {
-      name: formData.name.trim(),
-      status: formData.status.toLowerCase(),
-      description: formData.description.trim() || null,
-    };
-
-    try {
-      const response = await api.put(`/departments/${department.id}`, payload);
-
-      // Success Toast
-      successToast(`"${response.data.name}" updated successfully!`);
-
-      // Trigger parent refresh
-      if (onSave) onSave(response.data);
-
-      // Close popup after short delay
-      setTimeout(() => {
-        onClose();
-      }, 800);
-    } catch (err) {
-      let errorMessage = "Failed to update department.";
-      
-      if (err.response) {
-        if (err.response.status === 401 || err.response.status === 403) {
-          errorMessage = "Session expired. Please login again.";
-        } else if (err.response.status === 400) {
-          errorMessage = err.response.data?.detail || "Invalid data.";
-        } else if (err.response.status === 404) {
-          errorMessage = "Department not found.";
-        } else if (err.response.status === 409) {
-          errorMessage = err.response.data?.detail || "Department with this name already exists.";
-        } else {
-          errorMessage = err.response.data?.detail || errorMessage;
-        }
-      } else if (err.request) {
-        errorMessage = "Network error. Please check your connection.";
-      } else {
-        errorMessage = err.message || errorMessage;
-      }
-      
-      setError(errorMessage);
-      errorToast(errorMessage);
-      console.error("Update failed:", err);
-    } finally {
-      setLoading(false);
-    }
+  const payload = {
+    name: formData.name.trim(),
+    status: formData.status.toLowerCase(),
+    description: formData.description.trim() || null,
   };
+
+  try {
+    const response = await api.put(`/departments/${department.id}`, payload);
+
+    // Success Toast
+    successToast(`"${response.data.name}" updated successfully!`);
+
+    // Trigger parent refresh
+    if (onSave) onSave(response.data);
+
+    // Close popup after short delay
+    setTimeout(() => {
+      onClose();
+    }, 800);
+  } catch (err) {
+    let errorMessage = "Failed to update department.";
+    
+    if (err.response) {
+      if (err.response.status === 401 || err.response.status === 403) {
+        errorMessage = "Session expired. Please login again.";
+      } else if (err.response.status === 400) {
+        errorMessage = err.response.data?.detail || "Invalid data.";
+      } else if (err.response.status === 404) {
+        errorMessage = "Department not found.";
+      } else if (err.response.status === 409) {
+        errorMessage = err.response.data?.detail || "Department with this name already exists.";
+      } else {
+        errorMessage = err.response.data?.detail || errorMessage;
+      }
+    } else if (err.request) {
+      errorMessage = "Network error. Please check your connection.";
+    } else {
+      errorMessage = err.message || errorMessage;
+    }
+    
+    setError(errorMessage);
+    errorToast(errorMessage);
+    console.error("Update failed:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const statuses = ["Active", "Inactive"];
 
@@ -186,19 +227,25 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <label className="text-sm text-gray-600 dark:text-white">
-              Department Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              value={formData.name}
-              onChange={handleNameChange}
-              placeholder="e.g. Cardiology"
-              className="w-full h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] 
-                         dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] 
-                         dark:text-[#0EFF7B] outline-none disabled:opacity-50"
-              disabled={loading}
-            />
-          </div>
+  <label className="text-sm text-gray-600 dark:text-white">
+    Department Name <span className="text-red-500">*</span>
+  </label>
+  <input
+    value={formData.name}
+    onChange={handleNameChange}
+    placeholder="Enter department (max 50 chars)"
+    maxLength="50"
+    className={`w-full h-[33px] mt-1 px-3 rounded-[8px] border 
+               border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent 
+               text-[#08994A] dark:text-[#0EFF7B] outline-none disabled:opacity-50
+               ${error && error.includes("Department name") ? "border-red-500 ring-1 ring-red-500" : ""}`}
+    disabled={loading}
+  />
+  {/* Character counter */}
+  <div className="text-right text-xs text-gray-500 mt-1">
+    {formData.name.length}/50
+  </div>
+</div>
 
           <Dropdown
             label={
@@ -213,18 +260,31 @@ const EditDepartmentPopup = ({ onClose, onSave, department }) => {
         </div>
 
         <div className="mt-6">
-          <label className="text-sm text-gray-600 dark:text-white">Description</label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Brief description..."
-            rows={4}
-            className="w-full mt-1 px-3 py-2 rounded-[8px] border border-[#0EFF7B] 
-                       dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] 
-                       dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50"
-            disabled={loading}
-          />
-        </div>
+  <label className="text-sm text-gray-600 dark:text-white">
+    Description <span className="text-gray-500 text-xs">(Optional, max 200 chars)</span>
+  </label>
+  <textarea
+    value={formData.description}
+    onChange={(e) => {
+      const value = e.target.value;
+      if (value.length <= 200) {
+        setFormData({ ...formData, description: value });
+      }
+    }}
+    placeholder="Enter description (max 200 characters)"
+    rows={4}
+    maxLength="200"
+    className={`w-full mt-1 px-3 py-2 rounded-[8px] border 
+               border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent 
+               text-[#08994A] dark:text-[#0EFF7B] outline-none resize-none disabled:opacity-50
+               ${error && error.includes("Description") ? "border-red-500 ring-1 ring-red-500" : ""}`}
+    disabled={loading}
+  />
+  {/* Character counter */}
+  <div className="text-right text-xs text-gray-500 mt-1">
+    {formData.description.length}/200
+  </div>
+</div>
 
         {/* Buttons */}
         <div className="flex justify-center gap-4 mt-8">

@@ -4,7 +4,7 @@ import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { successToast, errorToast } from "../../../../components/Toast.jsx";
-import api from "../../../../utils/axiosConfig"; // Cookie-based axios instance
+import api from "../../../../utils/axiosConfig";
 import { usePermissions } from "../../../../components/PermissionContext.jsx";
 
 const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
@@ -18,11 +18,32 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   });
 
   const [errors, setErrors] = useState({});
-  const [formatErrors, setFormatErrors] = useState({}); // Real-time format errors
+  const [formatErrors, setFormatErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const { isAdmin, currentUser } = usePermissions();
-      const userRole = currentUser?.role?.toLowerCase();
-      const canEdit = isAdmin || userRole === "nurse";
+  const userRole = currentUser?.role?.toLowerCase();
+  const canEdit = isAdmin || userRole === "nurse";
+
+  // List of blocked disposable/fake domains
+  const blockedDomains = [
+    "mailinator.com",
+    "tempmail.com",
+    "yopmail.com",
+    "10minutemail.com",
+    "guerrillamail.com",
+    "throwawaymail.com",
+    "fakeemail.com",
+    "temp-mail.org",
+    "dispostable.com",
+    "maildrop.cc",
+    "example.com",
+    "test.com",
+    "domain.com",
+    "fake.com",
+    "dummy.com",
+    "123.com",
+    "123.in"
+  ];
 
   // Levenshtein distance for typo detection
   const levenshtein = (a, b) => {
@@ -51,38 +72,27 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   const safeDate = (dateValue) => {
     if (!dateValue) return null;
     try {
-      // If it's already a Date object, return it
       if (dateValue instanceof Date && !isNaN(dateValue)) {
         return dateValue;
       }
-      // Handle different date formats
       let date;
-      // Handle YYYY-MM-DD format (from backend)
       if (typeof dateValue === 'string' && dateValue.includes("-")) {
         date = new Date(dateValue);
-      }
-      // Handle MM/DD/YYYY format (from frontend display)
-      else if (typeof dateValue === 'string' && dateValue.includes("/")) {
+      } else if (typeof dateValue === 'string' && dateValue.includes("/")) {
         const [month, day, year] = dateValue.split("/");
         date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-      }
-      // Try direct parsing as last resort
-      else {
+      } else {
         date = new Date(dateValue);
       }
-      // Check if the date is valid
       return date instanceof Date && !isNaN(date) ? date : null;
     } catch (error) {
-      console.error("Date conversion error:", error, "for date:", dateValue);
+      console.error("Date conversion error:", error);
       return null;
     }
   };
 
-  // Initialize formData when donor changes
   useEffect(() => {
     if (donor) {
-      console.log("🟡 EditDonorPopup received donor:", donor);
-      // Map display keys to API keys and convert date safely
       const donationDate = safeDate(donor.last_donation_date || donor.lastDonation);
       setFormData({
         donor_name: donor.donor_name || donor.name || "",
@@ -95,31 +105,116 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   }, [donor]);
 
-  // Format date for API (YYYY-MM-DD)
   const formatDateForAPI = (date) => {
     if (!date || !(date instanceof Date) || isNaN(date)) return null;
     return date.toISOString().split("T")[0];
   };
 
-  // Enhanced email validation
+  // Updated: Donor name validation (max 50 characters)
+  const validateNameFormat = (value) => {
+    if (!value) return "";
+    
+    // Check for numbers
+    if (/[0-9]/.test(value)) {
+      return "Name should not contain numbers";
+    }
+    
+    // Check minimum length
+    if (value.trim().length < 2) {
+      return "Name must be at least 2 characters";
+    }
+    
+    // Check maximum length (50 characters)
+    if (value.length > 50) {
+      return "Name cannot exceed 50 characters";
+    }
+    
+    // Check for valid characters (letters, spaces, apostrophes, hyphens, periods)
+    if (!/^[A-Za-z\s.'-]+$/.test(value)) {
+      return "Name can only contain letters, spaces, apostrophes, hyphens, and periods";
+    }
+    
+    return "";
+  };
+
+  // Updated: Phone validation for Indian numbers (start with 9,8,7,6 and not repetitive patterns)
+  const validatePhoneFormat = (value) => {
+    if (!value) return "";
+    
+    // Check if contains only digits
+    if (!/^\d*$/.test(value)) {
+      return "Phone must contain only digits";
+    }
+    
+    // Check length (must be exactly 10 digits when complete)
+    if (value.length > 0 && value.length !== 10) {
+      return "Phone must be exactly 10 digits";
+    }
+    
+    if (value.length === 10) {
+      // Check if phone starts with valid Indian mobile prefix (9,8,7,6)
+      const firstDigit = value.charAt(0);
+      if (!['9', '8', '7', '6'].includes(firstDigit)) {
+        return "Phone must start with 9, 8, 7, or 6";
+      }
+      
+      // Check for repetitive patterns (all same digits)
+      if (/^(\d)\1{9}$/.test(value)) {
+        return "Invalid phone number - repetitive pattern not allowed";
+      }
+      
+      // Check for common repetitive patterns like 9898989898, 7676767676
+      if (/^(\d{2})\1{4}$/.test(value) || /^(\d{2})\1{3}\d{2}$/.test(value)) {
+        return "Invalid phone number - repetitive pattern not allowed";
+      }
+      
+      // Check for sequential patterns (1234567890, 9876543210)
+      const isAscending = "1234567890".includes(value);
+      const isDescending = "9876543210".includes(value);
+      if (isAscending || isDescending) {
+        return "Invalid phone number - sequential pattern not allowed";
+      }
+      
+      // Check for patterns like 9876543210 (descending)
+      let isDescendingSeq = true;
+      for (let i = 1; i < value.length; i++) {
+        if (parseInt(value[i]) !== parseInt(value[i-1]) - 1) {
+          isDescendingSeq = false;
+          break;
+        }
+      }
+      if (isDescendingSeq && value[0] === '9') {
+        return "Invalid phone number - sequential pattern not allowed";
+      }
+    }
+    
+    return "";
+  };
+
+  // Updated: Email validation with max 50 characters
   const validateEmailFormat = (value) => {
     const email = value.trim();
     if (!email) return "";
 
-    // 1️⃣ Basic structure check
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return "Please enter a valid email address (e.g., user@domain.com)";
+    // Check maximum length (50 characters)
+    if (email.length > 50) {
+      return "Email cannot exceed 50 characters";
     }
 
-    // 2️⃣ Suspicious formatting
+    // Basic structure check
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address (e.g., name@company.com)";
+    }
+
+    // Suspicious formatting
     if (email.includes("..") || email.includes(".@") || email.includes("@.")) {
       return "Invalid email format";
     }
 
     const [localPart, domain] = email.toLowerCase().split("@");
 
-    // 3️⃣ Local-part sanity
+    // Local-part sanity
     if (localPart.length < 2) {
       return "Email username is too short";
     }
@@ -132,29 +227,12 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
       return "Email contains invalid characters";
     }
 
-    // 4️⃣ Disposable / fake domains (hard block)
-    const invalidDomains = [
-      "email.com",
-      "example.com",
-      "test.com",
-      "domain.com",
-      "mailinator.com",
-      "tempmail.com",
-      "guerrillamail.com",
-      "10minutemail.com",
-      "yopmail.com",
-      "fakeemail.com",
-      "temp-mail.org",
-      "throwawayemail.com",
-      "dispostable.com",
-      "maildrop.cc"
-    ];
-
-    if (invalidDomains.includes(domain)) {
+    // Block known disposable/fake domains
+    if (blockedDomains.includes(domain)) {
       return "Disposable or invalid email domains are not allowed";
     }
 
-    // 5️⃣ Dynamic typo detection for major providers
+    // Dynamic typo detection for major providers
     const providers = [
       "gmail.com",
       "yahoo.com",
@@ -165,14 +243,12 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
 
     for (const provider of providers) {
       const distance = levenshtein(domain, provider);
-
-      // distance 1–2 = very likely a typo
       if (distance > 0 && distance <= 2) {
         return `Did you mean ${localPart}@${provider}?`;
       }
     }
 
-    // 6️⃣ TLD sanity (not restrictive)
+    // TLD sanity
     const tld = domain.split(".").pop();
     if (tld.length < 2) {
       return "Please use a valid domain extension";
@@ -181,29 +257,14 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     return "";
   };
 
-  // Real-time format validation functions (for typing)
+  // Real-time format validation functions
   const validateFieldFormat = (field, value) => {
     switch (field) {
       case "donor_name":
-        if (!value) return "";
-        if (!/^[A-Za-z\s]*$/.test(value)) {
-          return "Name can only contain letters and spaces";
-        }
-        return "";
+        return validateNameFormat(value);
       
       case "phone":
-        if (!value) return "";
-        if (!/^\d*$/.test(value)) {
-          return "Phone must contain only digits";
-        }
-        if (value.length > 10) {
-          return "Phone cannot exceed 10 digits";
-        }
-        // Show error while typing if less than 10 digits
-        if (value.length > 0 && value.length < 10) {
-          return "Phone must be exactly 10 digits";
-        }
-        return "";
+        return validatePhoneFormat(value);
       
       case "email":
         return validateEmailFormat(value);
@@ -213,45 +274,37 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   };
 
-  // Enhanced form validation
+  // Full form validation on submit
   const validateForm = () => {
     const newErrors = {};
 
-    // Name validation - only letters and spaces
+    // Donor Name
     if (!formData.donor_name.trim()) {
       newErrors.donor_name = "Donor name is required";
-    } else if (formData.donor_name.trim().length < 2) {
-      newErrors.donor_name = "Name must be at least 2 characters";
-    } else if (!/^[A-Za-z\s]+$/.test(formData.donor_name)) {
-      newErrors.donor_name = "Name can only contain letters and spaces";
+    } else {
+      const nameError = validateNameFormat(formData.donor_name);
+      if (nameError) newErrors.donor_name = nameError;
     }
 
-    // Phone validation - EXACTLY 10 digits
+    // Phone
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone)) {
-      newErrors.phone = "Phone must be exactly 10 digits";
+    } else {
+      const phoneError = validatePhoneFormat(formData.phone);
+      if (phoneError) newErrors.phone = phoneError;
     }
 
-    // Email validation - NOW REQUIRED
+    // Email
     if (!formData.email.trim()) {
       newErrors.email = "Email address is required";
     } else {
       const emailError = validateEmailFormat(formData.email);
-      if (emailError) {
-        newErrors.email = emailError;
-      }
+      if (emailError) newErrors.email = emailError;
     }
 
-    // Gender validation
-    if (!formData.gender) {
-      newErrors.gender = "Gender is required";
-    }
-
-    // Blood type validation
-    if (!formData.blood_type) {
-      newErrors.blood_type = "Blood type is required";
-    }
+    // Gender & Blood Type
+    if (!formData.gender) newErrors.gender = "Gender is required";
+    if (!formData.blood_type) newErrors.blood_type = "Blood type is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -262,28 +315,27 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
       errorToast("You don't have permission to edit donors");
       return;
     }
-    if (!validateForm()) return;
+    
+    if (!validateForm()) {
+      errorToast("Please fix the errors in the form");
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Prepare data for backend - match the updated DonorSchema
       const updateData = {
         donor_name: formData.donor_name.trim(),
         phone: formData.phone,
-        email: formData.email.trim() || null,
+        email: formData.email.trim(),
         gender: formData.gender,
         blood_type: formData.blood_type,
         last_donation_date: formatDateForAPI(formData.last_donation_date),
       };
-      console.log("🟡 Sending update data:", updateData);
       
       const response = await api.put(`/api/donors/${donor.id}`, updateData);
       
       successToast("Donor updated successfully!");
-     
-      if (onUpdate) {
-        onUpdate(response.data);
-      }
-     
+      if (onUpdate) onUpdate(response.data);
       onClose();
     } catch (error) {
       console.error("Update error:", error);
@@ -296,9 +348,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
           const result = error.response.data;
           if (result.detail) {
             errorMessage = Array.isArray(result.detail)
-              ? result.detail
-                  .map((e) => `${e.loc?.join(" → ")}: ${e.msg}`)
-                  .join("\n")
+              ? result.detail.map((e) => `${e.loc?.join(" → ")}: ${e.msg}`).join("\n")
               : result.detail;
           } else {
             errorMessage = "Invalid donor data. Please check all fields.";
@@ -307,8 +357,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
           errorMessage = "Donor not found.";
         } else if (error.response.status === 409) {
           errorMessage = error.response.data?.detail || "Email already exists";
-        } else {
-          errorMessage = error.response.data?.detail || errorMessage;
         }
       } else if (error.request) {
         errorMessage = "Network error. Please check your connection.";
@@ -320,7 +368,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   };
 
-  // Handle Donor Name Change - Auto-capitalize
+  // Handle Donor Name Change with auto-capitalization
   const handleDonorNameChange = (e) => {
     let value = e.target.value;
     
@@ -331,12 +379,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     
     setFormData({ ...formData, donor_name: value });
     
-    // Clear required error when user starts typing
     if (errors.donor_name) {
       setErrors(prev => ({ ...prev, donor_name: "" }));
     }
     
-    // Real-time format validation
     const formatError = validateFieldFormat("donor_name", value);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, donor_name: formatError }));
@@ -349,18 +395,25 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   };
 
-  // Handle Phone Change
+  // Handle Phone Change with filtering
   const handlePhoneChange = (e) => {
-    const value = e.target.value;
-    setFormData({ ...formData, phone: value });
+    let value = e.target.value;
     
-    // Clear required error when user starts typing
+    // Allow only numbers
+    let numericValue = value.replace(/[^\d]/g, '');
+    
+    // Limit to 10 digits
+    if (numericValue.length > 10) {
+      numericValue = numericValue.slice(0, 10);
+    }
+    
+    setFormData({ ...formData, phone: numericValue });
+    
     if (errors.phone) {
       setErrors(prev => ({ ...prev, phone: "" }));
     }
     
-    // Real-time format validation
-    const formatError = validateFieldFormat("phone", value);
+    const formatError = validateFieldFormat("phone", numericValue);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, phone: formatError }));
     } else {
@@ -377,12 +430,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     const value = e.target.value;
     setFormData({ ...formData, email: value });
     
-    // Clear required error when user starts typing
     if (errors.email) {
       setErrors(prev => ({ ...prev, email: "" }));
     }
     
-    // Real-time format validation
     const formatError = validateFieldFormat("email", value);
     if (formatError) {
       setFormatErrors(prev => ({ ...prev, email: formatError }));
@@ -395,9 +446,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   };
 
-  // Handle Blur - final validation
   const handleBlur = (field) => {
-    // Perform final format validation on blur
     const value = formData[field];
     const formatError = validateFieldFormat(field, value);
     
@@ -406,14 +455,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
     }
   };
 
-  // Helper to determine which error to show
   const getFieldError = (field) => {
-    // Show format errors in real-time
     if (formatErrors[field]) {
       return formatErrors[field];
     }
-    
-    // Show required errors only on form submission
     return errors[field] || "";
   };
 
@@ -422,9 +467,11 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
 
   const Dropdown = ({ label, value, onChange, options, error }) => (
     <div>
-      <label className="text-sm text-black dark:text-white">{label}</label>
+      <label className="text-sm text-black dark:text-white">
+        {label} <span className="text-red-500">*</span>
+      </label>
       <Listbox value={value} onChange={onChange}>
-        <div className="relative mt-1 w-[228px]">
+        <div className="relative mt-1 w-full">
           <Listbox.Button
             className="w-full h-[32px] px-3 pr-8 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
             bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-[14px] leading-[16px]
@@ -439,10 +486,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
           <Listbox.Options
             className="absolute mt-1 w-full max-h-40 overflow-auto rounded-[8px] bg-gray-100 dark:bg-[#1a1a1a]
             shadow-lg z-50 border border-gray-300 dark:border-[#3A3A3A]"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
           >
             {options.map((option, idx) => (
               <Listbox.Option
@@ -453,15 +496,10 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                     active
                       ? "bg-gray-100 dark:bg-[#0EFF7B1A] text-black dark:text-[#0EFF7B]"
                       : "text-black dark:text-white"
-                  } ${selected ? "font-medium" : ""}`
+                  } ${selected ? "font-medium text-[#0EFF7B]" : ""}`
                 }
-                disabled={loading}
               >
-                {({ selected }) => (
-                  <span className={selected ? "text-[#0EFF7B] dark:text-[#0EFF7B]" : ""}>
-                    {option}
-                  </span>
-                )}
+                {option}
               </Listbox.Option>
             ))}
           </Listbox.Options>
@@ -476,7 +514,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50 font-[Helvetica]">
       <div className="rounded-[20px] p-[1px] backdrop-blur-md bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70">
-        <div className="w-[505px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative">
+        <div className="w-[600px] h-auto rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 relative">
           {/* Header */}
           <div className="flex justify-between items-center pb-3 mb-4">
             <h2 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
@@ -493,8 +531,8 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
             </button>
           </div>
           
-          {/* Current Status Display (Read-only) */}
-          {donor?.status && (
+          {/* Current Status Display */}
+          {/* {donor?.status && (
             <div className="mb-4 p-3 rounded bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700 dark:text-gray-300">Current Status:</span>
@@ -508,7 +546,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               </div>
               {donor.last_donation_date && (
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                  Last donation: {donor.last_donation_date.toLocaleDateString('en-US', {
+                  Last donation: {new Date(donor.last_donation_date).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
                     day: 'numeric'
@@ -519,9 +557,9 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                 Status is automatically calculated based on donation dates
               </p>
             </div>
-          )}
+          )} */}
           
-          {/* Form Fields */}
+          {/* Form Fields - 2x2 Grid Layout */}
           <div className="grid grid-cols-2 gap-6">
             {/* Donor Name */}
             <div>
@@ -533,7 +571,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                 value={formData.donor_name}
                 onChange={handleDonorNameChange}
                 onBlur={() => {
-                  // Trim whitespace on blur
                   if (formData.donor_name) {
                     setFormData(prev => ({ 
                       ...prev, 
@@ -542,12 +579,16 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   }
                   handleBlur("donor_name");
                 }}
+                maxLength={50}
                 disabled={loading}
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
-                placeholder="Enter donor name"
+                placeholder="Enter donor name (max 50 chars)"
               />
+              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.donor_name.length}/50
+              </div>
               {getFieldError("donor_name") && (
                 <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
                   {getFieldError("donor_name")}
@@ -558,38 +599,40 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
             {/* Phone */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Phone <span className="text-red-500">*</span>
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <input
                 type="tel"
                 value={formData.phone}
-                maxLength={10}
                 onChange={handlePhoneChange}
                 onBlur={() => handleBlur("phone")}
+                maxLength={10}
                 disabled={loading}
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
-                placeholder="Enter phone number"
+                placeholder="e.g. 9876543210"
               />
               {getFieldError("phone") && (
                 <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
                   {getFieldError("phone")}
                 </p>
               )}
+              <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                Must be 10 digits, start with 9,8,7, or 6
+              </p>
             </div>
             
             {/* Email */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Email <span className="text-red-500">*</span>
+                Email Address <span className="text-red-500">*</span>
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={handleEmailChange}
                 onBlur={() => {
-                  // Trim whitespace on blur
                   if (formData.email) {
                     setFormData(prev => ({ 
                       ...prev, 
@@ -598,12 +641,16 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   }
                   handleBlur("email");
                 }}
+                maxLength={50}
                 disabled={loading}
-                className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                 bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                 focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
-                placeholder="Enter email address"
+                placeholder="example@company.com (max 50 chars)"
               />
+              <div className="text-right text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.email.length}/50
+              </div>
               {getFieldError("email") && (
                 <p className="text-red-700 dark:text-red-500 text-xs mt-1 font-medium">
                   {getFieldError("email")}
@@ -611,9 +658,9 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               )}
             </div>
             
-            {/* Gender */}
+            {/* Gender Dropdown */}
             <Dropdown
-              label={<span>Gender <span className="text-red-500">*</span></span>}
+              label="Gender"
               value={formData.gender}
               onChange={(val) => {
                 setFormData({ ...formData, gender: val });
@@ -625,9 +672,9 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               error={errors.gender}
             />
             
-            {/* Blood Type */}
+            {/* Blood Type Dropdown */}
             <Dropdown
-              label={<span>Blood Type <span className="text-red-500">*</span></span>}
+              label="Blood Type"
               value={formData.blood_type}
               onChange={(val) => {
                 setFormData({ ...formData, blood_type: val });
@@ -642,7 +689,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
             {/* Last Donation Date */}
             <div>
               <label className="text-sm text-black dark:text-white">
-                Last Donation Date (Optional)
+                Last Donation Date <span className="text-gray-500">(Optional)</span>
               </label>
               <div className="relative">
                 <DatePicker
@@ -650,11 +697,11 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   onChange={(date) => {
                     setFormData({ ...formData, last_donation_date: date });
                   }}
-                  dateFormat="MM/dd/yyyy"
+                  dateFormat="dd/MM/yyyy"
                   placeholderText="Select date"
                   maxDate={new Date()}
                   disabled={loading}
-                  className="w-[228px] h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
+                  className="w-full h-[32px] mt-1 px-3 pr-10 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
                            bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none
                            focus:ring-1 focus:ring-[#08994A] dark:focus:ring-[#0EFF7B] disabled:opacity-50"
                   wrapperClassName="w-full"
@@ -663,7 +710,6 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
                   scrollableYearDropdown
                   yearDropdownItemNumber={15}
                 />
-                {/* Calendar Icon */}
                 <div className="absolute right-3 top-2.5 pointer-events-none">
                   <svg
                     width="18"
@@ -699,7 +745,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               disabled={loading}
               className="w-[144px] h-[32px] rounded-[8px] border border-gray-300 dark:border-[#3A3A3A]
               bg-gray-100 dark:bg-transparent text-black dark:text-white font-medium
-              hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -708,7 +754,7 @@ const EditDonorPopup = ({ onClose, donor, onUpdate }) => {
               disabled={loading}
               className="w-[144px] h-[32px] border-b-[2px] border-[#0EFF7B] rounded-[8px]
               bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] text-white font-medium
-              hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

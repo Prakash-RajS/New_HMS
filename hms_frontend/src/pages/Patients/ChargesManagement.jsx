@@ -1,4 +1,4 @@
-// ChargesManagement.jsx (COMPLETE UPDATED CODE WITH LISTBOX DROPDOWNS AND TAX PERCENT FIELD)
+// ChargesManagement.jsx (COMPLETE UPDATED CODE WITH VALIDATIONS)
 import React, { useState, useEffect } from "react";
 import {
   Search,
@@ -175,11 +175,88 @@ const ChargesManagement = () => {
     setEditValidationErrors({});
   };
 
-  // Handle form change
+  // NEW VALIDATION FUNCTIONS
+  const validateChargeName = (value) => {
+    if (!value.trim()) return "Charge name is required";
+    if (value.trim().length > 30) return "Charge name cannot exceed 30 characters";
+    if (!/^[A-Za-z0-9\s\-&.,()]+$/.test(value.trim())) return "Charge name can only contain letters, numbers, spaces, hyphens, &, ., ,, ( and )";
+    return "";
+  };
+
+  const validateUnitPrice = (value) => {
+    if (!value) return "Unit price is required";
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return "Unit price must be a valid number";
+    if (numValue <= 0) return "Unit price must be greater than 0";
+    // Check for 5 digits before decimal (e.g., 99999.99)
+    const strValue = value.toString();
+    const integerPart = strValue.split('.')[0];
+    if (integerPart.length > 5) return "Unit price cannot exceed 99,999 (5 digits)";
+    return "";
+  };
+
+  const validateTaxPercent = (value) => {
+    if (!value || value.trim() === "") return ""; // Optional field
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) return "Tax percent must be a valid number";
+    if (numValue < 0) return "Tax percent cannot be negative";
+    if (numValue > 100) return "Tax percent cannot exceed 100%";
+    return "";
+  };
+
+  const validateDescription = (value) => {
+    if (!value || value.trim() === "") return ""; // Optional field
+    if (value.trim().length > 150) return "Description cannot exceed 150 characters";
+    if (!/^[A-Za-z0-9\s\-.,!?'()]+$/.test(value.trim())) return "Description can contain letters, numbers, spaces, and basic punctuation";
+    return "";
+  };
+
+  const validateChargeScope = (value) => {
+    if (!value) return "Charge scope is required";
+    if (!["GENERAL", "SPECIFIC"].includes(value)) return "Invalid charge scope";
+    return "";
+  };
+
+  // Validate form
+  const validateForm = (data) => {
+    const errors = {};
+
+    const nameError = validateChargeName(data.charge);
+    if (nameError) errors.charge = nameError;
+
+    const priceError = validateUnitPrice(data.unit_price);
+    if (priceError) errors.unit_price = priceError;
+
+    const taxError = validateTaxPercent(data.tax_percent);
+    if (taxError) errors.tax_percent = taxError;
+
+    const descError = validateDescription(data.description);
+    if (descError) errors.description = descError;
+
+    const scopeError = validateChargeScope(data.charge_scope);
+    if (scopeError) errors.charge_scope = scopeError;
+
+    return errors;
+  };
+
+  // Handle form change with character limits
   const handleFormChange = (field, value) => {
+    let processedValue = value;
+
+    // Apply character limits
+    if (field === "charge" && value.length > 30) {
+      processedValue = value.slice(0, 30);
+    }
+    if (field === "description" && value.length > 150) {
+      processedValue = value.slice(0, 150);
+    }
+    if (field === "unit_price" && value.length > 6) { // Allow up to 5 digits + decimal
+      // Don't limit, just let it be, validation will catch
+    }
+
     setFormData({
       ...formData,
-      [field]: value,
+      [field]: processedValue,
     });
 
     // Clear validation error for this field
@@ -193,9 +270,19 @@ const ChargesManagement = () => {
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
+    let processedValue = value;
+
+    // Apply character limits
+    if (field === "charge" && value.length > 30) {
+      processedValue = value.slice(0, 30);
+    }
+    if (field === "description" && value.length > 150) {
+      processedValue = value.slice(0, 150);
+    }
+
     setEditFormData({
       ...editFormData,
-      [field]: value,
+      [field]: processedValue,
     });
 
     // Clear validation error for this field
@@ -207,50 +294,14 @@ const ChargesManagement = () => {
     }
   };
 
-  // Validate form
-  const validateForm = (data) => {
-    const errors = {};
-
-    if (!data.charge.trim()) {
-      errors.charge = "Charge name is required";
-    }
-
-    if (!data.unit_price) {
-      errors.unit_price = "Unit price is required";
-    } else if (parseFloat(data.unit_price) <= 0) {
-      errors.unit_price = "Unit price must be greater than 0";
-    }
-
-    if (!data.charge_scope) {
-      errors.charge_scope = "Charge scope is required";
-    } else if (!["GENERAL", "SPECIFIC"].includes(data.charge_scope)) {
-      errors.charge_scope = "Invalid charge scope";
-    }
-
-    // Validate tax_percent if provided
-    if (data.tax_percent && data.tax_percent.trim() !== "") {
-      const taxValue = parseFloat(data.tax_percent);
-      if (isNaN(taxValue)) {
-        errors.tax_percent = "Tax percent must be a valid number";
-      } else if (taxValue < 0) {
-        errors.tax_percent = "Tax percent cannot be negative";
-      } else if (taxValue > 100) {
-        errors.tax_percent = "Tax percent cannot exceed 100";
-      }
-    }
-
-    return errors;
-  };
-
   // Handle add charge
   const handleAddCharge = async () => {
-    const errors = validateForm(formData);
-
     if (!canManageCharges) {
       errorToast("You are not authorized to manage charges.");
       return;
     }
 
+    const errors = validateForm(formData);
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -294,11 +345,10 @@ const ChargesManagement = () => {
   // Handle edit charge
   const handleEditCharge = async () => {
     if (!selectedCharge) return;
-     if (!canManageCharges) {
+    if (!canManageCharges) {
       errorToast("You are not authorized to manage charges.");
       return;
     }
-
 
     const errors = validateForm(editFormData);
 
@@ -347,11 +397,10 @@ const ChargesManagement = () => {
   // Handle delete charge
   const handleDeleteCharge = async () => {
     if (!selectedCharge) return;
-     if (!canManageCharges) {
+    if (!canManageCharges) {
       errorToast("You are not authorized to manage charges.");
       return;
     }
-
 
     try {
       await api.delete(`/charges/${selectedCharge.id}/`);
@@ -483,28 +532,28 @@ const ChargesManagement = () => {
             Charges Management
           </h2>
           <div className="relative group">
-  <button
-    onClick={() => {
-      if (canManageCharges) {
-        resetForm();
-        setShowAddModal(true);
-      }
-    }}
-    disabled={!canManageCharges}
-    className={`flex items-center gap-2 ${
-      canManageCharges
-        ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
-        : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
-    } border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out`}
-  >
-    <Plus size={18} className="text-white" /> Add New Charge
-  </button>
-  {!canManageCharges && (
-    <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
-      Access Denied
-    </span>
-  )}
-</div>
+            <button
+              onClick={() => {
+                if (canManageCharges) {
+                  resetForm();
+                  setShowAddModal(true);
+                }
+              }}
+              disabled={!canManageCharges}
+              className={`flex items-center gap-2 ${
+                canManageCharges
+                  ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
+                  : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-not-allowed"
+              } border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out`}
+            >
+              <Plus size={18} className="text-white" /> Add New Charge
+            </button>
+            {!canManageCharges && (
+              <span className="absolute top-12 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50 pointer-events-none">
+                Access Denied
+              </span>
+            )}
+          </div>
         </div>
 
         <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm">
@@ -712,32 +761,32 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       </td>
 
                       <td className="text-center">
-  <div className="flex justify-center gap-4 relative overflow-visible">
-    {/* Edit Button - Guarded */}
-    <div className="relative group">
-      <Pencil
-        size={16}
-        onClick={() => canManageCharges && openEditModal(charge)}
-        className={`${canManageCharges ? "text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110" : "text-[#08994A] dark:text-blue-400 cursor-not-allowed"} transition`}
-      />
-      <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-        {canManageCharges ? "Edit" : "Access Denied"}
-      </span>
-    </div>
+                        <div className="flex justify-center gap-4 relative overflow-visible">
+                          {/* Edit Button - Guarded */}
+                          <div className="relative group">
+                            <Pencil
+                              size={16}
+                              onClick={() => canManageCharges && openEditModal(charge)}
+                              className={`${canManageCharges ? "text-[#08994A] dark:text-blue-400 cursor-pointer hover:scale-110" : "text-[#08994A] dark:text-blue-400 cursor-not-allowed"} transition`}
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              {canManageCharges ? "Edit" : "Access Denied"}
+                            </span>
+                          </div>
 
-    {/* Delete Button - Guarded */}
-    <div className="relative group">
-      <Trash
-        size={16}
-        onClick={() => canManageCharges && openDeleteModal(charge)}
-        className={`${canManageCharges ? "cursor-pointer text-red-500 hover:scale-110" : "text-red-400 dark:text-red-600 cursor-not-allowed"}`}
-      />
-      <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
-        {canManageCharges ? "Delete" : "Access Denied"}
-      </span>
-    </div>
-  </div>
-</td>
+                          {/* Delete Button - Guarded */}
+                          <div className="relative group">
+                            <Trash
+                              size={16}
+                              onClick={() => canManageCharges && openDeleteModal(charge)}
+                              className={`${canManageCharges ? "cursor-pointer text-red-500 hover:scale-110" : "text-red-400 dark:text-red-600 cursor-not-allowed"}`}
+                            />
+                            <span className="absolute bottom-5 -left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 text-xs rounded-md shadow-md bg-gray-100 dark:bg-black text-black dark:text-white opacity-0 group-hover:opacity-100 transition-all duration-150 z-50">
+                              {canManageCharges ? "Delete" : "Access Denied"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
@@ -806,7 +855,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
           <Dialog.Panel className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              className="w-[705px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div
@@ -841,171 +890,187 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Charge Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.charge}
-                    onChange={(e) => handleFormChange("charge", e.target.value)}
-                    onFocus={() => setFocusedField("addCharge")}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="Enter charge name (e.g., Bed, Parking, Mess)"
-                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "addCharge"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                  {validationErrors.charge && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.charge}</p>
-                  )}
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+  {/* Charge Name - Column 1, Row 1 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Charge Name <span className="text-red-500">*</span>
+      <span className="text-xs text-gray-500 ml-2">(max 30 chars)</span>
+    </label>
+    <input
+      type="text"
+      value={formData.charge}
+      onChange={(e) => handleFormChange("charge", e.target.value)}
+      onFocus={() => setFocusedField("addCharge")}
+      onBlur={() => setFocusedField(null)}
+      placeholder="Enter charge name (max 30 chars)"
+      maxLength="30"
+      className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "addCharge"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    <div className="text-right text-xs text-gray-500 mt-1">
+      {formData.charge.length}/30
+    </div>
+    {validationErrors.charge && (
+      <p className="text-red-500 text-xs mt-1">{validationErrors.charge}</p>
+    )}
+  </div>
 
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Unit Price ($) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={formData.unit_price}
-                    onChange={(e) => handleFormChange("unit_price", e.target.value)}
-                    onFocus={() => setFocusedField("addUnitPrice")}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="Enter unit price"
-                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "addUnitPrice"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                  {validationErrors.unit_price && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.unit_price}</p>
-                  )}
-                </div>
+  {/* Unit Price - Column 2, Row 1 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Unit Price ($) <span className="text-red-500">*</span>
+      <span className="text-xs text-gray-500 ml-2">(max 5 digits: 99,999)</span>
+    </label>
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      value={formData.unit_price}
+      onChange={(e) => handleFormChange("unit_price", e.target.value)}
+      onFocus={() => setFocusedField("addUnitPrice")}
+      onBlur={() => setFocusedField(null)}
+      placeholder="Enter unit price (max 99,999)"
+      className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "addUnitPrice"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    {validationErrors.unit_price && (
+      <p className="text-red-500 text-xs mt-1">{validationErrors.unit_price}</p>
+    )}
+  </div>
 
-                {/* Tax Percent Field - New */}
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Tax Percent (%)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={formData.tax_percent}
-                      onChange={(e) => handleFormChange("tax_percent", e.target.value)}
-                      onFocus={() => setFocusedField("addTaxPercent")}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="Enter tax percentage"
-                      className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                        focusedField === "addTaxPercent"
-                          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                      }`}
-                    />
-                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
-                  </div>
-                  {validationErrors.tax_percent && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.tax_percent}</p>
-                  )}
-                </div>
+  {/* Tax Percent - Column 1, Row 2 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Tax Percent (%) <span className="text-xs text-gray-500">(max 100%)</span>
+    </label>
+    <div className="relative">
+      <input
+        type="number"
+        min="0"
+        max="100"
+        step="0.01"
+        value={formData.tax_percent}
+        onChange={(e) => handleFormChange("tax_percent", e.target.value)}
+        onFocus={() => setFocusedField("addTaxPercent")}
+        onBlur={() => setFocusedField(null)}
+        placeholder="Enter tax percentage (0-100)"
+        className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+          focusedField === "addTaxPercent"
+            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+        }`}
+      />
+      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
+    </div>
+    {validationErrors.tax_percent && (
+      <p className="text-red-500 text-xs mt-1">{validationErrors.tax_percent}</p>
+    )}
+  </div>
 
-                {/* Charge Scope Dropdown - Now using Listbox */}
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Charge Scope <span className="text-red-500">*</span>
-                  </label>
-                  <Listbox
-                    value={formData.charge_scope}
-                    onChange={(v) => handleFormChange("charge_scope", v)}
-                  >
-                    <div className="relative mt-1">
-                      <Listbox.Button
-                        onFocus={() => setFocusedField("addScope")}
-                        onBlur={() => setFocusedField(null)}
-                        className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
-                          focusedField === "addScope"
-                            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                        }`}
-                      >
-                        <span className={`block truncate ${formData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
-                          {formData.charge_scope === "GENERAL"
-                            ? "General"
-                            : formData.charge_scope === "SPECIFIC"
-                            ? "Specific"
-                            : "Select Scope"}
-                        </span>
-                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                          <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                        </span>
-                      </Listbox.Button>
-                      <Listbox.Options
-                        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
-                                   shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-                      >
-                        <Listbox.Option
-                          value="GENERAL"
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-3 text-sm
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          General
-                        </Listbox.Option>
-                        <Listbox.Option
-                          value="SPECIFIC"
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-3 text-sm
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          Specific
-                        </Listbox.Option>
-                      </Listbox.Options>
-                    </div>
-                  </Listbox>
-                  {validationErrors.charge_scope && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.charge_scope}</p>
-                  )}
-                </div>
+  {/* Charge Scope - Column 2, Row 2 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Charge Scope <span className="text-red-500">*</span>
+    </label>
+    <Listbox
+      value={formData.charge_scope}
+      onChange={(v) => handleFormChange("charge_scope", v)}
+    >
+      <div className="relative mt-1">
+        <Listbox.Button
+          onFocus={() => setFocusedField("addScope")}
+          onBlur={() => setFocusedField(null)}
+          className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
+            focusedField === "addScope"
+              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+              : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+          }`}
+        >
+          <span className={`block truncate ${formData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
+            {formData.charge_scope === "GENERAL"
+              ? "General"
+              : formData.charge_scope === "SPECIFIC"
+              ? "Specific"
+              : "Select Scope"}
+          </span>
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
+        <Listbox.Options
+          className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
+                     shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+        >
+          <Listbox.Option
+            value="GENERAL"
+            className={({ active, selected }) =>
+              `cursor-pointer select-none py-2 px-3 text-sm
+               ${
+                 active
+                   ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                   : "text-black dark:text-white"
+               }
+               ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+            }
+          >
+            General
+          </Listbox.Option>
+          <Listbox.Option
+            value="SPECIFIC"
+            className={({ active, selected }) =>
+              `cursor-pointer select-none py-2 px-3 text-sm
+               ${
+                 active
+                   ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                   : "text-black dark:text-white"
+               }
+               ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+            }
+          >
+            Specific
+          </Listbox.Option>
+        </Listbox.Options>
+      </div>
+    </Listbox>
+    {validationErrors.charge_scope && (
+      <p className="text-red-500 text-xs mt-1">{validationErrors.charge_scope}</p>
+    )}
+  </div>
 
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => handleFormChange("description", e.target.value)}
-                    onFocus={() => setFocusedField("addDesc")}
-                    onBlur={() => setFocusedField(null)}
-                    placeholder="Enter charge description"
-                    rows="3"
-                    className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "addDesc"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                </div>
-              </div>
+  {/* Description - Full Width, Row 3 (spans both columns) */}
+  <div className="col-span-2">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Description <span className="text-xs text-gray-500">(max 150 chars)</span>
+    </label>
+    <textarea
+      value={formData.description}
+      onChange={(e) => handleFormChange("description", e.target.value)}
+      onFocus={() => setFocusedField("addDesc")}
+      onBlur={() => setFocusedField(null)}
+      placeholder="Enter charge description (max 150 chars)"
+      rows="3"
+      maxLength="150"
+      className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "addDesc"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    <div className="text-right text-xs text-gray-500 mt-1">
+      {formData.description.length}/150
+    </div>
+    {validationErrors.description && (
+      <p className="text-red-500 text-xs mt-1">{validationErrors.description}</p>
+    )}
+  </div>
+</div>
 
               <div className="flex justify-center gap-2 mt-8">
                 <button
@@ -1041,7 +1106,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center">
           <Dialog.Panel className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
             <div
-              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              className="w-[705px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
               style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
             >
               <div
@@ -1077,168 +1142,184 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 </button>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Charge Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={editFormData.charge}
-                    onChange={(e) => handleEditFormChange("charge", e.target.value)}
-                    onFocus={() => setFocusedField("editCharge")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "editCharge"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                  {editValidationErrors.charge && (
-                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge}</p>
-                  )}
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+  {/* Charge Name - Column 1, Row 1 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Charge Name <span className="text-red-500">*</span>
+      <span className="text-xs text-gray-500 ml-2">(max 30 chars)</span>
+    </label>
+    <input
+      type="text"
+      value={editFormData.charge}
+      onChange={(e) => handleEditFormChange("charge", e.target.value)}
+      onFocus={() => setFocusedField("editCharge")}
+      onBlur={() => setFocusedField(null)}
+      maxLength="30"
+      className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "editCharge"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    <div className="text-right text-xs text-gray-500 mt-1">
+      {editFormData.charge.length}/30
+    </div>
+    {editValidationErrors.charge && (
+      <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge}</p>
+    )}
+  </div>
 
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Unit Price ($) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editFormData.unit_price}
-                    onChange={(e) => handleEditFormChange("unit_price", e.target.value)}
-                    onFocus={() => setFocusedField("editUnitPrice")}
-                    onBlur={() => setFocusedField(null)}
-                    className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "editUnitPrice"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                  {editValidationErrors.unit_price && (
-                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.unit_price}</p>
-                  )}
-                </div>
+  {/* Unit Price - Column 2, Row 1 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Unit Price ($) <span className="text-red-500">*</span>
+      <span className="text-xs text-gray-500 ml-2">(max 5 digits: 99,999)</span>
+    </label>
+    <input
+      type="number"
+      min="0"
+      step="0.01"
+      value={editFormData.unit_price}
+      onChange={(e) => handleEditFormChange("unit_price", e.target.value)}
+      onFocus={() => setFocusedField("editUnitPrice")}
+      onBlur={() => setFocusedField(null)}
+      className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "editUnitPrice"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    {editValidationErrors.unit_price && (
+      <p className="text-red-500 text-xs mt-1">{editValidationErrors.unit_price}</p>
+    )}
+  </div>
 
-                {/* Tax Percent Field - New */}
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Tax Percent (%)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      value={editFormData.tax_percent}
-                      onChange={(e) => handleEditFormChange("tax_percent", e.target.value)}
-                      onFocus={() => setFocusedField("editTaxPercent")}
-                      onBlur={() => setFocusedField(null)}
-                      placeholder="Enter tax percentage"
-                      className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                        focusedField === "editTaxPercent"
-                          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                      }`}
-                    />
-                    <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
-                  </div>
-                  {editValidationErrors.tax_percent && (
-                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.tax_percent}</p>
-                  )}
-                </div>
+  {/* Tax Percent - Column 1, Row 2 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Tax Percent (%) <span className="text-xs text-gray-500">(max 100%)</span>
+    </label>
+    <div className="relative">
+      <input
+        type="number"
+        min="0"
+        max="100"
+        step="0.01"
+        value={editFormData.tax_percent}
+        onChange={(e) => handleEditFormChange("tax_percent", e.target.value)}
+        onFocus={() => setFocusedField("editTaxPercent")}
+        onBlur={() => setFocusedField(null)}
+        placeholder="Enter tax percentage (0-100)"
+        className={`w-full h-[33px] pl-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+          focusedField === "editTaxPercent"
+            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+        }`}
+      />
+      <Percent className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
+    </div>
+    {editValidationErrors.tax_percent && (
+      <p className="text-red-500 text-xs mt-1">{editValidationErrors.tax_percent}</p>
+    )}
+  </div>
 
-                {/* Charge Scope Dropdown - Now using Listbox */}
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Charge Scope <span className="text-red-500">*</span>
-                  </label>
-                  <Listbox
-                    value={editFormData.charge_scope}
-                    onChange={(v) => handleEditFormChange("charge_scope", v)}
-                  >
-                    <div className="relative mt-1">
-                      <Listbox.Button
-                        onFocus={() => setFocusedField("editScope")}
-                        onBlur={() => setFocusedField(null)}
-                        className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
-                          focusedField === "editScope"
-                            ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                            : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                        }`}
-                      >
-                        <span className={`block truncate ${editFormData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
-                          {editFormData.charge_scope === "GENERAL"
-                            ? "General"
-                            : editFormData.charge_scope === "SPECIFIC"
-                            ? "Specific"
-                            : "Select Scope"}
-                        </span>
-                        <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
-                          <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
-                        </span>
-                      </Listbox.Button>
-                      <Listbox.Options
-                        className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
-                                   shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
-                      >
-                        <Listbox.Option
-                          value="GENERAL"
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-3 text-sm
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          General
-                        </Listbox.Option>
-                        <Listbox.Option
-                          value="SPECIFIC"
-                          className={({ active, selected }) =>
-                            `cursor-pointer select-none py-2 px-3 text-sm
-                             ${
-                               active
-                                 ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                                 : "text-black dark:text-white"
-                             }
-                             ${selected ? "font-medium text-[#0EFF7B]" : ""}`
-                          }
-                        >
-                          Specific
-                        </Listbox.Option>
-                      </Listbox.Options>
-                    </div>
-                  </Listbox>
-                  {editValidationErrors.charge_scope && (
-                    <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge_scope}</p>
-                  )}
-                </div>
+  {/* Charge Scope - Column 2, Row 2 */}
+  <div className="col-span-1">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Charge Scope <span className="text-red-500">*</span>
+    </label>
+    <Listbox
+      value={editFormData.charge_scope}
+      onChange={(v) => handleEditFormChange("charge_scope", v)}
+    >
+      <div className="relative mt-1">
+        <Listbox.Button
+          onFocus={() => setFocusedField("editScope")}
+          onBlur={() => setFocusedField(null)}
+          className={`w-full h-[33px] px-3 pr-8 rounded-[8px] border bg-gray-100 dark:bg-transparent text-left text-sm flex items-center justify-between group ${
+            focusedField === "editScope"
+              ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+              : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+          }`}
+        >
+          <span className={`block truncate ${editFormData.charge_scope ? "text-black dark:text-white" : "text-[#0EFF7B]"}`}>
+            {editFormData.charge_scope === "GENERAL"
+              ? "General"
+              : editFormData.charge_scope === "SPECIFIC"
+              ? "Specific"
+              : "Select Scope"}
+          </span>
+          <span className="absolute inset-y-0 right-2 flex items-center pointer-events-none">
+            <ChevronDown className="h-4 w-4 text-[#0EFF7B]" />
+          </span>
+        </Listbox.Button>
+        <Listbox.Options
+          className="absolute mt-0.5 w-full max-h-40 overflow-y-auto rounded-[8px] bg-gray-100 dark:bg-black
+                     shadow-lg z-50 border border-[#0EFF7B] dark:border-[#3A3A3A] left-[2px]"
+        >
+          <Listbox.Option
+            value="GENERAL"
+            className={({ active, selected }) =>
+              `cursor-pointer select-none py-2 px-3 text-sm
+               ${
+                 active
+                   ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                   : "text-black dark:text-white"
+               }
+               ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+            }
+          >
+            General
+          </Listbox.Option>
+          <Listbox.Option
+            value="SPECIFIC"
+            className={({ active, selected }) =>
+              `cursor-pointer select-none py-2 px-3 text-sm
+               ${
+                 active
+                   ? "bg-[#0EFF7B33] text-[#0EFF7B]"
+                   : "text-black dark:text-white"
+               }
+               ${selected ? "font-medium text-[#0EFF7B]" : ""}`
+            }
+          >
+            Specific
+          </Listbox.Option>
+        </Listbox.Options>
+      </div>
+    </Listbox>
+    {editValidationErrors.charge_scope && (
+      <p className="text-red-500 text-xs mt-1">{editValidationErrors.charge_scope}</p>
+    )}
+  </div>
 
-                <div>
-                  <label className="text-sm text-black dark:text-white block mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={editFormData.description}
-                    onChange={(e) => handleEditFormChange("description", e.target.value)}
-                    onFocus={() => setFocusedField("editDesc")}
-                    onBlur={() => setFocusedField(null)}
-                    rows="3"
-                    className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
-                      focusedField === "editDesc"
-                        ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
-                        : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                    }`}
-                  />
-                </div>
-              </div>
+  {/* Description - Full Width, Row 3 (spans both columns) */}
+  <div className="col-span-2">
+    <label className="text-sm text-black dark:text-white block mb-1">
+      Description <span className="text-xs text-gray-500">(max 150 chars)</span>
+    </label>
+    <textarea
+      value={editFormData.description}
+      onChange={(e) => handleEditFormChange("description", e.target.value)}
+      onFocus={() => setFocusedField("editDesc")}
+      onBlur={() => setFocusedField(null)}
+      rows="3"
+      maxLength="150"
+      className={`w-full px-3 py-2 rounded-[8px] border bg-gray-100 dark:bg-transparent text-black dark:text-white outline-none ${
+        focusedField === "editDesc"
+          ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
+          : "border-[#0EFF7B] dark:border-[#3A3A3A]"
+      }`}
+    />
+    <div className="text-right text-xs text-gray-500 mt-1">
+      {editFormData.description.length}/150
+    </div>
+    {editValidationErrors.description && (
+      <p className="text-red-500 text-xs mt-1">{editValidationErrors.description}</p>
+    )}
+  </div>
+</div>
 
               <div className="flex justify-center gap-2 mt-8">
                 <button

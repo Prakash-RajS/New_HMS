@@ -1450,7 +1450,7 @@ export default function ViewPatientProfile() {
   );
   
   return (
-    <div className="mb-4 bg-white dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
+    <div className="mb-4 bg-gray-100 dark:bg-black text-black dark:text-white rounded-xl p-3 sm:p-4 w-full mx-auto flex flex-col overflow-hidden relative font-[Helvetica]">
       {/* Gradient Background */}
       <div
         className="absolute inset-0 rounded-[8px] pointer-events-none dark:block hidden"
@@ -1495,7 +1495,7 @@ export default function ViewPatientProfile() {
       </button>
       
       {/* Profile Card */}
-      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-white dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
+      <div className="relative mb-6 h-auto sm:mb-8 w-full bg-gray-100 dark:bg-transparent border border-[#0EFF7B] dark:border-[#0EFF7B1A] mx-auto flex flex-col lg:flex-row items-center lg:items-start text-black dark:text-white rounded-[20px] p-4 sm:p-6 lg:p-8 dark:shadow-[0_0_4px_0_#FFFFFF1F] overflow-hidden relative z-10">
         {/* Avatar Section */}
         <div className="w-full lg:w-auto flex flex-col items-center mb-2 lg:mb-0 lg:mr-8">
           <div className="w-[80px] h-[80px] sm:w-[94px] sm:h-[94px] rounded-full overflow-hidden bg-gray-200 border-2 border-[#0EFF7B]">
@@ -1556,7 +1556,7 @@ export default function ViewPatientProfile() {
           {vitalsData.map((vital, i) => (
             <div
               key={i}
-              className="w-full h-[88px] bg-white dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
+              className="w-full h-[88px] bg-gray-100 dark:bg-[#0D0D0D] border border-[#0EFF7B] dark:border-[#0EFF7B66] rounded-[8px] flex items-center justify-between px-4 gap-3"
               style={{
                 backgroundColor: "rgba(14, 255, 123, 0.02)",
               }}
@@ -1565,13 +1565,13 @@ export default function ViewPatientProfile() {
                 className="w-[40px] h-[40px] sm:w-[45px] sm:h-[45px] text-[#0EFF7B]"
               />
               <div className="flex flex-col justify-center items-end space-y-1">
-                <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-medium">
+                <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-black dark:text-white font-medium">
                   {vital.label}
                 </span>
                 <span className="text-[18px] sm:text-[20px] lg:text-[22px] text-[#0EFF7B] font-bold leading-none">
                   {vital.value}
                   {vital.value !== "—" && (
-                    <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-white font-normal ml-1">
+                    <span className="text-[14px] sm:text-[16px] lg:text-[18px] text-black dark:text-white font-normal ml-1">
                       {vital.unit}
                     </span>
                   )}
@@ -1583,7 +1583,7 @@ export default function ViewPatientProfile() {
       </div>
       
       {/* Main Tabs Container */}
-      <div className="w-full bg-white dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col bg-white dark:bg-transparent overflow-visible relative z-10">
+      <div className="w-full bg-gray-100 dark:bg-black text-black dark:text-white border border-[#0EFF7B] dark:border-[#0EFF7B1A] rounded-xl p-3 sm:p-4 flex flex-col dark:bg-transparent overflow-visible relative z-10">
         {/* Mobile Navigation */}
         <MobileTabs />
         
