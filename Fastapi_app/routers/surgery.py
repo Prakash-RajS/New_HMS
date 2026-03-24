@@ -644,12 +644,13 @@ async def delete_surgery(surgery_id: int):
     await delete_surgery_func()
 
 # Get all patients for dropdown
+# Get all patients for dropdown - ONLY IN-PATIENTS
 @router.get("/patients", response_model=List[dict])
 async def get_patients():
     try:
         patients = await run_in_threadpool(
             lambda: (ensure_db_connection(), list(
-                Patient.objects.all()
+                Patient.objects.filter(patient_type="in-patient")  # ✅ Only in-patients
                 .values("id", "full_name", "patient_unique_id")
                 .order_by("full_name")
             ))[1]
