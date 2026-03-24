@@ -211,6 +211,7 @@ const EditUserPopup = ({ user, onClose, onSave }) => {
                       : "border-gray-300 dark:border-[#3A3A3A]"
                   } bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none`}
                   placeholder="Enter username"
+                  maxLength={30}
                 />
                 {errors.username && (
                   <p className="text-red-500 text-xs mt-1">{errors.username}</p>

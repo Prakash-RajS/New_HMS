@@ -910,7 +910,6 @@ class AmbulanceUnitCreate(AmbulanceUnitBase):
     @validator('phone', 'contact_number')
     def validate_phone(cls, v):
         if v:
-            # Remove all non-digit characters for validation
             digits = ''.join(filter(str.isdigit, v))
             if len(digits) < 10:
                 raise ValueError('Phone number must have at least 10 digits')
@@ -927,18 +926,17 @@ class PatientRef(BaseModel):
     id: int
     patient_unique_id: str
     full_name: str
-    phone: Optional[str] = None  # Frontend expects 'phone'
+    phone: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
-    
+
     @classmethod
     def from_orm(cls, obj):
-        # Map phone_number from DB to phone for frontend
         phone_value = None
         if hasattr(obj, 'phone_number'):
             phone_value = obj.phone_number
         elif hasattr(obj, 'phone'):
             phone_value = obj.phone
-        
+
         data = {
             "id": obj.id,
             "patient_unique_id": obj.patient_unique_id,
@@ -1026,18 +1024,14 @@ async def simulate_live_gps(trip_id: int, unit_number: str):
     if notify_clients is None:
         print("⚠️ notify_clients not available for GPS simulation")
         return
-        
-    # Start with coordinates near Delhi
+
     lat = 28.6139 + (random.random() - 0.5) * 0.1
     lng = 77.2090 + (random.random() - 0.5) * 0.1
 
-    # Simulate movement for ~4 minutes
     for i in range(50):
-        # Small random movement
         lat += (random.random() - 0.5) * 0.002
         lng += (random.random() - 0.5) * 0.002
 
-        # Send location update
         await notify_clients(
             event_type="location_update",
             message=f"Ambulance {unit_number} location updated",
@@ -1050,9 +1044,8 @@ async def simulate_live_gps(trip_id: int, unit_number: str):
                 "status": "En Route"
             }
         )
-        await asyncio.sleep(5)  # Update every 5 seconds
+        await asyncio.sleep(5)
 
-    # Trip completed
     await notify_clients(
         event_type="status_update",
         message=f"Ambulance {unit_number} has arrived at destination",
@@ -1079,101 +1072,79 @@ async def safe_delete(model, obj_id: int, name: str):
 async def check_duplicate_trip(dispatch_id: Optional[int], unit_id: Optional[int],
                                start_time: Optional[datetime], end_time: Optional[datetime],
                                exclude_trip_id: Optional[int] = None):
-    """
-    Check if there's already a trip with the same dispatch and unit during overlapping time period
-    """
     if not dispatch_id or not unit_id or not start_time:
         return False
-    
-    # If no end time provided, assume a default duration of 2 hours for overlap checking
+
     effective_end = end_time
     if not effective_end:
         effective_end = start_time + timedelta(hours=2)
-    
-    # Build query for overlapping trips
+
     query = Q(dispatch_id=dispatch_id, unit_id=unit_id)
-    
-    # Exclude the current trip if updating
+
     if exclude_trip_id:
         query &= ~Q(id=exclude_trip_id)
-    
-    # Check for overlapping time periods
+
     overlapping_trips = await sync_to_async(lambda: list(
         Trip.objects.filter(query).filter(
             Q(start_time__lt=effective_end) &
             (Q(end_time__isnull=True) | Q(end_time__gt=start_time))
         )
     ))()
-    
+
     return len(overlapping_trips) > 0
 
 # ==============================================
-# NEW: Helper function to check for duplicate ambulance units
+# Helper function to check for duplicate ambulance units
 # ==============================================
 async def check_duplicate_unit(unit_number: str, phone: Optional[str], contact_number: Optional[str], exclude_id: Optional[int] = None):
-    """
-    Check if a unit with the same unit_number, phone, or contact_number already exists
-    Returns a dictionary with duplicate fields
-    """
     duplicates = {}
-    
-    # Build query for unit_number
+
     unit_query = Q(unit_number__iexact=unit_number.strip())
     if exclude_id:
         unit_query &= ~Q(id=exclude_id)
-    
+
     if await sync_to_async(lambda: AmbulanceUnit.objects.filter(unit_query).exists())():
         duplicates['unit_number'] = "Unit number already exists"
-    
-    # Check phone if provided and not empty
+
     if phone and phone.strip():
         phone_clean = phone.strip()
-        # Check if this phone is used in either phone or contact_number fields
         phone_query = Q(phone=phone_clean) | Q(contact_number=phone_clean)
         if exclude_id:
             phone_query &= ~Q(id=exclude_id)
-        
+
         if await sync_to_async(lambda: AmbulanceUnit.objects.filter(phone_query).exists())():
             duplicates['phone'] = "Phone number already exists"
-    
-    # Check contact_number if provided and not empty and different from phone
+
     if contact_number and contact_number.strip():
         contact_clean = contact_number.strip()
-        # Only check if it's different from phone to avoid duplicate error messages
         if contact_clean != (phone.strip() if phone else ''):
             contact_query = Q(phone=contact_clean) | Q(contact_number=contact_clean)
             if exclude_id:
                 contact_query &= ~Q(id=exclude_id)
-            
+
             if await sync_to_async(lambda: AmbulanceUnit.objects.filter(contact_query).exists())():
                 duplicates['contact_number'] = "Alternate phone number already exists"
-    
+
     return duplicates
 
-# Add this helper function after the check_duplicate_unit function
 async def check_active_dispatch_for_unit(unit_id: int, exclude_dispatch_id: Optional[int] = None):
-    """
-    Check if there's already an active dispatch (not completed/cancelled) for the same unit
-    """
     if not unit_id:
         return False
-    
-    # Define active statuses that should prevent new dispatches
+
     active_statuses = ["Standby", "En Route", "Dispatched", "Responding"]
-    
-    # Build query
+
     query = Q(unit_id=unit_id, status__in=active_statuses)
-    
-    # Exclude current dispatch if updating
+
     if exclude_dispatch_id:
         query &= ~Q(id=exclude_dispatch_id)
-    
-    # Check if any active dispatch exists
+
     return await sync_to_async(lambda: Dispatch.objects.filter(query).exists())()
 
 # ==============================================
 # Notification Helper Functions
 # ==============================================
+AMBULANCE_REDIRECT = "/ClinicalResources/EmergencyServices/Ambulance"
+
 async def notify_unit_created(unit_data: AmbulanceUnitResponse):
     """Notify when a new ambulance unit is created"""
     if notify_clients:
@@ -1188,7 +1159,8 @@ async def notify_unit_created(unit_data: AmbulanceUnitResponse):
                 "vehicle_make": unit_data.vehicle_make,
                 "vehicle_model": unit_data.vehicle_model,
                 "phone": unit_data.phone,
-                "in_service": unit_data.in_service
+                "in_service": unit_data.in_service,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1204,7 +1176,8 @@ async def notify_unit_updated(unit_data: AmbulanceUnitResponse):
                 "unit_id": unit_data.id,
                 "unit_number": unit_data.unit_number,
                 "in_service": unit_data.in_service,
-                "phone": unit_data.phone
+                "phone": unit_data.phone,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1218,7 +1191,8 @@ async def notify_unit_deleted(unit_id: int, unit_number: str):
             data={
                 "title": "Ambulance Unit Removed",
                 "unit_id": unit_id,
-                "unit_number": unit_number
+                "unit_number": unit_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1227,7 +1201,7 @@ async def notify_dispatch_created(dispatch_data: DispatchResponse):
     if notify_clients:
         unit_info = f" - Unit {dispatch_data.unit.unit_number}" if dispatch_data.unit else ""
         await notify_clients(
-            event_type="new_dispatch",  # or "dispatch_created" - be consistent
+            event_type="new_dispatch",
             message=f"Dispatch {dispatch_data.dispatch_id} created for {dispatch_data.location}{unit_info}",
             notification_type="warning" if dispatch_data.call_type == "Emergency" else "info",
             data={
@@ -1236,7 +1210,8 @@ async def notify_dispatch_created(dispatch_data: DispatchResponse):
                 "location": dispatch_data.location,
                 "unit_number": dispatch_data.unit.unit_number if dispatch_data.unit else None,
                 "status": dispatch_data.status,
-                "phone_number": dispatch_data.phone_number
+                "phone_number": dispatch_data.phone_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1252,21 +1227,8 @@ async def notify_dispatch_updated(dispatch_data: DispatchResponse):
                 "dispatch_id": dispatch_data.dispatch_id,
                 "status": dispatch_data.status,
                 "location": dispatch_data.location,
-                "phone_number": dispatch_data.phone_number
-            }
-        )
-
-async def notify_dispatch_deleted(dispatch_id: int, dispatch_id_str: str):
-    """Notify when a dispatch is deleted"""
-    if notify_clients:
-        await notify_clients(
-            event_type="dispatch_deleted",
-            message=f"Dispatch {dispatch_id_str} has been cancelled",
-            notification_type="warning",
-            data={
-                "title": "Dispatch Cancelled",
-                "dispatch_id": dispatch_id_str,
-                "dispatch_id_int": dispatch_id
+                "phone_number": dispatch_data.phone_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1278,9 +1240,10 @@ async def notify_dispatch_deleted(dispatch_id: int, dispatch_id_str: str):
             message=f"Dispatch {dispatch_id_str} has been cancelled",
             notification_type="info",
             data={
-                "title": "Dispatch Cancelled",  # Move title inside data
+                "title": "Dispatch Cancelled",
                 "dispatch_id": dispatch_id_str,
-                "dispatch_id_int": dispatch_id
+                "dispatch_id_int": dispatch_id,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
@@ -1298,11 +1261,11 @@ async def notify_trip_created(trip_data: TripResponse):
                 "unit_number": unit_number,
                 "status": trip_data.status,
                 "destination": trip_data.destination,
-                "phone_number": trip_data.phone_number
+                "phone_number": trip_data.phone_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
-        
-        # Start GPS simulation for new trips
+
         if trip_data.status == "En Route" and trip_data.unit:
             asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
 
@@ -1319,11 +1282,11 @@ async def notify_trip_updated(trip_data: TripResponse):
                 "trip_id": trip_data.trip_id,
                 "unit_number": unit_number,
                 "status": trip_data.status,
-                "phone_number": trip_data.phone_number
+                "phone_number": trip_data.phone_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
-        
-        # Start GPS simulation if trip status changed to "En Route"
+
         if trip_data.status == "En Route" and trip_data.unit:
             asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
 
@@ -1338,12 +1301,13 @@ async def notify_trip_deleted(trip_id: int, trip_id_str: str, unit_number: str =
                 "title": "Trip Cancelled",
                 "trip_id": trip_id_str,
                 "trip_id_int": trip_id,
-                "unit_number": unit_number
+                "unit_number": unit_number,
+                "redirect_to": AMBULANCE_REDIRECT
             }
         )
 
 # ==============================================
-# Ambulance Units - FIXED with proper structured error responses
+# Ambulance Units
 # ==============================================
 @router.get("/units", response_model=List[AmbulanceUnitResponse])
 async def list_units(in_service: Optional[bool] = None):
@@ -1355,19 +1319,17 @@ async def list_units(in_service: Optional[bool] = None):
 @router.post("/units", response_model=AmbulanceUnitResponse, status_code=201)
 async def create_unit(payload: AmbulanceUnitCreate):
     try:
-        # Convert empty strings to None for optional fields
         data = payload.dict()
         for field in ['phone', 'contact_number', 'notes']:
             if field in data and data[field] == "":
                 data[field] = None
-        
-        # First check for duplicates manually to provide structured error response
+
         duplicates = await check_duplicate_unit(
             unit_number=data['unit_number'],
             phone=data['phone'],
             contact_number=data['contact_number']
         )
-        
+
         if duplicates:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1376,16 +1338,14 @@ async def create_unit(payload: AmbulanceUnitCreate):
                     "errors": duplicates
                 }
             )
-        
+
         unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.create(**data))[1])()
         unit_response = AmbulanceUnitResponse.from_orm(unit)
-        
-        # Notify about unit creation
+
         await notify_unit_created(unit_response)
-        
+
         return unit_response
     except IntegrityError as e:
-        # Fallback for any IntegrityError that might slip through
         error_str = str(e).lower()
         errors = {}
         if 'unit_number' in error_str:
@@ -1394,7 +1354,7 @@ async def create_unit(payload: AmbulanceUnitCreate):
             errors['phone'] = "Phone number already exists"
         if 'contact_number' in error_str:
             errors['contact_number'] = "Alternate phone number already exists"
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1409,14 +1369,13 @@ async def create_unit(payload: AmbulanceUnitCreate):
 @router.put("/units/{unit_id}", response_model=AmbulanceUnitResponse)
 async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
     try:
-        # Check for duplicates (excluding current unit)
         duplicates = await check_duplicate_unit(
             unit_number=payload.unit_number,
             phone=payload.phone,
             contact_number=payload.contact_number,
             exclude_id=unit_id
         )
-        
+
         if duplicates:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1425,22 +1384,20 @@ async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
                     "errors": duplicates
                 }
             )
-        
+
         unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=unit_id))[1])()
         for k, v in payload.dict().items():
             setattr(unit, k, v)
         await sync_to_async(lambda: (ensure_db_connection(), unit.save())[1])()
-        
+
         unit_response = AmbulanceUnitResponse.from_orm(unit)
-        
-        # Notify about unit update
+
         await notify_unit_updated(unit_response)
-        
+
         return unit_response
     except AmbulanceUnit.DoesNotExist:
         raise HTTPException(404, "Unit not found")
     except IntegrityError as e:
-        # Fallback for any IntegrityError that might slip through
         error_str = str(e).lower()
         errors = {}
         if 'unit_number' in error_str:
@@ -1449,7 +1406,7 @@ async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
             errors['phone'] = "Phone number already exists"
         if 'contact_number' in error_str:
             errors['contact_number'] = "Alternate phone number already exists"
-        
+
         if errors:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1463,16 +1420,14 @@ async def update_unit(unit_id: int, payload: AmbulanceUnitCreate):
 
 @router.delete("/units/{unit_id}", status_code=204)
 async def delete_unit(unit_id: int):
-    # Get unit info before deletion for notification
     try:
         unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=unit_id))[1])()
         unit_number = unit.unit_number
     except AmbulanceUnit.DoesNotExist:
         raise HTTPException(404, "Unit not found")
-    
+
     await safe_delete(AmbulanceUnit, unit_id, "Unit")
-    
-    # Notify about unit deletion
+
     await notify_unit_deleted(unit_id, unit_number)
 
 # ==============================================
@@ -1497,17 +1452,15 @@ async def list_dispatches():
 
 @router.post("/dispatch", response_model=DispatchResponse, status_code=201)
 async def create_dispatch(payload: DispatchCreate):
-    # Check if unit is already assigned to an active dispatch
     if payload.unit_id:
         is_active = await check_active_dispatch_for_unit(payload.unit_id)
         if is_active:
-            # Get unit details for better error message
             try:
                 unit = await sync_to_async(lambda: AmbulanceUnit.objects.get(id=payload.unit_id))()
                 unit_number = unit.unit_number
             except:
                 unit_number = f"ID {payload.unit_id}"
-            
+
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
@@ -1517,7 +1470,7 @@ async def create_dispatch(payload: DispatchCreate):
                     }
                 }
             )
-    
+
     unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
     dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.create(
         timestamp=payload.timestamp, unit=unit, dispatcher=payload.dispatcher,
@@ -1533,18 +1486,16 @@ async def create_dispatch(payload: DispatchCreate):
         location=dispatch.location, phone_number=dispatch.phone_number,
         contact_number=dispatch.contact_number, status=dispatch.status
     )
-    
-    # Notify about dispatch creation
+
     await notify_dispatch_created(dispatch_response)
-    
+
     return dispatch_response
 
 @router.put("/dispatch/{dispatch_id}", response_model=DispatchResponse)
 async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
     try:
         d = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=dispatch_id))[1])()
-        
-        # Check if updating unit_id and that unit is already assigned to another active dispatch
+
         if payload.unit_id is not None and payload.unit_id != d.unit_id:
             is_active = await check_active_dispatch_for_unit(payload.unit_id, exclude_dispatch_id=dispatch_id)
             if is_active:
@@ -1553,7 +1504,7 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
                     unit_number = unit.unit_number
                 except:
                     unit_number = f"ID {payload.unit_id}"
-                
+
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
@@ -1563,7 +1514,7 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
                         }
                     }
                 )
-        
+
         if payload.timestamp is not None: d.timestamp = payload.timestamp
         if payload.dispatcher is not None: d.dispatcher = payload.dispatcher
         if payload.call_type is not None: d.call_type = payload.call_type
@@ -1582,10 +1533,9 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
             location=d.location, phone_number=d.phone_number,
             contact_number=d.contact_number, status=d.status
         )
-        
-        # Notify about dispatch update
+
         await notify_dispatch_updated(dispatch_response)
-        
+
         return dispatch_response
     except Dispatch.DoesNotExist:
         raise HTTPException(404, "Dispatch not found")
@@ -1594,17 +1544,14 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
 
 @router.delete("/dispatch/{dispatch_id}", status_code=204)
 async def delete_dispatch(dispatch_id: int):
-    # Get dispatch info before deletion for notification
     try:
         dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=dispatch_id))[1])()
         dispatch_id_str = dispatch.dispatch_id
     except Dispatch.DoesNotExist:
         raise HTTPException(404, "Dispatch not found")
-    
-    # CASCADE delete → all related Trips will be automatically deleted
+
     await safe_delete(Dispatch, dispatch_id, "Dispatch")
-    
-    # Notify about dispatch deletion
+
     await notify_dispatch_deleted(dispatch_id, dispatch_id_str)
 
 # ==============================================
@@ -1630,7 +1577,7 @@ async def list_trips():
                 contact_number=t.dispatch.contact_number,
                 status=t.dispatch.status
             )
-        
+
         result.append(TripResponse(
             id=t.id, trip_id=t.trip_id, created_at=t.created_at,
             dispatch=dispatch_resp, dispatch_id=t.dispatch.id if t.dispatch else None,
@@ -1648,21 +1595,19 @@ async def list_trips():
 @router.post("/trips", response_model=TripResponse, status_code=201)
 async def create_trip(payload: TripCreate):
     try:
-        # Check for duplicate trip first
         is_duplicate = await check_duplicate_trip(
             dispatch_id=payload.dispatch_id,
             unit_id=payload.unit_id,
             start_time=payload.start_time,
             end_time=payload.end_time
         )
-        
+
         if is_duplicate:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A trip with this dispatcher and unit already exists during this time period. Please choose a different time, dispatcher, or unit."
             )
-        
-        # Fetch related objects
+
         dispatch = None
         if payload.dispatch_id:
             dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.select_related("unit").get(id=payload.dispatch_id))[1])()
@@ -1675,7 +1620,6 @@ async def create_trip(payload: TripCreate):
         if payload.patient_id:
             patient = await sync_to_async(lambda: (ensure_db_connection(), Patient.objects.get(id=payload.patient_id))[1])()
 
-        # Create trip
         trip = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.create(
             dispatch=dispatch, unit=unit, patient=patient,
             crew=payload.crew, pickup_location=payload.pickup_location,
@@ -1685,7 +1629,6 @@ async def create_trip(payload: TripCreate):
             notes=payload.notes
         ))[1])()
 
-        # Build nested dispatch response safely
         dispatch_resp = None
         if dispatch:
             unit_d = await sync_to_async(lambda: (ensure_db_connection(), dispatch.unit)[1])()
@@ -1713,7 +1656,6 @@ async def create_trip(payload: TripCreate):
             mileage=trip.mileage, status=trip.status, notes=trip.notes
         )
 
-        # Notify about trip creation
         await notify_trip_created(trip_response)
 
         return trip_response
@@ -1724,7 +1666,6 @@ async def create_trip(payload: TripCreate):
 @router.put("/trips/{trip_id}", response_model=TripResponse)
 async def update_trip(trip_id: int, payload: TripUpdate):
     try:
-        # Check for duplicate trip (excluding current trip)
         is_duplicate = await check_duplicate_trip(
             dispatch_id=payload.dispatch_id,
             unit_id=payload.unit_id,
@@ -1732,13 +1673,13 @@ async def update_trip(trip_id: int, payload: TripUpdate):
             end_time=payload.end_time,
             exclude_trip_id=trip_id
         )
-        
+
         if is_duplicate:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A trip with this dispatcher and unit already exists during this time period. Please choose a different time, dispatcher, or unit."
             )
-        
+
         t = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.get(id=trip_id))[1])()
         if payload.dispatch_id is not None:
             t.dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.get(id=payload.dispatch_id))[1])() if payload.dispatch_id else None
@@ -1757,7 +1698,6 @@ async def update_trip(trip_id: int, payload: TripUpdate):
         if payload.notes is not None: t.notes = payload.notes
         await sync_to_async(lambda: (ensure_db_connection(), t.save())[1])()
 
-        # Build response
         dispatch_resp = None
         if t.dispatch:
             unit_d = await sync_to_async(lambda: (ensure_db_connection(), t.dispatch.unit)[1])()
@@ -1785,7 +1725,6 @@ async def update_trip(trip_id: int, payload: TripUpdate):
             mileage=t.mileage, status=t.status, notes=t.notes
         )
 
-        # Notify about trip update
         await notify_trip_updated(trip_response)
 
         return trip_response
@@ -1796,21 +1735,19 @@ async def update_trip(trip_id: int, payload: TripUpdate):
 
 @router.delete("/trips/{trip_id}", status_code=204)
 async def delete_trip(trip_id: int):
-    # Get trip info before deletion for notification
     try:
         trip = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.select_related("unit").get(id=trip_id))[1])()
         trip_id_str = trip.trip_id
         unit_number = trip.unit.unit_number if trip.unit else None
     except Trip.DoesNotExist:
         raise HTTPException(404, "Trip not found")
-    
+
     await safe_delete(Trip, trip_id, "Trip")
-    
-    # Notify about trip deletion
+
     await notify_trip_deleted(trip_id, trip_id_str, unit_number)
 
 # ==============================================
-# Patients Dropdown (Include phone numbers)
+# Patients Dropdown
 # ==============================================
 @router.get("/patients", response_model=List[dict])
 async def get_patients_for_dropdown():
@@ -1823,7 +1760,7 @@ async def get_patients_for_dropdown():
             "id": p["id"],
             "patient_unique_id": p["patient_unique_id"],
             "full_name": p["full_name"],
-            "phone": p["phone_number"] or None  # Map phone_number to phone for frontend
+            "phone": p["phone_number"] or None
         }
         for p in patients
     ]
@@ -1840,7 +1777,6 @@ async def update_trip_status(trip_id: int, status: str):
         trip.status = status
         await sync_to_async(lambda: (ensure_db_connection(), trip.save())[1])()
 
-        # Build response
         dispatch_resp = None
         if trip.dispatch:
             unit_d = await sync_to_async(lambda: (ensure_db_connection(), trip.dispatch.unit)[1])()
@@ -1868,21 +1804,23 @@ async def update_trip_status(trip_id: int, status: str):
             mileage=trip.mileage, status=trip.status, notes=trip.notes
         )
 
-        # Notify about status change
         if notify_clients:
             unit_number = trip.unit.unit_number if trip.unit else "Unknown Unit"
             await notify_clients(
-                "trip_status_changed",
-                title="Trip Status Updated",
+                event_type="trip_status_changed",
                 message=f"Trip {trip.trip_id} changed from {old_status} to {status}",
-                trip_id=trip.trip_id,
-                unit_number=unit_number,
-                old_status=old_status,
-                new_status=status,
-                phone_number=trip.phone_number
+                notification_type="info",
+                data={
+                    "title": "Trip Status Updated",
+                    "trip_id": trip.trip_id,
+                    "unit_number": unit_number,
+                    "old_status": old_status,
+                    "new_status": status,
+                    "phone_number": trip.phone_number,
+                    "redirect_to": AMBULANCE_REDIRECT
+                }
             )
 
-            # Start GPS simulation if status changed to "En Route"
             if status == "En Route" and trip.unit:
                 asyncio.create_task(simulate_live_gps(trip.id, unit_number))
 
@@ -1900,7 +1838,7 @@ async def health_check():
         units_count = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.count())[1])()
         dispatches_count = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.count())[1])()
         trips_count = await sync_to_async(lambda: (ensure_db_connection(), Trip.objects.count())[1])()
-        
+
         return {
             "status": "healthy",
             "database": "connected",

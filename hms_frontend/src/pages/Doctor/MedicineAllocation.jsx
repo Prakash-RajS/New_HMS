@@ -1850,31 +1850,46 @@ if (!hasAccess) {
     return [];
   }, []);
 
-  const calculateQuantity = useCallback((frequency, duration) => {
-    if (!frequency || frequency.length === 0 || !duration) return "";
+  // Helper function to normalize duration to days for quantity calculation
+const normalizeDurationToDays = useCallback((durationStr) => {
+  if (!durationStr) return 0;
+  
+  const duration = durationStr.toString().toLowerCase().trim();
+  
+  // If just a number, treat as days
+  if (/^\d+$/.test(duration)) {
+    return parseInt(duration);
+  }
+  
+  // Extract number from duration string
+  const match = duration.match(/\d+/);
+  if (!match) return 0;
+  
+  const num = parseInt(match[0]);
+  
+  if (duration.includes('day')) {
+    return num;
+  } else if (duration.includes('week')) {
+    return num * 7;
+  } else if (duration.includes('month')) {
+    return num * 30;
+  }
+  
+  return 0;
+}, []);
 
-    const durationStr = duration.toString().toLowerCase();
-    let days = 0;
-
-    if (durationStr.includes("day")) {
-      days = parseInt(durationStr) || 0;
-    } else if (durationStr.includes("week")) {
-      const weeks = parseInt(durationStr) || 0;
-      days = weeks * 7;
-    } else if (durationStr.includes("month")) {
-      const months = parseInt(durationStr) || 0;
-      days = months * 30;
-    } else {
-      days = parseInt(durationStr) || 0;
-    }
-
-    if (days <= 0) return "";
-
-    const dosesPerDay = frequency.length;
-    const totalDoses = days * dosesPerDay;
-
-    return totalDoses.toString();
-  }, []);
+const calculateQuantity = useCallback((frequency, duration) => {
+  if (!frequency || frequency.length === 0 || !duration) return "";
+  
+  const days = normalizeDurationToDays(duration);
+  
+  if (days <= 0) return "";
+  
+  const dosesPerDay = frequency.length;
+  const totalDoses = days * dosesPerDay;
+  
+  return totalDoses.toString();
+}, [normalizeDurationToDays]);
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -2051,50 +2066,145 @@ if (!hasAccess) {
 
   // ================ Validation Functions ================
   const validateMedicineEntry = useCallback((medicine, index) => {
-    const errors = {};
+  const errors = {};
+  
+  if (!medicine.medicineName || medicine.medicineName.trim() === "") {
+    errors[`medicine_${index}_medicineName`] = "Medicine name is required";
+  }
+  
+  if (!medicine.dosage || medicine.dosage.trim() === "") {
+    errors[`medicine_${index}_dosage`] = "Dosage is required";
+  }
+  
+  if (!medicine.frequency || medicine.frequency.length === 0) {
+    errors[`medicine_${index}_frequency`] = "At least one frequency must be selected";
+  }
+  
+  // ================ UPDATED DURATION VALIDATION ================
+  if (!medicine.duration || medicine.duration.trim() === "") {
+    errors[`medicine_${index}_duration`] = "Duration is required";
+  } else {
+    const durationStr = medicine.duration.toString().toLowerCase().trim();
     
-    if (!medicine.medicineName || medicine.medicineName.trim() === "") {
-      errors[`medicine_${index}_medicineName`] = "Medicine name is required";
-    }
-    
-    if (!medicine.dosage || medicine.dosage.trim() === "") {
-      errors[`medicine_${index}_dosage`] = "Dosage is required";
-    }
-    
-    if (!medicine.frequency || medicine.frequency.length === 0) {
-      errors[`medicine_${index}_frequency`] = "At least one frequency must be selected";
-    }
-    
-    if (!medicine.duration || medicine.duration.trim() === "") {
+    // Check if duration is empty
+    if (durationStr === "") {
       errors[`medicine_${index}_duration`] = "Duration is required";
-    } else {
-      // Validate duration format (should include days/weeks/months or be a number)
-      const durationStr = medicine.duration.toString().toLowerCase();
-      const hasUnit = durationStr.includes('day') || durationStr.includes('week') || durationStr.includes('month');
-      const isNumeric = /^\d+$/.test(durationStr.trim());
-      
-      if (!hasUnit && !isNumeric) {
-        errors[`medicine_${index}_duration`] = "Duration should be a number or include days/weeks/months (e.g., 5 days)";
-      }
-      
-      // Extract number for validation
-      const numMatch = durationStr.match(/\d+/);
-      if (numMatch && parseInt(numMatch[0]) <= 0) {
+    } 
+    // Check if duration contains only numbers (e.g., "5")
+    else if (/^\d+$/.test(durationStr)) {
+      const days = parseInt(durationStr);
+      if (days <= 0) {
         errors[`medicine_${index}_duration`] = "Duration must be greater than 0";
+      } else if (days > 365) {
+        errors[`medicine_${index}_duration`] = "Duration cannot exceed 365 days";
       }
     }
-    
-    if (!medicine.time || medicine.time.trim() === "") {
-      errors[`medicine_${index}_time`] = "Time is required";
+    // Check if duration has days unit (e.g., "5 days", "5days", "5 day")
+    else if (durationStr.includes('day')) {
+      // Extract number from string
+      const match = durationStr.match(/\d+/);
+      if (!match) {
+        errors[`medicine_${index}_duration`] = "Please enter a valid duration with days (e.g., 5 days, 1 day)";
+      } else {
+        const days = parseInt(match[0]);
+        if (days <= 0) {
+          errors[`medicine_${index}_duration`] = "Duration must be greater than 0 days";
+        } else if (days > 365) {
+          errors[`medicine_${index}_duration`] = "Duration cannot exceed 365 days";
+        }
+        // Check for correct spelling
+        const dayPattern = /(\d+)\s*day(s?)/i;
+        if (!dayPattern.test(durationStr)) {
+          errors[`medicine_${index}_duration`] = "Please use format like '5 days', '3 days', or '1 day'";
+        }
+      }
     }
-    
-    // Quantity should be auto-calculated, but check if it's valid
-    if (!medicine.quantity || medicine.quantity === "" || parseInt(medicine.quantity) <= 0) {
-      errors[`medicine_${index}_quantity`] = "Quantity could not be calculated. Check frequency and duration.";
+    // Check if duration has weeks unit (e.g., "2 weeks", "2weeks")
+    else if (durationStr.includes('week')) {
+      const match = durationStr.match(/\d+/);
+      if (!match) {
+        errors[`medicine_${index}_duration`] = "Please enter a valid duration with weeks (e.g., 2 weeks, 1 week)";
+      } else {
+        const weeks = parseInt(match[0]);
+        if (weeks <= 0) {
+          errors[`medicine_${index}_duration`] = "Duration must be greater than 0 weeks";
+        } else if (weeks > 52) {
+          errors[`medicine_${index}_duration`] = "Duration cannot exceed 52 weeks";
+        }
+      }
     }
+    // Check if duration has months unit (e.g., "3 months", "3months")
+    else if (durationStr.includes('month')) {
+      const match = durationStr.match(/\d+/);
+      if (!match) {
+        errors[`medicine_${index}_duration`] = "Please enter a valid duration with months (e.g., 3 months, 1 month)";
+      } else {
+        const months = parseInt(match[0]);
+        if (months <= 0) {
+          errors[`medicine_${index}_duration`] = "Duration must be greater than 0 months";
+        } else if (months > 12) {
+          errors[`medicine_${index}_duration`] = "Duration cannot exceed 12 months";
+        }
+      }
+    }
+    // Invalid format - doesn't contain days, weeks, months, or number
+    else {
+      errors[`medicine_${index}_duration`] = "Please enter duration in format like: '5 days', '2 weeks', '3 months', or just '5' (for days)";
+    }
+  }
+  // ================ END OF DURATION VALIDATION ================
+  
+  // ================ UPDATED TIME VALIDATION ================
+  if (!medicine.time || medicine.time.trim() === "") {
+    errors[`medicine_${index}_time`] = "Time is required";
+  } else {
+    const timeStr = medicine.time.toString().toLowerCase().trim();
     
-    return errors;
-  }, []);
+    // Check for 12-hour format (e.g., "8:00 AM", "8:00am", "8am")
+    const twelveHourRegex = /^(1[0-2]|0?[1-9])(?::([0-5][0-9]))?\s*([AaPp][Mm])$/;
+    const twelveHourMatch = timeStr.match(twelveHourRegex);
+    
+    // Check for 24-hour format (e.g., "08:00", "20:00")
+    const twentyFourHourRegex = /^([01]?[0-9]|2[0-3]):([0-5][0-9])$/;
+    const twentyFourHourMatch = timeStr.match(twentyFourHourRegex);
+    
+    // Check for simple hour format (e.g., "8am", "8pm")
+    const simpleHourRegex = /^(1[0-2]|0?[1-9])\s*([AaPp][Mm])$/;
+    const simpleHourMatch = timeStr.match(simpleHourRegex);
+    
+    if (!twelveHourMatch && !twentyFourHourMatch && !simpleHourMatch) {
+      errors[`medicine_${index}_time`] = "Please enter time in valid format (e.g., 8:00 AM, 08:00, 8am, 2pm)";
+    } else {
+      // Additional validation for AM/PM
+      if (twelveHourMatch || simpleHourMatch) {
+        const hour = parseInt(twelveHourMatch ? twelveHourMatch[1] : simpleHourMatch[1]);
+        const meridiem = (twelveHourMatch ? twelveHourMatch[3] : simpleHourMatch[2]).toUpperCase();
+        
+        if (hour < 1 || hour > 12) {
+          errors[`medicine_${index}_time`] = "Hour must be between 1 and 12 for AM/PM format";
+        }
+      }
+      
+      // For 24-hour format, check hour range
+      if (twentyFourHourMatch) {
+        const hour = parseInt(twentyFourHourMatch[1]);
+        if (hour < 0 || hour > 23) {
+          errors[`medicine_${index}_time`] = "Hour must be between 00 and 23 for 24-hour format";
+        }
+      }
+    }
+  }
+  // ================ END OF TIME VALIDATION ================
+  
+  // Quantity should be auto-calculated, but check if it's valid
+  if (!medicine.quantity || medicine.quantity === "" || parseInt(medicine.quantity) <= 0) {
+    errors[`medicine_${index}_quantity`] = "Quantity could not be calculated. Check frequency and duration.";
+  }
+  
+  return errors;
+}, []);
+
+
 
   // ================ MRI Validation Function ================
   const validateMRIStatus = useCallback(() => {
@@ -3119,55 +3229,55 @@ const MultiFrequencyDropdown = useCallback(
   );
 
   // ================ TC-069: Debug Component (Remove in production) ================
-  const StockDebugInfo = () => {
-    if (process.env.NODE_ENV !== 'development') return null;
+  // const StockDebugInfo = () => {
+  //   if (process.env.NODE_ENV !== 'development') return null;
     
-    const uniqueMedicineCount = [...new Set(stockData.map(s => s.product_name).filter(Boolean))].length;
-    const totalStockItems = stockData.length;
+  //   const uniqueMedicineCount = [...new Set(stockData.map(s => s.product_name).filter(Boolean))].length;
+  //   const totalStockItems = stockData.length;
     
-    return (
-      <div className="mt-4 p-3 border border-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-xs">
-        <details>
-          <summary className="font-bold text-yellow-700 dark:text-yellow-300 cursor-pointer">
-            Debug: Stock Information (TC-069)
-          </summary>
-          <div className="mt-2 space-y-1 text-gray-700 dark:text-gray-300">
-            <p>Total stock items from API: {totalStockItems}</p>
-            <p>Unique medicine names: {uniqueMedicineCount}</p>
-            <p>Medicines in dropdown: {medicineNames.length}</p>
-            <p>Loading: {stockLoading ? 'Yes' : 'No'}</p>
-            <div className="max-h-40 overflow-auto mt-2">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b border-yellow-500">
-                    <th className="text-left">Medicine Name</th>
-                    <th className="text-left">Dosage</th>
-                    <th className="text-left">Quantity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockData.slice(0, 20).map((item, idx) => (
-                    <tr key={idx} className="border-b border-yellow-500/30">
-                      <td>{item.product_name}</td>
-                      <td>{item.dosage}</td>
-                      <td>{item.quantity}</td>
-                    </tr>
-                  ))}
-                  {stockData.length > 20 && (
-                    <tr>
-                      <td colSpan="3" className="text-center py-1">
-                        ... and {stockData.length - 20} more items
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </details>
-      </div>
-    );
-  };
+  //   return (
+  //     <div className="mt-4 p-3 border border-yellow-500 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-xs">
+  //       <details>
+  //         <summary className="font-bold text-yellow-700 dark:text-yellow-300 cursor-pointer">
+  //           Debug: Stock Information (TC-069)
+  //         </summary>
+  //         <div className="mt-2 space-y-1 text-gray-700 dark:text-gray-300">
+  //           <p>Total stock items from API: {totalStockItems}</p>
+  //           <p>Unique medicine names: {uniqueMedicineCount}</p>
+  //           <p>Medicines in dropdown: {medicineNames.length}</p>
+  //           <p>Loading: {stockLoading ? 'Yes' : 'No'}</p>
+  //           <div className="max-h-40 overflow-auto mt-2">
+  //             <table className="w-full text-xs">
+  //               <thead>
+  //                 <tr className="border-b border-yellow-500">
+  //                   <th className="text-left">Medicine Name</th>
+  //                   <th className="text-left">Dosage</th>
+  //                   <th className="text-left">Quantity</th>
+  //                 </tr>
+  //               </thead>
+  //               <tbody>
+  //                 {stockData.slice(0, 20).map((item, idx) => (
+  //                   <tr key={idx} className="border-b border-yellow-500/30">
+  //                     <td>{item.product_name}</td>
+  //                     <td>{item.dosage}</td>
+  //                     <td>{item.quantity}</td>
+  //                   </tr>
+  //                 ))}
+  //                 {stockData.length > 20 && (
+  //                   <tr>
+  //                     <td colSpan="3" className="text-center py-1">
+  //                       ... and {stockData.length - 20} more items
+  //                     </td>
+  //                   </tr>
+  //                 )}
+  //               </tbody>
+  //             </table>
+  //           </div>
+  //         </div>
+  //       </details>
+  //     </div>
+  //   );
+  // };
   // ================ End of Debug Component ================
 
   return (
@@ -3579,7 +3689,7 @@ const MultiFrequencyDropdown = useCallback(
   name="duration"
   value={med.duration}
   index={index}
-  placeholder="e.g. 5 days"
+  placeholder="e.g., 5 days, 2 weeks, 3 months, or just 5"
   required={true}
   onInputChange={handleInputChange}
   onFieldBlur={handleFieldBlur}
@@ -3592,7 +3702,7 @@ const MultiFrequencyDropdown = useCallback(
   name="time"
   value={med.time}
   index={index}
-  placeholder="e.g. 8:00 AM"
+  placeholder="e.g., 8:00 AM, 08:00, 2pm"
   required={true}
   onInputChange={handleInputChange}
   onFieldBlur={handleFieldBlur}
@@ -3920,7 +4030,7 @@ const MultiFrequencyDropdown = useCallback(
       </div>
 
       {/* ================ TC-069: Debug Component (Remove in production) ================ */}
-      <StockDebugInfo />
+      {/* <StockDebugInfo /> */}
       {/* ================ End of Debug Component ================ */}
 
       {isEditPopupOpen && editingMedicine && (

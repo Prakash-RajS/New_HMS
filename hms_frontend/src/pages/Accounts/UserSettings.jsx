@@ -31,7 +31,8 @@ const InputField = ({
   type = "text",
   required = false,
   error,
-  autoCapitalize = false
+  autoCapitalize = false,
+  maxLength
 }) => {
   const handleChange = (e) => {
     let newValue = e.target.value;
@@ -58,6 +59,7 @@ const InputField = ({
         onChange={handleChange}
         onBlur={onBlur}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="w-[228px] h-[30px] mt-[2px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
       />
       {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
@@ -202,7 +204,7 @@ const UserSettings = () => {
 const validateUsername = (username) => {
   if (!username.trim()) return "Username is required";
   if (username.length < 2) return "Username must be at least 2 characters";
-  if (username.length > 50) return "Username cannot exceed 50 characters";
+  if (username.length > 30) return "Username cannot exceed 30 characters";
   if (!/^[A-Za-z]+$/.test(username))
     return "Username can only contain letters (no spaces allowed)";
   return "";
@@ -508,8 +510,11 @@ const validateUsername = (username) => {
 
   // Update handleInputChange for username field
   const handleUsernameChange = (e) => {
-  // Remove all whitespace automatically
-  const value = e.target.value.replace(/\s/g, "");
+  // Remove all whitespace automatically and limit to 30 characters
+  let value = e.target.value.replace(/\s/g, "");
+  if (value.length > 30) {
+    value = value.slice(0, 30);
+  }
 
   setNewUser((prev) => ({ ...prev, username: value }));
 
@@ -1106,6 +1111,7 @@ const validateUsername = (username) => {
                   required={true}
                   error={validationErrors.username}
                   autoCapitalize={true}
+                  maxLength={30}
                 />
                 <div>
   <label className="text-sm text-black dark:text-white">

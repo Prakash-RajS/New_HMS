@@ -8,6 +8,13 @@ import "react-datepicker/dist/react-datepicker.css";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
 
+// Character Count Component
+const CharacterCount = ({ current, max }) => (
+  <div className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
+    {current}/{max} characters
+  </div>
+);
+
 const PhotoUploadBox = ({ photo, setPhoto, required = false }) => {
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -237,6 +244,7 @@ const InputField = ({
   error,
   autoCapitalize = false,
   disabled = false,
+  maxLength,
 }) => {
   const handleChange = (e) => {
     let newValue = e.target.value;
@@ -260,10 +268,12 @@ const InputField = ({
         onBlur={onBlur}
         placeholder={placeholder}
         disabled={disabled}
+        maxLength={maxLength}
         className={`w-full h-10 md:h-[42px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] ${
           disabled ? "opacity-60 cursor-not-allowed" : ""
         }`}
       />
+      {maxLength && <CharacterCount current={(value || "").length} max={maxLength} />}
       {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
     </div>
   );
@@ -279,6 +289,7 @@ const TextAreaField = ({
   rows = 3,
   required = false,
   error,
+  maxLength,
 }) => (
   <div className="space-y-1 w-full">
     <label className="text-sm text-black dark:text-white">
@@ -292,15 +303,15 @@ const TextAreaField = ({
       onBlur={onBlur}
       placeholder={placeholder}
       rows={rows}
+      maxLength={maxLength}
       className="w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm md:text-[14px] resize-none"
     />
+    {maxLength && <CharacterCount current={(value || "").length} max={maxLength} />}
     {error && <p className="mt-1 text-xs text-red-500 dark:text-red-500">{error}</p>}
   </div>
 );
 
 // ── Designation options & category mapping ───────────────────────────────────
-// Replace the existing designationOptions and designationCategoryMap with this expanded version
-
 const designationOptions = [
   // Medical Staff (Doctors)
   "Senior Doctor",
@@ -673,237 +684,165 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   const validateFieldFormat = (field, value) => {
-  if (!value || value.trim() === "") return "";
+    if (!value || value.trim() === "") return "";
+    const str = value.toString().trim();
+    const len = str.length;
 
-  switch (field) {
-    case "full_name":
-      if (value.length < 2) return "Full name must be at least 2 characters";
-      if (value.length > 100) return "Full name cannot exceed 100 characters";
-      // TC_073: reject any digits in name
-      if (/[0-9]/.test(value)) return "Name should not contain numbers";
-      if (!/^[A-Za-zÀ-ÿ\s.'\-]+$/.test(value))
-        return "Full name contains invalid characters";
-      return "";
-
-    case "email":
-      return validateEmailFormat(value);
-
-    case "phone":
-      if (!/^\d+$/.test(value)) return "Phone number must contain only digits";
-      if (value.length !== 10) return "Phone number must be exactly 10 digits";
-      return "";
-
-    case "national_id":
-      if (value.length > 50) return "National ID cannot exceed 50 characters";
-      if (!/^[A-Za-z0-9\s\-_]+$/.test(value))
-        return "National ID can only contain letters, numbers, spaces, hyphens, and underscores";
-      return "";
-
-    case "city":
-    case "country":
-      if (value.length > 50) return "Cannot exceed 50 characters";
-      if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value))
-        return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
-      return "";
-
-    case "address":
-      if (value.length > 200) return "Address cannot exceed 200 characters";
-      if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(value))
-        return "Address can only contain letters, numbers, spaces, hyphens, dots, commas, #, ', &, and /";
-      return "";
-
-    case "specialization":
-      if (value.length > 100) return "Cannot exceed 100 characters";
-      if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(value))
-        return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
-      return "";
-
-    case "age":
-      if (!/^\d+$/.test(value)) return "Age must contain only numbers";
-      const ageNum = parseInt(value);
-      if (ageNum < 18) return "Age must be at least 18";
-      if (ageNum > 100) return "Age cannot exceed 100";
-      return "";
-
-    case "license_number":
-      if (value.length > 50) return "License number cannot exceed 50 characters";
-      if (!/^[A-Za-z0-9\s\-_]+$/.test(value))
-        return "License number can only contain letters, numbers, spaces, hyphens, and underscores";
-      return "";
-
-    case "experience":
-      if (value.length > 50) return "Experience cannot exceed 50 characters";
-      if (!/^[A-Za-zÀ-ÿ0-9\s+]+$/.test(value))
-        return "Experience can only contain letters, numbers, spaces, and +";
-      const numMatch = value.match(/^\d+/);
-      if (numMatch && parseInt(numMatch[0]) <= 0)
-        return "Experience value must be above 0";
-      return "";
-
-    case "languages_spoken":
-      if (value.length > 100) return "Languages cannot exceed 100 characters";
-      if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(value))
-        return "Languages can only contain letters (including accented), spaces, and commas";
-      return "";
-
-    // EDUCATION FIELD - Enhanced validation
-    case "education":
-      if (value.length < 5) return "Education must be at least 5 characters";
-      if (value.length > 500) return "Education cannot exceed 500 characters";
-      
-      // Check for minimum words (should have at least degree name)
-      const eduWords = value.trim().split(/\s+/);
-      if (eduWords.length < 2) return "Please provide a complete education description (e.g., 'MBBS, MD Cardiology')";
-      
-      // Allow letters, numbers, commas, periods, parentheses, spaces, and hyphens
-      if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(value))
-        return "Education can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
-      
-      // Should contain at least one letter
-      if (!/[A-Za-z]/.test(value)) return "Education must contain letters";
-      
-      // Check for reasonable format (should include degree type)
-      const degreePatterns = [
-        /\b(MBBS|MD|MS|BSc|MSc|PhD|DNB|DM|MCh|FRCS|MRCP|Board|Diploma|Bachelor|Master|Doctor|Fellowship)\b/i
-      ];
-      
-      const hasDegreeKeyword = degreePatterns.some(pattern => pattern.test(value));
-      if (!hasDegreeKeyword && eduWords.length < 3) {
-        return "Please include degree type (e.g., MBBS, MD, BSc Nursing)";
-      }
-      return "";
-
-    // ABOUT PHYSICIAN - Enhanced validation
-    case "about_physician":
-      if (value.length < 20) return "About physician must be at least 20 characters";
-      if (value.length > 500) return "About physician cannot exceed 500 characters";
-      
-      // Check for minimum words (should be a meaningful description)
-      const aboutWords = value.trim().split(/\s+/);
-      if (aboutWords.length < 5) return "Please provide a more detailed description (at least 5 words)";
-      
-      // Allow letters, numbers, commas, periods, apostrophes, spaces, and hyphens
-      if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-]+$/.test(value))
-        return "About physician can contain letters, numbers, commas, periods, apostrophes, hyphens, and spaces";
-      
-      // Should start with capital letter
-      if (value.trim()[0] !== value.trim()[0].toUpperCase()) {
-        return "About physician should start with a capital letter";
-      }
-      
-      // Should end with proper punctuation
-      const lastChar = value.trim().slice(-1);
-      if (!['.', '!', '?'].includes(lastChar) && aboutWords.length > 5) {
-        return "Please end with proper punctuation (., !, or ?)";
-      }
-      
-      // Check for common placeholder text
-      const commonPlaceholders = [
-        'test', 'abc', 'xyz', 'asdf', 'qwerty', '123', 'lorem ipsum'
-      ];
-      
-      const lowerValue = value.toLowerCase();
-      for (const placeholder of commonPlaceholders) {
-        if (lowerValue.includes(placeholder) && value.length < 50) {
-          return "Please provide a meaningful description";
-        }
-      }
-      return "";
-
-    // BOARD CERTIFICATIONS - Enhanced validation
-    case "board_certifications":
-      if (value.length < 5) return "Board certifications must be at least 5 characters";
-      if (value.length > 500) return "Board certifications cannot exceed 500 characters";
-      
-      // Allow letters, numbers, commas, periods, parentheses, spaces, and hyphens
-      if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(value))
-        return "Board certifications can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
-      
-      // Check for certification keywords
-      const certKeywords = [
-        /\b(Board|Certified|Certification|Diplomate|Fellow|FACP|FACC|FAAP|FACS|FRCP|ABMS|American Board)\b/i
-      ];
-      
-      const hasCertKeyword = certKeywords.some(pattern => pattern.test(value));
-      if (!hasCertKeyword && value.split(/\s+/).length < 3) {
-        return "Please include certification board name (e.g., 'American Board of Internal Medicine')";
-      }
-      
-      // Should contain at least one letter
-      if (!/[A-Za-z]/.test(value)) return "Board certifications must contain letters";
-      
-      // Check for reasonable format - should not be just numbers
-      if (/^\d+$/.test(value.replace(/\s/g, ''))) {
-        return "Board certifications cannot consist only of numbers";
-      }
-      return "";
-
-    // PROFESSIONAL MEMBERSHIPS - Enhanced validation
-    case "professional_memberships":
-      if (value.length < 5) return "Professional memberships must be at least 5 characters";
-      if (value.length > 500) return "Professional memberships cannot exceed 500 characters";
-      
-      // Allow letters, numbers, commas, periods, parentheses, spaces, and hyphens
-      if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(value))
-        return "Professional memberships can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
-      
-      // Check for membership keywords
-      const memberKeywords = [
-        /\b(Member|Membership|Association|Society|Academy|College|Fellow|AMA|APA|ADA|ACS|ACP|AAOS|ACOG|AAP)\b/i
-      ];
-      
-      const hasMemberKeyword = memberKeywords.some(pattern => pattern.test(value));
-      if (!hasMemberKeyword && value.split(/\s+/).length < 2) {
-        return "Please include organization name (e.g., 'American Medical Association')";
-      }
-      
-      // Should contain at least one letter
-      if (!/[A-Za-z]/.test(value)) return "Professional memberships must contain letters";
-      
-      // Check for common abbreviations format
-      const words = value.trim().split(/\s+/);
-      if (words.length === 1 && /^[A-Z]{2,}$/.test(words[0])) {
-        // Single word all caps like "AMA" - this is acceptable
+    switch (field) {
+      case "full_name":
+        if (len < 2) return "Full name must be at least 2 characters";
+        if (len > 50) return "Full name cannot exceed 50 characters";
+        if (/[0-9]/.test(str)) return "Name should not contain numbers";
+        if (!/^[A-Za-zÀ-ÿ\s.'\-]+$/.test(str))
+          return "Full name contains invalid characters";
         return "";
-      }
-      return "";
 
-    // AWARDS & RECOGNITIONS - Enhanced validation
-    case "awards_recognitions":
-      if (value && value.length > 500) return "Awards & recognitions cannot exceed 500 characters";
-      if (!value.trim()) return ""; // Optional field, no error if empty
-      
-      if (value.length < 5) return "If provided, awards must be at least 5 characters";
-      
-      // Allow letters, numbers, commas, periods, parentheses, spaces, and hyphens
-      if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(value))
-        return "Awards can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
-      
-      // Check for award keywords
-      const awardKeywords = [
-        /\b(Award|Recognition|Honor|Prize|Fellow|Excellence|Achievement|Merit|Distinguished|Outstanding|Best|Top|Gold|Silver|Bronze)\b/i
-      ];
-      
-      const hasAwardKeyword = awardKeywords.some(pattern => pattern.test(value));
-      if (!hasAwardKeyword && value.split(/\s+/).length < 3) {
-        return "Please include award name or description";
-      }
-      
-      // Should contain at least one letter
-      if (!/[A-Za-z]/.test(value)) return "Awards must contain letters";
-      
-      // Check for year format (optional but nice to have)
-      const yearPattern = /\b(19|20)\d{2}\b/;
-      if (!yearPattern.test(value) && value.length > 20) {
-        // Not required, but suggest if missing
-        return ""; // No error, just accept
-      }
-      return "";
+      case "email":
+        return validateEmailFormat(value);
 
-    default:
-      return "";
-  }
-};
+      case "phone":
+        if (!/^\d+$/.test(str)) return "Phone number must contain only digits";
+        if (len !== 10) return "Phone number must be exactly 10 digits";
+        return "";
+
+      case "national_id":
+        if (len > 12) return "National ID cannot exceed 12 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(str))
+          return "National ID can only contain letters, numbers, spaces, hyphens, and underscores";
+        return "";
+
+      case "city":
+      case "country":
+        if (len > 50) return `${field === "city" ? "City" : "Country"} cannot exceed 50 characters`;
+        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(str))
+          return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
+        return "";
+
+      case "address":
+        if (len > 200) return "Address cannot exceed 200 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(str))
+          return "Address can only contain letters, numbers, spaces, hyphens, dots, commas, #, ', &, and /";
+        return "";
+
+      case "specialization":
+        if (len > 100) return "Specialization cannot exceed 100 characters";
+        if (!/^[A-Za-zÀ-ÿ\s.,'-]+$/.test(str))
+          return "Can only contain letters (including accented), spaces, periods, commas, hyphens, and apostrophes";
+        return "";
+
+      case "age":
+        if (!/^\d+$/.test(str)) return "Age must contain only numbers";
+        const ageNum = parseInt(str);
+        if (ageNum < 18) return "Age must be at least 18";
+        if (ageNum > 100) return "Age cannot exceed 100";
+        return "";
+
+      case "license_number":
+        if (len > 50) return "License number cannot exceed 50 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(str))
+          return "License number can only contain letters, numbers, spaces, hyphens, and underscores";
+        return "";
+
+      case "experience":
+        if (len > 50) return "Experience cannot exceed 50 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s+]+$/.test(str))
+          return "Experience can only contain letters, numbers, spaces, and +";
+        const numMatch = str.match(/^\d+/);
+        if (numMatch && parseInt(numMatch[0]) <= 0)
+          return "Experience value must be above 0";
+        return "";
+
+      case "languages_spoken":
+        if (len > 100) return "Languages cannot exceed 100 characters";
+        if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(str))
+          return "Languages can only contain letters (including accented), spaces, and commas";
+        return "";
+
+      case "education":
+        if (len < 5) return "Education must be at least 5 characters";
+        if (len > 250) return "Education cannot exceed 250 characters";
+        const eduWords = str.trim().split(/\s+/);
+        if (eduWords.length < 2) return "Please provide a complete education description (e.g., 'MBBS, MD Cardiology')";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str))
+          return "Education can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
+        if (!/[A-Za-z]/.test(str)) return "Education must contain letters";
+        const degreePatterns = [/\b(MBBS|MD|MS|BSc|MSc|PhD|DNB|DM|MCh|FRCS|MRCP|Board|Diploma|Bachelor|Master|Doctor|Fellowship)\b/i];
+        const hasDegreeKeyword = degreePatterns.some(pattern => pattern.test(str));
+        if (!hasDegreeKeyword && eduWords.length < 3) {
+          return "Please include degree type (e.g., MBBS, MD, BSc Nursing)";
+        }
+        return "";
+
+      case "about_physician":
+        if (len < 20) return "About physician must be at least 20 characters";
+        if (len > 250) return "About physician cannot exceed 250 characters";
+        const aboutWords = str.trim().split(/\s+/);
+        if (aboutWords.length < 5) return "Please provide a more detailed description (at least 5 words)";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-]+$/.test(str))
+          return "About physician can contain letters, numbers, commas, periods, apostrophes, hyphens, and spaces";
+        if (str.trim()[0] !== str.trim()[0].toUpperCase()) {
+          return "About physician should start with a capital letter";
+        }
+        const lastChar = str.trim().slice(-1);
+        if (!['.', '!', '?'].includes(lastChar) && aboutWords.length > 5) {
+          return "Please end with proper punctuation (., !, or ?)";
+        }
+        const commonPlaceholders = ['test', 'abc', 'xyz', 'asdf', 'qwerty', '123', 'lorem ipsum'];
+        const lowerValue = str.toLowerCase();
+        for (const placeholder of commonPlaceholders) {
+          if (lowerValue.includes(placeholder) && len < 50) {
+            return "Please provide a meaningful description";
+          }
+        }
+        return "";
+
+      case "board_certifications":
+        if (len < 5) return "Board certifications must be at least 5 characters";
+        if (len > 250) return "Board certifications cannot exceed 250 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str))
+          return "Board certifications can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
+        const certKeywords = [/\b(Board|Certified|Certification|Diplomate|Fellow|FACP|FACC|FAAP|FACS|FRCP|ABMS|American Board)\b/i];
+        const hasCertKeyword = certKeywords.some(pattern => pattern.test(str));
+        if (!hasCertKeyword && str.split(/\s+/).length < 3) {
+          return "Please include certification board name (e.g., 'American Board of Internal Medicine')";
+        }
+        if (!/[A-Za-z]/.test(str)) return "Board certifications must contain letters";
+        if (/^\d+$/.test(str.replace(/\s/g, ''))) {
+          return "Board certifications cannot consist only of numbers";
+        }
+        return "";
+
+      case "professional_memberships":
+        if (len < 5) return "Professional memberships must be at least 5 characters";
+        if (len > 250) return "Professional memberships cannot exceed 250 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str))
+          return "Professional memberships can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
+        const memberKeywords = [/\b(Member|Membership|Association|Society|Academy|College|Fellow|AMA|APA|ADA|ACS|ACP|AAOS|ACOG|AAP)\b/i];
+        const hasMemberKeyword = memberKeywords.some(pattern => pattern.test(str));
+        if (!hasMemberKeyword && str.split(/\s+/).length < 2) {
+          return "Please include organization name (e.g., 'American Medical Association')";
+        }
+        if (!/[A-Za-z]/.test(str)) return "Professional memberships must contain letters";
+        return "";
+
+      case "awards_recognitions":
+        if (str && len > 250) return "Awards & recognitions cannot exceed 250 characters";
+        if (!str.trim()) return "";
+        if (len < 5) return "If provided, awards must be at least 5 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str))
+          return "Awards can contain letters, numbers, commas, periods, parentheses, hyphens, and spaces";
+        const awardKeywords = [/\b(Award|Recognition|Honor|Prize|Fellow|Excellence|Achievement|Merit|Distinguished|Outstanding|Best|Top|Gold|Silver|Bronze)\b/i];
+        const hasAwardKeyword = awardKeywords.some(pattern => pattern.test(str));
+        if (!hasAwardKeyword && str.split(/\s+/).length < 3) {
+          return "Please include award name or description";
+        }
+        if (!/[A-Za-z]/.test(str)) return "Awards must contain letters";
+        return "";
+
+      default:
+        return "";
+    }
+  };
 
   // ── Required field validation (submission only) ──────────────────────────
   const validateRequiredFields = () => {
@@ -1266,6 +1205,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   required={true}
                   error={getFieldError("full_name")}
                   autoCapitalize={true}
+                  maxLength={50}
                 />
                 <DatePickerField
                   label="Date of Birth"
@@ -1294,7 +1234,6 @@ export default function NewRegistration({ isSidebarOpen }) {
                   required={true}
                   error={getFieldError("blood_group")}
                 />
-                {/* TC_074: Age is auto-calculated from DOB and rendered read-only */}
                 <InputField
                   label="Age"
                   name="age"
@@ -1315,7 +1254,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   required={true}
                   error={getFieldError("marital_status")}
                 />
-                <InputField
+                <TextAreaField
                   label="Address"
                   name="address"
                   value={formData.address}
@@ -1324,6 +1263,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Enter address"
                   required={true}
                   error={getFieldError("address")}
+                  maxLength={200}
+                  rows={2}
                 />
                 <InputField
                   label="Phone"
@@ -1335,6 +1276,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g. 9876543210"
                   required={true}
                   error={getFieldError("phone")}
+                  maxLength={10}
                 />
                 <InputField
                   label="Email ID"
@@ -1356,6 +1298,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Enter National ID"
                   required={true}
                   error={getFieldError("national_id")}
+                  maxLength={12}
                 />
                 <InputField
                   label="City"
@@ -1366,6 +1309,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Enter city"
                   required={true}
                   error={getFieldError("city")}
+                  maxLength={50}
                 />
                 <InputField
                   label="Country"
@@ -1376,6 +1320,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Enter country"
                   required={true}
                   error={getFieldError("country")}
+                  maxLength={50}
                 />
                 <DatePickerField
                   label="Date of Joining"
@@ -1388,8 +1333,6 @@ export default function NewRegistration({ isSidebarOpen }) {
                   error={getFieldError("date_of_joining")}
                   maxDate={new Date()}
                 />
-
-                {/* TC_076: Designation is now a controlled Dropdown */}
                 <Dropdown
                   label="Designation"
                   value={formData.designation}
@@ -1398,7 +1341,6 @@ export default function NewRegistration({ isSidebarOpen }) {
                   required={true}
                   error={getFieldError("designation")}
                 />
-
                 <Dropdown
                   label="Department"
                   value={formData.department}
@@ -1417,6 +1359,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   required={true}
                   error={getFieldError("specialization")}
                   autoCapitalize={true}
+                  maxLength={100}
                 />
                 <Dropdown
                   label="Status"
@@ -1464,6 +1407,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g., 10+ years"
                   required={true}
                   error={getFieldError("experience")}
+                  maxLength={50}
                 />
                 <InputField
                   label="License Number"
@@ -1474,6 +1418,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Enter license number"
                   required={true}
                   error={getFieldError("license_number")}
+                  maxLength={50}
                 />
                 <InputField
                   label="Languages Spoken"
@@ -1484,6 +1429,7 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g., English, Spanish"
                   required={true}
                   error={getFieldError("languages_spoken")}
+                  maxLength={100}
                 />
                 <TextAreaField
                   label="Education"
@@ -1494,6 +1440,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g., MBBS, MD Cardiology"
                   required={true}
                   error={getFieldError("education")}
+                  maxLength={250}
+                  rows={3}
                 />
                 <TextAreaField
                   label="About Physician"
@@ -1504,6 +1452,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="Dedicated to providing compassionate, patient-centered care."
                   required={true}
                   error={getFieldError("about_physician")}
+                  maxLength={250}
+                  rows={3}
                 />
                 <TextAreaField
                   label="Board Certifications"
@@ -1514,6 +1464,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g., American Board of Orthopedic Surgery"
                   required={true}
                   error={getFieldError("board_certifications")}
+                  maxLength={250}
+                  rows={3}
                 />
                 <TextAreaField
                   label="Professional Memberships"
@@ -1524,8 +1476,9 @@ export default function NewRegistration({ isSidebarOpen }) {
                   placeholder="e.g., American Medical Association (AMA)"
                   required={true}
                   error={getFieldError("professional_memberships")}
+                  maxLength={250}
+                  rows={3}
                 />
-                {/* Awards & Recognitions — optional */}
                 <TextAreaField
                   label="Awards & Recognitions"
                   name="awards_recognitions"
@@ -1534,6 +1487,8 @@ export default function NewRegistration({ isSidebarOpen }) {
                   onBlur={() => handleBlur("awards_recognitions")}
                   placeholder="e.g., Top Doctor awards, hospital honors"
                   error={getFieldError("awards_recognitions")}
+                  maxLength={250}
+                  rows={3}
                 />
               </div>
             </div>

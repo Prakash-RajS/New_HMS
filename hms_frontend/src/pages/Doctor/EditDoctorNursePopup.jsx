@@ -33,13 +33,6 @@ const categoryToLabel = {
 const normalizeProfile = (raw) => {
   if (!raw) return {};
   
-  // Debug logging to see what we're getting
-  console.log("Raw API data for normalization:", raw);
-  console.log("Address field:", raw.address);
-  console.log("National ID field:", raw.national_id);
-  console.log("City field:", raw.city);
-  console.log("Country field:", raw.country);
-  
   return {
     id:                       raw.id,
     full_name:                raw.full_name || raw.name || raw.fullName || "",
@@ -48,12 +41,12 @@ const normalizeProfile = (raw) => {
     blood_group:              raw.blood_group || raw.bloodGroup || raw.blood || "",
     age:                      raw.age != null ? String(raw.age) : "",
     marital_status:           raw.marital_status || raw.maritalStatus || "",
-    address:                  raw.address || "",  // Make sure this is mapped
+    address:                  raw.address || "",
     phone:                    raw.phone || raw.phone_number || raw.contact || "",
     email:                    raw.email || "",
-    national_id:              raw.national_id || raw.nationalId || raw.national_id_number || raw.nid || "", // Added all variations
-    city:                     raw.city || "",  // Make sure this is mapped
-    country:                  raw.country || "",  // Make sure this is mapped
+    national_id:              raw.national_id || raw.nationalId || raw.national_id_number || raw.nid || "",
+    city:                     raw.city || "",
+    country:                  raw.country || "",
     date_of_joining:          raw.date_of_joining || raw.joining_date || raw.dateOfJoining || "",
     designation:              raw.designation || "",
     department:               raw.department || raw.department_name || "",
@@ -97,7 +90,7 @@ const resolveDesignationLabel = (stored) => {
   return categoryToLabel[stored.toLowerCase()] || designationOptions[0];
 };
 
-// ── Field components ──────────────────────────────────────────────────────────
+// ── Field components with character counts ──────────────────────────────────────────
 const FieldLabel = ({ children, required }) => (
   <label className="text-sm text-black dark:text-white">
     {children}{required && <span className="text-red-500 ml-1">*</span>}
@@ -105,6 +98,12 @@ const FieldLabel = ({ children, required }) => (
 );
 const FieldError = ({ msg }) =>
   msg ? <p className="mt-1 text-xs text-red-500 dark:text-red-400">{msg}</p> : null;
+
+const CharacterCount = ({ current, max }) => (
+  <div className="text-right text-xs text-gray-400 dark:text-gray-500 mt-1">
+    {current}/{max} characters
+  </div>
+);
 
 const InputField = ({ label, value, onChange, onBlur, placeholder, type = "text", required = false, error, disabled = false, maxLength }) => (
   <div className="space-y-1 w-full">
@@ -121,11 +120,12 @@ const InputField = ({ label, value, onChange, onBlur, placeholder, type = "text"
         bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B]
         placeholder-gray-500 outline-none text-sm ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
     />
+    {maxLength && <CharacterCount current={(value ?? "").length} max={maxLength} />}
     <FieldError msg={error} />
   </div>
 );
 
-const TextAreaField = ({ label, value, onChange, placeholder, rows = 3, required = false, error, disabled = false }) => (
+const TextAreaField = ({ label, value, onChange, placeholder, rows = 3, required = false, error, disabled = false, maxLength }) => (
   <div className="space-y-1 w-full">
     <FieldLabel required={required}>{label}</FieldLabel>
     <textarea 
@@ -134,10 +134,12 @@ const TextAreaField = ({ label, value, onChange, placeholder, rows = 3, required
       placeholder={placeholder} 
       rows={rows} 
       disabled={disabled}
+      maxLength={maxLength}
       className={`w-full px-3 py-2 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A]
         bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B]
         placeholder-gray-500 outline-none text-sm resize-none ${disabled ? "opacity-60 cursor-not-allowed" : ""}`}
     />
+    {maxLength && <CharacterCount current={(value ?? "").length} max={maxLength} />}
     <FieldError msg={error} />
   </div>
 );
@@ -279,14 +281,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
 
         // Use fresh staff data if available, else fall back to passed profile
         const rawData = staffRes?.data || profile;
-        console.log("Staff API raw data:", rawData); // Debug log
-        console.log("Address from API:", rawData?.address); // Debug log
-        console.log("National ID from API:", rawData?.national_id); // Debug log
-        console.log("City from API:", rawData?.city); // Debug log
-        console.log("Country from API:", rawData?.country); // Debug log
-        
         const norm = normalizeProfile(rawData);
-        console.log("Normalized data:", norm); // Debug log
 
         // Resolve picture URL
         const pic = norm.profile_picture;
@@ -315,12 +310,12 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
           blood_group:              norm.blood_group,
           age:                      norm.age,
           marital_status:           norm.marital_status,
-          address:                  norm.address,  // This should now work
+          address:                  norm.address,
           phone:                    norm.phone,
           email:                    norm.email,
-          national_id:              norm.national_id,  // This should now work
-          city:                     norm.city,  // This should now work
-          country:                  norm.country,  // This should now work
+          national_id:              norm.national_id,
+          city:                     norm.city,
+          country:                  norm.country,
           date_of_joining:          toFormDate(norm.date_of_joining),
           designation:              desigLabel,
           designation_category:     desigCat,
@@ -366,7 +361,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
     }
   }, [formData.date_of_birth, fetchLoading]);
 
-  // ── Validation ─────────────────────────────────────────────────────────────
+  // ── Validation functions with length restrictions ─────────────────────────────
   const levenshtein = (a, b) => {
     const m = Array.from({ length: b.length + 1 }, (_, i) =>
       Array.from({ length: a.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
@@ -396,61 +391,133 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
 
   const validateFieldFormat = (field, value) => {
     if (!value || value.toString().trim() === "") return "";
+    const str = value.toString().trim();
+    const len = str.length;
+
     switch (field) {
       case "full_name":
-        if (value.length < 2) return "Full name must be at least 2 characters";
-        if (value.length > 100) return "Full name cannot exceed 100 characters";
-        if (/[0-9]/.test(value)) return "Name should not contain numbers";
-        if (!/^[A-Za-zÀ-ÿ\s.'\-]+$/.test(value)) return "Full name contains invalid characters";
+        if (len < 2) return "Full name must be at least 2 characters";
+        if (len > 50) return "Full name cannot exceed 50 characters";
+        if (/[0-9]/.test(str)) return "Name should not contain numbers";
+        if (!/^[A-Za-zÀ-ÿ\s.'\-]+$/.test(str)) return "Full name contains invalid characters";
         return "";
-      case "email": return validateEmailFormat(value);
+      
+      case "email": 
+        return validateEmailFormat(str);
+      
       case "phone":
-        if (!/^\d+$/.test(value)) return "Phone number must contain only digits";
-        if (value.length !== 10) return "Phone number must be exactly 10 digits";
+        if (!/^\d+$/.test(str)) return "Phone number must contain only digits";
+        if (len !== 10) return "Phone number must be exactly 10 digits";
         return "";
+      
       case "national_id":
-        if (value.length > 50) return "Cannot exceed 50 characters";
-        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "Invalid characters";
+        if (len > 12) return "National ID cannot exceed 12 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, hyphens, underscores)";
         return "";
-      case "city": 
+      
+      case "city":
       case "country":
-        if (value.length > 50) return "Cannot exceed 50 characters";
-        if (!/^[A-Za-zÀ-ÿ\s.,'\-]+$/.test(value)) return "Invalid characters";
+        if (len > 50) return `${field === "city" ? "City" : "Country"} cannot exceed 50 characters`;
+        if (!/^[A-Za-zÀ-ÿ\s.,'\-]+$/.test(str)) return "Invalid characters (only letters, spaces, periods, commas, hyphens, apostrophes)";
         return "";
+      
       case "address":
-        if (value.length > 200) return "Address cannot exceed 200 characters";
-        if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(value)) return "Invalid characters";
+        if (len > 200) return "Address cannot exceed 200 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s\-.,#'&/]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, hyphens, dots, commas, #, ', &, /)";
         return "";
+      
       case "specialization":
-        if (value.length > 100) return "Cannot exceed 100 characters";
-        if (!/^[A-Za-zÀ-ÿ\s.,'\-]+$/.test(value)) return "Invalid characters";
+        if (len > 100) return "Specialization cannot exceed 100 characters";
+        if (!/^[A-Za-zÀ-ÿ\s.,'\-]+$/.test(str)) return "Invalid characters (only letters, spaces, periods, commas, hyphens, apostrophes)";
         return "";
+      
       case "age": {
-        if (!/^\d+$/.test(value)) return "Age must be a number";
-        const a = parseInt(value);
+        if (!/^\d+$/.test(str)) return "Age must be a number";
+        const a = parseInt(str);
         if (a < 0) return "Age must be at least 0";
         if (a > 100) return "Age cannot exceed 100";
         return "";
       }
+      
       case "license_number":
-        if (value.length > 50) return "Cannot exceed 50 characters";
-        if (!/^[A-Za-z0-9\s\-_]+$/.test(value)) return "Invalid characters";
+        if (len > 50) return "License number cannot exceed 50 characters";
+        if (!/^[A-Za-z0-9\s\-_]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, hyphens, underscores)";
         return "";
+      
       case "experience":
-        if (value.length > 50) return "Cannot exceed 50 characters";
+        if (len > 50) return "Experience cannot exceed 50 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s+]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, and +)";
+        const numMatch = str.match(/^\d+/);
+        if (numMatch && parseInt(numMatch[0]) <= 0) return "Experience value must be above 0";
         return "";
+      
       case "languages_spoken":
-        if (value.length > 100) return "Cannot exceed 100 characters";
-        if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(value)) return "Only letters, spaces, commas";
+        if (len > 100) return "Languages cannot exceed 100 characters";
+        if (!/^[A-Za-zÀ-ÿ\s,]+$/.test(str)) return "Only letters, spaces, and commas allowed";
         return "";
-      case "education": 
-      case "about_physician": 
+      
+      case "education":
+        if (len < 5) return "Education must be at least 5 characters";
+        if (len > 250) return "Education cannot exceed 250 characters";
+        const eduWords = str.split(/\s+/);
+        if (eduWords.length < 2) return "Please provide a complete education description";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, commas, periods, parentheses, hyphens)";
+        if (!/[A-Za-z]/.test(str)) return "Education must contain letters";
+        const degreePatterns = [/\b(MBBS|MD|MS|BSc|MSc|PhD|DNB|DM|MCh|FRCS|MRCP|Board|Diploma|Bachelor|Master|Doctor|Fellowship)\b/i];
+        const hasDegreeKeyword = degreePatterns.some(pattern => pattern.test(str));
+        if (!hasDegreeKeyword && eduWords.length < 3) return "Please include degree type (e.g., MBBS, MD, BSc Nursing)";
+        return "";
+      
+      case "about_physician":
+        if (len < 20) return "About physician must be at least 20 characters";
+        if (len > 250) return "About physician cannot exceed 250 characters";
+        const aboutWords = str.split(/\s+/);
+        if (aboutWords.length < 5) return "Please provide a more detailed description (at least 5 words)";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, commas, periods, apostrophes, hyphens)";
+        if (str.trim()[0] !== str.trim()[0].toUpperCase()) return "About physician should start with a capital letter";
+        const lastChar = str.trim().slice(-1);
+        if (!['.', '!', '?'].includes(lastChar) && aboutWords.length > 5) return "Please end with proper punctuation (., !, or ?)";
+        const commonPlaceholders = ['test', 'abc', 'xyz', 'asdf', 'qwerty', '123', 'lorem ipsum'];
+        const lowerValue = str.toLowerCase();
+        for (const placeholder of commonPlaceholders) {
+          if (lowerValue.includes(placeholder) && len < 50) return "Please provide a meaningful description";
+        }
+        return "";
+      
       case "board_certifications":
-      case "professional_memberships": 
-      case "awards_recognitions":
-        if (value.length > 500) return "Cannot exceed 500 characters";
+        if (len < 5) return "Board certifications must be at least 5 characters";
+        if (len > 250) return "Board certifications cannot exceed 250 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, commas, periods, parentheses, hyphens)";
+        const certKeywords = [/\b(Board|Certified|Certification|Diplomate|Fellow|FACP|FACC|FAAP|FACS|FRCP|ABMS|American Board)\b/i];
+        const hasCertKeyword = certKeywords.some(pattern => pattern.test(str));
+        if (!hasCertKeyword && str.split(/\s+/).length < 3) return "Please include certification board name (e.g., 'American Board of Internal Medicine')";
+        if (!/[A-Za-z]/.test(str)) return "Board certifications must contain letters";
+        if (/^\d+$/.test(str.replace(/\s/g, ''))) return "Board certifications cannot consist only of numbers";
         return "";
-      default: return "";
+      
+      case "professional_memberships":
+        if (len < 5) return "Professional memberships must be at least 5 characters";
+        if (len > 250) return "Professional memberships cannot exceed 250 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, commas, periods, parentheses, hyphens)";
+        const memberKeywords = [/\b(Member|Membership|Association|Society|Academy|College|Fellow|AMA|APA|ADA|ACS|ACP|AAOS|ACOG|AAP)\b/i];
+        const hasMemberKeyword = memberKeywords.some(pattern => pattern.test(str));
+        if (!hasMemberKeyword && str.split(/\s+/).length < 2) return "Please include organization name (e.g., 'American Medical Association')";
+        if (!/[A-Za-z]/.test(str)) return "Professional memberships must contain letters";
+        return "";
+      
+      case "awards_recognitions":
+        if (str && len > 250) return "Awards & recognitions cannot exceed 250 characters";
+        if (!str.trim()) return ""; // Optional field, no error if empty
+        if (len < 5) return "If provided, awards must be at least 5 characters";
+        if (!/^[A-Za-zÀ-ÿ0-9\s,.'\-()]+$/.test(str)) return "Invalid characters (only letters, numbers, spaces, commas, periods, parentheses, hyphens)";
+        const awardKeywords = [/\b(Award|Recognition|Honor|Prize|Fellow|Excellence|Achievement|Merit|Distinguished|Outstanding|Best|Top|Gold|Silver|Bronze)\b/i];
+        const hasAwardKeyword = awardKeywords.some(pattern => pattern.test(str));
+        if (!hasAwardKeyword && str.split(/\s+/).length < 3) return "Please include award name or description";
+        if (!/[A-Za-z]/.test(str)) return "Awards must contain letters";
+        return "";
+      
+      default: 
+        return "";
     }
   };
 
@@ -503,14 +570,19 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
   const validateForm = () => {
     setShowAllErrors(true);
     const req = {};
-    ["full_name","phone","email","designation","department"].forEach((f) => {
+    // Required fields check
+    const requiredFields = ["full_name", "phone", "email", "designation", "department"];
+    requiredFields.forEach((f) => {
       if (!formData[f]?.toString().trim()) req[f] = "This field is required";
     });
     setRequiredErrors(req);
     const fmt = {};
     Object.keys(formData).forEach((f) => {
       const v = formData[f];
-      if (v?.toString().trim()) { const e = validateFieldFormat(f, v); if (e) fmt[f] = e; }
+      if (v?.toString().trim()) { 
+        const e = validateFieldFormat(f, v); 
+        if (e) fmt[f] = e; 
+      }
     });
     setFormatErrors(fmt);
     return Object.keys(req).length === 0 && Object.keys(fmt).length === 0;
@@ -615,7 +687,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <InputField label="Full Name" required value={formData.full_name}
                 onChange={(e) => handleChange({ target: { name: "full_name", value: e.target.value.replace(/\b\w/g, (c) => c.toUpperCase()) } })}
                 onBlur={() => handleBlur("full_name")} placeholder="Enter full name"
-                error={getError("full_name")} disabled={saving} />
+                error={getError("full_name")} disabled={saving} maxLength={50} />
 
               <DatePickerField label="Date of Birth" name="date_of_birth"
                 value={formData.date_of_birth} onChange={handleChange}
@@ -641,7 +713,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <TextAreaField label="Address" value={formData.address}
                 onChange={(e) => handleChange({ target: { name: "address", value: e.target.value } })}
                 onBlur={() => handleBlur("address")} placeholder="Enter address"
-                rows={2} error={getError("address")} disabled={saving} />
+                rows={2} error={getError("address")} disabled={saving} maxLength={200} />
 
               <InputField label="Phone" required value={formData.phone}
                 onChange={(e) => { if (/^\d*$/.test(e.target.value)) handleChange({ target: { name: "phone", value: e.target.value } }); }}
@@ -656,17 +728,17 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <InputField label="National ID" value={formData.national_id}
                 onChange={(e) => handleChange({ target: { name: "national_id", value: e.target.value } })}
                 onBlur={() => handleBlur("national_id")} placeholder="Enter National ID"
-                error={getError("national_id")} disabled={saving} />
+                error={getError("national_id")} disabled={saving} maxLength={12} />
 
               <InputField label="City" value={formData.city}
                 onChange={(e) => handleChange({ target: { name: "city", value: e.target.value } })}
                 onBlur={() => handleBlur("city")} placeholder="Enter city"
-                error={getError("city")} disabled={saving} />
+                error={getError("city")} disabled={saving} maxLength={50} />
 
               <InputField label="Country" value={formData.country}
                 onChange={(e) => handleChange({ target: { name: "country", value: e.target.value } })}
                 onBlur={() => handleBlur("country")} placeholder="Enter country"
-                error={getError("country")} disabled={saving} />
+                error={getError("country")} disabled={saving} maxLength={50} />
 
               <DatePickerField label="Date of Joining" name="date_of_joining"
                 value={formData.date_of_joining} onChange={handleChange}
@@ -683,7 +755,7 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <InputField label="Specialization" value={formData.specialization}
                 onChange={(e) => handleChange({ target: { name: "specialization", value: e.target.value } })}
                 onBlur={() => handleBlur("specialization")} placeholder="e.g., Cardiologist"
-                error={getError("specialization")} disabled={saving} />
+                error={getError("specialization")} disabled={saving} maxLength={100} />
 
               <DropdownField label="Status" value={formData.status}
                 onChange={(v) => handleDropdown("status", v)}
@@ -726,40 +798,40 @@ const EditDoctorNursePopup = ({ onClose, profile, onUpdate }) => {
               <InputField label="Experience" value={formData.experience}
                 onChange={(e) => handleChange({ target: { name: "experience", value: e.target.value } })}
                 onBlur={() => handleBlur("experience")} placeholder="e.g., 10+ years"
-                error={getError("experience")} disabled={saving} />
+                error={getError("experience")} disabled={saving} maxLength={50} />
 
               <InputField label="License Number" value={formData.license_number}
                 onChange={(e) => handleChange({ target: { name: "license_number", value: e.target.value } })}
                 onBlur={() => handleBlur("license_number")} placeholder="Enter license number"
-                error={getError("license_number")} disabled={saving} />
+                error={getError("license_number")} disabled={saving} maxLength={50} />
 
               <InputField label="Languages Spoken" value={formData.languages_spoken}
                 onChange={(e) => handleChange({ target: { name: "languages_spoken", value: e.target.value } })}
                 onBlur={() => handleBlur("languages_spoken")} placeholder="e.g., English, Spanish"
-                error={getError("languages_spoken")} disabled={saving} />
+                error={getError("languages_spoken")} disabled={saving} maxLength={100} />
 
               <TextAreaField label="Education" value={formData.education}
                 onChange={(e) => handleChange({ target: { name: "education", value: e.target.value } })}
-                placeholder="e.g., MBBS, MD Cardiology" error={getError("education")} disabled={saving} />
+                placeholder="e.g., MBBS, MD Cardiology" error={getError("education")} disabled={saving} maxLength={250} />
 
               <TextAreaField label="About Physician" value={formData.about_physician}
                 onChange={(e) => handleChange({ target: { name: "about_physician", value: e.target.value } })}
-                placeholder="Brief bio..." error={getError("about_physician")} disabled={saving} />
+                placeholder="Brief bio..." error={getError("about_physician")} disabled={saving} maxLength={250} />
 
               <TextAreaField label="Board Certifications" value={formData.board_certifications}
                 onChange={(e) => handleChange({ target: { name: "board_certifications", value: e.target.value } })}
                 placeholder="e.g., American Board of Orthopedic Surgery"
-                error={getError("board_certifications")} disabled={saving} />
+                error={getError("board_certifications")} disabled={saving} maxLength={250} />
 
               <TextAreaField label="Professional Memberships" value={formData.professional_memberships}
                 onChange={(e) => handleChange({ target: { name: "professional_memberships", value: e.target.value } })}
                 placeholder="e.g., American Medical Association"
-                error={getError("professional_memberships")} disabled={saving} />
+                error={getError("professional_memberships")} disabled={saving} maxLength={250} />
 
               <TextAreaField label="Awards & Recognitions" value={formData.awards_recognitions}
                 onChange={(e) => handleChange({ target: { name: "awards_recognitions", value: e.target.value } })}
                 placeholder="e.g., Top Doctor awards"
-                error={getError("awards_recognitions")} disabled={saving} />
+                error={getError("awards_recognitions")} disabled={saving} maxLength={250} />
             </div>
           </div>
         </div>
