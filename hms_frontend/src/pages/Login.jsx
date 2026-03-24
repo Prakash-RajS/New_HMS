@@ -1157,7 +1157,7 @@ setTimeout(() => {
                   background: isLightMode ? "#0EFF7BCC" : "#0EFF7B33",
                   borderRadius: "50%",
                   backdropFilter: "blur(150px)",
-                  filter: "blur(30px)",
+                  filter: "blur(30px)",   
                   zIndex: 1,
                 }}
                 initial={{ opacity: 0.5, scale: 0.9 }}

@@ -6039,7 +6039,7 @@ const validateVendorIdFormat = (value, currentVendorName = "", currentId = null)
   return "";
 };
 
-  const validateQuantityFormat = (value) => {
+const validateQuantityFormat = (value) => {
   if (!value || value.trim() === "") return "";
   
   // Check if contains only digits
@@ -6056,6 +6056,10 @@ const validateVendorIdFormat = (value, currentVendorName = "", currentId = null)
   }
   if (qty === 0) {
     return "Quantity must be greater than 0";
+  }
+  // ✅ NEW: 5-digit validation
+  if (value.length > 5) {
+    return "Quantity cannot exceed 5 digits (max 99,999)";
   }
   return "";
 };
@@ -6074,6 +6078,10 @@ const validateVendorIdFormat = (value, currentVendorName = "", currentId = null)
   }
   if (qty <= 0) {
     return "Quantity must be greater than 0";
+  }
+  // ✅ NEW: 5-digit validation
+  if (value.length > 5) {
+    return "Quantity cannot exceed 5 digits (max 99,999)";
   }
   return "";
 };
@@ -6127,6 +6135,11 @@ const validateShelfNoFormat = (value) => {
   }
   if (price === 0) {
     return "Unit price must be greater than 0";
+  }
+  // ✅ NEW: 5-digit validation (including decimal part)
+  const integerPart = value.split('.')[0];
+  if (integerPart.length > 5) {
+    return "Unit price cannot exceed 5 digits before decimal (max 99,999.99)";
   }
   return "";
 };
@@ -8137,31 +8150,37 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   </div>
 
                   {/* Quantity */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Quantity<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Stock Quantity"
-                      value={newStock.quantity}
-                      onChange={(e) => {
-                        handleAddInputChange('quantity', e.target.value);
-                      }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      min="1"
-                    />
-                    {validationErrors.quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {validationErrors.quantity}
-                      </p>
-                    )}
-                    {isSubmitted && fieldErrors.quantity && !validationErrors.quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.quantity}
-                      </p>
-                    )}
-                  </div>
+                  {/* Quantity */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Quantity<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="number"
+    placeholder="Stock Quantity"
+    value={newStock.quantity}
+    onChange={(e) => {
+      // ✅ Limit to 5 digits
+      const value = e.target.value;
+      if (value.length <= 5) {
+        handleAddInputChange('quantity', value);
+      }
+    }}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+    min="1"
+    max="99999"
+  />
+  {validationErrors.quantity && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.quantity}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.quantity && !validationErrors.quantity && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.quantity}
+    </p>
+  )}
+</div>
 
                   {/* Item Code */}
                   <div>
@@ -8254,32 +8273,39 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   </div>
 
                   {/* Unit Price */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Unit Price<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Enter Unit Price"
-                      value={newStock.unit_price}
-                      onChange={(e) => {
-                        handleAddInputChange('unit_price', e.target.value);
-                      }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      step="0.01"
-                      min="0.01"
-                    />
-                    {validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {validationErrors.unit_price}
-                      </p>
-                    )}
-                    {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.unit_price}
-                      </p>
-                    )}
-                  </div>
+                  {/* Unit Price */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Unit Price<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="number"
+    placeholder="Enter Unit Price"
+    value={newStock.unit_price}
+    onChange={(e) => {
+      // ✅ Limit to 5 digits before decimal
+      const value = e.target.value;
+      const integerPart = value.split('.')[0];
+      if (integerPart.length <= 5) {
+        handleAddInputChange('unit_price', value);
+      }
+    }}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+    step="0.01"
+    min="0.01"
+    max="99999.99"
+  />
+  {validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.unit_price}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.unit_price}
+    </p>
+  )}
+</div>
 
                   {/* Status - Auto-calculated, read-only */}
                   <div>
@@ -8402,34 +8428,40 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   </div>
 
                   {/* Add Quantity - Editable with validation */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Add Quantity<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Enter quantity to add"
-                      value={editStock.add_quantity}
-                      onChange={(e) => {
-                        handleEditInputChange('add_quantity', e.target.value);
-                      }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      min="1"
-                    />
-                    {validationErrors.add_quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {validationErrors.add_quantity}
-                      </p>
-                    )}
-                    {isSubmitted && fieldErrors.add_quantity && !validationErrors.add_quantity && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.add_quantity}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Current stock will be increased by this amount
-                    </p>
-                  </div>
+                  {/* Add Quantity */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Add Quantity<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="number"
+    placeholder="Enter quantity to add"
+    value={editStock.add_quantity}
+    onChange={(e) => {
+      // ✅ Limit to 5 digits
+      const value = e.target.value;
+      if (value.length <= 5) {
+        handleEditInputChange('add_quantity', value);
+      }
+    }}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+    min="1"
+    max="99999"
+  />
+  {validationErrors.add_quantity && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.add_quantity}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.add_quantity && !validationErrors.add_quantity && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.add_quantity}
+    </p>
+  )}
+  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+    Current stock will be increased by this amount (max 99,999)
+  </p>
+</div>
 
                   {/* Current Quantity (Read-only) */}
                   <div>
@@ -8513,32 +8545,39 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   </div>
 
                   {/* Unit Price - Editable */}
-                  <div>
-                    <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
-                      Unit Price<span className="text-[#FF2424]">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="Enter Unit Price"
-                      value={editStock.unit_price}
-                      onChange={(e) => {
-                        handleEditInputChange('unit_price', e.target.value);
-                      }}
-                      className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
-                      step="0.01"
-                      min="0.01"
-                    />
-                    {validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {validationErrors.unit_price}
-                      </p>
-                    )}
-                    {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
-                      <p className="mt-1 text-[12px] text-[#FF2424]">
-                        {fieldErrors.unit_price}
-                      </p>
-                    )}
-                  </div>
+                  {/* Unit Price */}
+<div>
+  <label className="block text-sm font-medium text-black dark:text-white mb-1 flex items-center gap-1">
+    Unit Price<span className="text-[#FF2424]">*</span>
+  </label>
+  <input
+    type="number"
+    placeholder="Enter Unit Price"
+    value={editStock.unit_price}
+    onChange={(e) => {
+      // ✅ Limit to 5 digits before decimal
+      const value = e.target.value;
+      const integerPart = value.split('.')[0];
+      if (integerPart.length <= 5) {
+        handleEditInputChange('unit_price', value);
+      }
+    }}
+    className="w-full h-[36px] px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none focus:border-[#0EFF7B] transition"
+    step="0.01"
+    min="0.01"
+    max="99999.99"
+  />
+  {validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {validationErrors.unit_price}
+    </p>
+  )}
+  {isSubmitted && fieldErrors.unit_price && !validationErrors.unit_price && (
+    <p className="mt-1 text-[12px] text-[#FF2424]">
+      {fieldErrors.unit_price}
+    </p>
+  )}
+</div>
 
                   {/* Status - Auto-calculated, read-only */}
                   <div>

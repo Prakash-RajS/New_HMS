@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Search,
   Filter,
@@ -10,6 +10,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import AddSurgeryPopup from "./AddSurgeryPopup";
@@ -18,6 +19,84 @@ import DeleteSurgeryPopup from "./DeleteSurgeryPopup";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+// DateField Component - Same as used in AddAppointmentPopup
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const SurgeryList = () => {
   // === State ===
@@ -605,11 +684,11 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                       checked={selectedSurgeries.includes(surgery.id)}
                       onChange={() => handleCheckboxChange(surgery.id)}
                     />
-                  </td>
+                   </td>
 
                   <td className="text-black dark:text-white">
                     {surgery.id}
-                  </td>
+                   </td>
 
                   <td className="py-3">
                     <div className="font-medium text-black dark:text-white">
@@ -618,19 +697,19 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                     <div className="text-xs text-gray-600 dark:text-gray-400">
                       ID: {surgery.patientId}
                     </div>
-                  </td>
+                   </td>
 
                   <td className="text-black dark:text-white">
                     {surgery.doctor}
-                  </td>
+                   </td>
 
                   <td className="text-black dark:text-white">
                     {surgery.surgeryType}
-                  </td>
+                   </td>
 
                   <td className="text-black dark:text-white max-w-xs truncate">
                     {surgery.description}
-                  </td>
+                   </td>
 
                   <td>
                     <div className="font-medium text-black dark:text-white">
@@ -639,7 +718,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                     <div className="text-xs text-gray-600 dark:text-gray-400">
                       {surgery.formattedTime}
                     </div>
-                  </td>
+                   </td>
 
                   <td>
                     <span
@@ -648,7 +727,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                     >
                       {statusDisplayMap[surgery.status] || surgery.status}
                     </span>
-                  </td>
+                   </td>
 
                   <td className="text-center">
   <div className="flex justify-center gap-4 relative overflow-visible">
@@ -773,7 +852,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         </div>
       </div>
 
-      {/* Filter Popup */}
+      {/* Filter Popup - Updated with DateField */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
@@ -858,31 +937,15 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   placeholder="Select Status"
                 />
 
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Date
-                  </label>
-                  <div
-                    className="relative mt-1 cursor-pointer"
-                    onClick={() =>
-                      document.getElementById("filterDateInput").showPicker()
-                    }
-                  >
-                    <input
-                      type="date"
-                      id="filterDateInput"
-                      name="date"
-                      value={tempFilters.date}
-                      onChange={(e) => handleTempChange(e.target.name, e.target.value)}
-                      className="w-[228px] h-[32px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-white dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer
-                             [appearance:textfield]
-                             [&::-webkit-calendar-picker-indicator]:opacity-0
-                             [&::-webkit-calendar-picker-indicator]:hidden"
-                    />
- 
-                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0EFF7B] w-4 h-4 pointer-events-none" />
-                  </div>
-                </div>
+                {/* Date Field - Using the same DateField component */}
+                <DateField
+                  label="Date"
+                  value={tempFilters.date}
+                  onChange={(date) => handleTempChange("date", date)}
+                  required={false}
+                  onFocus={() => {}}
+                  onBlur={() => {}}
+                />
               </div>
               
               {/* Buttons */}

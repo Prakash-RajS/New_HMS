@@ -1659,6 +1659,7 @@ const formatToYMD = (dateStr) => {
 const safeStr = (v) => (v === undefined || v === null ? "" : String(v).trim());
 
 /* ---------- Calculate Age from Date of Birth ---------- */
+/* ---------- Calculate Age from Date of Birth ---------- */
 const calculateAge = (dob) => {
   if (!dob) return "";
   const birthDate = new Date(dob);
@@ -1668,7 +1669,8 @@ const calculateAge = (dob) => {
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
-  return age > 0 ? age.toString() : "";
+  // Return 0 for newborns (if age is 0 or negative, return 0)
+  return age >= 0 ? age.toString() : "0";
 };
 
 /* ---------- Photo Upload ---------- */
@@ -1941,6 +1943,7 @@ const TextareaField = ({
 );
 
 /* ---------- Updated Date Field with Better Year/Month Selection ---------- */
+/* ---------- Updated Date Field with Better Year/Month Selection ---------- */
 const DateField = ({
   label,
   value,
@@ -1967,17 +1970,6 @@ const DateField = ({
 
   const selectedDate = parseDate(value);
 
-  const handleDateChange = (date) => {
-    if (date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      onChange(`${year}-${month}-${day}`);
-    } else {
-      onChange("");
-    }
-  };
-
   // Calculate min and max dates based on props
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1996,7 +1988,16 @@ const DateField = ({
         <DatePicker
           ref={datePickerRef}
           selected={selectedDate}
-          onChange={handleDateChange}
+          onChange={(date) => {
+            if (date) {
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, "0");
+              const day = String(date.getDate()).padStart(2, "0");
+              onChange(`${year}-${month}-${day}`);
+            } else {
+              onChange("");
+            }
+          }}
           onFocus={onFocus}
           onBlur={onBlur}
           dateFormat="MM/dd/yyyy"
@@ -2103,10 +2104,10 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   const validateAgeFormat = (value) => {
-    if (value.trim() && (isNaN(value) || Number(value) <= 0 || Number(value) > 150))
-      return "Age must be a positive number (1-150)";
-    return "";
-  };
+  if (value.trim() && (isNaN(value) || Number(value) < 0 || Number(value) > 150))
+    return "Age must be a valid number (0-150)";
+  return "";
+};
 
   const validateAddressFormat = (value) => {
     if (!value.trim()) return "";
@@ -2306,57 +2307,57 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   /* ---------- Required Field Validation (only for submission) ---------- */
-  const validateRequiredFields = () => {
-    const errors = {};
-    let isValid = true;
+ const validateRequiredFields = () => {
+  const errors = {};
+  let isValid = true;
 
-    const requiredFields = [
-      "fullname",
-      "dob",
-      "gender",
-      "age",
-      "maritalStatus",
-      "address",
-      "phone",
-      "email",
-      "nid",
-      "city",
-      "country",
-      "dor",
-      "occupation",
-      "weight",
-      "height",
-      "bloodGroup",
-      "bp",
-      "temperature",
-      "consultType",
-      "apptType",
-      "casualty",
-      "reason",
-      "department_id",
-      "staff_id",
-    ];
+  const requiredFields = [
+    "fullname",
+    "dob",
+    "gender",
+    "age",  // Age is still required but will be auto-calculated
+    "maritalStatus",
+    "address",
+    "phone",
+    "email",
+    "nid",
+    "city",
+    "country",
+    "dor",
+    "occupation",
+    "weight",
+    "height",
+    "bloodGroup",
+    "bp",
+    "temperature",
+    "consultType",
+    "apptType",
+    "casualty",
+    "reason",
+    "department_id",
+    "staff_id",
+  ];
 
-    requiredFields.forEach((field) => {
-      if (
-        !formData[field] ||
-        (typeof formData[field] === "string" && formData[field].trim() === "")
-      ) {
-        errors[field] = `${field
-          .replace(/([A-Z])/g, " $1")
-          .replace(/^./, (str) => str.toUpperCase())} is required`;
-        isValid = false;
-      }
-    });
-
-    if (!photoFile) {
-      errors.photo = "Photo is required";
+  requiredFields.forEach((field) => {
+    if (
+      !formData[field] ||
+      (typeof formData[field] === "string" && formData[field].trim() === "")
+    ) {
+      errors[field] = `${field
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase())} is required`;
       isValid = false;
     }
+  });
 
-    setFieldErrors(errors);
-    return isValid;
-  };
+  if (!photoFile) {
+    errors.photo = "Photo is required";
+    isValid = false;
+  }
+
+  setFieldErrors(errors);
+  return isValid;
+};
 
   /* ---------- Capitalize Functions ---------- */
   const capitalizeName = (value) => {
@@ -2372,96 +2373,97 @@ export default function NewRegistration({ isSidebarOpen }) {
   };
 
   /* ---------- Handle Input Change ---------- */
-  const handleInputChange = (field) => (e) => {
-    let value = e.target.value;
+ const handleInputChange = (field) => (e) => {
+  let value = e.target.value;
 
-    // Apply auto-capitalization
-    if (field === "fullname") {
-      value = capitalizeName(value);
-    } else if (
-      ["city", "country", "occupation", "reason", "testReport", "bp"].includes(field)
-    ) {
-      value = capitalizeWords(value);
-    }
+  // Apply auto-capitalization
+  if (field === "fullname") {
+    value = capitalizeName(value);
+  } else if (
+    ["city", "country", "occupation", "reason", "testReport", "bp"].includes(field)
+  ) {
+    value = capitalizeWords(value);
+  }
 
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  setFormData((prev) => ({ ...prev, [field]: value }));
 
-    // Clear validation errors for this field
-    if (validationErrors[field]) {
-      setValidationErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+  // Clear validation errors for this field
+  if (validationErrors[field]) {
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  }
 
-    if (fieldErrors[field]) {
-      setFieldErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+  if (fieldErrors[field]) {
+    setFieldErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[field];
+      return newErrors;
+    });
+  }
 
-    // Perform real-time format validation
-    let formatError = "";
-    switch (field) {
-      case "fullname":
-        formatError = validateFullnameFormat(value);
-        break;
-      case "age":
-        formatError = validateAgeFormat(value);
-        break;
-      case "phone":
-        formatError = validatePhoneFormat(value);
-        break;
-      case "email":
-        formatError = validateEmailFormat(value);
-        break;
-      case "weight":
-        formatError = validateWeightFormat(value);
-        break;
-      case "height":
-        formatError = validateHeightFormat(value);
-        break;
-      case "temperature":
-        formatError = validateTemperatureFormat(value);
-        break;
-      case "city":
-        formatError = validateCityFormat(value);
-        break;
-      case "country":
-        formatError = validateCountryFormat(value);
-        break;
-      case "occupation":
-        formatError = validateOccupationFormat(value);
-        break;
-      case "reason":
-        formatError = validateReasonFormat(value);
-        break;
-      case "testReport":
-        formatError = validateTestReportFormat(value);
-        break;
-      case "bp":
-        formatError = validateBpFormat(value);
-        break;
-      case "nid":
-        formatError = validateNidFormat(value);
-        break;
-      case "address":
-        formatError = validateAddressFormat(value);
-        break;
-      default:
-        break;
-    }
+  // Perform real-time format validation
+  let formatError = "";
+  switch (field) {
+    case "fullname":
+      formatError = validateFullnameFormat(value);
+      break;
+    // ❌ REMOVE or COMMENT OUT the age case to prevent manual editing
+    // case "age":
+    //   formatError = validateAgeFormat(value);
+    //   break;
+    case "phone":
+      formatError = validatePhoneFormat(value);
+      break;
+    case "email":
+      formatError = validateEmailFormat(value);
+      break;
+    case "weight":
+      formatError = validateWeightFormat(value);
+      break;
+    case "height":
+      formatError = validateHeightFormat(value);
+      break;
+    case "temperature":
+      formatError = validateTemperatureFormat(value);
+      break;
+    case "city":
+      formatError = validateCityFormat(value);
+      break;
+    case "country":
+      formatError = validateCountryFormat(value);
+      break;
+    case "occupation":
+      formatError = validateOccupationFormat(value);
+      break;
+    case "reason":
+      formatError = validateReasonFormat(value);
+      break;
+    case "testReport":
+      formatError = validateTestReportFormat(value);
+      break;
+    case "bp":
+      formatError = validateBpFormat(value);
+      break;
+    case "nid":
+      formatError = validateNidFormat(value);
+      break;
+    case "address":
+      formatError = validateAddressFormat(value);
+      break;
+    default:
+      break;
+  }
 
-    if (formatError) {
-      setValidationErrors((prev) => ({
-        ...prev,
-        [field]: formatError,
-      }));
-    }
-  };
+  if (formatError) {
+    setValidationErrors((prev) => ({
+      ...prev,
+      [field]: formatError,
+    }));
+  }
+};
 
   const handleDropdownChange = (field) => (value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -2510,35 +2512,36 @@ export default function NewRegistration({ isSidebarOpen }) {
 
   /* ---------- Validate Form Before Submission ---------- */
   const validateForm = () => {
-    const requiredValid = validateRequiredFields();
+  const requiredValid = validateRequiredFields();
 
-    const formatErrors = {
-      fullname: validateFullnameFormat(formData.fullname),
-      age: validateAgeFormat(formData.age),
-      phone: validatePhoneFormat(formData.phone),
-      email: validateEmailFormat(formData.email),
-      weight: validateWeightFormat(formData.weight),
-      height: validateHeightFormat(formData.height),
-      temperature: validateTemperatureFormat(formData.temperature),
-      city: validateCityFormat(formData.city),
-      country: validateCountryFormat(formData.country),
-      occupation: validateOccupationFormat(formData.occupation),
-      reason: validateReasonFormat(formData.reason),
-      testReport: validateTestReportFormat(formData.testReport),
-      bp: validateBpFormat(formData.bp),
-      nid: validateNidFormat(formData.nid),
-      address: validateAddressFormat(formData.address),
-    };
-
-    setValidationErrors(formatErrors);
-
-    const formatValid = !Object.values(formatErrors).some(
-      (error) => error !== ""
-    );
-
-    setIsSubmitted(true);
-    return requiredValid && formatValid;
+  const formatErrors = {
+    fullname: validateFullnameFormat(formData.fullname),
+    // ❌ Remove age from format validation since it's auto-calculated
+    // age: validateAgeFormat(formData.age),
+    phone: validatePhoneFormat(formData.phone),
+    email: validateEmailFormat(formData.email),
+    weight: validateWeightFormat(formData.weight),
+    height: validateHeightFormat(formData.height),
+    temperature: validateTemperatureFormat(formData.temperature),
+    city: validateCityFormat(formData.city),
+    country: validateCountryFormat(formData.country),
+    occupation: validateOccupationFormat(formData.occupation),
+    reason: validateReasonFormat(formData.reason),
+    testReport: validateTestReportFormat(formData.testReport),
+    bp: validateBpFormat(formData.bp),
+    nid: validateNidFormat(formData.nid),
+    address: validateAddressFormat(formData.address),
   };
+
+  setValidationErrors(formatErrors);
+
+  const formatValid = !Object.values(formatErrors).some(
+    (error) => error !== ""
+  );
+
+  setIsSubmitted(true);
+  return requiredValid && formatValid;
+};
 
   /* ---------- Load Departments ---------- */
   useEffect(() => {
@@ -2851,18 +2854,18 @@ export default function NewRegistration({ isSidebarOpen }) {
                 error={fieldErrors.gender}
               />
               <InputField
-                label="Age"
-                type="number"
-                value={formData.age}
-                onChange={handleInputChange("age")}
-                onFocus={() => setFocusedField("age")}
-                onBlur={() => setFocusedField(null)}
-                placeholder="Auto-calculated from DOB"
-                required
-                readOnly
-                helperText="Auto-calculated from date of birth"
-                error={validationErrors.age || fieldErrors.age}
-              />
+  label="Age"
+  type="number"
+  value={formData.age}
+  onChange={handleInputChange("age")}
+  onFocus={() => setFocusedField("age")}
+  onBlur={() => setFocusedField(null)}
+  placeholder="Auto-calculated from DOB"
+  required
+  readOnly={true}
+  helperText="Auto-calculated from date of birth (can be 0 for newborns)"
+  error={validationErrors.age || fieldErrors.age}
+/>
               <Dropdown
                 label="Marital Status"
                 value={formData.maritalStatus}

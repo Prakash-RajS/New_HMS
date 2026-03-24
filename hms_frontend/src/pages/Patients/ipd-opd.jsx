@@ -764,7 +764,8 @@
 // export default AppointmentListIPD;
 
 // src/components/patients/AppointmentListIPD.jsx
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+// src/components/patients/AppointmentListIPD.jsx
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -778,6 +779,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient.jsx";
@@ -785,6 +787,84 @@ import DeletePatient from "./DeletePatient";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+// DateField Component - Same as used in AddAppointmentPopup
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 pr-8 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AppointmentListIPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -898,8 +978,8 @@ const AppointmentListIPD = () => {
       }
       
       if (appliedFilters.doctor) {
-  params.staff_id = appliedFilters.doctor;
-}
+        params.staff_id = appliedFilters.doctor;
+      }
       
       if (appliedFilters.patientName) {
         params.patient_name = appliedFilters.patientName;
@@ -957,7 +1037,7 @@ const AppointmentListIPD = () => {
       setDataLoading(false);
       setInitialLoading(false);
     }
-  }, [page, perPage, activeTab, activeFilter, search, appliedFilters]); // appliedFilters now in dependencies
+  }, [page, perPage, activeTab, activeFilter, search, appliedFilters]);
 
   // Initial load
   useEffect(() => {
@@ -992,7 +1072,7 @@ const AppointmentListIPD = () => {
   useEffect(() => {
     if (initialLoading) return;
     fetchPatients();
-  }, [page, search, activeTab, activeFilter, appliedFilters]); // added appliedFilters
+  }, [page, search, activeTab, activeFilter, appliedFilters]);
 
   // Load departments for filter (only once)
   useEffect(() => {
@@ -1036,40 +1116,38 @@ const AppointmentListIPD = () => {
 
   // ---------- FILTER HANDLERS ----------
   const onFilterChange = (e) => {
-  const { name, value } = e.target;
-  setFilters((p) => ({ ...p, [name]: value }));
-};
-
-// NEW: Clear only the filter fields without closing the popup
-const clearFilterFields = () => {
-  const empty = {
-    patientName: "",
-    patientId: "",
-    department: "",
-    doctor: "",
-    status: "",
-    date: "",
+    const { name, value } = e.target;
+    setFilters((p) => ({ ...p, [name]: value }));
   };
-  setFilters(empty);
-};
 
-// Modified: Clear filters AND close popup (used for complete reset)
-const clearFiltersAndClose = () => {
-  const empty = {
-    patientName: "",
-    patientId: "",
-    department: "",
-    doctor: "",
-    status: "",
-    date: "",
+  // NEW: Clear only the filter fields without closing the popup
+  const clearFilterFields = () => {
+    const empty = {
+      patientName: "",
+      patientId: "",
+      department: "",
+      doctor: "",
+      status: "",
+      date: "",
+    };
+    setFilters(empty);
   };
-  setFilters(empty);
-  setAppliedFilters(empty);
-  setShowFilter(false);
-  setPage(1);
-};
 
-
+  // Modified: Clear filters AND close popup (used for complete reset)
+  const clearFiltersAndClose = () => {
+    const empty = {
+      patientName: "",
+      patientId: "",
+      department: "",
+      doctor: "",
+      status: "",
+      date: "",
+    };
+    setFilters(empty);
+    setAppliedFilters(empty);
+    setShowFilter(false);
+    setPage(1);
+  };
 
   // ---------- APPLY FILTER POPUP ----------
   const applyFilterPopup = () => {
@@ -1566,157 +1644,138 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         </div>
       </div>
 
-      {/* FILTER POPUP */}
+      {/* FILTER POPUP - Updated with DateField */}
       {showFilter && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
-    <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
-      <div
-        className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
-        style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "20px",
-            padding: "2px",
-            background:
-              "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
-            WebkitMask:
-              "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        ></div>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
+          <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
+            <div
+              className="w-[505px] rounded-[19px] bg-gray-100 dark:bg-[#000000] text-black dark:text-white p-6 shadow-lg relative"
+              style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: "20px",
+                  padding: "2px",
+                  background:
+                    "linear-gradient(to bottom right, rgba(14,255,123,0.7) 0%, rgba(30,30,30,0.7) 50%, rgba(14,255,123,0.7) 100%)",
+                  WebkitMask:
+                    "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                  WebkitMaskComposite: "xor",
+                  maskComposite: "exclude",
+                  pointerEvents: "none",
+                  zIndex: 0,
+                }}
+              ></div>
 
-        <div className="flex justify-between items-center pb-3 mb-4">
-          <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
-            Filter Patients
-          </h3>
-          <button
-            onClick={() => setShowFilter(false)}
-            className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
-          >
-            <X size={16} className="text-black dark:text-white" />
-          </button>
-        </div>
+              <div className="flex justify-between items-center pb-3 mb-4">
+                <h3 className="text-black dark:text-white font-medium text-[16px] leading-[19px]">
+                  Filter Patients
+                </h3>
+                <button
+                  onClick={() => setShowFilter(false)}
+                  className="w-6 h-6 rounded-full border border-gray-300 dark:border-[#0EFF7B1A] bg-gray-100 dark:bg-[#0EFF7B1A] shadow flex items-center justify-center"
+                >
+                  <X size={16} className="text-black dark:text-white" />
+                </button>
+              </div>
 
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="text-sm text-black dark:text-white">
-              Patient Name
-            </label>
-            <input
-              name="patientName"
-              value={filters.patientName}
-              onChange={onFilterChange}
-              placeholder="enter patient name"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-black dark:text-white">
-              Patient ID
-            </label>
-            <input
-              name="patientId"
-              value={filters.patientId}
-              onChange={onFilterChange}
-              placeholder="enter patient ID"
-              className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
-            />
-          </div>
-          <Dropdown
-            label="Department"
-            value={filters.department}
-            onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
-            options={
-              loadingFilterDepts
-                ? []
-                : filterDepartments.map((d) => ({
-                    id: d.id || d.name || d.department_name,
-                    name: d.name || d.department_name,
-                  }))
-            }
-            loading={loadingFilterDepts}
-          />
-          
-          <Dropdown
-            label="Doctor"
-            value={filters.doctor}
-            onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
-            options={
-              loadingFilterDocs
-                ? []
-                : filterDoctors.map((doc) => ({
-                    id: doc.id,
-                    name: `${doc.full_name} – ${doc.designation || "N/A"}`
-                  }))
-            }
-            loading={loadingFilterDocs}
-          />
-          <Dropdown
-            label="Status"
-            value={filters.status}
-            onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
-            options={[
-              "Active",
-              "New",
-              "Normal",
-              "Severe",
-              "Cancelled",
-            ]}
-          />
-          <div>
-            <label className="text-sm text-black dark:text-white">
-              Date
-            </label>
-            <div className="relative mt-1">
-              <input
-                id="dateInput"
-                type="date"
-                name="date"
-                value={filters.date}
-                onChange={onFilterChange}
-                onClick={(e) => e.target.showPicker()}
-                className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px]
-                         border border-[#0EFF7B] dark:border-[#3A3A3A]
-                         bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B]
-                         outline-none cursor-pointer
-                         appearance-none
-                         [&::-webkit-calendar-picker-indicator]:opacity-0
-                         [&::-webkit-calendar-picker-indicator]:hidden"
-              />
-              <Calendar
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] w-4 h-4 cursor-pointer"
-                onClick={() =>
-                  document.getElementById("dateInput").showPicker()
-                }
-              />
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Patient Name
+                  </label>
+                  <input
+                    name="patientName"
+                    value={filters.patientName}
+                    onChange={onFilterChange}
+                    placeholder="enter patient name"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-black dark:text-white">
+                    Patient ID
+                  </label>
+                  <input
+                    name="patientId"
+                    value={filters.patientId}
+                    onChange={onFilterChange}
+                    placeholder="enter patient ID"
+                    className="w-[228px] h-[33px] mt-1 px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] placeholder-gray-400 dark:placeholder-gray-500 outline-none"
+                  />
+                </div>
+                <Dropdown
+                  label="Department"
+                  value={filters.department}
+                  onChange={(v) => setFilters((p) => ({ ...p, department: v }))}
+                  options={
+                    loadingFilterDepts
+                      ? []
+                      : filterDepartments.map((d) => ({
+                          id: d.id || d.name || d.department_name,
+                          name: d.name || d.department_name,
+                        }))
+                  }
+                  loading={loadingFilterDepts}
+                />
+                
+                <Dropdown
+                  label="Doctor"
+                  value={filters.doctor}
+                  onChange={(v) => setFilters((p) => ({ ...p, doctor: v }))}
+                  options={
+                    loadingFilterDocs
+                      ? []
+                      : filterDoctors.map((doc) => ({
+                          id: doc.id,
+                          name: `${doc.full_name} – ${doc.designation || "N/A"}`
+                        }))
+                  }
+                  loading={loadingFilterDocs}
+                />
+                <Dropdown
+                  label="Status"
+                  value={filters.status}
+                  onChange={(v) => setFilters((p) => ({ ...p, status: v }))}
+                  options={[
+                    "Active",
+                    "New",
+                    "Normal",
+                    "Severe",
+                    "Cancelled",
+                  ]}
+                />
+                
+                {/* Date Field - Using the same DateField component */}
+                <DateField
+                  label="Date"
+                  value={filters.date}
+                  onChange={(date) => setFilters((p) => ({ ...p, date }))}
+                  required={false}
+                  onFocus={() => {}}
+                  onBlur={() => {}}
+                />
+              </div>
+              <div className="flex justify-center gap-2 mt-8">
+                <button
+                  onClick={clearFilterFields}  
+                  className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={applyFilterPopup}
+                  className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
+                >
+                  Filter
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex justify-center gap-2 mt-8">
-          <button
-            onClick={clearFilterFields}  
-            className="w-[144px] h-[34px] rounded-[8px] py-2 px-1 border border-[#0EFF7B] dark:border-[#3A3A3A] text-gray-800 dark:text-white font-medium text-[14px] leading-[16px] shadow-[0_2px_12px_0px_#00000040] opacity-100 bg-gray-100 dark:bg-transparent"
-          >
-            Clear
-          </button>
-          <button
-            onClick={applyFilterPopup}
-            className="w-[144px] h-[32px] rounded-[8px] py-2 px-3 border-b-[2px] border-[#0EFF7B] bg-gradient-to-r from-[#025126] via-[#0D7F41] to-[#025126] shadow-[0_2px_12px_0px_#00000040] text-white font-medium text-[14px] leading-[16px] opacity-100 hover:scale-105 transition"
-          >
-            Filter
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
 
       {/* EDIT POPUP */}
       {showEdit && selAppt && (

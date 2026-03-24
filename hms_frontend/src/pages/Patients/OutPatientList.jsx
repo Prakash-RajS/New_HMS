@@ -755,7 +755,7 @@
 
 // src/components/AppointmentListOPD.jsx
 // AppointmentListOPD.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -769,12 +769,91 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import EditPatientPopup from "./EditPatient";
 import DeletePatient from "./DeletePatient";
 import api from "../../utils/axiosConfig";
 import { usePermissions } from "../../components/PermissionContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+// DateField Component - Same as used in AddAppointmentPopup
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AppointmentListOPD = () => {
   const [appointments, setAppointments] = useState([]);
@@ -1276,7 +1355,7 @@ const AppointmentListOPD = () => {
                 <th>Discharge Status</th>
                 <th>Status</th>
                 <th className="text-center">Edit</th>
-               </tr>
+              </tr>
             </thead>
             <tbody>
               {appointments.length > 0 ? (
@@ -1433,7 +1512,7 @@ const AppointmentListOPD = () => {
         </div>
       </div>
 
-      {/* FILTER POPUP - Enhanced with dynamic dropdowns */}
+      {/* FILTER POPUP - Updated with DateField */}
       {showFilter && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
@@ -1525,21 +1604,16 @@ const AppointmentListOPD = () => {
                   }
                   loading={loadingFilterDocs}
                 />
-                <div>
-                  <label className="text-sm text-black dark:text-white">
-                    Date
-                  </label>
-                  <div className="relative mt-1">
-                    <input
-                      type="date"
-                      name="date"
-                      value={filters.date}
-                      onChange={onFilterChange}
-                      className="w-[228px] h-[33px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none"
-                    />
-                    <Calendar className="absolute right-1 top-1/2 -translate-y-1/2 text-[#0EFF7B] dark:text-[#0EFF7B] pointer-events-none w-4 h-4" />
-                  </div>
-                </div>
+                
+                {/* Date Field - Using the same DateField component */}
+                <DateField
+                  label="Date"
+                  value={filters.date}
+                  onChange={(date) => setFilters((p) => ({ ...p, date }))}
+                  required={false}
+                  onFocus={() => {}}
+                  onBlur={() => {}}
+                />
               </div>
 
               <div className="flex justify-center gap-2 mt-8">
