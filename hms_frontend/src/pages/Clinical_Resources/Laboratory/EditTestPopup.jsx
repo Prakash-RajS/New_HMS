@@ -561,28 +561,30 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
 
   // Validate description - allows letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, slashes
   // Blocks special characters like !@#$%^&*
-  const validateDescriptionFormat = (value) => {
-    if (!value.trim()) return "";
-    
-    // Check if starts with capital letter
-    if (!/^[A-Z]/.test(value.charAt(0))) {
-      return "Description must start with a capital letter";
-    }
-    
-    // Check maximum length (150 characters)
-    if (value.length > 150) {
-      return "Description cannot exceed 150 characters";
-    }
-    
-    // Allow letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes
-    // Block any special characters like !@#$%^&* etc.
-    const validFormat = /^[A-Z][A-Za-z0-9\s,.'\-()/]*$/;
-    if (!validFormat.test(value)) {
-      return "Description can only contain letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes";
-    }
-    
-    return "";
-  };
+  // Validate description - allows letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, slashes
+// Can start with capital letter OR number
+const validateDescriptionFormat = (value) => {
+  if (!value.trim()) return "";
+  
+  // Check if starts with capital letter OR number
+  if (!/^[A-Z0-9]/.test(value.charAt(0))) {
+    return "Description must start with a capital letter or number";
+  }
+  
+  // Check maximum length (150 characters)
+  if (value.length > 150) {
+    return "Description cannot exceed 150 characters";
+  }
+  
+  // Allow letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes
+  // Block any special characters like !@#$%^&* etc.
+  const validFormat = /^[A-Za-z0-9\s,.'\-()/]*$/;
+  if (!validFormat.test(value)) {
+    return "Description can only contain letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes";
+  }
+  
+  return "";
+};
   
   // Validate test type format - allows letters, numbers, spaces, hyphens, and parentheses ()
   // Blocks special characters like !@#$%^&*
@@ -970,8 +972,8 @@ const EditTestPopup = ({ onClose, test, onSuccess, statusOptions }) => {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Must start with capital letter. Max 150 characters. Only letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes allowed.
-                </p>
+  Must start with capital letter or number. Max 150 characters. Only letters, numbers, spaces, commas, periods, apostrophes, hyphens, parentheses, and slashes allowed.
+</p>
               </div>
 
               {/* Duration */}

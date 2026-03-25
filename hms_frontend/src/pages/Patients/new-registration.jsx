@@ -1843,6 +1843,7 @@ const getCurrentDate = () => {
 };
 
 /* ---------- Input Field with Character Limit ---------- */
+/* ---------- Input Field with Character Limit ---------- */
 const InputField = ({
   label,
   name,
@@ -1856,6 +1857,7 @@ const InputField = ({
   onBlur = () => {},
   maxLength = null,
   helperText = null,
+  readOnly = false,
 }) => (
   <div className="space-y-1 w-full">
     <label
@@ -1873,18 +1875,20 @@ const InputField = ({
       type={type}
       name={name}
       value={value}
-      onChange={onChange}
+      onChange={readOnly ? undefined : onChange}
       onFocus={onFocus}
       onBlur={onBlur}
       placeholder={placeholder}
       maxLength={maxLength}
+      readOnly={readOnly}
       className={`w-full h-[33px] px-3 rounded-[8px] border bg-gray-100 dark:bg-transparent 
                 text-black dark:text-[#0EFF7B] placeholder-gray-400 outline-none text-[14px]
                 ${
                   onFocus
                     ? "border-[#0EFF7B] ring-1 ring-[#0EFF7B]"
                     : "border-[#0EFF7B] dark:border-[#3A3A3A]"
-                }`}
+                }
+                ${readOnly ? "cursor-not-allowed bg-gray-100 dark:bg-[#1E1E1E] opacity-75" : ""}`}
       style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
     />
     {helperText && !error && (
@@ -2857,7 +2861,7 @@ export default function NewRegistration({ isSidebarOpen }) {
   label="Age"
   type="number"
   value={formData.age}
-  onChange={handleInputChange("age")}
+  onChange={() => {}} // Empty function to prevent any changes
   onFocus={() => setFocusedField("age")}
   onBlur={() => setFocusedField(null)}
   placeholder="Auto-calculated from DOB"

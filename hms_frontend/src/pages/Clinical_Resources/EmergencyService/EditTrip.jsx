@@ -598,7 +598,7 @@
 // export default EditTripModal;
 
 /// EditTrip.jsx - WITH VALIDATION (Format while typing, required after submission)
-// EditTrip.jsx - WITH FIXED duplicate validation (checks dispatcher OR unit separately)
+// EditTrip.jsx - WITH FIXED duplicate validation (checks dispatcher OR unit OR patient separately)
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { X, ChevronDown, CalendarClock, MapPin, Phone } from "lucide-react";
 import { Listbox } from "@headlessui/react";
@@ -664,7 +664,9 @@ const ErrorMessage = ({ field, errors, submitted, isCreateMode }) => {
     errors[field].includes("Please provide more specific location") ||
     errors[field].includes("must contain letters") ||
     errors[field].includes("Valid Vizag locations") ||
-    errors[field].includes("cannot exceed");
+    errors[field].includes("cannot exceed") ||
+    errors[field].includes("during this time") ||
+    errors[field].includes("assigned");
 
   if (submitted || isFormatError) {
     return (
@@ -724,7 +726,7 @@ const TextInput = React.memo(({
         {showIcon && Icon && (
           <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B]" />
         )}
-        
+
         {/* Location suggestions */}
         {suggestions.length > 0 && (
           <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-300 dark:border-gray-700 max-h-40 overflow-y-auto">
@@ -786,18 +788,12 @@ const DateTimeField = React.memo(({
   const handleDateChange = (date) => {
     if (date) {
       const syntheticEvent = {
-        target: {
-          name: name,
-          value: formatDateTime(date)
-        }
+        target: { name: name, value: formatDateTime(date) }
       };
       onChange(syntheticEvent);
     } else {
       const syntheticEvent = {
-        target: {
-          name: name,
-          value: ""
-        }
+        target: { name: name, value: "" }
       };
       onChange(syntheticEvent);
     }
@@ -807,7 +803,6 @@ const DateTimeField = React.memo(({
     if (!dateTimeStr) return "";
     const date = new Date(dateTimeStr);
     if (isNaN(date)) return "";
-    
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -861,7 +856,7 @@ const DateTimeField = React.memo(({
         timeCaption="Time"
         customInput={<CustomInput />}
         calendarClassName="dark:bg-black dark:border-[#3A3A3A]"
-        dayClassName={(date) => 
+        dayClassName={(date) =>
           date.getDate() === new Date().getDate() ? "dark:text-[#0EFF7B]" : ""
         }
         popperClassName="z-50"
@@ -999,37 +994,28 @@ const Dropdown = React.memo(({
 });
 
 // ---------------------------------------------------------------------------
-// Location format validator - ENHANCED
+// Location format validator
 // ---------------------------------------------------------------------------
 const isValidLocationFormat = (value) => {
   const trimmed = value.trim();
-  
+
   const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
-  if (invalidChars.test(trimmed)) {
-    return false;
-  }
-  
-  const isVizagLocation = vizagLocations.some(loc => 
+  if (invalidChars.test(trimmed)) return false;
+
+  const isVizagLocation = vizagLocations.some(loc =>
     trimmed.toLowerCase().includes(loc.toLowerCase())
   );
-  
-  if (isVizagLocation) {
-    return true;
-  }
-  
+  if (isVizagLocation) return true;
+
   if (trimmed.length < 5) return false;
   if (trimmed.length > 100) return false;
-  
+
   const words = trimmed.split(/\s+/);
-  if (words.length < 2) {
-    return false;
-  }
-  
+  if (words.length < 2) return false;
+
   const hasLetters = /[A-Za-z]/.test(trimmed);
-  if (!hasLetters) {
-    return false;
-  }
-  
+  if (!hasLetters) return false;
+
   return true;
 };
 
@@ -1044,27 +1030,21 @@ const capitalizeWords = (value) =>
 // ---------------------------------------------------------------------------
 const validatePhoneNumber = (value) => {
   if (!value || !value.trim()) return "Phone number is required";
-  
+
   const digitsOnly = value.replace(/\D/g, '');
-  
+
   if (digitsOnly.length === 0) return "Phone number is required";
   if (digitsOnly.length < 10) return "Phone number must have exactly 10 digits";
   if (digitsOnly.length > 10) return "Phone number must have exactly 10 digits";
-  
+
   const isRepeated = /^(\d)\1{9}$/.test(digitsOnly);
-  if (isRepeated) {
-    return "Invalid phone number - cannot have all digits same";
-  }
-  
+  if (isRepeated) return "Invalid phone number - cannot have all digits same";
+
   const isSequential = /^(0123456789|1234567890|2345678901|3456789012|4567890123|5678901234|6789012345|7890123456|8901234567|9012345678|9876543210)$/.test(digitsOnly);
-  if (isSequential) {
-    return "Invalid phone number - cannot be sequential";
-  }
-  
-  if (!/^[6-9]/.test(digitsOnly)) {
-    return "Phone number must start with 6, 7, 8, or 9";
-  }
-  
+  if (isSequential) return "Invalid phone number - cannot be sequential";
+
+  if (!/^[6-9]/.test(digitsOnly)) return "Phone number must start with 6, 7, 8, or 9";
+
   return "";
 };
 
@@ -1073,33 +1053,29 @@ const validatePhoneNumber = (value) => {
 // ---------------------------------------------------------------------------
 const validateLocation = (value, fieldName) => {
   if (!value || !value.trim()) return `${fieldName} is required`;
-  
+
   const trimmed = value.trim();
-  
+
   const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
-  if (invalidChars.test(trimmed)) {
+  if (invalidChars.test(trimmed))
     return `Special characters $, *, @, #, %, ^, &, !, {, }, [, ], <, >, \\ are not allowed`;
-  }
-  
-  const isVizagLocation = vizagLocations.some(loc => 
+
+  const isVizagLocation = vizagLocations.some(loc =>
     trimmed.toLowerCase().includes(loc.toLowerCase())
   );
-  
+
   if (!isVizagLocation) {
     if (trimmed.length < 5) return `Please enter a more specific location (at least 5 characters)`;
     if (trimmed.length > 100) return `${fieldName} cannot exceed 100 characters`;
-    
+
     const words = trimmed.split(/\s+/);
-    if (words.length < 2) {
+    if (words.length < 2)
       return `Please provide more specific location (e.g., 'Main Road, Gajuwaka')`;
-    }
-    
+
     const hasLetters = /[A-Za-z]/.test(trimmed);
-    if (!hasLetters) {
-      return `${fieldName} must contain letters`;
-    }
+    if (!hasLetters) return `${fieldName} must contain letters`;
   }
-  
+
   return "";
 };
 
@@ -1200,9 +1176,15 @@ const EditTripModal = ({
   const sanitizeInput = (value) =>
     value.replace(/[$*@#%^&!{}[\]<>\\|]/gi, "");
 
+  // ---------------------------------------------------------------------------
+  // FIXED: checkDispatcherOrUnitBusy now also checks patient conflicts
+  // - Only requires start_time (not all three IDs) to run
+  // - Each resource (dispatcher / unit / patient) is checked independently
+  // ---------------------------------------------------------------------------
   const checkDispatcherOrUnitBusy = useCallback(
     (currentForm) => {
-      if (!currentForm.dispatch_id || !currentForm.unit_id || !currentForm.start_time) {
+      // Only start_time is mandatory to run the check
+      if (!currentForm.start_time) {
         return { isBusy: false };
       }
 
@@ -1212,56 +1194,97 @@ const EditTripModal = ({
 
       let dispatcherBusy = false;
       let unitBusy = false;
-      let conflictingTrip = null;
+      let patientBusy = false;   // ← NEW
 
       existingTrips.forEach((t) => {
+        // Skip the trip being edited
         if (isEdit && String(t.id) === String(trip?.id)) return;
 
-        const tripDispatchId = String(t.dispatch_id || t.dispatch?.id);
-        const tripUnitId = String(t.unit_id || t.unit?.id);
-        const currentDispatchId = String(currentForm.dispatch_id);
-        const currentUnitId = String(currentForm.unit_id);
-
         const existStart = t.start_time ? new Date(t.start_time) : null;
-        const existEnd = t.end_time ? new Date(t.end_time) : null;
-
         if (!existStart) return;
 
+        const existEnd = t.end_time ? new Date(t.end_time) : null;
         const effectiveExistEnd = existEnd || new Date(existStart.getTime() + 2 * 60 * 60 * 1000);
         const hasOverlap = newStart < effectiveExistEnd && effectiveNewEnd > existStart;
 
-        if (hasOverlap) {
-          if (tripDispatchId === currentDispatchId) {
+        if (!hasOverlap) return;
+
+        // Check dispatcher conflict
+        if (currentForm.dispatch_id) {
+          const tripDispatchId = String(t.dispatch_id || t.dispatch?.id || "");
+          const currentDispatchId = String(currentForm.dispatch_id);
+          if (tripDispatchId && tripDispatchId === currentDispatchId) {
             dispatcherBusy = true;
-            conflictingTrip = t;
           }
-          if (tripUnitId === currentUnitId) {
+        }
+
+        // Check unit conflict
+        if (currentForm.unit_id) {
+          const tripUnitId = String(t.unit_id || t.unit?.id || "");
+          const currentUnitId = String(currentForm.unit_id);
+          if (tripUnitId && tripUnitId === currentUnitId) {
             unitBusy = true;
-            conflictingTrip = t;
+          }
+        }
+
+        // ── NEW: Check patient conflict ──────────────────────────────────
+        if (currentForm.patient_id) {
+          const tripPatientId = String(t.patient_id || t.patient?.id || "");
+          const currentPatientId = String(currentForm.patient_id);
+          if (tripPatientId && tripPatientId === currentPatientId) {
+            patientBusy = true;
           }
         }
       });
 
-      if (dispatcherBusy && unitBusy) {
+      // Build combined messages covering all conflict combos
+      if (dispatcherBusy && unitBusy && patientBusy) {
         return {
           isBusy: true,
-          message: "Both dispatcher and unit are busy in other trips during this time period.",
+          message: "Dispatcher, unit, and patient are all already assigned to another trip during this time.",
           dispatcherBusy: true,
-          unitBusy: true
+          unitBusy: true,
+          patientBusy: true,
+        };
+      } else if (patientBusy && dispatcherBusy) {
+        return {
+          isBusy: true,
+          message: "This patient and dispatcher are already assigned to another trip during this time.",
+          dispatcherBusy: true,
+          patientBusy: true,
+        };
+      } else if (patientBusy && unitBusy) {
+        return {
+          isBusy: true,
+          message: "This patient and unit are already assigned to another trip during this time.",
+          unitBusy: true,
+          patientBusy: true,
+        };
+      } else if (dispatcherBusy && unitBusy) {
+        return {
+          isBusy: true,
+          message: "Both dispatcher and unit are already assigned to another trip during this time.",
+          dispatcherBusy: true,
+          unitBusy: true,
         };
       } else if (dispatcherBusy) {
         return {
           isBusy: true,
-          message: "This dispatcher is already assigned to another trip during this time period.",
+          message: "This dispatcher is already assigned to another trip during this time.",
           dispatcherBusy: true,
-          unitBusy: false
         };
       } else if (unitBusy) {
         return {
           isBusy: true,
-          message: "This unit is already assigned to another trip during this time period.",
-          dispatcherBusy: false,
-          unitBusy: true
+          message: "This unit is already assigned to another trip during this time.",
+          unitBusy: true,
+        };
+      } else if (patientBusy) {
+        // ← NEW: standalone patient conflict
+        return {
+          isBusy: true,
+          message: "This patient is already assigned to another trip during this time.",
+          patientBusy: true,
         };
       }
 
@@ -1274,49 +1297,49 @@ const EditTripModal = ({
   const validateField = useCallback(
     (name, value, currentForm) => {
       const ctx = currentForm || form;
-      
+
       switch (name) {
-        case "dispatch_id":
+        case "dispatch_id": {
           if (!value) return "Dispatch is required";
           const busyCheck = checkDispatcherOrUnitBusy({ ...ctx, dispatch_id: value });
-          if (busyCheck.isBusy) {
+          if (busyCheck.isBusy && busyCheck.dispatcherBusy) {
             return busyCheck.message;
           }
           return "";
+        }
 
-        case "unit_id":
+        case "unit_id": {
           if (!value) return "Unit is required";
           const busyCheckUnit = checkDispatcherOrUnitBusy({ ...ctx, unit_id: value });
-          if (busyCheckUnit.isBusy) {
+          if (busyCheckUnit.isBusy && busyCheckUnit.unitBusy) {
             return busyCheckUnit.message;
           }
           return "";
+        }
+
+        case "patient_id": {
+          if (!value) return "Patient is required";
+          // ── NEW: check patient conflict against existing trips ──────────
+          const busyCheckPatient = checkDispatcherOrUnitBusy({ ...ctx, patient_id: value });
+          if (busyCheckPatient.isBusy && busyCheckPatient.patientBusy) {
+            return busyCheckPatient.message;
+          }
+          return "";
+        }
 
         case "crew":
-  if (!value.trim()) return "Crew is required";
-  if (value.trim().length < 2) return "Crew must be at least 2 characters";
-  if (value.trim().length > 50) return "Crew cannot exceed 50 characters";
-  
-  // CR_TC098: Check for numbers in crew name
-  if (/[0-9]/.test(value)) {
-    return "Crew name should not contain numbers";
-  }
-  
-  // Check for special characters
-  if (/[$*@#%^&!{}[\]<>\\|]/.test(value))
-    return "Special characters are not allowed";
-  return "";
-
-        case "patient_id":
-          if (!value) return "Patient is required";
+          if (!value.trim()) return "Crew is required";
+          if (value.trim().length < 2) return "Crew must be at least 2 characters";
+          if (value.trim().length > 50) return "Crew cannot exceed 50 characters";
+          if (/[0-9]/.test(value)) return "Crew name should not contain numbers";
+          if (/[$*@#%^&!{}[\]<>\\|]/.test(value)) return "Special characters are not allowed";
           return "";
 
         case "phone_number":
           return validatePhoneNumber(value);
 
-        case "pickup_location": {
+        case "pickup_location":
           return validateLocation(value, "Pickup location");
-        }
 
         case "start_time": {
           if (!value) return "Start time is required";
@@ -1324,11 +1347,8 @@ const EditTripModal = ({
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
           if (startDate < oneHourAgo)
             return "Start time cannot be more than 1 hour in the past";
-          
           const busyCheck = checkDispatcherOrUnitBusy({ ...ctx, start_time: value });
-          if (busyCheck.isBusy) {
-            return busyCheck.message;
-          }
+          if (busyCheck.isBusy) return busyCheck.message;
           return "";
         }
 
@@ -1343,16 +1363,13 @@ const EditTripModal = ({
 
         case "destination": {
           if (!value || !value.trim()) return "Destination is required";
-
           const destinationError = validateLocation(value, "Destination");
           if (destinationError) return destinationError;
-
           if (
             ctx.pickup_location &&
             value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
           )
             return "Destination cannot be the same as Pickup Location";
-
           return "";
         }
 
@@ -1389,24 +1406,20 @@ const EditTripModal = ({
 
       if (["pickup_location", "destination"].includes(name)) {
         sanitizedValue = capitalizeWords(sanitizeInput(value));
-        
+
         if (sanitizedValue.trim().length > 1) {
           const searchTerm = sanitizedValue.toLowerCase();
-          const filtered = vizagLocations.filter(loc => 
+          const filtered = vizagLocations.filter(loc =>
             loc.toLowerCase().includes(searchTerm)
           );
-          
           if (name === "pickup_location") {
             setPickupSuggestions(filtered.slice(0, 5));
           } else {
             setDestinationSuggestions(filtered.slice(0, 5));
           }
         } else {
-          if (name === "pickup_location") {
-            setPickupSuggestions([]);
-          } else {
-            setDestinationSuggestions([]);
-          }
+          if (name === "pickup_location") setPickupSuggestions([]);
+          else setDestinationSuggestions([]);
         }
       }
 
@@ -1420,19 +1433,25 @@ const EditTripModal = ({
       const error = validateField(name, sanitizedValue, updatedForm);
       const newErrors = { ...errors, [name]: error };
 
+      // Cross-validate pickup ↔ destination
       if (name === "pickup_location" && updatedForm.destination) {
         newErrors.destination = validateField("destination", updatedForm.destination, updatedForm);
       }
       if (name === "destination" && updatedForm.pickup_location) {
         newErrors.pickup_location = validateField("pickup_location", updatedForm.pickup_location, updatedForm);
       }
-      
-      if (["dispatch_id", "unit_id", "start_time", "end_time"].includes(name)) {
+
+      // Re-validate all resource fields when time or resource IDs change
+      if (["dispatch_id", "unit_id", "patient_id", "start_time", "end_time"].includes(name)) {
         if (updatedForm.dispatch_id) {
           newErrors.dispatch_id = validateField("dispatch_id", updatedForm.dispatch_id, updatedForm);
         }
         if (updatedForm.unit_id) {
           newErrors.unit_id = validateField("unit_id", updatedForm.unit_id, updatedForm);
+        }
+        // ── NEW: re-validate patient when time window or sibling resource changes ──
+        if (updatedForm.patient_id) {
+          newErrors.patient_id = validateField("patient_id", updatedForm.patient_id, updatedForm);
         }
       }
 
@@ -1450,12 +1469,8 @@ const EditTripModal = ({
         ...prev,
         [fieldName]: validateField(fieldName, value),
       }));
-      
-      if (fieldName === "pickup_location") {
-        setPickupSuggestions([]);
-      } else if (fieldName === "destination") {
-        setDestinationSuggestions([]);
-      }
+      if (fieldName === "pickup_location") setPickupSuggestions([]);
+      else if (fieldName === "destination") setDestinationSuggestions([]);
     },
     [validateField]
   );
@@ -1463,13 +1478,8 @@ const EditTripModal = ({
   const handleSuggestionClick = (fieldName, suggestion) => {
     const sanitizedValue = capitalizeWords(suggestion);
     setForm(prev => ({ ...prev, [fieldName]: sanitizedValue }));
-    
-    if (fieldName === "pickup_location") {
-      setPickupSuggestions([]);
-    } else {
-      setDestinationSuggestions([]);
-    }
-    
+    if (fieldName === "pickup_location") setPickupSuggestions([]);
+    else setDestinationSuggestions([]);
     setErrors(prev => ({
       ...prev,
       [fieldName]: validateField(fieldName, sanitizedValue)
@@ -1489,16 +1499,13 @@ const EditTripModal = ({
       }
     });
 
+    // Final overall busy check covering all three resources together
     const busyCheck = checkDispatcherOrUnitBusy(form);
     if (busyCheck.isBusy) {
-      if (busyCheck.dispatcherBusy && busyCheck.unitBusy) {
-        newErrors.dispatch_id = busyCheck.message;
-        newErrors.unit_id = busyCheck.message;
-      } else if (busyCheck.dispatcherBusy) {
-        newErrors.dispatch_id = busyCheck.message;
-      } else if (busyCheck.unitBusy) {
-        newErrors.unit_id = busyCheck.message;
-      }
+      if (busyCheck.dispatcherBusy) newErrors.dispatch_id = busyCheck.message;
+      if (busyCheck.unitBusy) newErrors.unit_id = busyCheck.message;
+      // ── NEW: propagate patient error on submit ──────────────────────────
+      if (busyCheck.patientBusy) newErrors.patient_id = busyCheck.message;
       isValid = false;
     }
 
@@ -1509,9 +1516,8 @@ const EditTripModal = ({
   // ── handleSubmit ─────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
-
     setSubmitted(true);
-    
+
     if (!validateForm()) {
       const fieldOrder = [
         "dispatch_id", "unit_id", "crew", "patient_id",
@@ -1599,7 +1605,15 @@ const EditTripModal = ({
                 const unitErr = updatedForm.unit_id
                   ? validateField("unit_id", updatedForm.unit_id, updatedForm)
                   : errors.unit_id;
-                setErrors((prev) => ({ ...prev, dispatch_id: dispatchErr, unit_id: unitErr }));
+                const patientErr = updatedForm.patient_id
+                  ? validateField("patient_id", updatedForm.patient_id, updatedForm)
+                  : errors.patient_id;
+                setErrors((prev) => ({
+                  ...prev,
+                  dispatch_id: dispatchErr,
+                  unit_id: unitErr,
+                  patient_id: patientErr,
+                }));
               }}
               options={dispatches}
               placeholder="Select Dispatch"
@@ -1621,7 +1635,15 @@ const EditTripModal = ({
                 const dispatchErr = updatedForm.dispatch_id
                   ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
                   : errors.dispatch_id;
-                setErrors((prev) => ({ ...prev, unit_id: unitErr, dispatch_id: dispatchErr }));
+                const patientErr = updatedForm.patient_id
+                  ? validateField("patient_id", updatedForm.patient_id, updatedForm)
+                  : errors.patient_id;
+                setErrors((prev) => ({
+                  ...prev,
+                  unit_id: unitErr,
+                  dispatch_id: dispatchErr,
+                  patient_id: patientErr,
+                }));
               }}
               options={units}
               placeholder="Select Unit"
@@ -1654,10 +1676,21 @@ const EditTripModal = ({
               name="patient_id"
               value={form.patient_id}
               onChange={(v) => {
-                setForm((p) => ({ ...p, patient_id: v }));
+                const updatedForm = { ...form, patient_id: v };
+                setForm(updatedForm);
+                // ── NEW: validate patient conflict on selection ────────────
+                const patientErr = validateField("patient_id", v, updatedForm);
+                const dispatchErr = updatedForm.dispatch_id
+                  ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
+                  : errors.dispatch_id;
+                const unitErr = updatedForm.unit_id
+                  ? validateField("unit_id", updatedForm.unit_id, updatedForm)
+                  : errors.unit_id;
                 setErrors((prev) => ({
                   ...prev,
-                  patient_id: validateField("patient_id", v),
+                  patient_id: patientErr,
+                  dispatch_id: dispatchErr,
+                  unit_id: unitErr,
                 }));
               }}
               options={patients}
