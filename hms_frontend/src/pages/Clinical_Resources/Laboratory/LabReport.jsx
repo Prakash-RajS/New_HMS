@@ -1175,7 +1175,7 @@
 
 // export default LabReport;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import DeleteLabReportPopup from "./DeleteLabReport.jsx";
 import CreateTestOrderPopup from "./CreateTestOrderPopup.jsx";
 import { successToast, errorToast } from "../../../components/Toast.jsx";
@@ -1200,6 +1200,84 @@ import {
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import api from "../../../utils/axiosConfig";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+// DateField Component - Same as used in AddAppointmentPopup
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -1427,8 +1505,7 @@ const LabReport = () => {
 
       const result = response.data;
       await fetchLabReports();
-      const orderId = selectedOrderForEdit?.orderId || `#${id}`;
-    successToast(`Lab report ${orderId} updated successfully!`);
+      successToast(`Lab report #${id} updated successfully!`);
       return result;
     } catch (err) {
       errorToast(err.response?.data?.detail || err.message || "Failed to update lab report");
@@ -1631,22 +1708,15 @@ const LabReport = () => {
   };
 
   const validateForm = () => {
-  const newErrors = {};
-  if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
-  if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
-  if (!formData.department) newErrors.department = "Department is required";
-  if (!formData.testType.trim()) newErrors.testType = "Test type is required";
-  if (!formData.status) newErrors.status = "Status is required";
-  
-  // ✅ NEW: Validate file upload when status is "completed"
-  if (formData.status === "completed" && !formData.labReportFile) {
-    newErrors.labReportFile = "Lab report file is required when status is Completed";
-  }
-  
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
-
+    const newErrors = {};
+    if (!formData.patientName.trim()) newErrors.patientName = "Patient name is required";
+    if (!formData.patientId.trim()) newErrors.patientId = "Patient ID is required";
+    if (!formData.department) newErrors.department = "Department is required";
+    if (!formData.testType.trim()) newErrors.testType = "Test type is required";
+    if (!formData.status) newErrors.status = "Status is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSaveEdit = async () => {
      if (!canEdit) {
@@ -1904,7 +1974,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 <th className="py-3 px-4 text-left">Created Date</th>
                 <th className="py-3 px-4 text-left">Report</th>
                 <th className="py-3 px-4 text-left">Actions</th>
-              </tr>
+               </tr>
             </thead>
             <tbody>
               {displayedData.length === 0 ? (
@@ -2013,7 +2083,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
     No report
   </span>
 )}
-                    </td>
+                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2 relative overflow-visible">
                         {/* EDIT ICON + TOOLTIP */}
@@ -2066,8 +2136,8 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                           </span>
                         </div>
                       </div>
-                    </td>
-                  </tr>
+                     </td>
+                   </tr>
                 ))
               )}
             </tbody>
@@ -2112,7 +2182,7 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
         </div>
       </div>
 
-      {/* Filter Popup */}
+      {/* Filter Popup - Updated with DateField */}
       {showFilterPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50">
           <div className="rounded-[20px] p-[1px] backdrop-blur-md shadow-[0px_0px_4px_0px_#FFFFFF1F] bg-gradient-to-r from-green-400/70 via-gray-300/30 to-green-400/70 dark:bg-[linear-gradient(132.3deg,rgba(14,255,123,0.7)_0%,rgba(30,30,30,0.7)_49.68%,rgba(14,255,123,0.7)_99.36%)]">
@@ -2146,30 +2216,19 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                   }
                   options={["All", ...departments]}
                 />
-                <div>
-                  <label
-                    className="text-sm text-black dark:text-white"
-                    style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                  >
-                    Created Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={tempFilters.date}
-                      onChange={(e) =>
-                        setTempFilters({ ...tempFilters, date: e.target.value })
-                      }
-                      onClick={(e) => e.target.showPicker()}
-                      className="w-[228px] h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
-                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-                    />
-                    <Calendar
-                      size={18}
-                      className="absolute right-3 top-3.5 text-black dark:text-[#0EFF7B] pointer-events-none"
-                    />
-                  </div>
-                </div>
+                
+                {/* Date Field - Using the same DateField component */}
+                <DateField
+                  label="Created Date"
+                  value={tempFilters.date}
+                  onChange={(date) =>
+                    setTempFilters({ ...tempFilters, date })
+                  }
+                  required={false}
+                  onFocus={() => {}}
+                  onBlur={() => {}}
+                />
+                
                 <Dropdown
                   label="Status"
                   value={tempFilters.status}
@@ -2319,60 +2378,44 @@ bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)]">
                 />
 
                 {/* Lab Report File Upload - Only show when status is "completed" */}
-                {/* Lab Report File Upload - Only show when status is "completed" */}
-{formData.status === "completed" && (
-  <div className="col-span-2">
-    <label
-      className="text-sm text-black dark:text-white"
-      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
-    >
-      Upload Lab Report <span className="text-red-700">*</span>
-    </label>
-    <div className="mt-2">
-      <input
-        type="file"
-        id="labReportFile"
-        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
-        onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            setFormData({
-              ...formData,
-              labReportFile: e.target.files[0],
-            });
-            // Clear error when file is selected
-            if (errors.labReportFile) {
-              setErrors(prev => ({ ...prev, labReportFile: undefined }));
-            }
-          }
-        }}
-        className="hidden"
-      />
-      <label
-        htmlFor="labReportFile"
-        className={`flex items-center justify-center w-full h-[32px] px-3 rounded-[8px] border 
-          ${errors.labReportFile 
-            ? 'border-red-500 dark:border-red-500 bg-red-50 dark:bg-red-900/20' 
-            : 'border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A]'
-          } 
-          text-[#08994A] dark:text-[#0EFF7B] text-sm cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] transition-colors`}
-      >
-        <FileText className="w-4 h-4 mr-2" />
-        {formData.labReportFile
-          ? formData.labReportFile.name
-          : "Choose file"}
-      </label>
-      {errors.labReportFile && (
-        <p className="text-red-500 dark:text-red-400 text-xs mt-1 flex items-center gap-1">
-          <AlertCircle size={12} />
-          {errors.labReportFile}
-        </p>
-      )}
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-        Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
-      </p>
-    </div>
-  </div>
-)}
+                {formData.status === "completed" && (
+                  <div className="col-span-2">
+                    <label
+                      className="text-sm text-black dark:text-white"
+                      style={{ fontFamily: "Helvetica, Arial, sans-serif" }}
+                    >
+                      Upload Lab Report
+                    </label>
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        id="labReportFile"
+                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFormData({
+                              ...formData,
+                              labReportFile: e.target.files[0],
+                            });
+                          }
+                        }}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="labReportFile"
+                        className="flex items-center justify-center w-full h-[32px] px-3 rounded-[8px] border border-[#0EFF7B] dark:border-[#0EFF7B] bg-[#0EFF7B1A] dark:bg-[#0EFF7B1A] text-[#08994A] dark:text-[#0EFF7B] text-sm cursor-pointer hover:bg-[#0EFF7B33] dark:hover:bg-[#0EFF7B33] transition-colors"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        {formData.labReportFile
+                          ? formData.labReportFile.name
+                          : "Choose file"}
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Buttons */}

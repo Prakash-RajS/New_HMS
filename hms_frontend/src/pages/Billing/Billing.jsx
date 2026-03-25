@@ -1729,7 +1729,7 @@
 // export default BillingManagement;
 
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
   Filter,
@@ -1747,12 +1747,92 @@ import {
   FileDown,
   BarChart3,
   Activity,
+  AlertCircle,
 } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
 import { successToast, errorToast } from "../../components/Toast.jsx";
 import api from "../../utils/axiosConfig";
-import { usePermissions } from "../../components/PermissionContext"; // ✅ RBAC
+import { usePermissions } from "../../components/PermissionContext";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
+// ==================== DATEFIELD COMPONENT ====================
+
+const DateField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  error = null,
+  onFocus = () => {},
+  onBlur = () => {},
+  minDate = null,
+}) => {
+  const datePickerRef = useRef(null);
+
+  // Parse the date value (expects YYYY-MM-DD format)
+  const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) return null;
+    const [year, month, day] = parts.map(Number);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    return new Date(year, month - 1, day);
+  };
+
+  const selectedDate = parseDate(value);
+
+  const handleDateChange = (date) => {
+    if (date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      onChange(`${year}-${month}-${day}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  return (
+    <div className="space-y-1 w-full">
+      <label className="text-sm text-black dark:text-white">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      
+      <div className="relative">
+        <DatePicker
+          ref={datePickerRef}
+          selected={selectedDate}
+          onChange={handleDateChange}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          dateFormat="MM/dd/yyyy"
+          placeholderText="MM/DD/YYYY"
+          showYearDropdown
+          scrollableYearDropdown
+          yearDropdownItemNumber={100}
+          minDate={minDate}
+          className="w-full h-[33px] px-3 rounded-[8px] border-2 border-[#0EFF7B] bg-gray-100 dark:bg-transparent text-[#08994A] dark:text-[#0EFF7B] placeholder-gray-500 outline-none text-sm focus:ring-1 focus:ring-[#0EFF7B]"
+          wrapperClassName="w-full"
+          popperClassName="z-50"
+        />
+        
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Calendar size={18} className="text-[#0EFF7B]" />
+        </div>
+      </div>
+      
+      {error && (
+        <div className="mt-1 flex items-center gap-1">
+          <AlertCircle size={12} className="text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-400 text-xs">{error}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ==================== COMPONENTS ====================
 
@@ -1831,7 +1911,7 @@ const GuardedActionBtn = ({ onClick, icon: Icon, iconClass, label, bg, hoverBg, 
   <div
     className={`relative group flex items-center justify-center px-3 py-2 rounded-full transition
       ${bg || "bg-[#08994A1A] dark:bg-[#0EFF7B1A]"}
-      ${allowed ? `cursor-pointer ${hoverBg || "hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"}` : "opacity-100 cursor-not-allowed"}`}
+      ${allowed ? `cursor-pointer ${hoverBg || "hover:bg-[#08994A33] dark:hover:bg-[#0EFF7B33]"}` : "opacity-40 cursor-not-allowed"}`}
     onClick={allowed ? onClick : undefined}
   >
     <Icon size={16} className={iconClass} />
@@ -2056,8 +2136,6 @@ const handleHospitalClearFilters = () => {
       errorToast(err.response?.data?.detail || "Failed to download CSV file");
     }
   };
-
-  // ========== DATA FETCHING ==========
 
   // ========== DATA FETCHING ==========
 
@@ -2485,7 +2563,7 @@ const handleHospitalViewInvoice = (invoiceId) =>
             className={`w-[200px] h-[40px] flex items-center justify-center border-b-[2px] border-[#0EFF7B] shadow-[0px_2px_12px_0px_#00000040] text-white font-semibold px-4 py-2 rounded-[8px] transition duration-300 ease-in-out
               ${canBill
                 ? "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 cursor-pointer"
-                : "bg-[linear-gradient(92.18deg,#025126_3.26%,#0D7F41_50.54%,#025126_97.83%)] hover:opacity-90 opacity-100 cursor-not-allowed"
+                : "bg-gray-400 dark:bg-gray-700 opacity-50 cursor-not-allowed"
               }`}
           >
             + Generate Bill
@@ -2905,7 +2983,7 @@ const handleHospitalViewInvoice = (invoiceId) =>
     invoiceId={row.id}
   />
 </td>
-                          </tr>
+                           </tr>
                         ))}
                       </tbody>
                     </table>
@@ -2991,13 +3069,17 @@ const FilterPopup = ({ type, status, setStatus, department, setDepartment, payme
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Dropdown label="Status" value={status} onChange={setStatus} options={statusOptions} />
-              <div>
-                <label className="text-sm text-black dark:text-white">Invoice Date</label>
-                <div className="relative">
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full h-[32px] mt-1 px-3 rounded-[8px] border border-gray-300 dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none" />
-                  <Calendar size={18} className="absolute right-3 top-3.5 text-black dark:text-[#0EFF7B] pointer-events-none" />
-                </div>
-              </div>
+              
+              {/* Date Field - Using the same DateField component */}
+              <DateField
+                label="Invoice Date"
+                value={date}
+                onChange={setDate}
+                required={false}
+                onFocus={() => {}}
+                onBlur={() => {}}
+              />
+              
               <Dropdown label="Department" value={department} onChange={setDepartment} options={departmentOptions} />
               <Dropdown label="Payment Method" value={paymentMethod} onChange={setPaymentMethod} options={paymentMethodOptions} />
             </div>
