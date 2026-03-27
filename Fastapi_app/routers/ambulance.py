@@ -849,7 +849,8 @@
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Service unhealthy: {str(e)}")
 
-# fastapi_app/routers/ambulance_router.py
+# fastapi_app/routers/ambulance.py
+# fastapi_app/routers/ambulance.py
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field, ConfigDict, validator
 from typing import Optional, List, Dict, Any
@@ -946,7 +947,6 @@ class PatientRef(BaseModel):
         return cls(**data)
 
 class DispatchBase(BaseModel):
-    timestamp: datetime
     unit_id: Optional[int] = None
     dispatcher: str = Field(..., example="R. Lewis")
     call_type: Optional[str] = "Emergency"
@@ -967,7 +967,6 @@ class DispatchCreate(DispatchBase):
         return v
 
 class DispatchUpdate(DispatchBase):
-    timestamp: Optional[datetime] = None
     unit_id: Optional[int] = None
     dispatcher: Optional[str] = None
     call_type: Optional[str] = None
@@ -979,6 +978,7 @@ class DispatchUpdate(DispatchBase):
 class DispatchResponse(DispatchBase):
     id: int
     dispatch_id: str
+    timestamp: datetime
     unit: Optional[AmbulanceUnitResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
@@ -1473,7 +1473,7 @@ async def create_dispatch(payload: DispatchCreate):
 
     unit = await sync_to_async(lambda: (ensure_db_connection(), AmbulanceUnit.objects.get(id=payload.unit_id))[1])() if payload.unit_id else None
     dispatch = await sync_to_async(lambda: (ensure_db_connection(), Dispatch.objects.create(
-        timestamp=payload.timestamp, unit=unit, dispatcher=payload.dispatcher,
+        unit=unit, dispatcher=payload.dispatcher,
         call_type=payload.call_type or "Emergency", location=payload.location,
         phone_number=payload.phone_number, contact_number=payload.contact_number,
         status=payload.status or "Standby"
@@ -1515,7 +1515,6 @@ async def update_dispatch(dispatch_id: int, payload: DispatchUpdate):
                     }
                 )
 
-        if payload.timestamp is not None: d.timestamp = payload.timestamp
         if payload.dispatcher is not None: d.dispatcher = payload.dispatcher
         if payload.call_type is not None: d.call_type = payload.call_type
         if payload.location is not None: d.location = payload.location

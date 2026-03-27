@@ -598,9 +598,9 @@
 // export default EditTripModal;
 
 /// EditTrip.jsx - WITH VALIDATION (Format while typing, required after submission)
-// EditTrip.jsx - WITH FIXED duplicate validation (checks dispatcher OR unit OR patient separately)
+// EditTrip.jsx - WITH FIXED duplicate validation + UTC timezone fix + Calendar icon added
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { X, ChevronDown, CalendarClock, MapPin, Phone } from "lucide-react";
+import { X, ChevronDown, MapPin, Phone, Calendar } from "lucide-react";
 import { Listbox } from "@headlessui/react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -638,6 +638,18 @@ const vizagLocations = [
   "Maharanipeta",
   "Asilmetta"
 ];
+
+// ---------------------------------------------------------------------------
+// UTC → local datetime-local string
+// Fixes: table shows UTC time, modal showed wrong local time via .slice(0,16)
+// ---------------------------------------------------------------------------
+const toLocalDateTimeString = (utcString) => {
+  if (!utcString) return "";
+  const date = new Date(utcString);
+  if (isNaN(date)) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
 
 // ---------------------------------------------------------------------------
 // ErrorMessage
@@ -761,8 +773,9 @@ const TextInput = React.memo(({
 });
 
 // ---------------------------------------------------------------------------
-// DateTimeField
+// DateTimeField — Calendar icon added
 // ---------------------------------------------------------------------------
+// DateTimeField — Calendar icon on the right end
 const DateTimeField = React.memo(({
   label,
   name,
@@ -786,17 +799,10 @@ const DateTimeField = React.memo(({
   };
 
   const handleDateChange = (date) => {
-    if (date) {
-      const syntheticEvent = {
-        target: { name: name, value: formatDateTime(date) }
-      };
-      onChange(syntheticEvent);
-    } else {
-      const syntheticEvent = {
-        target: { name: name, value: "" }
-      };
-      onChange(syntheticEvent);
-    }
+    const syntheticEvent = {
+      target: { name: name, value: date ? formatDateTime(date) : "" }
+    };
+    onChange(syntheticEvent);
   };
 
   const formatDisplayValue = (dateTimeStr) => {
@@ -825,6 +831,7 @@ const DateTimeField = React.memo(({
         placeholder="Select date & time"
         className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] outline-none cursor-pointer"
       />
+      <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#0EFF7B] pointer-events-none" />
       <style>{`
         .react-datepicker-wrapper,
         .react-datepicker__input-container {
@@ -832,12 +839,6 @@ const DateTimeField = React.memo(({
           width: 100%;
         }
       `}</style>
-      <div
-        onClick={onClick}
-        className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer z-10"
-      >
-        <CalendarClock className="w-4 h-4 text-[#0EFF7B]" />
-      </div>
     </div>
   ));
 
@@ -994,68 +995,33 @@ const Dropdown = React.memo(({
 });
 
 // ---------------------------------------------------------------------------
-// Location format validator
-// ---------------------------------------------------------------------------
-const isValidLocationFormat = (value) => {
-  const trimmed = value.trim();
-
-  const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
-  if (invalidChars.test(trimmed)) return false;
-
-  const isVizagLocation = vizagLocations.some(loc =>
-    trimmed.toLowerCase().includes(loc.toLowerCase())
-  );
-  if (isVizagLocation) return true;
-
-  if (trimmed.length < 5) return false;
-  if (trimmed.length > 100) return false;
-
-  const words = trimmed.split(/\s+/);
-  if (words.length < 2) return false;
-
-  const hasLetters = /[A-Za-z]/.test(trimmed);
-  if (!hasLetters) return false;
-
-  return true;
-};
-
-// ---------------------------------------------------------------------------
 // Auto-capitalise first letter of each word
 // ---------------------------------------------------------------------------
 const capitalizeWords = (value) =>
   value.replace(/(^|\s)([a-z])/g, (_, space, char) => space + char.toUpperCase());
 
 // ---------------------------------------------------------------------------
-// Validate phone number with stricter rules
+// Validate phone number
 // ---------------------------------------------------------------------------
 const validatePhoneNumber = (value) => {
   if (!value || !value.trim()) return "Phone number is required";
-
   const digitsOnly = value.replace(/\D/g, '');
-
   if (digitsOnly.length === 0) return "Phone number is required";
   if (digitsOnly.length < 10) return "Phone number must have exactly 10 digits";
   if (digitsOnly.length > 10) return "Phone number must have exactly 10 digits";
-
-  const isRepeated = /^(\d)\1{9}$/.test(digitsOnly);
-  if (isRepeated) return "Invalid phone number - cannot have all digits same";
-
-  const isSequential = /^(0123456789|1234567890|2345678901|3456789012|4567890123|5678901234|6789012345|7890123456|8901234567|9012345678|9876543210)$/.test(digitsOnly);
-  if (isSequential) return "Invalid phone number - cannot be sequential";
-
+  if (/^(\d)\1{9}$/.test(digitsOnly)) return "Invalid phone number - cannot have all digits same";
+  if (/^(0123456789|1234567890|2345678901|3456789012|4567890123|5678901234|6789012345|7890123456|8901234567|9012345678|9876543210)$/.test(digitsOnly))
+    return "Invalid phone number - cannot be sequential";
   if (!/^[6-9]/.test(digitsOnly)) return "Phone number must start with 6, 7, 8, or 9";
-
   return "";
 };
 
 // ---------------------------------------------------------------------------
-// Enhanced location validation function
+// Location validation
 // ---------------------------------------------------------------------------
 const validateLocation = (value, fieldName) => {
   if (!value || !value.trim()) return `${fieldName} is required`;
-
   const trimmed = value.trim();
-
   const invalidChars = /[$*@#%^&!{}[\]<>\\]/;
   if (invalidChars.test(trimmed))
     return `Special characters $, *, @, #, %, ^, &, !, {, }, [, ], <, >, \\ are not allowed`;
@@ -1063,19 +1029,13 @@ const validateLocation = (value, fieldName) => {
   const isVizagLocation = vizagLocations.some(loc =>
     trimmed.toLowerCase().includes(loc.toLowerCase())
   );
-
   if (!isVizagLocation) {
     if (trimmed.length < 5) return `Please enter a more specific location (at least 5 characters)`;
     if (trimmed.length > 100) return `${fieldName} cannot exceed 100 characters`;
-
     const words = trimmed.split(/\s+/);
-    if (words.length < 2)
-      return `Please provide more specific location (e.g., 'Main Road, Gajuwaka')`;
-
-    const hasLetters = /[A-Za-z]/.test(trimmed);
-    if (!hasLetters) return `${fieldName} must contain letters`;
+    if (words.length < 2) return `Please provide more specific location (e.g., 'Main Road, Gajuwaka')`;
+    if (!/[A-Za-z]/.test(trimmed)) return `${fieldName} must contain letters`;
   }
-
   return "";
 };
 
@@ -1128,12 +1088,8 @@ const EditTripModal = ({
   const freshTime = () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() + 5);
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
   };
 
   useEffect(() => {
@@ -1154,8 +1110,8 @@ const EditTripModal = ({
         pickup_location: trip.pickup_location || "",
         destination: trip.destination || "",
         status: trip.status || "Standby",
-        start_time: trip.start_time ? trip.start_time.slice(0, 16) : "",
-        end_time: trip.end_time ? trip.end_time.slice(0, 16) : "",
+        start_time: trip.start_time ? toLocalDateTimeString(trip.start_time) : "",
+        end_time: trip.end_time ? toLocalDateTimeString(trip.end_time) : "",
         notes: trip.notes || "",
         phone_number: trip.phone_number || "",
       });
@@ -1171,22 +1127,13 @@ const EditTripModal = ({
     }
   }, [isOpen, trip, units]);
 
-  // ── helpers ──────────────────────────────────────────────────────────────
+  // ── sanitize ──────────────────────────────────────────────────────────────
+  const sanitizeInput = (value) => value.replace(/[$*@#%^&!{}[\]<>\\|]/gi, "");
 
-  const sanitizeInput = (value) =>
-    value.replace(/[$*@#%^&!{}[\]<>\\|]/gi, "");
-
-  // ---------------------------------------------------------------------------
-  // FIXED: checkDispatcherOrUnitBusy now also checks patient conflicts
-  // - Only requires start_time (not all three IDs) to run
-  // - Each resource (dispatcher / unit / patient) is checked independently
-  // ---------------------------------------------------------------------------
+  // ── checkDispatcherOrUnitBusy ─────────────────────────────────────────────
   const checkDispatcherOrUnitBusy = useCallback(
     (currentForm) => {
-      // Only start_time is mandatory to run the check
-      if (!currentForm.start_time) {
-        return { isBusy: false };
-      }
+      if (!currentForm.start_time) return { isBusy: false };
 
       const newStart = new Date(currentForm.start_time);
       const newEnd = currentForm.end_time ? new Date(currentForm.end_time) : null;
@@ -1194,10 +1141,9 @@ const EditTripModal = ({
 
       let dispatcherBusy = false;
       let unitBusy = false;
-      let patientBusy = false;   // ← NEW
+      let patientBusy = false;
 
       existingTrips.forEach((t) => {
-        // Skip the trip being edited
         if (isEdit && String(t.id) === String(trip?.id)) return;
 
         const existStart = t.start_time ? new Date(t.start_time) : null;
@@ -1209,91 +1155,44 @@ const EditTripModal = ({
 
         if (!hasOverlap) return;
 
-        // Check dispatcher conflict
         if (currentForm.dispatch_id) {
           const tripDispatchId = String(t.dispatch_id || t.dispatch?.id || "");
-          const currentDispatchId = String(currentForm.dispatch_id);
-          if (tripDispatchId && tripDispatchId === currentDispatchId) {
+          if (tripDispatchId && tripDispatchId === String(currentForm.dispatch_id))
             dispatcherBusy = true;
-          }
         }
-
-        // Check unit conflict
         if (currentForm.unit_id) {
           const tripUnitId = String(t.unit_id || t.unit?.id || "");
-          const currentUnitId = String(currentForm.unit_id);
-          if (tripUnitId && tripUnitId === currentUnitId) {
+          if (tripUnitId && tripUnitId === String(currentForm.unit_id))
             unitBusy = true;
-          }
         }
-
-        // ── NEW: Check patient conflict ──────────────────────────────────
         if (currentForm.patient_id) {
           const tripPatientId = String(t.patient_id || t.patient?.id || "");
-          const currentPatientId = String(currentForm.patient_id);
-          if (tripPatientId && tripPatientId === currentPatientId) {
+          if (tripPatientId && tripPatientId === String(currentForm.patient_id))
             patientBusy = true;
-          }
         }
       });
 
-      // Build combined messages covering all conflict combos
-      if (dispatcherBusy && unitBusy && patientBusy) {
-        return {
-          isBusy: true,
-          message: "Dispatcher, unit, and patient are all already assigned to another trip during this time.",
-          dispatcherBusy: true,
-          unitBusy: true,
-          patientBusy: true,
-        };
-      } else if (patientBusy && dispatcherBusy) {
-        return {
-          isBusy: true,
-          message: "This patient and dispatcher are already assigned to another trip during this time.",
-          dispatcherBusy: true,
-          patientBusy: true,
-        };
-      } else if (patientBusy && unitBusy) {
-        return {
-          isBusy: true,
-          message: "This patient and unit are already assigned to another trip during this time.",
-          unitBusy: true,
-          patientBusy: true,
-        };
-      } else if (dispatcherBusy && unitBusy) {
-        return {
-          isBusy: true,
-          message: "Both dispatcher and unit are already assigned to another trip during this time.",
-          dispatcherBusy: true,
-          unitBusy: true,
-        };
-      } else if (dispatcherBusy) {
-        return {
-          isBusy: true,
-          message: "This dispatcher is already assigned to another trip during this time.",
-          dispatcherBusy: true,
-        };
-      } else if (unitBusy) {
-        return {
-          isBusy: true,
-          message: "This unit is already assigned to another trip during this time.",
-          unitBusy: true,
-        };
-      } else if (patientBusy) {
-        // ← NEW: standalone patient conflict
-        return {
-          isBusy: true,
-          message: "This patient is already assigned to another trip during this time.",
-          patientBusy: true,
-        };
-      }
+      if (dispatcherBusy && unitBusy && patientBusy)
+        return { isBusy: true, message: "Dispatcher, unit, and patient are all already assigned to another trip during this time.", dispatcherBusy: true, unitBusy: true, patientBusy: true };
+      if (patientBusy && dispatcherBusy)
+        return { isBusy: true, message: "This patient and dispatcher are already assigned to another trip during this time.", dispatcherBusy: true, patientBusy: true };
+      if (patientBusy && unitBusy)
+        return { isBusy: true, message: "This patient and unit are already assigned to another trip during this time.", unitBusy: true, patientBusy: true };
+      if (dispatcherBusy && unitBusy)
+        return { isBusy: true, message: "Both dispatcher and unit are already assigned to another trip during this time.", dispatcherBusy: true, unitBusy: true };
+      if (dispatcherBusy)
+        return { isBusy: true, message: "This dispatcher is already assigned to another trip during this time.", dispatcherBusy: true };
+      if (unitBusy)
+        return { isBusy: true, message: "This unit is already assigned to another trip during this time.", unitBusy: true };
+      if (patientBusy)
+        return { isBusy: true, message: "This patient is already assigned to another trip during this time.", patientBusy: true };
 
       return { isBusy: false };
     },
     [existingTrips, isEdit, trip]
   );
 
-  // ── validateField ────────────────────────────────────────────────────────
+  // ── validateField ─────────────────────────────────────────────────────────
   const validateField = useCallback(
     (name, value, currentForm) => {
       const ctx = currentForm || form;
@@ -1301,32 +1200,22 @@ const EditTripModal = ({
       switch (name) {
         case "dispatch_id": {
           if (!value) return "Dispatch is required";
-          const busyCheck = checkDispatcherOrUnitBusy({ ...ctx, dispatch_id: value });
-          if (busyCheck.isBusy && busyCheck.dispatcherBusy) {
-            return busyCheck.message;
-          }
+          const bc = checkDispatcherOrUnitBusy({ ...ctx, dispatch_id: value });
+          if (bc.isBusy && bc.dispatcherBusy) return bc.message;
           return "";
         }
-
         case "unit_id": {
           if (!value) return "Unit is required";
-          const busyCheckUnit = checkDispatcherOrUnitBusy({ ...ctx, unit_id: value });
-          if (busyCheckUnit.isBusy && busyCheckUnit.unitBusy) {
-            return busyCheckUnit.message;
-          }
+          const bc = checkDispatcherOrUnitBusy({ ...ctx, unit_id: value });
+          if (bc.isBusy && bc.unitBusy) return bc.message;
           return "";
         }
-
         case "patient_id": {
           if (!value) return "Patient is required";
-          // ── NEW: check patient conflict against existing trips ──────────
-          const busyCheckPatient = checkDispatcherOrUnitBusy({ ...ctx, patient_id: value });
-          if (busyCheckPatient.isBusy && busyCheckPatient.patientBusy) {
-            return busyCheckPatient.message;
-          }
+          const bc = checkDispatcherOrUnitBusy({ ...ctx, patient_id: value });
+          if (bc.isBusy && bc.patientBusy) return bc.message;
           return "";
         }
-
         case "crew":
           if (!value.trim()) return "Crew is required";
           if (value.trim().length < 2) return "Crew must be at least 2 characters";
@@ -1334,24 +1223,19 @@ const EditTripModal = ({
           if (/[0-9]/.test(value)) return "Crew name should not contain numbers";
           if (/[$*@#%^&!{}[\]<>\\|]/.test(value)) return "Special characters are not allowed";
           return "";
-
         case "phone_number":
           return validatePhoneNumber(value);
-
         case "pickup_location":
           return validateLocation(value, "Pickup location");
-
         case "start_time": {
           if (!value) return "Start time is required";
           const startDate = new Date(value);
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          if (startDate < oneHourAgo)
+          if (startDate < new Date(Date.now() - 60 * 60 * 1000))
             return "Start time cannot be more than 1 hour in the past";
-          const busyCheck = checkDispatcherOrUnitBusy({ ...ctx, start_time: value });
-          if (busyCheck.isBusy) return busyCheck.message;
+          const bc = checkDispatcherOrUnitBusy({ ...ctx, start_time: value });
+          if (bc.isBusy) return bc.message;
           return "";
         }
-
         case "mileage":
           if (value && value.trim()) {
             const num = parseFloat(value);
@@ -1360,33 +1244,22 @@ const EditTripModal = ({
             if (num > 9999) return "Mileage seems too high";
           }
           return "";
-
         case "destination": {
           if (!value || !value.trim()) return "Destination is required";
-          const destinationError = validateLocation(value, "Destination");
-          if (destinationError) return destinationError;
-          if (
-            ctx.pickup_location &&
-            value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase()
-          )
+          const destErr = validateLocation(value, "Destination");
+          if (destErr) return destErr;
+          if (ctx.pickup_location && value.trim().toLowerCase() === ctx.pickup_location.trim().toLowerCase())
             return "Destination cannot be the same as Pickup Location";
           return "";
         }
-
         case "end_time":
-          if (value && ctx.start_time) {
-            if (new Date(value) <= new Date(ctx.start_time))
-              return "End time must be after start time";
-          }
+          if (value && ctx.start_time && new Date(value) <= new Date(ctx.start_time))
+            return "End time must be after start time";
           return "";
-
         case "notes":
-          if (value && value.trim()) {
-            if (/[$*@#%^&!{}[\]<>\\|]/.test(value))
-              return "Special characters are not allowed";
-          }
+          if (value && value.trim() && /[$*@#%^&!{}[\]<>\\|]/.test(value))
+            return "Special characters are not allowed";
           return "";
-
         default:
           return "";
       }
@@ -1394,65 +1267,47 @@ const EditTripModal = ({
     [form, checkDispatcherOrUnitBusy]
   );
 
-  // ── handleChange ─────────────────────────────────────────────────────────
+  // ── handleChange ──────────────────────────────────────────────────────────
   const handleChange = useCallback(
     (e) => {
       const { name, value } = e.target;
       let sanitizedValue = value;
 
-      if (["crew", "notes"].includes(name)) {
-        sanitizedValue = sanitizeInput(value);
-      }
+      if (["crew", "notes"].includes(name)) sanitizedValue = sanitizeInput(value);
 
       if (["pickup_location", "destination"].includes(name)) {
         sanitizedValue = capitalizeWords(sanitizeInput(value));
-
         if (sanitizedValue.trim().length > 1) {
-          const searchTerm = sanitizedValue.toLowerCase();
           const filtered = vizagLocations.filter(loc =>
-            loc.toLowerCase().includes(searchTerm)
+            loc.toLowerCase().includes(sanitizedValue.toLowerCase())
           );
-          if (name === "pickup_location") {
-            setPickupSuggestions(filtered.slice(0, 5));
-          } else {
-            setDestinationSuggestions(filtered.slice(0, 5));
-          }
+          if (name === "pickup_location") setPickupSuggestions(filtered.slice(0, 5));
+          else setDestinationSuggestions(filtered.slice(0, 5));
         } else {
           if (name === "pickup_location") setPickupSuggestions([]);
           else setDestinationSuggestions([]);
         }
       }
 
-      if (name === "phone_number") {
-        sanitizedValue = value.replace(/\D/g, "").slice(0, 10);
-      }
+      if (name === "phone_number") sanitizedValue = value.replace(/\D/g, "").slice(0, 10);
 
       const updatedForm = { ...form, [name]: sanitizedValue };
       setForm(updatedForm);
 
-      const error = validateField(name, sanitizedValue, updatedForm);
-      const newErrors = { ...errors, [name]: error };
+      const newErrors = { ...errors, [name]: validateField(name, sanitizedValue, updatedForm) };
 
-      // Cross-validate pickup ↔ destination
-      if (name === "pickup_location" && updatedForm.destination) {
+      if (name === "pickup_location" && updatedForm.destination)
         newErrors.destination = validateField("destination", updatedForm.destination, updatedForm);
-      }
-      if (name === "destination" && updatedForm.pickup_location) {
+      if (name === "destination" && updatedForm.pickup_location)
         newErrors.pickup_location = validateField("pickup_location", updatedForm.pickup_location, updatedForm);
-      }
 
-      // Re-validate all resource fields when time or resource IDs change
       if (["dispatch_id", "unit_id", "patient_id", "start_time", "end_time"].includes(name)) {
-        if (updatedForm.dispatch_id) {
+        if (updatedForm.dispatch_id)
           newErrors.dispatch_id = validateField("dispatch_id", updatedForm.dispatch_id, updatedForm);
-        }
-        if (updatedForm.unit_id) {
+        if (updatedForm.unit_id)
           newErrors.unit_id = validateField("unit_id", updatedForm.unit_id, updatedForm);
-        }
-        // ── NEW: re-validate patient when time window or sibling resource changes ──
-        if (updatedForm.patient_id) {
+        if (updatedForm.patient_id)
           newErrors.patient_id = validateField("patient_id", updatedForm.patient_id, updatedForm);
-        }
       }
 
       setErrors(newErrors);
@@ -1465,10 +1320,7 @@ const EditTripModal = ({
   const handleBlur = useCallback(
     (fieldName, value) => {
       setFocusedField(null);
-      setErrors((prev) => ({
-        ...prev,
-        [fieldName]: validateField(fieldName, value),
-      }));
+      setErrors((prev) => ({ ...prev, [fieldName]: validateField(fieldName, value) }));
       if (fieldName === "pickup_location") setPickupSuggestions([]);
       else if (fieldName === "destination") setDestinationSuggestions([]);
     },
@@ -1480,32 +1332,24 @@ const EditTripModal = ({
     setForm(prev => ({ ...prev, [fieldName]: sanitizedValue }));
     if (fieldName === "pickup_location") setPickupSuggestions([]);
     else setDestinationSuggestions([]);
-    setErrors(prev => ({
-      ...prev,
-      [fieldName]: validateField(fieldName, sanitizedValue)
-    }));
+    setErrors(prev => ({ ...prev, [fieldName]: validateField(fieldName, sanitizedValue) }));
   };
 
-  // ── validateForm ─────────────────────────────────────────────────────────
+  // ── validateForm ──────────────────────────────────────────────────────────
   const validateForm = useCallback(() => {
     const newErrors = {};
     let isValid = true;
 
     Object.keys(form).forEach((key) => {
       const error = validateField(key, form[key], form);
-      if (error) {
-        newErrors[key] = error;
-        isValid = false;
-      }
+      if (error) { newErrors[key] = error; isValid = false; }
     });
 
-    // Final overall busy check covering all three resources together
-    const busyCheck = checkDispatcherOrUnitBusy(form);
-    if (busyCheck.isBusy) {
-      if (busyCheck.dispatcherBusy) newErrors.dispatch_id = busyCheck.message;
-      if (busyCheck.unitBusy) newErrors.unit_id = busyCheck.message;
-      // ── NEW: propagate patient error on submit ──────────────────────────
-      if (busyCheck.patientBusy) newErrors.patient_id = busyCheck.message;
+    const bc = checkDispatcherOrUnitBusy(form);
+    if (bc.isBusy) {
+      if (bc.dispatcherBusy) newErrors.dispatch_id = bc.message;
+      if (bc.unitBusy) newErrors.unit_id = bc.message;
+      if (bc.patientBusy) newErrors.patient_id = bc.message;
       isValid = false;
     }
 
@@ -1513,31 +1357,16 @@ const EditTripModal = ({
     return isValid;
   }, [form, validateField, checkDispatcherOrUnitBusy]);
 
-  // ── handleSubmit ─────────────────────────────────────────────────────────
+  // ── handleSubmit ──────────────────────────────────────────────────────────
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
 
     if (!validateForm()) {
-      const fieldOrder = [
-        "dispatch_id", "unit_id", "crew", "patient_id",
-        "phone_number", "mileage", "pickup_location",
-        "destination", "notes", "start_time", "end_time",
-      ];
+      const fieldOrder = ["dispatch_id", "unit_id", "crew", "patient_id", "phone_number", "mileage", "pickup_location", "destination", "notes", "start_time", "end_time"];
       const firstErr = fieldOrder.find((k) => errors[k]);
-      const refMap = {
-        crew: crewRef,
-        pickup_location: pickupRef,
-        destination: destinationRef,
-        notes: notesRef,
-        start_time: startTimeRef,
-        end_time: endTimeRef,
-        phone_number: phoneRef,
-        mileage: mileageRef,
-      };
-      if (firstErr && refMap[firstErr]?.current) {
-        refMap[firstErr].current.focus();
-      }
+      const refMap = { crew: crewRef, pickup_location: pickupRef, destination: destinationRef, notes: notesRef, start_time: startTimeRef, end_time: endTimeRef, phone_number: phoneRef, mileage: mileageRef };
+      if (firstErr && refMap[firstErr]?.current) refMap[firstErr].current.focus();
       return;
     }
 
@@ -1550,7 +1379,7 @@ const EditTripModal = ({
       phone_number: form.phone_number.trim(),
     };
 
-    const payload = {
+    onSave({
       dispatch_id: sanitizedForm.dispatch_id ? Number(sanitizedForm.dispatch_id) : null,
       unit_id: sanitizedForm.unit_id ? Number(sanitizedForm.unit_id) : null,
       crew: sanitizedForm.crew.trim(),
@@ -1563,9 +1392,7 @@ const EditTripModal = ({
       status: sanitizedForm.status,
       notes: sanitizedForm.notes ? sanitizedForm.notes.trim() : null,
       phone_number: sanitizedForm.phone_number || null,
-    };
-
-    onSave(payload);
+    });
     onClose();
   };
 
@@ -1588,242 +1415,134 @@ const EditTripModal = ({
             </button>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            noValidate
-            className="grid grid-cols-4 gap-x-8 gap-y-6 text-sm"
-          >
+          <form onSubmit={handleSubmit} noValidate className="grid grid-cols-4 gap-x-8 gap-y-6 text-sm">
             {/* Row 1 */}
             <Dropdown
-              label="Dispatch"
-              name="dispatch_id"
-              value={form.dispatch_id}
+              label="Dispatch" name="dispatch_id" value={form.dispatch_id}
               onChange={(v) => {
                 const updatedForm = { ...form, dispatch_id: v };
                 setForm(updatedForm);
-                const dispatchErr = validateField("dispatch_id", v, updatedForm);
-                const unitErr = updatedForm.unit_id
-                  ? validateField("unit_id", updatedForm.unit_id, updatedForm)
-                  : errors.unit_id;
-                const patientErr = updatedForm.patient_id
-                  ? validateField("patient_id", updatedForm.patient_id, updatedForm)
-                  : errors.patient_id;
                 setErrors((prev) => ({
                   ...prev,
-                  dispatch_id: dispatchErr,
-                  unit_id: unitErr,
-                  patient_id: patientErr,
+                  dispatch_id: validateField("dispatch_id", v, updatedForm),
+                  unit_id: updatedForm.unit_id ? validateField("unit_id", updatedForm.unit_id, updatedForm) : prev.unit_id,
+                  patient_id: updatedForm.patient_id ? validateField("patient_id", updatedForm.patient_id, updatedForm) : prev.patient_id,
                 }));
               }}
-              options={dispatches}
-              placeholder="Select Dispatch"
-              displayField="dispatch_id"
-              secondaryField="dispatcher_name"
-              error={errors.dispatch_id}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              options={dispatches} placeholder="Select Dispatch"
+              displayField="dispatch_id" secondaryField="dispatcher_name"
+              error={errors.dispatch_id} submitted={submitted} isCreateMode={isCreateMode}
             />
 
             <Dropdown
-              label="Unit"
-              name="unit_id"
-              value={form.unit_id}
+              label="Unit" name="unit_id" value={form.unit_id}
               onChange={(v) => {
                 const updatedForm = { ...form, unit_id: v };
                 setForm(updatedForm);
-                const unitErr = validateField("unit_id", v, updatedForm);
-                const dispatchErr = updatedForm.dispatch_id
-                  ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
-                  : errors.dispatch_id;
-                const patientErr = updatedForm.patient_id
-                  ? validateField("patient_id", updatedForm.patient_id, updatedForm)
-                  : errors.patient_id;
                 setErrors((prev) => ({
                   ...prev,
-                  unit_id: unitErr,
-                  dispatch_id: dispatchErr,
-                  patient_id: patientErr,
+                  unit_id: validateField("unit_id", v, updatedForm),
+                  dispatch_id: updatedForm.dispatch_id ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm) : prev.dispatch_id,
+                  patient_id: updatedForm.patient_id ? validateField("patient_id", updatedForm.patient_id, updatedForm) : prev.patient_id,
                 }));
               }}
-              options={units}
-              placeholder="Select Unit"
-              displayField="unit_number"
-              secondaryField="vehicle_name"
-              error={errors.unit_id}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              options={units} placeholder="Select Unit"
+              displayField="unit_number" secondaryField="vehicle_name"
+              error={errors.unit_id} submitted={submitted} isCreateMode={isCreateMode}
             />
 
             <TextInput
-              label="Crew"
-              name="crew"
-              required
+              label="Crew" name="crew" required
               placeholder="EMT name (max 50 characters)"
-              value={form.crew}
-              onChange={handleChange}
-              onFocus={() => handleFocus("crew")}
-              onBlur={() => handleBlur("crew", form.crew)}
-              error={errors.crew}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={crewRef}
-              maxLength={50}
-              showCount={true}
+              value={form.crew} onChange={handleChange}
+              onFocus={() => handleFocus("crew")} onBlur={() => handleBlur("crew", form.crew)}
+              error={errors.crew} submitted={submitted} isCreateMode={isCreateMode}
+              inputRef={crewRef} maxLength={50} showCount
             />
 
             <Dropdown
-              label="Patient"
-              name="patient_id"
-              value={form.patient_id}
+              label="Patient" name="patient_id" value={form.patient_id}
               onChange={(v) => {
                 const updatedForm = { ...form, patient_id: v };
                 setForm(updatedForm);
-                // ── NEW: validate patient conflict on selection ────────────
-                const patientErr = validateField("patient_id", v, updatedForm);
-                const dispatchErr = updatedForm.dispatch_id
-                  ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm)
-                  : errors.dispatch_id;
-                const unitErr = updatedForm.unit_id
-                  ? validateField("unit_id", updatedForm.unit_id, updatedForm)
-                  : errors.unit_id;
                 setErrors((prev) => ({
                   ...prev,
-                  patient_id: patientErr,
-                  dispatch_id: dispatchErr,
-                  unit_id: unitErr,
+                  patient_id: validateField("patient_id", v, updatedForm),
+                  dispatch_id: updatedForm.dispatch_id ? validateField("dispatch_id", updatedForm.dispatch_id, updatedForm) : prev.dispatch_id,
+                  unit_id: updatedForm.unit_id ? validateField("unit_id", updatedForm.unit_id, updatedForm) : prev.unit_id,
                 }));
               }}
-              options={patients}
-              placeholder="Select Patient"
-              displayField="patient_unique_id"
-              secondaryField="full_name"
-              error={errors.patient_id}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              options={patients} placeholder="Select Patient"
+              displayField="patient_unique_id" secondaryField="full_name"
+              error={errors.patient_id} submitted={submitted} isCreateMode={isCreateMode}
             />
 
             {/* Row 2 */}
             <TextInput
-              label="Mileage (km)"
-              name="mileage"
-              type="number"
-              step="0.1"
-              min="0"
-              max="9999"
+              label="Mileage (km)" name="mileage" type="number"
               placeholder="e.g. 15.2 (Optional)"
-              value={form.mileage}
-              onChange={handleChange}
-              error={errors.mileage}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              value={form.mileage} onChange={handleChange}
+              error={errors.mileage} submitted={submitted} isCreateMode={isCreateMode}
               inputRef={mileageRef}
             />
 
             <TextInput
-              label="Phone Number"
-              name="phone_number"
-              required
+              label="Phone Number" name="phone_number" required
               placeholder="10-digit mobile number"
-              value={form.phone_number}
-              onChange={handleChange}
-              onFocus={() => handleFocus("phone_number")}
-              onBlur={() => handleBlur("phone_number", form.phone_number)}
-              error={errors.phone_number}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={phoneRef}
-              showIcon
-              icon={Phone}
-              maxLength={10}
+              value={form.phone_number} onChange={handleChange}
+              onFocus={() => handleFocus("phone_number")} onBlur={() => handleBlur("phone_number", form.phone_number)}
+              error={errors.phone_number} submitted={submitted} isCreateMode={isCreateMode}
+              inputRef={phoneRef} showIcon icon={Phone} maxLength={10}
             />
 
             <TextInput
-              label="Pickup Location"
-              name="pickup_location"
-              required
+              label="Pickup Location" name="pickup_location" required
               placeholder="Full address or landmark"
-              value={form.pickup_location}
-              onChange={handleChange}
-              onFocus={() => handleFocus("pickup_location")}
-              onBlur={() => handleBlur("pickup_location", form.pickup_location)}
-              error={errors.pickup_location}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={pickupRef}
-              showIcon
-              icon={MapPin}
-              maxLength={100}
-              showCount
+              value={form.pickup_location} onChange={handleChange}
+              onFocus={() => handleFocus("pickup_location")} onBlur={() => handleBlur("pickup_location", form.pickup_location)}
+              error={errors.pickup_location} submitted={submitted} isCreateMode={isCreateMode}
+              inputRef={pickupRef} showIcon icon={MapPin} maxLength={100} showCount
               suggestions={pickupSuggestions}
-              onSuggestionClick={(suggestion) => handleSuggestionClick("pickup_location", suggestion)}
+              onSuggestionClick={(s) => handleSuggestionClick("pickup_location", s)}
             />
 
             <TextInput
-              label="Destination"
-              name="destination"
-              required
+              label="Destination" name="destination" required
               placeholder="Hospital / Drop-off"
-              value={form.destination}
-              onChange={handleChange}
-              onFocus={() => handleFocus("destination")}
-              onBlur={() => handleBlur("destination", form.destination)}
-              error={errors.destination}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={destinationRef}
-              showIcon
-              icon={MapPin}
-              maxLength={100}
-              showCount
+              value={form.destination} onChange={handleChange}
+              onFocus={() => handleFocus("destination")} onBlur={() => handleBlur("destination", form.destination)}
+              error={errors.destination} submitted={submitted} isCreateMode={isCreateMode}
+              inputRef={destinationRef} showIcon icon={MapPin} maxLength={100} showCount
               suggestions={destinationSuggestions}
-              onSuggestionClick={(suggestion) => handleSuggestionClick("destination", suggestion)}
+              onSuggestionClick={(s) => handleSuggestionClick("destination", s)}
             />
 
             {/* Row 3 */}
             <TextInput
-              label="Notes (Optional)"
-              name="notes"
+              label="Notes (Optional)" name="notes"
               placeholder="Any extra information"
-              value={form.notes}
-              onChange={handleChange}
-              onFocus={() => handleFocus("notes")}
-              onBlur={() => handleBlur("notes", form.notes)}
-              error={errors.notes}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
-              inputRef={notesRef}
-              maxLength={500}
-              showCount
+              value={form.notes} onChange={handleChange}
+              onFocus={() => handleFocus("notes")} onBlur={() => handleBlur("notes", form.notes)}
+              error={errors.notes} submitted={submitted} isCreateMode={isCreateMode}
+              inputRef={notesRef} maxLength={500} showCount
             />
 
             <DateTimeField
-              label="Start Time"
-              name="start_time"
-              required
-              value={form.start_time}
-              onChange={handleChange}
-              error={errors.start_time}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              label="Start Time" name="start_time" required
+              value={form.start_time} onChange={handleChange}
+              error={errors.start_time} submitted={submitted} isCreateMode={isCreateMode}
             />
 
             <DateTimeField
-              label="End Time"
-              name="end_time"
-              value={form.end_time}
-              onChange={handleChange}
-              error={errors.end_time}
-              submitted={submitted}
-              isCreateMode={isCreateMode}
+              label="End Time" name="end_time"
+              value={form.end_time} onChange={handleChange}
+              error={errors.end_time} submitted={submitted} isCreateMode={isCreateMode}
             />
 
             {/* Status */}
             <div className="flex flex-col">
               <label className="text-black dark:text-white mb-1">Status</label>
-              <Listbox
-                value={form.status}
-                onChange={(v) => setForm((p) => ({ ...p, status: v }))}
-              >
+              <Listbox value={form.status} onChange={(v) => setForm((p) => ({ ...p, status: v }))}>
                 <div className="relative">
                   <Listbox.Button className="w-full h-[36px] px-3 pr-10 rounded-[8px] border border-[#0EFF7B] dark:border-[#3A3A3A] bg-gray-100 dark:bg-transparent text-black dark:text-[#0EFF7B] text-left text-sm flex items-center justify-between">
                     <span>{form.status}</span>
@@ -1832,14 +1551,9 @@ const EditTripModal = ({
                   <Listbox.Options className="absolute z-50 mt-1 w-full rounded-[12px] bg-gray-100 dark:bg-black shadow-lg border border-[#0EFF7B] dark:border-[#3A3A3A]">
                     {["Standby", "En Route", "Completed", "Cancelled"].map((s) => (
                       <Listbox.Option
-                        key={s}
-                        value={s}
+                        key={s} value={s}
                         className={({ active }) =>
-                          `cursor-pointer py-2 px-3 text-sm ${
-                            active
-                              ? "bg-[#0EFF7B33] text-[#0EFF7B]"
-                              : "text-black dark:text-white"
-                          }`
+                          `cursor-pointer py-2 px-3 text-sm ${active ? "bg-[#0EFF7B33] text-[#0EFF7B]" : "text-black dark:text-white"}`
                         }
                       >
                         {s}
@@ -1853,8 +1567,7 @@ const EditTripModal = ({
             {/* Actions */}
             <div className="col-span-4 flex justify-center gap-6 mt-4">
               <button
-                type="button"
-                onClick={onClose}
+                type="button" onClick={onClose}
                 className="w-[160px] h-[40px] rounded-[8px] border border-[#0EFF7B] text-gray-700 dark:text-white bg-gray-100 dark:bg-transparent font-medium hover:bg-gray-50 dark:hover:bg-[#0EFF7B11] transition-colors"
               >
                 Cancel

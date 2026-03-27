@@ -1046,6 +1046,37 @@ const AmbulanceUnitsModal = ({
     return true;
   };
 
+  // Validate unit number pattern: AMB-01 to AMB-100
+  const validateUnitNumber = (value) => {
+    if (!value || !value.trim()) {
+      return "Unit number is required";
+    }
+    
+    const trimmedValue = value.trim().toUpperCase();
+    
+    // Check if it matches the pattern AMB-XX where XX is 01-100
+    const pattern = /^AMB-(\d{1,3})$/;
+    const match = trimmedValue.match(pattern);
+    
+    if (!match) {
+      return "Unit number must be in format AMB-01 to AMB-100 (e.g., AMB-01, AMB-25, AMB-100)";
+    }
+    
+    const number = parseInt(match[1], 10);
+    
+    // Check if number is between 1 and 100
+    if (number < 1 || number > 100) {
+      return "Unit number must be between AMB-01 and AMB-100";
+    }
+    
+    // Check for leading zeros - should be exactly 2 digits for numbers 1-9
+    if (number < 10 && match[1].length !== 2) {
+      return "For numbers 1-9, use two digits with leading zero (e.g., AMB-01, AMB-02)";
+    }
+    
+    return "";
+  };
+
   // Sanitize phone input - only allow digits, +, -, spaces, parentheses
   const sanitizePhoneInput = (value) => {
     return value.replace(/[^\d\s\-+()]/g, '');
@@ -1111,16 +1142,7 @@ const AmbulanceUnitsModal = ({
   const validateField = useCallback((name, value, allFields = form) => {
     switch (name) {
       case "unit_number":
-        if (!value.trim()) return "Unit number is required";
-        // Updated: Allow spaces, hyphens, underscores, and letters/numbers
-        // Now accepts spaces in unit number
-        if (value.trim().length < 3) return "Unit number must be at least 3 characters";
-        if (value.trim().length > 20) return "Unit number cannot exceed 20 characters";
-        // Updated regex to allow spaces, letters, numbers, hyphens, underscores
-        if (!/^[A-Za-z0-9\s\-_]+$/.test(value.trim())) {
-          return "Unit number can only contain letters, numbers, spaces, hyphens and underscores";
-        }
-        return "";
+        return validateUnitNumber(value);
         
       case "vehicle_make":
         if (!value.trim()) return "Vehicle make is required";
@@ -1203,6 +1225,11 @@ const AmbulanceUnitsModal = ({
   const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     let newValue = type === "checkbox" ? checked : value;
+    
+    // Auto-convert unit number to uppercase for validation
+    if (name === 'unit_number') {
+      newValue = newValue.toUpperCase();
+    }
     
     // Sanitize phone inputs
     if (name === 'phone' || name === 'contact_number') {
@@ -1318,7 +1345,7 @@ const AmbulanceUnitsModal = ({
     try {
       // Prepare data for saving
       const dataToSave = {
-        unit_number: form.unit_number.trim(),
+        unit_number: form.unit_number.trim().toUpperCase(),
         vehicle_make: form.vehicle_make.trim(),
         vehicle_model: form.vehicle_model.trim(),
         phone: form.phone.trim() || null,
@@ -1502,7 +1529,7 @@ const AmbulanceUnitsModal = ({
                 label="Unit Number"
                 name="unit_number"
                 required={true}
-                placeholder="e.g. AMB-09 or AMB 09"
+                placeholder="e.g. AMB-01, AMB-25, AMB-100"
                 value={form.unit_number}
                 onChange={handleChange}
                 error={errors.unit_number}
@@ -1510,7 +1537,7 @@ const AmbulanceUnitsModal = ({
                 isCreateMode={isCreateMode}
                 inputRef={unitNumberRef}
                 className="col-span-1"
-                maxLength={20}
+                maxLength={7}
               />
 
               {/* In Service Checkbox - Column 2 */}

@@ -2337,14 +2337,14 @@ const AmbulanceManagement = () => {
           {/* Stats Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: "Total Vehicles", value: stats.total,        icon: "Ambulance" },
-              { label: "Ready",          value: stats.ready,        color: "text-green-400",  bg: "bg-green-500/10",  icon: "CheckCircle" },
-              { label: "On Road",        value: stats.onRoad,       color: "text-orange-400", bg: "bg-orange-500/10", icon: "Navigation"  },
-              { label: "Out of Service", value: stats.outOfService, color: "text-red-400",    bg: "bg-red-500/10",    icon: "AlertTriangle" },
+              { label: "Total Vehicles", value: stats.total,   color: "text-blue-700 dark:text-blue-700",     icon: "Ambulance" },
+              { label: "Ready",          value: stats.ready,        color: "text-green-700",  bg: "bg-green-500/10",  icon: "CheckCircle" },
+              { label: "On Road",        value: stats.onRoad,       color: "text-orange-700", bg: "bg-orange-500/10", icon: "Navigation"  },
+              { label: "Out of Service", value: stats.outOfService, color: "text-red-700",    bg: "bg-red-500/10",    icon: "AlertTriangle" },
             ].map((s, i) => (
               <div key={i} className={`relative p-5 rounded-xl border backdrop-blur-sm transition-all hover:scale-105 ${s.bg || "bg-gray-100/5 border-[#0EFF7B]/30"}`}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-400">{s.label}</span>
+                  <span className="text-xs text-black dark:text-white">{s.label}</span>
                   {s.icon === "CheckCircle"   && <CheckCircle   size={16} className="text-green-400"  />}
                   {s.icon === "Navigation"    && <Navigation    size={16} className="text-orange-400" />}
                   {s.icon === "AlertTriangle" && <AlertTriangle size={16} className="text-red-400"    />}
@@ -2500,7 +2500,7 @@ const AmbulanceManagement = () => {
               <colgroup>
                 <col className="w-10" />
                 <col className="w-[90px]" />
-                <col className="w-[130px]" />
+                {/* <col className="w-[130px]" /> */}
                 <col className="w-[80px]" />
                 <col className="w-[100px]" />
                 <col className="w-[90px]" />
@@ -2570,7 +2570,7 @@ const AmbulanceManagement = () => {
                   <>
                     {[
                       { key: "dispatch_id",      label: "Dispatch ID" },
-                      { key: "timestamp",        label: "Time"        },
+                      // { key: "timestamp",        label: "Time"        },
                       { key: "unit.unit_number", label: "Unit"        },
                       { key: "dispatcher",       label: "Dispatcher"  },
                       { key: "call_type",        label: "Type"        },
@@ -2668,7 +2668,7 @@ const AmbulanceManagement = () => {
                           <input type="checkbox" checked={isRowSelected(row.id)} onChange={() => handleRowSelect(row.id)} className={`${checkboxCls} ml-0`} />
                         </td>
                         <TruncatedCell text={row.dispatch_id}                                   maxWidth="max-w-[80px]" />
-                        <TruncatedCell text={new Date(row.timestamp).toLocaleString()}          maxWidth="max-w-[120px]" />
+                        {/* <TruncatedCell text={new Date(row.timestamp).toLocaleString()}          maxWidth="max-w-[120px]" /> */}
                         <TruncatedCell text={row.unit?.unit_number}                             maxWidth="max-w-[70px]" />
                         <TruncatedCell text={row.dispatcher}                                    maxWidth="max-w-[90px]" />
                         <TruncatedCell text={row.call_type}                                     maxWidth="max-w-[80px]" />
