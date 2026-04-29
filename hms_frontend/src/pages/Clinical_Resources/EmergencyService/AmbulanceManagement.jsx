@@ -2497,19 +2497,18 @@ const AmbulanceManagement = () => {
 
             {/* ── COLGROUPS ── */}
             {activeTab === "Dispatch Log" && (
-              <colgroup>
-                <col className="w-10" />
-                <col className="w-[90px]" />
-                {/* <col className="w-[130px]" /> */}
-                <col className="w-[80px]" />
-                <col className="w-[100px]" />
-                <col className="w-[90px]" />
-                <col className="w-[110px]" />
-                <col className="w-[110px]" />
-                <col className="w-[90px]" />
-                <col className="w-[80px]" />
-              </colgroup>
-            )}
+  <colgroup>
+    <col className="w-10" />
+    <col className="w-[90px]" />    {/* Dispatch ID */}
+    <col className="w-[80px]" />    {/* Unit */}
+    <col className="w-[100px]" />   {/* Dispatcher */}
+    <col className="w-[90px]" />    {/* Type */}
+    <col className="w-[110px]" />   {/* Location */}
+    <col className="w-[110px]" />   {/* Phone */}
+    <col className="w-[90px]" />    {/* Status */}
+    <col className="w-[80px]" />    {/* Action */}
+  </colgroup>
+)}
             {activeTab === "Trip Log" && (
               <colgroup>
                 <col className="w-10" />
@@ -2615,12 +2614,63 @@ const AmbulanceManagement = () => {
             {/* ── TBODY ── */}
             <tbody>
               {filteredData.length === 0 ? (
-                <tr>
-                  <td colSpan="20" className="text-center py-8 text-gray-500 dark:text-gray-400">
-                    No match found.
-                  </td>
-                </tr>
-              ) : (
+  <tr>
+    <td colSpan={
+      activeTab === "Dispatch Log" ? 9 :  // checkbox + 7 data columns + action = 9
+      activeTab === "Trip Log" ? 14 :     // checkbox + 12 data columns + action = 14
+      9                                   // Ambulance Units: checkbox + 6 data columns + action = 9
+    } 
+    className="text-center py-8 text-gray-500 dark:text-gray-400"
+  >
+    <div className="flex flex-col items-center justify-center gap-2">
+      {searchTerm ? (
+        <>
+          <Search size={48} className="opacity-30" />
+          <p className="text-sm">No results found for "{searchTerm}"</p>
+          <button 
+            onClick={() => setSearchTerm("")}
+            className="text-xs text-[#0EFF7B] hover:underline mt-1"
+          >
+            Clear search
+          </button>
+        </>
+      ) : filterStatus ? (
+        <>
+          <Filter size={48} className="opacity-30" />
+          <p className="text-sm">No {activeTab.toLowerCase()} with status "{filterStatus}"</p>
+          <button 
+            onClick={clearFilter}
+            className="text-xs text-[#0EFF7B] hover:underline mt-1"
+          >
+            Clear filter
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center mb-2">
+            {activeTab === "Dispatch Log" && <Siren size={32} className="opacity-30" />}
+            {activeTab === "Trip Log" && <Navigation size={32} className="opacity-30" />}
+            {activeTab === "Ambulance Units" && <AmbulanceIcon size={32} className="opacity-30" />}
+          </div>
+          <p className="text-sm">No {activeTab.toLowerCase()} found</p>
+          {canManage && (
+            <button 
+              onClick={() => {
+                if (activeTab === "Dispatch Log") handleOpenEditDispatch();
+                else if (activeTab === "Trip Log") handleOpenEditTrip();
+                else handleOpenEditUnit();
+              }}
+              className="mt-2 px-3 py-1 text-xs bg-[#025126] text-white rounded-md hover:scale-105 transition"
+            >
+              + Add {activeTab === "Dispatch Log" ? "Dispatch" : activeTab === "Trip Log" ? "Trip" : "Unit"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  </td>
+</tr>
+) : (
                 <>
                   {/* ── AMBULANCE UNITS ROWS ── */}
                   {activeTab === "Ambulance Units" &&

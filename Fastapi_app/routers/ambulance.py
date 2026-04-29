@@ -1019,43 +1019,43 @@ class TripResponse(TripBase):
     patient: Optional[PatientRef] = None
     model_config = ConfigDict(from_attributes=True)
 
-async def simulate_live_gps(trip_id: int, unit_number: str):
-    """Simulate live GPS tracking for a trip"""
-    if notify_clients is None:
-        print("⚠️ notify_clients not available for GPS simulation")
-        return
+# async def simulate_live_gps(trip_id: int, unit_number: str):
+#     """Simulate live GPS tracking for a trip"""
+#     if notify_clients is None:
+#         print("⚠️ notify_clients not available for GPS simulation")
+#         return
 
-    lat = 28.6139 + (random.random() - 0.5) * 0.1
-    lng = 77.2090 + (random.random() - 0.5) * 0.1
+#     lat = 28.6139 + (random.random() - 0.5) * 0.1
+#     lng = 77.2090 + (random.random() - 0.5) * 0.1
 
-    for i in range(50):
-        lat += (random.random() - 0.5) * 0.002
-        lng += (random.random() - 0.5) * 0.002
+#     for i in range(50):
+#         lat += (random.random() - 0.5) * 0.002
+#         lng += (random.random() - 0.5) * 0.002
 
-        await notify_clients(
-            event_type="location_update",
-            message=f"Ambulance {unit_number} location updated",
-            notification_type="info",
-            data={
-                "trip_id": trip_id,
-                "unit_number": unit_number,
-                "lat": round(lat, 6),
-                "lng": round(lng, 6),
-                "status": "En Route"
-            }
-        )
-        await asyncio.sleep(5)
+#         await notify_clients(
+#             event_type="location_update",
+#             message=f"Ambulance {unit_number} location updated",
+#             notification_type="info",
+#             data={
+#                 "trip_id": trip_id,
+#                 "unit_number": unit_number,
+#                 "lat": round(lat, 6),
+#                 "lng": round(lng, 6),
+#                 "status": "En Route"
+#             }
+#         )
+#         await asyncio.sleep(5)
 
-    await notify_clients(
-        event_type="status_update",
-        message=f"Ambulance {unit_number} has arrived at destination",
-        notification_type="success",
-        data={
-            "title": "Trip Completed",
-            "trip_id": trip_id,
-            "unit_number": unit_number
-        }
-    )
+#     await notify_clients(
+#         event_type="status_update",
+#         message=f"Ambulance {unit_number} has arrived at destination",
+#         notification_type="success",
+#         data={
+#             "title": "Trip Completed",
+#             "trip_id": trip_id,
+#             "unit_number": unit_number
+#         }
+#     )
 
 # ==============================================
 # Safe Async Delete Helper
@@ -1266,8 +1266,8 @@ async def notify_trip_created(trip_data: TripResponse):
             }
         )
 
-        if trip_data.status == "En Route" and trip_data.unit:
-            asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
+        # if trip_data.status == "En Route" and trip_data.unit:
+        #     asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
 
 async def notify_trip_updated(trip_data: TripResponse):
     """Notify when a trip is updated"""
@@ -1287,8 +1287,8 @@ async def notify_trip_updated(trip_data: TripResponse):
             }
         )
 
-        if trip_data.status == "En Route" and trip_data.unit:
-            asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
+        # if trip_data.status == "En Route" and trip_data.unit:
+        #     asyncio.create_task(simulate_live_gps(trip_data.id, unit_number))
 
 async def notify_trip_deleted(trip_id: int, trip_id_str: str, unit_number: str = None):
     """Notify when a trip is deleted"""
@@ -1820,8 +1820,8 @@ async def update_trip_status(trip_id: int, status: str):
                 }
             )
 
-            if status == "En Route" and trip.unit:
-                asyncio.create_task(simulate_live_gps(trip.id, unit_number))
+            # if status == "En Route" and trip.unit:
+            #     asyncio.create_task(simulate_live_gps(trip.id, unit_number))
 
         return trip_response
     except Trip.DoesNotExist:

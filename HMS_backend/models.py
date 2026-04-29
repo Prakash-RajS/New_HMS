@@ -816,7 +816,7 @@ class Dispatch(models.Model):
     ]
 
     dispatch_id = models.CharField(max_length=50, unique=True, blank=True)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(auto_now_add=True)  # CHANGE THIS LINE
     unit = models.ForeignKey(AmbulanceUnit, on_delete=models.SET_NULL, null=True, related_name="dispatches")
     dispatcher = models.CharField(max_length=150)
     call_type = models.CharField(max_length=30, choices=CALL_TYPE_CHOICES, default="Emergency")
